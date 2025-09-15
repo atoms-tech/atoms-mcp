@@ -1965,6 +1965,13 @@ def main() -> None:
       - ATOMS_FASTMCP_TRANSPORT: "http" or "stdio" (default: stdio)
       - ATOMS_FASTMCP_HOST: host when using http (default: 127.0.0.1)
       - ATOMS_FASTMCP_PORT: port when using http (default: 8000)
+      - ATOMS_FASTMCP_MODE: "legacy" or "consolidated" or "compatible" (default: consolidated)
+        - legacy: Original 100+ individual tools
+        - consolidated: New 5 smart tools only
+        - compatible: Both new and legacy tools (for migration)
+      - ATOMS_FASTMCP_AUTH_MODE: "jwt" or "disabled" (default: jwt)
+        - jwt: Supabase JWT token verification
+        - disabled: No authentication (development only)
     """
     # Load env files early so any tooling (e.g., Supabase) sees values
     _load_env_files()
@@ -1972,12 +1979,29 @@ def main() -> None:
     transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
     host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
     port_str = os.getenv("ATOMS_FASTMCP_PORT", "8000")
+    mode = os.getenv("ATOMS_FASTMCP_MODE", "consolidated").lower()
+    
     try:
         port = int(port_str)
     except ValueError:
         port = 8000
 
-    server = create_server()
+    # Create server based on mode
+    if mode == "legacy":
+        logger.info("Running in legacy mode with original tools")
+        server = create_server()
+    elif mode == "consolidated":
+        logger.info("Running in consolidated mode with new agent-optimized tools")
+        from .new_server import create_consolidated_server
+        server = create_consolidated_server()
+    elif mode == "compatible":
+        logger.info("Running in compatible mode with both legacy and new tools")
+        from .legacy import create_legacy_wrapper_server
+        server = create_legacy_wrapper_server()
+    else:
+        logger.warning(f"Unknown mode '{mode}', defaulting to consolidated")
+        from .new_server import create_consolidated_server
+        server = create_consolidated_server()
 
     if transport == "http":
         # Optional: simple health check route

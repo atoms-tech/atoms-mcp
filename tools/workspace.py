@@ -1,0 +1,189 @@
+"""Workspace context management tool."""
+
+from __future__ import annotations
+
+from typing import Dict, Any, Optional, Literal
+
+from .base import ToolBase
+
+
+class WorkspaceManager(ToolBase):
+    """Manages workspace context for users."""
+    
+    def __init__(self):
+        super().__init__()
+        # In-memory context store (in production, could be Redis/database)
+        self._user_contexts: Dict[str, Dict[str, Any]] = {}
+    
+    async def get_context(self, user_id: str) -> Dict[str, Any]:
+        """Get current workspace context for user."""
+        return self._user_contexts.get(user_id, {
+            "active_organization": None,
+            "active_project": None,
+            "active_document": None,
+            "recent_organizations": [],
+            "recent_projects": [],
+            "recent_documents": []
+        })
+    
+    async def set_context(
+        self, 
+        user_id: str, 
+        context_type: str, 
+        entity_id: str
+    ) -> Dict[str, Any]:
+        """Set active context for user."""
+        if user_id not in self._user_contexts:
+            self._user_contexts[user_id] = await self.get_context(user_id)
+        
+        context = self._user_contexts[user_id]
+        
+        # Set active context
+        if context_type == "organization":
+            context["active_organization"] = entity_id
+            # Add to recent if not already there
+            recent = context["recent_organizations"]
+            if entity_id in recent:
+                recent.remove(entity_id)
+            recent.insert(0, entity_id)
+            context["recent_organizations"] = recent[:10]  # Keep last 10
+            
+        elif context_type == "project":
+            context["active_project"] = entity_id
+            recent = context["recent_projects"]
+            if entity_id in recent:
+                recent.remove(entity_id)
+            recent.insert(0, entity_id)
+            context["recent_projects"] = recent[:10]
+            
+        elif context_type == "document":
+            context["active_document"] = entity_id
+            recent = context["recent_documents"]
+            if entity_id in recent:
+                recent.remove(entity_id)
+            recent.insert(0, entity_id)
+            context["recent_documents"] = recent[:10]
+        
+        return context
+    
+    async def list_workspaces(self, user_id: str) -> Dict[str, Any]:
+        """List available workspaces for user."""
+        # Get user's organizations
+        orgs = await self._db_query(
+            "organization_members",
+            select="organizations!inner(*)",
+            filters={
+                "user_id": user_id,
+                "status": "active",
+                "is_deleted": False
+            }
+        )
+        
+        organizations = []
+        for org_member in orgs:
+            org_data = org_member.get("organizations")
+            if org_data:
+                # Get projects count for this org
+                project_count = await self._db_count(
+                    "projects",
+                    filters={
+                        "organization_id": org_data["id"],
+                        "is_deleted": False
+                    }
+                )
+                
+                org_data["project_count"] = project_count
+                organizations.append(org_data)
+        
+        return {
+            "organizations": organizations,
+            "total_organizations": len(organizations),
+            "context": await self.get_context(user_id)
+        }
+    
+    async def get_smart_defaults(self, user_id: str) -> Dict[str, Optional[str]]:
+        """Get smart default values based on user context."""
+        context = await self.get_context(user_id)
+        
+        # Try to get active context first
+        org_id = context.get("active_organization")
+        project_id = context.get("active_project")
+        document_id = context.get("active_document")
+        
+        # If no active org, try personal org
+        if not org_id:
+            personal_org = await self._db_get_single(
+                "organizations",
+                filters={
+                    "created_by": user_id,
+                    "type": "personal",
+                    "is_deleted": False
+                }
+            )
+            if personal_org:
+                org_id = personal_org["id"]
+        
+        # If no active org still, try most recent
+        if not org_id and context.get("recent_organizations"):
+            org_id = context["recent_organizations"][0]
+        
+        return {
+            "organization_id": org_id,
+            "project_id": project_id,
+            "document_id": document_id
+        }
+
+
+# Global manager instance
+_workspace_manager = WorkspaceManager()
+
+
+async def workspace_operation(
+    auth_token: str,
+    operation: Literal["get_context", "set_context", "list_workspaces", "get_defaults"],
+    context_type: Optional[Literal["organization", "project", "document"]] = None,
+    entity_id: Optional[str] = None,
+    format_type: str = "detailed"
+) -> Dict[str, Any]:
+    """Manage workspace context for the current user.
+    
+    Args:
+        auth_token: Authentication token (Supabase JWT or session token)
+        operation: Operation to perform
+        context_type: Type of context to set (required for set_context)
+        entity_id: ID of entity to set as active (required for set_context)
+        format_type: Result format (detailed, summary, raw)
+    
+    Returns:
+        Dict containing operation result
+    """
+    try:
+        # Validate authentication
+        user_info = await _workspace_manager._validate_auth(auth_token)
+        user_id = user_info["user_id"]
+        
+        if operation == "get_context":
+            result = await _workspace_manager.get_context(user_id)
+            
+        elif operation == "set_context":
+            if not context_type or not entity_id:
+                raise ValueError("context_type and entity_id are required for set_context")
+            result = await _workspace_manager.set_context(user_id, context_type, entity_id)
+            
+        elif operation == "list_workspaces":
+            result = await _workspace_manager.list_workspaces(user_id)
+            
+        elif operation == "get_defaults":
+            result = await _workspace_manager.get_smart_defaults(user_id)
+            
+        else:
+            raise ValueError(f"Unknown operation: {operation}")
+        
+        return _workspace_manager._format_result(result, format_type)
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "operation": operation
+        }
