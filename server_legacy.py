@@ -2103,7 +2103,7 @@ def main() -> None:
     transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
     host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
     port_str = os.getenv("ATOMS_FASTMCP_PORT", "8000")
-    mode = os.getenv("ATOMS_FASTMCP_MODE", "consolidated").lower()
+    mode = os.getenv("ATOMS_FASTMCP_MODE", "legacy").lower()
     
     try:
         port = int(port_str)
@@ -2115,8 +2115,8 @@ def main() -> None:
         logger.info("Running in legacy mode with original tools")
         server = create_server()
     elif mode == "consolidated":
-        logger.info("Running in consolidated mode with agent-optimized tools + RAG + dev auth")
-        from .enhanced_server import create_consolidated_server
+        logger.info("Running in consolidated mode with new agent-optimized tools")
+        from .new_server import create_consolidated_server
         server = create_consolidated_server()
     elif mode == "compatible":
         logger.info("Running in compatible mode with both legacy and new tools")
@@ -2124,7 +2124,7 @@ def main() -> None:
         server = create_legacy_wrapper_server()
     else:
         logger.warning(f"Unknown mode '{mode}', defaulting to consolidated")
-        from .enhanced_server import create_consolidated_server
+        from .new_server import create_consolidated_server
         server = create_consolidated_server()
 
     if transport == "http":
