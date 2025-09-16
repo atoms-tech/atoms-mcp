@@ -1,17 +1,35 @@
-"""Data query and exploration tool."""
+"""Data query and exploration tool with RAG capabilities."""
 
 from __future__ import annotations
 
+import os
 from typing import Dict, Any, List, Optional, Literal
 
 from .base import ToolBase
 
 
 class DataQueryEngine(ToolBase):
-    """Advanced data querying and analysis engine."""
+    """Advanced data querying and analysis engine with RAG capabilities."""
     
     def __init__(self):
         super().__init__()
+        self._embedding_service = None
+        self._vector_search_service = None
+    
+    def _init_rag_services(self):
+        """Initialize RAG services on first use."""
+        if self._embedding_service is None:
+            from ..services.embedding import EmbeddingService
+            from ..services.vector_search import VectorSearchService
+            
+            # Get OpenAI API key from environment
+            openai_api_key = os.getenv("OPENAI_API_KEY")
+            if not openai_api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required for RAG functionality")
+            
+            # Initialize services
+            self._embedding_service = EmbeddingService(openai_api_key)
+            self._vector_search_service = VectorSearchService(self.supabase, self._embedding_service)
     
     async def _search_query(
         self,
@@ -322,6 +340,137 @@ class DataQueryEngine(ToolBase):
             "relationship_tables": relationship_tables,
             "relationships": relationships
         }
+    
+    async def _rag_search_query(
+        self,
+        query: str,
+        mode: Literal["semantic", "keyword", "hybrid", "auto"] = "auto",
+        entities: Optional[List[str]] = None,
+        similarity_threshold: float = 0.7,
+        limit: int = 10,
+        conditions: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Perform RAG-enabled search across entities."""
+        self._init_rag_services()
+        
+        # Auto-detect search mode if needed
+        if mode == "auto":
+            # Simple heuristic: use semantic for longer queries, keyword for short/specific terms
+            if len(query.split()) >= 3:
+                mode = "semantic"
+            else:
+                mode = "keyword"
+        
+        try:
+            # Perform the appropriate search
+            if mode == "semantic":
+                search_response = await self._vector_search_service.semantic_search(
+                    query=query,
+                    similarity_threshold=similarity_threshold,
+                    limit=limit,
+                    entity_types=entities,
+                    filters=conditions
+                )
+            elif mode == "keyword":
+                search_response = await self._vector_search_service.keyword_search(
+                    query=query,
+                    limit=limit,
+                    entity_types=entities,
+                    filters=conditions
+                )
+            elif mode == "hybrid":
+                search_response = await self._vector_search_service.hybrid_search(
+                    query=query,
+                    similarity_threshold=similarity_threshold,
+                    limit=limit,
+                    entity_types=entities,
+                    filters=conditions
+                )
+            else:
+                raise ValueError(f"Unsupported search mode: {mode}")
+            
+            # Format results for consistent API
+            formatted_results = []
+            for result in search_response.results:
+                formatted_results.append({
+                    "id": result.id,
+                    "entity_type": result.entity_type,
+                    "content": result.content,
+                    "similarity_score": result.similarity,
+                    "metadata": result.metadata
+                })
+            
+            return {
+                "search_type": "rag_search",
+                "query": query,
+                "mode": search_response.mode,
+                "total_results": search_response.total_results,
+                "results": formatted_results,
+                "query_embedding_tokens": search_response.query_embedding_tokens,
+                "search_time_ms": search_response.search_time_ms,
+                "entities_searched": entities or ["all"]
+            }
+            
+        except Exception as e:
+            return {
+                "search_type": "rag_search",
+                "query": query,
+                "mode": mode,
+                "error": str(e),
+                "total_results": 0,
+                "results": []
+            }
+    
+    async def _similarity_analysis(
+        self,
+        content: str,
+        entity_type: str,
+        similarity_threshold: float = 0.8,
+        limit: int = 5,
+        exclude_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Find content similar to the provided text."""
+        self._init_rag_services()
+        
+        try:
+            search_response = await self._vector_search_service.similarity_search_by_content(
+                content=content,
+                entity_type=entity_type,
+                similarity_threshold=similarity_threshold,
+                limit=limit,
+                exclude_id=exclude_id
+            )
+            
+            # Format results
+            formatted_results = []
+            for result in search_response.results:
+                formatted_results.append({
+                    "id": result.id,
+                    "entity_type": result.entity_type,
+                    "content": result.content,
+                    "similarity_score": result.similarity,
+                    "metadata": result.metadata
+                })
+            
+            return {
+                "analysis_type": "similarity_analysis",
+                "source_content": content[:200] + "..." if len(content) > 200 else content,
+                "entity_type": entity_type,
+                "total_results": search_response.total_results,
+                "results": formatted_results,
+                "query_embedding_tokens": search_response.query_embedding_tokens,
+                "search_time_ms": search_response.search_time_ms
+            }
+            
+        except Exception as e:
+            return {
+                "analysis_type": "similarity_analysis",
+                "source_content": content[:200] + "..." if len(content) > 200 else content,
+                "entity_type": entity_type,
+                "error": str(e),
+                "total_results": 0,
+                "results": []
+            }
 
 
 # Global query engine instance
@@ -330,25 +479,36 @@ _query_engine = DataQueryEngine()
 
 async def data_query(
     auth_token: str,
-    query_type: Literal["search", "aggregate", "analyze", "relationships"],
+    query_type: Literal["search", "aggregate", "analyze", "relationships", "rag_search", "similarity"],
     entities: List[str],
     conditions: Optional[Dict[str, Any]] = None,
     projections: Optional[List[str]] = None,
     search_term: Optional[str] = None,
     limit: Optional[int] = None,
-    format_type: str = "detailed"
+    format_type: str = "detailed",
+    # RAG-specific parameters
+    rag_mode: Literal["semantic", "keyword", "hybrid", "auto"] = "auto",
+    similarity_threshold: float = 0.7,
+    content: Optional[str] = None,
+    entity_type: Optional[str] = None,
+    exclude_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Query and analyze data across multiple entity types.
+    """Query and analyze data across multiple entity types with RAG capabilities.
     
     Args:
         auth_token: Authentication token
-        query_type: Type of query to perform
+        query_type: Type of query to perform (search, aggregate, analyze, relationships, rag_search, similarity)
         entities: List of entity types to query
         conditions: Filter conditions to apply
         projections: Specific fields to include (for aggregate queries)
-        search_term: Text search term (for search queries)
+        search_term: Text search term (for search and rag_search queries)
         limit: Maximum results per entity
         format_type: Result format (detailed, summary, raw)
+        rag_mode: RAG search mode (semantic, keyword, hybrid, auto)
+        similarity_threshold: Minimum similarity score for RAG searches (0-1)
+        content: Content text for similarity analysis
+        entity_type: Entity type for similarity analysis
+        exclude_id: ID to exclude from similarity results
     
     Returns:
         Dict containing query results and analysis
@@ -391,6 +551,31 @@ async def data_query(
         elif query_type == "relationships":
             result = await _query_engine._relationship_query(
                 valid_entities, conditions
+            )
+        
+        elif query_type == "rag_search":
+            if not search_term:
+                raise ValueError("search_term is required for rag_search queries")
+            result = await _query_engine._rag_search_query(
+                query=search_term,
+                mode=rag_mode,
+                entities=valid_entities,
+                similarity_threshold=similarity_threshold,
+                limit=limit,
+                conditions=conditions
+            )
+        
+        elif query_type == "similarity":
+            if not content:
+                raise ValueError("content is required for similarity queries")
+            if not entity_type:
+                raise ValueError("entity_type is required for similarity queries")
+            result = await _query_engine._similarity_analysis(
+                content=content,
+                entity_type=entity_type,
+                similarity_threshold=similarity_threshold,
+                limit=limit,
+                exclude_id=exclude_id
             )
         
         else:

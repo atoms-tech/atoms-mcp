@@ -9,10 +9,11 @@ from typing import Any, Dict, Optional
 from fastmcp import FastMCP
 from .supabase_client import get_supabase, MissingSupabaseConfig
 from .errors import ApiError, normalize_error
+from .tools.query import data_query
 
 
-# Simple in-memory session store for demo purposes.
-# Replace with your real auth/session backend when wiring to atoms API.
+# Simple in-memory session store for development mode.
+# Will be replaced by OAuth2/PKCE token management in production.
 @dataclass
 class Session:
     user_id: str
@@ -84,11 +85,14 @@ def _require_session(session_token: str) -> Session:
 
 def _verify_credentials(username: str, password: str) -> Optional[dict]:
     """
-    TEMP auth check. Replace with real backend integration.
-
+    Authentication for development mode using direct credential passing.
+    
+    This is the WORKING authentication method until OAuth2/PKCE prod flow is implemented.
+    
     Current behavior:
     - If FASTMCP_DEMO_USER and FASTMCP_DEMO_PASS env vars are set, verify against them.
-    - Otherwise accept any non-empty username/password and return a fake user.
+    - Otherwise performs real Supabase authentication via sign_in_with_password()
+    - Falls back to accepting any credentials only when Supabase is unavailable.
     """
     env_user = os.getenv("FASTMCP_DEMO_USER")
     env_pass = os.getenv("FASTMCP_DEMO_PASS")
@@ -109,17 +113,17 @@ def _verify_credentials(username: str, password: str) -> Optional[dict]:
         user = getattr(auth_res, "user", None)
         if user and getattr(user, "id", None):
             return {"id": user.id, "username": username}
+        # If we get here, Supabase auth failed with invalid credentials
+        return None
     except MissingSupabaseConfig:
-        # Fall back to demo behavior below when env is missing
-        pass
+        # Only fall back to dev mode if explicitly enabled
+        if os.getenv("ATOMS_FASTMCP_DEV_MODE") == "true":
+            if username and password:
+                return {"id": f"user_{username}", "username": username}
+        return None
     except Exception:
-        # Treat any auth error as invalid credentials, then fall back to demo if enabled below
-        pass
-
-    # Demo fallback only: accept any non-empty credentials when no strict env set
-    if username and password:
-        return {"id": f"user_{username}", "username": username}
-    return None
+        # Authentication failed - return None to indicate invalid credentials
+        return None
 
 
 def create_server() -> FastMCP:
@@ -139,7 +143,12 @@ def create_server() -> FastMCP:
 
     @mcp.tool(tags={"auth", "public"})
     def login(username: str, password: str) -> dict:
-        """Authenticate a user and return a session_token for subsequent calls.
+        """Development mode authentication via direct credential passing.
+        
+        User provides credentials explicitly: "Use my email/pass: user@example.com/mypassword"
+        Agent calls this tool to authenticate and get session_token for subsequent API calls.
+        
+        This is the WORKING authentication method until OAuth2/PKCE production flow is complete.
 
         Returns { success: bool, session_token?: str, user_id?: str, error?: str }
         """
@@ -1955,6 +1964,121 @@ def create_server() -> FastMCP:
         except Exception as e:
             raise normalize_error(e, "Failed to unset default views")
 
+    # RAG Search Tools
+    @mcp.tool(tags={"query", "rag"})
+    async def rag_search(
+        session_token: str,
+        query: str,
+        mode: str = "auto",
+        entities: Optional[list] = None,
+        similarity_threshold: float = 0.7,
+        limit: int = 10
+    ) -> dict:
+        """Perform RAG-enabled search across content with semantic understanding.
+        
+        Args:
+            session_token: Authentication token
+            query: Search query text
+            mode: Search mode (semantic, keyword, hybrid, auto)
+            entities: List of entity types to search (requirement, document, test, project, organization)
+            similarity_threshold: Minimum similarity score (0-1)
+            limit: Maximum results to return
+        """
+        try:
+            session = sessions.get(session_token)
+            if not session:
+                return {"success": False, "error": "Invalid session token"}
+            
+            result = await data_query(
+                auth_token=session_token,
+                query_type="rag_search",
+                entities=entities or [],
+                search_term=query,
+                rag_mode=mode,
+                similarity_threshold=similarity_threshold,
+                limit=limit
+            )
+            
+            return {"success": True, "data": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool(tags={"query", "rag"})
+    async def similarity_search(
+        session_token: str,
+        content: str,
+        entity_type: str,
+        similarity_threshold: float = 0.8,
+        limit: int = 5,
+        exclude_id: Optional[str] = None
+    ) -> dict:
+        """Find content similar to the provided text.
+        
+        Args:
+            session_token: Authentication token
+            content: Content text to find similar items for
+            entity_type: Type of entity to search within
+            similarity_threshold: Minimum similarity score (0-1)
+            limit: Maximum results to return
+            exclude_id: ID to exclude from results
+        """
+        try:
+            session = sessions.get(session_token)
+            if not session:
+                return {"success": False, "error": "Invalid session token"}
+            
+            result = await data_query(
+                auth_token=session_token,
+                query_type="similarity",
+                entities=[entity_type],
+                content=content,
+                entity_type=entity_type,
+                similarity_threshold=similarity_threshold,
+                limit=limit,
+                exclude_id=exclude_id
+            )
+            
+            return {"success": True, "data": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool(tags={"query"})
+    async def data_search(
+        session_token: str,
+        query_type: str,
+        entities: list,
+        search_term: Optional[str] = None,
+        conditions: Optional[dict] = None,
+        limit: int = 10
+    ) -> dict:
+        """General data query and search across entities.
+        
+        Args:
+            session_token: Authentication token
+            query_type: Type of query (search, aggregate, analyze, relationships)
+            entities: List of entity types to query
+            search_term: Text search term
+            conditions: Filter conditions
+            limit: Maximum results to return
+        """
+        try:
+            session = sessions.get(session_token)
+            if not session:
+                return {"success": False, "error": "Invalid session token"}
+            
+            result = await data_query(
+                auth_token=session_token,
+                query_type=query_type,
+                entities=entities,
+                search_term=search_term,
+                conditions=conditions,
+                limit=limit
+            )
+            
+            return {"success": True, "data": result}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     return mcp
 
 
@@ -1979,7 +2103,7 @@ def main() -> None:
     transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
     host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
     port_str = os.getenv("ATOMS_FASTMCP_PORT", "8000")
-    mode = os.getenv("ATOMS_FASTMCP_MODE", "consolidated").lower()
+    mode = os.getenv("ATOMS_FASTMCP_MODE", "legacy").lower()
     
     try:
         port = int(port_str)
