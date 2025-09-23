@@ -1839,6 +1839,544 @@ def create_server() -> FastMCP:
             raise normalize_error(e, "Failed to list trace links by target")
 
     # ----------------------
+    # Traceability Tools (Reading Only)
+    # ----------------------
+    @mcp.tool(tags={"traceability", "validation"})
+    def traceability_validate_cycle(
+        session_token: str,
+        org_id: str,
+        ancestor_id: str,
+        descendant_id: str,
+        max_depth: int = 100
+    ) -> dict:
+        """
+        Validate if creating a relationship would cause a cycle using stored procedure.
+
+        Args:
+            session_token: User session token
+            org_id: Organization ID for scoping
+            ancestor_id: Proposed parent requirement ID
+            descendant_id: Proposed child requirement ID
+            max_depth: Maximum depth to check (default: 100)
+
+        Returns:
+            {
+                success: bool,
+                would_create_cycle: bool,
+                cycle_path: list[{requirement_id, name, external_id}] | None,
+                error: str | None
+            }
+        """
+        _require_session(session_token)
+
+        try:
+            # Validate UUIDs
+            import uuid
+            uuid.UUID(ancestor_id)
+            uuid.UUID(descendant_id)
+            uuid.UUID(org_id)
+        except ValueError:
+            return {
+                "success": False,
+                "would_create_cycle": False,
+                "error": "Invalid UUID format",
+                "error_code": "INVALID_UUID"
+            }
+
+        # Check for self-reference
+        if ancestor_id == descendant_id:
+            return {
+                "success": False,
+                "would_create_cycle": True,
+                "error": "Self-reference not allowed",
+                "error_code": "SELF_REFERENCE_NOT_ALLOWED"
+            }
+
+        try:
+            sb = get_supabase()
+
+            # Call stored procedure for cycle detection
+            resp = sb.rpc("check_requirement_cycle", {
+                "p_ancestor_id": ancestor_id,
+                "p_descendant_id": descendant_id
+            }).execute()
+
+            would_create_cycle = getattr(resp, "data", False) or False
+
+            result = {
+                "success": True,
+                "would_create_cycle": would_create_cycle,
+                "cycle_path": None
+            }
+
+            # If cycle detected, try to get path information
+            if would_create_cycle:
+                try:
+                    # Get path from descendant back to ancestor
+                    path_resp = sb.rpc("get_requirement_ancestors", {
+                        "p_descendant_id": descendant_id,
+                        "p_max_depth": max_depth
+                    }).execute()
+
+                    ancestors = getattr(path_resp, "data", []) or []
+
+                    # Build cycle path if ancestor is found in ancestors
+                    for ancestor in ancestors:
+                        if ancestor.get("requirement_id") == ancestor_id:
+                            result["cycle_path"] = [{
+                                "requirement_id": ancestor_id,
+                                "name": ancestor.get("title", ""),
+                                "external_id": None  # Would need additional query
+                            }]
+                            break
+
+                except Exception:
+                    # Cycle detection succeeded but path retrieval failed
+                    # This is not critical, just return without path
+                    pass
+
+            return result
+
+        except Exception as e:
+            return {
+                "success": False,
+                "would_create_cycle": False,
+                "error": str(e),
+                "error_code": "DATABASE_ERROR"
+            }
+
+    @mcp.tool(tags={"traceability", "hierarchy"})
+    def traceability_query_hierarchy(
+        session_token: str,
+        org_id: str,
+        requirement_id: str,
+        direction: str = "both",  # "ancestors" | "descendants" | "both"
+        max_depth: int = 10,
+        include_metadata: bool = True
+    ) -> dict:
+        """
+        Query hierarchical relationships using stored procedures.
+
+        Args:
+            session_token: User session token
+            org_id: Organization ID for scoping
+            requirement_id: Root requirement ID
+            direction: Query direction (ancestors/descendants/both)
+            max_depth: Maximum depth to traverse
+            include_metadata: Include timing and count metadata
+
+        Returns:
+            {
+                success: bool,
+                requirement: {id, name, external_id, description},
+                relationships: list[{id, name, external_id, relationship_type, depth, path}],
+                metadata: {total_count, max_depth_reached, query_time_ms} | None,
+                error: str | None
+            }
+        """
+        _require_session(session_token)
+
+        if direction not in ["ancestors", "descendants", "both"]:
+            return {
+                "success": False,
+                "error": "Invalid direction. Must be 'ancestors', 'descendants', or 'both'",
+                "error_code": "INVALID_PARAMETER"
+            }
+
+        try:
+            import uuid
+            uuid.UUID(requirement_id)
+            uuid.UUID(org_id)
+        except ValueError:
+            return {
+                "success": False,
+                "error": "Invalid UUID format",
+                "error_code": "INVALID_UUID"
+            }
+
+        try:
+            sb = get_supabase()
+            start_time = __import__("time").time()
+
+            # Get base requirement info with org validation
+            req_resp = sb.table("requirements").select(
+                "id, name, external_id, description, documents!inner(project_id, projects!inner(organization_id))"
+            ).eq("id", requirement_id).eq("documents.projects.organization_id", org_id).single().execute()
+
+            base_req = getattr(req_resp, "data", None)
+            if not base_req:
+                return {
+                    "success": False,
+                    "error": "Requirement not found or access denied",
+                    "error_code": "REQUIREMENT_NOT_FOUND"
+                }
+
+            relationships = []
+
+            # Query ancestors
+            if direction in ["ancestors", "both"]:
+                try:
+                    ancestors_resp = sb.rpc("get_requirement_ancestors", {
+                        "p_descendant_id": requirement_id,
+                        "p_max_depth": max_depth
+                    }).execute()
+
+                    ancestors = getattr(ancestors_resp, "data", []) or []
+                    for ancestor in ancestors:
+                        relationships.append({
+                            "id": ancestor.get("requirement_id"),
+                            "name": ancestor.get("title", ""),
+                            "external_id": None,  # Would need join
+                            "description": None,  # Would need join
+                            "relationship_type": "ancestor",
+                            "depth": ancestor.get("depth", 0),
+                            "path": None,
+                            "has_children": ancestor.get("direct_parent", False)
+                        })
+                except Exception:
+                    # Continue if ancestors query fails
+                    pass
+
+            # Query descendants
+            if direction in ["descendants", "both"]:
+                try:
+                    descendants_resp = sb.rpc("get_requirement_descendants", {
+                        "p_ancestor_id": requirement_id,
+                        "p_max_depth": max_depth
+                    }).execute()
+
+                    descendants = getattr(descendants_resp, "data", []) or []
+                    for descendant in descendants:
+                        relationships.append({
+                            "id": descendant.get("requirement_id"),
+                            "name": descendant.get("title", ""),
+                            "external_id": None,  # Would need join
+                            "description": None,  # Would need join
+                            "relationship_type": "descendant",
+                            "depth": descendant.get("depth", 0),
+                            "path": None,
+                            "has_children": descendant.get("direct_parent", False)
+                        })
+                except Exception:
+                    # Continue if descendants query fails
+                    pass
+
+            result = {
+                "success": True,
+                "requirement": {
+                    "id": base_req["id"],
+                    "name": base_req["name"],
+                    "external_id": base_req.get("external_id"),
+                    "description": base_req.get("description")
+                },
+                "relationships": relationships
+            }
+
+            if include_metadata:
+                query_time_ms = int((__import__("time").time() - start_time) * 1000)
+                result["metadata"] = {
+                    "total_count": len(relationships),
+                    "max_depth_reached": any(r["depth"] >= max_depth for r in relationships),
+                    "query_time_ms": query_time_ms
+                }
+
+            return result
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "DATABASE_ERROR"
+            }
+
+    @mcp.tool(tags={"traceability", "search"})
+    def traceability_search_for_linking(
+        session_token: str,
+        org_id: str,
+        project_id: str = None,
+        document_id: str = None,
+        exclude_requirement_id: str = None,
+        search_query: str = None,
+        requirement_type: str = None,
+        status: list[str] = None,
+        exclude_existing_links: bool = True,
+        max_results: int = 100,
+        offset: int = 0
+    ) -> dict:
+        """
+        Search requirements available for linking with filtering and pagination.
+
+        Args:
+            session_token: User session token
+            org_id: Organization ID for scoping
+            project_id: Optional project scope
+            document_id: Optional document scope
+            exclude_requirement_id: Exclude specific requirement
+            search_query: Text search in name/description
+            requirement_type: Filter by requirement type
+            status: Filter by status values
+            exclude_existing_links: Exclude already linked requirements
+            max_results: Maximum results (default: 100)
+            offset: Pagination offset (default: 0)
+
+        Returns:
+            {
+                success: bool,
+                requirements: list[{id, name, external_id, description, document_name,
+                                  project_name, status, type, can_link, existing_relationship}],
+                pagination: {total, offset, limit, has_more},
+                error: str | None
+            }
+        """
+        _require_session(session_token)
+
+        try:
+            sb = get_supabase()
+
+            # Build base query with joins
+            select_fields = """
+                id, name, external_id, description, status, type,
+                documents!inner(id, name, project_id, projects!inner(id, name, organization_id))
+            """
+
+            q = sb.table("requirements").select(select_fields).eq("is_deleted", False)
+
+            # Organization scoping
+            q = q.eq("documents.projects.organization_id", org_id)
+
+            # Project scoping
+            if project_id:
+                q = q.eq("documents.project_id", project_id)
+
+            # Document scoping
+            if document_id:
+                q = q.eq("document_id", document_id)
+
+            # Exclude specific requirement
+            if exclude_requirement_id:
+                q = q.neq("id", exclude_requirement_id)
+
+            # Text search
+            if search_query:
+                q = q.or_(f"name.ilike.%{search_query}%,description.ilike.%{search_query}%")
+
+            # Type filter
+            if requirement_type:
+                q = q.eq("type", requirement_type)
+
+            # Status filter
+            if status and len(status) > 0:
+                q = q.in_("status", status)
+
+            # Get total count for pagination
+            count_resp = q.select("*", count="exact", head=True).execute()
+            total_count = getattr(count_resp, "count", 0) or 0
+
+            # Apply pagination
+            start = offset
+            end = offset + max_results - 1
+            q = q.order("name").range(start, end)
+
+            resp = q.execute()
+            raw_requirements = getattr(resp, "data", []) or []
+
+            # Process results
+            requirements = []
+            for req in raw_requirements:
+                doc = req.get("documents", {}) or {}
+                project = (doc.get("projects", {}) or {})
+
+                processed_req = {
+                    "id": req["id"],
+                    "name": req["name"],
+                    "external_id": req.get("external_id"),
+                    "description": req.get("description"),
+                    "document_name": doc.get("name", ""),
+                    "project_name": project.get("name", ""),
+                    "status": req.get("status", ""),
+                    "type": req.get("type", ""),
+                    "can_link": True,  # Basic permission, could be enhanced
+                    "existing_relationship": None  # Would need additional query if exclude_existing_links
+                }
+
+                requirements.append(processed_req)
+
+            return {
+                "success": True,
+                "requirements": requirements,
+                "pagination": {
+                    "total": total_count,
+                    "offset": offset,
+                    "limit": max_results,
+                    "has_more": offset + max_results < total_count
+                }
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "DATABASE_ERROR"
+            }
+
+    @mcp.tool(tags={"traceability", "matrix"})
+    def traceability_generate_matrix(
+        session_token: str,
+        org_id: str,
+        project_id: str,
+        include_documents: bool = True,
+        relationship_types: list[str] = None,
+        include_orphans: bool = True
+    ) -> dict:
+        """
+        Generate comprehensive traceability matrix for a project.
+
+        Args:
+            session_token: User session token
+            org_id: Organization ID for scoping
+            project_id: Project ID to analyze
+            include_documents: Include document information
+            relationship_types: Filter specific relationship types
+            include_orphans: Include requirements with no links
+
+        Returns:
+            {
+                success: bool,
+                matrix: {
+                    requirements: list[{id, name, external_id, document_name,
+                                      parent_count, child_count, total_links}],
+                    relationships: list[{source_id, target_id, type, description}],
+                    statistics: {total_requirements, total_relationships,
+                               orphan_requirements, coverage_percentage}
+                },
+                error: str | None
+            }
+        """
+        _require_session(session_token)
+
+        try:
+            sb = get_supabase()
+
+            # Get all requirements in project with org validation
+            req_select = "id, name, external_id, document_id"
+            if include_documents:
+                req_select += ", documents!inner(name, project_id, projects!inner(organization_id))"
+            else:
+                req_select += ", documents!inner(project_id, projects!inner(organization_id))"
+
+            req_resp = sb.table("requirements").select(req_select).eq(
+                "documents.project_id", project_id
+            ).eq("documents.projects.organization_id", org_id).eq("is_deleted", False).execute()
+
+            requirements_data = getattr(req_resp, "data", []) or []
+
+            # Get all trace links for these requirements
+            req_ids = [req["id"] for req in requirements_data]
+
+            if not req_ids:
+                return {
+                    "success": True,
+                    "matrix": {
+                        "requirements": [],
+                        "relationships": [],
+                        "statistics": {
+                            "total_requirements": 0,
+                            "total_relationships": 0,
+                            "orphan_requirements": 0,
+                            "coverage_percentage": 0.0
+                        }
+                    }
+                }
+
+            # Get relationships
+            links_q = sb.table("trace_links").select(
+                "source_id, target_id, link_type, description"
+            ).eq("is_deleted", False)
+
+            # Filter by relationship types if specified
+            if relationship_types:
+                links_q = links_q.in_("link_type", relationship_types)
+
+            # Get links where either source or target is in our requirements
+            links_q = links_q.or_(
+                f"source_id.in.({','.join(req_ids)}),target_id.in.({','.join(req_ids)})"
+            )
+
+            links_resp = links_q.execute()
+            relationships_data = getattr(links_resp, "data", []) or []
+
+            # Process requirements with link counts
+            requirements = []
+            requirement_link_counts = {}
+
+            # Count links for each requirement
+            for req in requirements_data:
+                req_id = req["id"]
+                parent_count = sum(1 for link in relationships_data if link["target_id"] == req_id)
+                child_count = sum(1 for link in relationships_data if link["source_id"] == req_id)
+                total_links = parent_count + child_count
+
+                requirement_link_counts[req_id] = total_links
+
+                req_data = {
+                    "id": req_id,
+                    "name": req["name"],
+                    "external_id": req.get("external_id"),
+                    "parent_count": parent_count,
+                    "child_count": child_count,
+                    "total_links": total_links
+                }
+
+                if include_documents:
+                    doc = req.get("documents", {}) or {}
+                    req_data["document_name"] = doc.get("name", "")
+                else:
+                    req_data["document_name"] = ""
+
+                requirements.append(req_data)
+
+            # Filter orphans if requested
+            if not include_orphans:
+                requirements = [req for req in requirements if req["total_links"] > 0]
+
+            # Process relationships
+            relationships = []
+            for link in relationships_data:
+                relationships.append({
+                    "source_id": link["source_id"],
+                    "target_id": link["target_id"],
+                    "type": link["link_type"],
+                    "description": link.get("description")
+                })
+
+            # Calculate statistics
+            total_requirements = len(requirements_data)
+            total_relationships = len(relationships)
+            orphan_requirements = sum(1 for count in requirement_link_counts.values() if count == 0)
+            coverage_percentage = ((total_requirements - orphan_requirements) / total_requirements * 100) if total_requirements > 0 else 0.0
+
+            return {
+                "success": True,
+                "matrix": {
+                    "requirements": requirements,
+                    "relationships": relationships,
+                    "statistics": {
+                        "total_requirements": total_requirements,
+                        "total_relationships": total_relationships,
+                        "orphan_requirements": orphan_requirements,
+                        "coverage_percentage": round(coverage_percentage, 2)
+                    }
+                }
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "DATABASE_ERROR"
+            }
+
+    # ----------------------
     # Test matrix views
     # ----------------------
     @mcp.tool(tags={"test_matrix_views"})

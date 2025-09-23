@@ -1,3 +1,5 @@
 .env.local
 .env
-analyze.md
+analyze_mcp_repo.md
+.claude
+__pycache__
