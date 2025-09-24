@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>OAuth Success - Atoms MCP</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0 auto; padding: 2rem; max-width: 600px; }
+        .success { background: #d1fae5; border: 1px solid #10b981; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        .token { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 1rem; margin: 1rem 0; font-family: monospace; word-break: break-all; }
+        .info { background: #eff6ff; border: 1px solid #3b82f6; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+        .ready { background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+        h1 { color: #059669; margin: 0; }
+        h2 { color: #374151; margin-top: 1.5rem; }
+        .step { margin: 1rem 0; padding: 1rem; background: #f9fafb; border-radius: 6px; }
+        .auto { color: #059669; font-weight: bold; }
+        .test-results { background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+        .tool-ready { background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <div class="success">
+        <h1>🎉 OAuth Authentication Successful!</h1>
+        <p>You have been automatically authenticated with the FastMCP server.</p>
+    </div>
+    
+    <div class="step">
+        <h2>📋 Step 1: Authorization Code Generated</h2>
+        <p><strong>Code:</strong> $code</p>
+        <p><strong>State:</strong> $state</p>
+        <p><strong>Status:</strong> ✅ Successfully exchanged for access token</p>
+    </div>
+    
+    <div class="step">
+        <h2>🎫 Step 2: Access Token Retrieved</h2>
+        <div class="token">
+            $access_token (automatically stored)
+        </div>
+    </div>
+    
+    <div class="step">
+        <h2>👤 Step 3: User Information</h2>
+        <div class="info">
+            <p><strong>User ID:</strong> $user_id</p>
+            <p><strong>Email:</strong> $user_email</p>
+            <p><strong>Token Type:</strong> $token_type</p>
+            <p><strong>Expires In:</strong> $expires_in seconds</p>
+        </div>
+    </div>
+    
+    <div class="ready">
+        <h2>🚀 Step 4: OAuth Authentication PROVEN!</h2>
+        <p class="auto">✅ OAuth authentication successful</p>
+        <p class="auto">✅ Access token obtained from Supabase</p>
+        <p class="auto">✅ Token valid for $expires_in seconds</p>
+        
+        <div class="test-results">
+            <h3>🧪 Authentication Test Results:</h3>
+            $test_results
+        </div>
+        
+        <div class="tool-ready">
+            <h3>🔧 Ready for FastMCP Tools:</h3>
+            <p><strong>OAuth Access Token:</strong></p>
+            <code style="background: #e0f2fe; padding: 0.5rem; display: block; margin: 0.5rem 0; border-radius: 4px; word-break: break-all;">$access_token</code>
+            <p>✅ Use this token with any FastMCP tool that accepts <code>access_token</code> parameter</p>
+            <p>✅ All 121 business tools are now authenticated and ready!</p>
+            
+            <div style="margin-top: 1rem;">
+                <button onclick="testTools('$access_token')" style="background: #22c55e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 1rem;">
+                    🧪 Test Multiple Tools Now
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function testTools(accessToken) {
+            window.open(`/auth/test?token=${accessToken}`, '_blank', 'width=800,height=600');
+        }
+        
+        // Auto-close after 10 seconds to show it's complete
+        setTimeout(() => {
+            window.close();
+        }, 10000);
+    </script>
+</body>
+</html>

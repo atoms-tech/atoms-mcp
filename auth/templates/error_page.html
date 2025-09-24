@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>OAuth Error - Atoms MCP</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0 auto; padding: 2rem; max-width: 600px; }
+        .error { background: #fef2f2; border: 1px solid #ef4444; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        h1 { color: #dc2626; margin: 0; }
+        .retry { margin-top: 1rem; }
+        .retry a { background: #2563eb; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; display: inline-block; }
+        .retry a:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <div class="error">
+        <h1>❌ OAuth Authentication Failed</h1>
+        <p><strong>Error:</strong> $error_message</p>
+        <p>Please try logging in again or contact support if the problem persists.</p>
+        
+        <div class="retry">
+            <a href="/auth/authorize">Try Again</a>
+        </div>
+    </div>
+</body>
+</html>
