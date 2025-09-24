@@ -141,12 +141,12 @@ class SupabaseOAuthProvider:
 
     async def _handle_login_submission(self, request: Request) -> Response:
         form = await request.form()
-        username = (form.get("username") or "").strip()
+        email = (form.get("email") or "").strip()
         password = form.get("password")
         redirect_uri = form.get("redirect_uri")
         state = form.get("state") or None
 
-        if not username or not password or not redirect_uri:
+        if not email or not password or not redirect_uri:
             return self._login_error("Missing required fields", request)
 
         if not self._supabase:
@@ -154,7 +154,7 @@ class SupabaseOAuthProvider:
 
         try:
             auth_res = self._supabase.auth.sign_in_with_password({
-                "email": username,
+                "email": email,
                 "password": password,
             })
             session = getattr(auth_res, "session", None)
@@ -171,8 +171,8 @@ class SupabaseOAuthProvider:
                 refresh_token=getattr(session, "refresh_token", None),
                 expires_in=int(getattr(session, "expires_in", 3600) or 3600),
                 token_type=getattr(session, "token_type", "bearer"),
-                user_id=getattr(session.user, "id", username),
-                user_email=username,
+                user_id=getattr(session.user, "id", email),
+                user_email=email,
             )
             self._auth_codes[code] = entry
 
@@ -390,7 +390,36 @@ class SupabaseOAuthProvider:
         return URL(final_url)
 
     def _get_jwks(self) -> Dict[str, Any]:
-        """Get JWKS for OAuth compliance"""
+        """Get JWKS for OAuth compliance - try real Supabase JWKS first"""
+        try:
+            # Try to get real Supabase JWKS
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+            if supabase_url:
+                # Extract project ID from URL (e.g., https://ycosngzmdrjwsrtpgtyc.supabase.co)
+                project_id = supabase_url.split("//")[1].split(".")[0]
+                jwks_url = f"https://{project_id}.supabase.co/auth/v1/.well-known/jwks.json"
+                
+                logger.info(f"Fetching real JWKS from: {jwks_url}")
+                
+                # Fetch real JWKS synchronously (this is called from endpoint)
+                import httpx
+                with httpx.Client() as client:
+                    response = client.get(jwks_url, timeout=10)
+                    if response.status_code == 200:
+                        jwks_data = response.json()
+                        keys = jwks_data.get('keys', [])
+                        if keys:
+                            logger.info(f"Successfully fetched real Supabase JWKS with {len(keys)} keys")
+                            return jwks_data
+                        else:
+                            logger.warning(f"Supabase JWKS returned empty keys array - asymmetric JWT signing not enabled")
+                    else:
+                        logger.warning(f"Supabase JWKS returned {response.status_code}: {response.text}")
+        except Exception as e:
+            logger.warning(f"Failed to fetch real Supabase JWKS: {e}")
+        
+        # Fallback to mock JWKS if real one fails
+        logger.info("Using mock JWKS as fallback")
         return {
             "keys": [
                 {
