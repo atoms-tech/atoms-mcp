@@ -1,5 +1,5 @@
 """Authentication providers for FastMCP integration."""
 
-from .supabase_provider import SupabaseAuthProvider
+from .supabase_oauth_provider import SupabaseOAuthProvider
 
-__all__ = ["SupabaseAuthProvider"]
+__all__ = ["SupabaseOAuthProvider"]
