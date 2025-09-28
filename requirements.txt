@@ -1,4 +1,18 @@
+# Core MCP and Supabase
 fastmcp>=2.12
 supabase>=2.5.0
 python-dotenv>=1.0.1
+
+# HTTP and Web Framework (for OAuth endpoints)
+httpx>=0.28.0
+starlette>=0.48.0
+uvicorn>=0.24.0
+
+# JWT Token Handling
+PyJWT>=2.10.0
+
+# Optional: For production JWT verification
+cryptography>=41.0.0
+
+# Optional: For demo script
 requests>=2.31.0
