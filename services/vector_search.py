@@ -1,4 +1,15 @@
-"""Vector similarity search service using Supabase pgvector."""
+"""Vector similarity search service using Supabase pgvector via RPC.
+
+This implementation assumes your Supabase Postgres has pgvector enabled and
+exposes per-entity RPC functions that perform similarity search server-side.
+
+Expected RPC signatures (examples):
+  match_documents(query_embedding vector, match_count int, similarity_threshold float,
+                  filters jsonb default null)
+  RETURNS TABLE (id text, content text, metadata jsonb, similarity float);
+
+See infrastructure/sql/vector_rpcs.sql for templates.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +18,7 @@ from datetime import datetime
 
 from supabase import Client
 
-from .embedding import EmbeddingService
+from .embedding_factory import get_embedding_service
 
 
 class SearchResult(NamedTuple):
@@ -31,17 +42,28 @@ class SearchResponse(NamedTuple):
 class VectorSearchService:
     """Service for performing vector similarity search on embedded content."""
     
-    def __init__(self, supabase_client: Client, embedding_service: EmbeddingService):
+    def __init__(self, supabase_client: Client, embedding_service=None):
         self.supabase = supabase_client
-        self.embedding_service = embedding_service
+        self.embedding_service = embedding_service or get_embedding_service()
         
         # Entity type to table mappings for search
         self.searchable_entities = {
             "requirement": "requirements",
-            "document": "documents", 
-            "test": "tests",
+            "document": "documents",
+            # "test": "tests",  # Disabled due to permission issues with test_req table
             "project": "projects",
-            "organization": "organizations"
+            "organization": "organizations",
+        }
+
+        # Entity type to RPC function name mappings
+        # Provide an RPC per entity that returns rows with
+        # (id, content, metadata, similarity)
+        self.rpc_functions = {
+            "requirement": "match_requirements",
+            "document": "match_documents",
+            # "test": "match_tests",  # Disabled due to permission issues
+            "project": "match_projects",
+            "organization": "match_organizations",
         }
     
     async def semantic_search(
@@ -79,44 +101,37 @@ class VectorSearchService:
         
         all_results = []
         
-        # Search each entity type
+        # Search each entity type via RPC
         for entity_type in search_entities:
-            table_name = self.searchable_entities[entity_type]
-            
+            rpc_name = self.rpc_functions.get(entity_type)
+            if not rpc_name:
+                continue
+
             try:
-                # Build the vector similarity query
-                # Using pgvector's cosine similarity (<=>)
-                query_builder = self.supabase.table(table_name).select(
-                    "id, content, metadata, embedding <=> %s as similarity"
-                ).lt("embedding <=> %s", 1 - similarity_threshold)
-                
-                # Apply additional filters
+                params: Dict[str, Any] = {
+                    "query_embedding": query_vector,
+                    "match_count": limit,
+                    "similarity_threshold": similarity_threshold,
+                }
+                # Optional dynamic filters passed as JSONB to the RPC
                 if filters:
-                    for key, value in filters.items():
-                        if key != "embedding":  # Skip embedding field
-                            query_builder = query_builder.eq(key, value)
-                
-                # Add default filters
-                query_builder = query_builder.eq("is_deleted", False)
-                
-                # Execute search with limit and ordering
-                response = query_builder.order(
-                    "similarity", desc=False
-                ).limit(limit).execute()
-                
-                # Process results
-                for row in response.data:
-                    similarity_score = 1 - row["similarity"]  # Convert distance to similarity
-                    
+                    params["filters"] = filters
+
+                response = self.supabase.rpc(rpc_name, params).execute()
+
+                for row in getattr(response, "data", []) or []:
+                    similarity = row.get("similarity")
+                    if similarity is None:
+                        similarity = 0.0
                     result = SearchResult(
-                        id=row["id"],
+                        id=row.get("id"),
                         content=row.get("content", ""),
-                        similarity=similarity_score,
-                        metadata=row.get("metadata", {}),
-                        entity_type=entity_type
+                        similarity=float(similarity),
+                        metadata=row.get("metadata", {}) or {},
+                        entity_type=entity_type,
                     )
                     all_results.append(result)
-                    
+
             except Exception as e:
                 # Log error but continue with other entity types
                 print(f"Error searching {entity_type}: {str(e)}")
@@ -173,29 +188,37 @@ class VectorSearchService:
             table_name = self.searchable_entities[entity_type]
             
             try:
-                # Use PostgreSQL full-text search
+                # Build query with filters first, then apply text search
+                # Select common columns (not all tables have metadata)
                 query_builder = self.supabase.table(table_name).select(
-                    "id, content, metadata"
-                ).text_search("content", query)
+                    "id, name, description"
+                )
+                
+                # Apply default filters
+                query_builder = query_builder.eq("is_deleted", False)
                 
                 # Apply additional filters
                 if filters:
                     for key, value in filters.items():
                         query_builder = query_builder.eq(key, value)
                 
-                # Add default filters
-                query_builder = query_builder.eq("is_deleted", False)
-                
-                # Execute search
-                response = query_builder.limit(limit).execute()
+                # Use ilike for more reliable keyword matching on both name and description
+                response = query_builder.or_(f"name.ilike.%{query}%,description.ilike.%{query}%").execute()
                 
                 # Process results (keyword search doesn't have similarity scores)
-                for row in response.data:
+                # Apply limit manually since text_search changes query builder type
+                limited_data = response.data[:limit] if response.data else []
+                for row in limited_data:
+                    # Combine name and description as content
+                    name = row.get("name", "")
+                    description = row.get("description", "")
+                    content = f"{name}: {description}" if name and description else (name or description or "")
+                    
                     result = SearchResult(
                         id=row["id"],
-                        content=row.get("content", ""),
+                        content=content,
                         similarity=1.0,  # Default score for keyword matches
-                        metadata=row.get("metadata", {}),
+                        metadata={},  # No metadata for keyword search
                         entity_type=entity_type
                     )
                     all_results.append(result)
@@ -263,10 +286,11 @@ class VectorSearchService:
         semantic_weight = 1.0 - keyword_weight
         for result in semantic_response.results:
             key = f"{result.entity_type}:{result.id}"
+            similarity = result.similarity if result.similarity is not None else 0.0
             combined_results[key] = SearchResult(
                 id=result.id,
                 content=result.content,
-                similarity=result.similarity * semantic_weight,
+                similarity=float(similarity) * semantic_weight,
                 metadata=result.metadata,
                 entity_type=result.entity_type
             )
@@ -277,10 +301,11 @@ class VectorSearchService:
             if key in combined_results:
                 # Boost existing result
                 existing = combined_results[key]
+                existing_sim = existing.similarity if existing.similarity is not None else 0.0
                 combined_results[key] = SearchResult(
                     id=existing.id,
                     content=existing.content,
-                    similarity=existing.similarity + (keyword_weight * 1.0),
+                    similarity=float(existing_sim) + (keyword_weight * 1.0),
                     metadata=existing.metadata,
                     entity_type=existing.entity_type
                 )

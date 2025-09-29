@@ -1,14 +1,32 @@
-"""OpenAI embedding service for RAG functionality."""
+"""Vertex AI embedding service (Gemini) for RAG functionality.
+
+Uses Google Cloud Vertex AI's embeddings model (default: gemini-embeddings-001).
+Requires Google ADC credentials or service account JSON via `GOOGLE_APPLICATION_CREDENTIALS`,
+and the env vars `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`.
+"""
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 from typing import Dict, List, Optional, NamedTuple
-from datetime import datetime
+import os
+import logging
 
-import openai
-from openai import AsyncOpenAI
+logger = logging.getLogger(__name__)
+
+try:
+    import vertexai
+    try:
+        from vertexai.language_models import TextEmbeddingModel  # type: ignore
+    except Exception:  # fallback for older SDKs
+        from vertexai.preview.language_models import TextEmbeddingModel  # type: ignore
+    VERTEX_AI_AVAILABLE = True
+except ImportError:
+    logger.warning("vertexai package not installed. Install with: pip install google-cloud-aiplatform")
+    VERTEX_AI_AVAILABLE = False
+    # Create dummy classes for type hints
+    class TextEmbeddingModel:
+        pass
 
 
 class EmbeddingResult(NamedTuple):
@@ -27,15 +45,32 @@ class BatchEmbeddingResult(NamedTuple):
     cached_count: int = 0
 
 
-class EmbeddingService:
-    """Service for generating OpenAI embeddings with caching."""
-    
-    def __init__(self, api_key: str, cache_size: int = 1000):
-        self.client = AsyncOpenAI(api_key=api_key)
+class VertexAIEmbeddingService:
+    """Service for generating Vertex AI (Gemini) embeddings with caching."""
+
+    def __init__(self, api_key: Optional[str] = None, cache_size: int = 1000):
+        if not VERTEX_AI_AVAILABLE:
+            raise RuntimeError(
+                "Vertex AI not available. Install with: pip install google-cloud-aiplatform\n"
+                "Or use the embedding factory to get an alternative provider."
+            )
+        
+        # api_key is ignored; Vertex AI uses ADC / service account
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        if not project:
+            raise RuntimeError("GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) must be set for Vertex AI embeddings")
+
+        try:
+            vertexai.init(project=project, location=location)
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize Vertex AI: {e}")
+
         self.cache: Dict[str, EmbeddingResult] = {}
         self.cache_size = cache_size
-        self.default_model = "text-embedding-3-small"
-        self.large_model = "text-embedding-3-large"
+        # Default to the correct Vertex AI embeddings model, allow override
+        self.default_model = os.getenv("VERTEX_EMBEDDINGS_MODEL", "text-embedding-004")
+        self.large_model = self.default_model
     
     def _get_cache_key(self, text: str, model: str) -> str:
         """Generate cache key for text and model."""
@@ -61,7 +96,7 @@ class EmbeddingService:
         
         Args:
             text: Text to embed
-            model: OpenAI model to use (defaults to text-embedding-3-small)
+            model: Vertex model name (defaults to VERTEX_EMBEDDINGS_MODEL or gemini-embeddings-001)
             use_cache: Whether to use caching
             
         Returns:
@@ -84,31 +119,25 @@ class EmbeddingService:
             )
         
         try:
-            # Generate embedding
-            response = await self.client.embeddings.create(
-                input=text,
-                model=model
-            )
-            
-            embedding = response.data[0].embedding
-            tokens_used = response.usage.total_tokens
-            
+            model_inst = TextEmbeddingModel.from_pretrained(model)
+            embeddings = model_inst.get_embeddings([text], output_dimensionality=768)
+            values = embeddings[0].values if embeddings else []
+
             result = EmbeddingResult(
-                embedding=embedding,
-                tokens_used=tokens_used,
+                embedding=values,
+                tokens_used=0,  # Vertex API does not expose token usage for embeddings
                 model=model,
-                cached=False
+                cached=False,
             )
-            
-            # Cache the result
+
             if use_cache:
                 self.cache[cache_key] = result
                 self._manage_cache_size()
-            
+
             return result
-            
+
         except Exception as e:
-            raise RuntimeError(f"Failed to generate embedding: {str(e)}")
+            raise RuntimeError(f"Failed to generate embedding (Vertex AI): {str(e)}")
     
     async def generate_batch_embeddings(
         self,
@@ -121,7 +150,7 @@ class EmbeddingService:
         
         Args:
             texts: List of texts to embed
-            model: OpenAI model to use
+            model: Vertex model name
             use_cache: Whether to use caching
             batch_size: Maximum texts per API call
             
@@ -162,31 +191,24 @@ class EmbeddingService:
             # Generate embeddings for uncached texts
             if uncached_texts:
                 try:
-                    response = await self.client.embeddings.create(
-                        input=uncached_texts,
-                        model=model
-                    )
-                    
-                    total_tokens += response.usage.total_tokens
-                    
+                    model_inst = TextEmbeddingModel.from_pretrained(model)
+                    responses = model_inst.get_embeddings(uncached_texts, output_dimensionality=768)
+
                     # Cache and collect results
-                    for idx, (original_idx, embedding_data) in enumerate(zip(uncached_indices, response.data)):
-                        embedding = embedding_data.embedding
-                        
-                        # Cache individual result
+                    for idx, (original_idx, emb_obj) in enumerate(zip(uncached_indices, responses)):
+                        embedding = emb_obj.values
                         if use_cache:
                             cache_key = self._get_cache_key(uncached_texts[idx], model)
                             self.cache[cache_key] = EmbeddingResult(
                                 embedding=embedding,
-                                tokens_used=response.usage.total_tokens // len(uncached_texts),  # Approximate
+                                tokens_used=0,
                                 model=model,
-                                cached=False
+                                cached=False,
                             )
-                        
                         batch_results.append((original_idx, embedding))
-                
+
                 except Exception as e:
-                    raise RuntimeError(f"Failed to generate batch embeddings: {str(e)}")
+                    raise RuntimeError(f"Failed to generate batch embeddings (Vertex AI): {str(e)}")
             
             # Sort results by original order and add to all_embeddings
             batch_results.sort(key=lambda x: x[0])

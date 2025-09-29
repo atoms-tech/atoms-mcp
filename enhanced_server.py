@@ -9,16 +9,30 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from fastmcp import FastMCP
-from .auth.supabase_provider import create_supabase_jwt_verifier
-from .supabase_client import get_supabase, MissingSupabaseConfig
-from .infrastructure.factory import get_adapter_factory
-from .tools import (
-    workspace_operation,
-    entity_operation,
-    relationship_operation,
-    workflow_execute,
-    data_query
-)
+try:
+    # Try relative imports first (when run as module)
+    from .auth.supabase_provider import create_supabase_jwt_verifier
+    from .supabase_client import get_supabase, MissingSupabaseConfig
+    from .infrastructure.factory import get_adapter_factory
+    from .tools import (
+        workspace_operation,
+        entity_operation,
+        relationship_operation,
+        workflow_execute,
+        data_query
+    )
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from atoms_mcp_old.auth.supabase_provider import create_supabase_jwt_verifier
+    from atoms_mcp_old.supabase_client import get_supabase, MissingSupabaseConfig
+    from atoms_mcp_old.infrastructure.factory import get_adapter_factory
+    from atoms_mcp_old.tools import (
+        workspace_operation,
+        entity_operation,
+        relationship_operation,
+        workflow_execute,
+        data_query
+    )
 
 logger = logging.getLogger("atoms_fastmcp")
 
@@ -141,7 +155,10 @@ def create_consolidated_server() -> FastMCP:
         logger.warning("Authentication disabled - development mode only!")
     elif auth_mode == "oauth":
         # OAuth Proxy for full MCP OAuth 2.1 + DCR compatibility (recommended)
-        from .auth.supabase_oauth_provider import create_supabase_oauth_provider
+        try:
+            from .auth.supabase_oauth_provider import create_supabase_oauth_provider
+        except ImportError:
+            from atoms_mcp_old.auth.supabase_oauth_provider import create_supabase_oauth_provider
         auth_provider = create_supabase_oauth_provider(base_url=base_url)
         
         if auth_provider:
@@ -151,7 +168,10 @@ def create_consolidated_server() -> FastMCP:
             auth_provider = None
     elif auth_mode == "simple":
         # Simple Auth with /auth/login endpoint (alternative for testing)
-        from .auth.simple_auth_provider import create_supabase_simple_auth_provider
+        try:
+            from .auth.simple_auth_provider import create_supabase_simple_auth_provider
+        except ImportError:
+            from atoms_mcp_old.auth.simple_auth_provider import create_supabase_simple_auth_provider
         auth_provider = create_supabase_simple_auth_provider()
         
         if auth_provider:
@@ -161,7 +181,10 @@ def create_consolidated_server() -> FastMCP:
             auth_provider = None
     elif auth_mode == "bearer":
         # Bearer Auth using Supabase auth/v1/user endpoint (for existing tokens)
-        from .auth.supabase_bearer_provider import create_supabase_bearer_provider
+        try:
+            from .auth.supabase_bearer_provider import create_supabase_bearer_provider
+        except ImportError:
+            from atoms_mcp_old.auth.supabase_bearer_provider import create_supabase_bearer_provider
         auth_provider = create_supabase_bearer_provider()
         
         if auth_provider:
@@ -466,7 +489,7 @@ def create_consolidated_server() -> FastMCP:
         - aggregate: Summary statistics and counts
         - analyze: Deep analysis with relationships
         - relationships: Relationship analysis
-        - rag_search: AI-powered semantic search with OpenAI embeddings
+        - rag_search: AI-powered semantic search with Vertex AI embeddings
         - similarity: Find content similar to provided text
         
         RAG modes (for rag_search):

@@ -19,17 +19,12 @@ class DataQueryEngine(ToolBase):
     def _init_rag_services(self):
         """Initialize RAG services on first use."""
         if self._embedding_service is None:
-            from ..services.embedding import EmbeddingService
-            from ..services.vector_search import VectorSearchService
-            
-            # Get OpenAI API key from environment
-            openai_api_key = os.getenv("OPENAI_API_KEY")
-            if not openai_api_key:
-                raise ValueError("OPENAI_API_KEY environment variable is required for RAG functionality")
-            
-            # Initialize services
-            self._embedding_service = EmbeddingService(openai_api_key)
-            self._vector_search_service = VectorSearchService(self.supabase, self._embedding_service)
+            from ..services.embedding_factory import get_embedding_service
+            from ..services.enhanced_vector_search import EnhancedVectorSearchService
+
+            # Get the best available embedding service (Vertex AI, OpenAI, HuggingFace, or Mock)
+            self._embedding_service = get_embedding_service()
+            self._vector_search_service = EnhancedVectorSearchService(self.supabase, self._embedding_service)
     
     async def _search_query(
         self,

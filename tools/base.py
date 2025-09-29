@@ -45,6 +45,22 @@ class ToolBase:
         """Get current username from context."""
         return self._user_context.get("username", "")
     
+    @property
+    def supabase(self):
+        """Get Supabase client from adapters."""
+        try:
+            adapters = self._get_adapters()
+            db_adapter = adapters["database"]
+            # Use the _get_client method from SupabaseDatabaseAdapter
+            return db_adapter._get_client()
+        except Exception:
+            # Fallback: try to get it directly from supabase_client module
+            try:
+                from ..supabase_client import get_supabase
+                return get_supabase()
+            except Exception as e:
+                raise RuntimeError(f"Could not get Supabase client: {e}")
+    
     async def _db_query(self, table: str, **kwargs) -> list:
         """Execute database query."""
         try:
