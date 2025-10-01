@@ -52,17 +52,25 @@ export async function login(formData: FormData) {
                     redirect: 'manual' as RequestRedirect,
                 });
 
-                // WorkOS completion returns 302 with Location header
-                const location = resp.headers.get('location');
-                if ((resp.status === 302 || resp.status === 301) && location) {
-                    return { success: true, mcpRedirectUri: location };
+                // MCP server returns JSON with redirect_uri
+                if (resp.ok) {
+                    const result = await resp.json();
+                    if (result.success && result.redirect_uri) {
+                        return { success: true, mcpRedirectUri: result.redirect_uri };
+                    }
+                    return {
+                        success: false,
+                        error: result.error || 'No redirect_uri in MCP response',
+                    };
                 }
-                // Some error path with JSON body from our MCP server
+
+                // Error response
                 let errText: string | undefined;
                 try {
-                    errText = await resp.text();
+                    const errData = await resp.json();
+                    errText = errData.error || JSON.stringify(errData);
                 } catch {
-                    // ignore
+                    errText = await resp.text().catch(() => '');
                 }
                 return {
                     success: false,
