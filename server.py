@@ -5,8 +5,12 @@ from __future__ import annotations
 import os
 import logging
 import secrets
+import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+
+# Suppress websockets deprecation warnings from uvicorn
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets")
 
 from fastmcp import FastMCP
 from .auth.supabase_provider import create_supabase_jwt_verifier
@@ -229,8 +233,7 @@ def create_consolidated_server() -> FastMCP:
         name="atoms-fastmcp-consolidated",
         instructions=(
             "Atoms MCP server with consolidated, agent-optimized tools. "
-            "First call login(username, password) to obtain a session_token. "
-            "Include session_token in every subsequent tool call. "
+            "Authenticate via OAuth (AuthKit). Do not pass session tokens to tools. "
             "Use workspace_tool to manage context, entity_tool for CRUD, "
             "relationship_tool for associations, workflow_tool for complex tasks, "
             "and query_tool for data exploration including RAG search."
@@ -238,40 +241,16 @@ def create_consolidated_server() -> FastMCP:
         auth=auth_provider_for_server,
     )
 
-    # Development mode authentication tools
-    @mcp.tool(tags={"auth", "public"})
-    async def login(username: str, password: str) -> dict:
-        """Development mode authentication via direct credential passing.
-
-        User provides credentials explicitly: "Use my email/pass: user@example.com/mypassword"
-        Agent calls this tool to authenticate and get session_token for subsequent API calls.
-
-        This is the WORKING authentication method until OAuth2/PKCE production flow is complete.
-
-        Returns { success: bool, session_token?: str, user_id?: str, error?: str }
-        """
-        auth_adapter = get_auth_adapter()
-        user = await auth_adapter.verify_credentials(username, password)
-        if not user:
-            return {"success": False, "error": "Invalid credentials"}
-        token = await auth_adapter.create_session(user_id=user["id"], username=user["username"])
-        return {"success": True, "session_token": token, "user_id": user["id"]}
-
-    @mcp.tool(tags={"auth"})
-    async def logout(session_token: str) -> dict:
-        """Invalidate a session_token."""
-        auth_adapter = get_auth_adapter()
-        await auth_adapter.revoke_session(session_token)
-        return {"success": True}
+    # Legacy development auth tools removed: OAuth is now the only authentication path.
 
     # Register consolidated tools
     @mcp.tool(tags={"workspace", "context"})
     async def workspace_tool(
-        session_token: str,
         operation: str,
         context_type: Optional[str] = None,
         entity_id: Optional[str] = None,
-        format_type: str = "detailed"
+        format_type: str = "detailed",
+        _access_token: Optional[str] = None  # FastMCP injects this when auth is configured
     ) -> dict:
         """Manage workspace context and get smart defaults.
 
@@ -287,11 +266,17 @@ def create_consolidated_server() -> FastMCP:
         - List organizations: operation="list_workspaces"
         """
         try:
-            # Validate session and get user info
-            user_info = await _require_session(session_token)
+            # Use injected access token or fallback for unauthenticated requests
+            auth_token = _access_token
+            if not auth_token:
+                return {
+                    "success": False,
+                    "error": "Authentication required. Provide Bearer token in Authorization header.",
+                    "operation": operation
+                }
 
             return await workspace_operation(
-                auth_token=session_token,  # Pass session token as auth_token
+                auth_token=auth_token,
                 operation=operation,
                 context_type=context_type,
                 entity_id=entity_id,
@@ -306,7 +291,6 @@ def create_consolidated_server() -> FastMCP:
 
     @mcp.tool(tags={"entity", "crud"})
     async def entity_tool(
-        session_token: str,
         operation: str,
         entity_type: str,
         data: Optional[dict] = None,
@@ -346,11 +330,18 @@ def create_consolidated_server() -> FastMCP:
         - Search projects: operation="search", entity_type="project", search_term="test"
         """
         try:
-            # Validate session and get user info
-            user_info = await _require_session(session_token)
+            # Get auth token from HTTP Authorization header via FastMCP context
+            auth_token = mcp.get_request_context().access_token if hasattr(mcp, 'get_request_context') else None
+            if not auth_token:
+                return {
+                    "success": False,
+                    "error": "Authentication required. Provide Bearer token in Authorization header.",
+                    "operation": operation,
+                    "entity_type": entity_type
+                }
 
             return await entity_operation(
-                auth_token=session_token,  # Pass session token as auth_token
+                auth_token=auth_token,
                 operation=operation,
                 entity_type=entity_type,
                 data=data,
@@ -377,7 +368,6 @@ def create_consolidated_server() -> FastMCP:
 
     @mcp.tool(tags={"relationship", "association"})
     async def relationship_tool(
-        session_token: str,
         operation: str,
         relationship_type: str,
         source: dict,
@@ -413,11 +403,18 @@ def create_consolidated_server() -> FastMCP:
           source={"type": "project", "id": "proj_123"}
         """
         try:
-            # Validate session and get user info
-            user_info = await _require_session(session_token)
+            # Get auth token from HTTP Authorization header via FastMCP context
+            auth_token = mcp.get_request_context().access_token if hasattr(mcp, 'get_request_context') else None
+            if not auth_token:
+                return {
+                    "success": False,
+                    "error": "Authentication required. Provide Bearer token in Authorization header.",
+                    "operation": operation,
+                    "relationship_type": relationship_type
+                }
 
             return await relationship_operation(
-                auth_token=session_token,  # Pass session token as auth_token
+                auth_token=auth_token,
                 operation=operation,
                 relationship_type=relationship_type,
                 source=source,
@@ -438,7 +435,6 @@ def create_consolidated_server() -> FastMCP:
 
     @mcp.tool(tags={"workflow", "automation"})
     async def workflow_tool(
-        session_token: str,
         workflow: str,
         parameters: dict,
         transaction_mode: bool = True,
@@ -459,11 +455,17 @@ def create_consolidated_server() -> FastMCP:
         - Bulk update: workflow="bulk_status_update", parameters={"entity_type": "requirement", "entity_ids": ["req_1", "req_2"], "new_status": "approved"}
         """
         try:
-            # Validate session and get user info
-            user_info = await _require_session(session_token)
+            # Get auth token from HTTP Authorization header via FastMCP context
+            auth_token = mcp.get_request_context().access_token if hasattr(mcp, 'get_request_context') else None
+            if not auth_token:
+                return {
+                    "success": False,
+                    "error": "Authentication required. Provide Bearer token in Authorization header.",
+                    "workflow": workflow
+                }
 
             return await workflow_execute(
-                auth_token=session_token,  # Pass session token as auth_token
+                auth_token=auth_token,
                 workflow=workflow,
                 parameters=parameters,
                 transaction_mode=transaction_mode,
@@ -481,7 +483,6 @@ def create_consolidated_server() -> FastMCP:
 
     @mcp.tool(tags={"query", "analysis", "rag"})
     async def query_tool(
-        session_token: str,
         query_type: str,
         entities: list,
         conditions: Optional[dict] = None,
@@ -520,11 +521,17 @@ def create_consolidated_server() -> FastMCP:
         - Get statistics: query_type="aggregate", entities=["organization", "project"]
         """
         try:
-            # Validate session and get user info
-            user_info = await _require_session(session_token)
+            # Get auth token from HTTP Authorization header via FastMCP context
+            auth_token = mcp.get_request_context().access_token if hasattr(mcp, 'get_request_context') else None
+            if not auth_token:
+                return {
+                    "success": False,
+                    "error": "Authentication required. Provide Bearer token in Authorization header.",
+                    "query_type": query_type
+                }
 
             return await data_query(
-                auth_token=session_token,  # Pass session token as auth_token
+                auth_token=auth_token,
                 query_type=query_type,
                 entities=entities,
                 conditions=conditions,
@@ -572,7 +579,7 @@ def create_consolidated_server() -> FastMCP:
     def _set_cors_headers(resp):
         try:
             resp.headers.setdefault("Access-Control-Allow-Origin", "*")
-            resp.headers.setdefault("Access-Control-Allow-Methods", "GET,OPTIONS")
+            resp.headers.setdefault("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             resp.headers.setdefault(
                 "Access-Control-Allow-Headers",
                 "Authorization, Content-Type, MCP-Protocol-Version"
@@ -679,157 +686,167 @@ def create_consolidated_server() -> FastMCP:
     ):
         mcp.custom_route(path, methods=["GET", "OPTIONS"])(_oauth_protected_resource_handler)
 
+    # Standalone Connect endpoints: Login UI and completion handler
+    async def _auth_login_handler(request):
+        from starlette.responses import HTMLResponse
+        # Render minimal login form that preserves external_auth_id
+        try:
+            ext = request.query_params.get("external_auth_id")
+        except Exception:
+            ext = None
+        html = f"""
+        <!doctype html>
+        <html><head><meta charset='utf-8'><title>Sign in</title></head>
+        <body>
+          <h2>Sign in</h2>
+          {'<p style=\"color:red\">Missing external_auth_id</p>' if not ext else ''}
+          <form method="post" action="/auth/complete">
+            <input type="hidden" name="external_auth_id" value="{ext or ''}" />
+            <label>Email <input name="email" type="email" required /></label><br/>
+            <label>Password <input name="password" type="password" required /></label><br/>
+            <button type="submit">Continue</button>
+          </form>
+        </body>
+        </html>
+        """
+        return HTMLResponse(html)
 
-        # Standalone Connect endpoints: Login UI and completion handler
-        async def _auth_login_handler(request):
-            from starlette.responses import HTMLResponse
-            # Render minimal login form that preserves external_auth_id
-            try:
-                ext = request.query_params.get("external_auth_id")
-            except Exception:
-                ext = None
-            html = f"""
-            <!doctype html>
-            <html><head><meta charset='utf-8'><title>Sign in</title></head>
-            <body>
-              <h2>Sign in</h2>
-              {'<p style=\"color:red\">Missing external_auth_id</p>' if not ext else ''}
-              <form method="post" action="/auth/complete">
-                <input type="hidden" name="external_auth_id" value="{ext or ''}" />
-                <label>Email <input name="email" type="email" required /></label><br/>
-                <label>Password <input name="password" type="password" required /></label><br/>
-                <button type="submit">Continue</button>
-              </form>
-            </body>
-            </html>
-            """
-            return HTMLResponse(html)
+    async def _auth_complete_handler(request):
+        import os
+        import aiohttp
+        from starlette.responses import JSONResponse, RedirectResponse
+        # Accept either form-encoded or JSON body
+        try:
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type.lower():
+                data = await request.json()
+            else:
+                data = await request.form()
+        except Exception:
+            data = {}
 
-        async def _auth_complete_handler(request):
-            import os
-            import aiohttp
-            from starlette.responses import JSONResponse, RedirectResponse
-            # Accept either form-encoded or JSON body
-            try:
-                content_type = request.headers.get("content-type", "")
-                if "application/json" in content_type.lower():
-                    data = await request.json()
-                else:
-                    data = await request.form()
-            except Exception:
-                data = {}
+        external_auth_id = (data.get("external_auth_id") if isinstance(data, dict) else None) or None
+        email = (data.get("email") if isinstance(data, dict) else None) or None
+        password = (data.get("password") if isinstance(data, dict) else None) or None
 
-            external_auth_id = (data.get("external_auth_id") if isinstance(data, dict) else None) or None
-            email = (data.get("email") if isinstance(data, dict) else None) or None
-            password = (data.get("password") if isinstance(data, dict) else None) or None
+        if not external_auth_id:
+            return JSONResponse({"error": "external_auth_id required"}, status_code=400)
 
-            if not external_auth_id:
-                return JSONResponse({"error": "external_auth_id required"}, status_code=400)
+        # Option A: Verify Supabase JWT from Authorization header
+        auth_header = request.headers.get("authorization", "")
+        bearer_token = None
+        if auth_header.lower().startswith("bearer "):
+            bearer_token = auth_header.split(" ", 1)[1].strip()
 
-            # Option A: Verify Supabase JWT from Authorization header
-            auth_header = request.headers.get("authorization", "")
-            bearer_token = None
-            if auth_header.lower().startswith("bearer "):
-                bearer_token = auth_header.split(" ", 1)[1].strip()
+        verified_user_id = None
+        verified_user_email = None
 
-            verified_user_id = None
-            verified_user_email = None
-
-            if bearer_token:
-                supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL") or os.getenv("SUPABASE_URL")
-                if not supabase_url:
-                    return JSONResponse({"error": "Supabase URL not configured"}, status_code=500)
-                supabase_apikey = (
-                    os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-                    or os.getenv("SUPABASE_ANON_KEY")
-                    or os.getenv("SUPABASE_SERVICE_ROLE_SECRET")
-                )
-                if not supabase_apikey:
-                    return JSONResponse({"error": "Supabase API key not configured (set NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY)"}, status_code=500)
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(
-                            f"{supabase_url.rstrip('/')}/auth/v1/user",
-                            headers={
-                                "Authorization": f"Bearer {bearer_token}",
-                                "apikey": supabase_apikey,
-                            },
-                        ) as resp:
-                            user_json_text = await resp.text()
-                            if resp.status != 200:
-                                return JSONResponse({"error": "invalid_supabase_token", "status": resp.status, "body": user_json_text}, status_code=401)
-                            try:
-                                user_json = await resp.json()
-                            except Exception:
-                                return JSONResponse({"error": "invalid_supabase_user_response", "body": user_json_text}, status_code=502)
-                            verified_user_id = user_json.get("id") or user_json.get("user", {}).get("id")
-                            verified_user_email = user_json.get("email") or user_json.get("user", {}).get("email")
-                except Exception as e:
-                    return JSONResponse({"error": f"supabase_user_fetch_failed: {e}"}, status_code=502)
-
-            # Option B: Fallback to email/password against Supabase (for direct /auth/login flow)
-            if not verified_user_id:
-                if not email or not password:
-                    return JSONResponse({"error": "email and password required"}, status_code=400)
-                try:
-                    supabase = get_supabase()
-                    auth_res = supabase.auth.sign_in_with_password({
-                        "email": email,
-                        "password": password,
-                    })
-                    user = getattr(auth_res, "user", None)
-                    if not user or not getattr(user, "id", None):
-                        return JSONResponse({"error": "invalid_credentials"}, status_code=401)
-                    verified_user_id = user.id
-                    verified_user_email = getattr(user, "email", email)
-                except Exception as e:
-                    return JSONResponse({"error": f"supabase_auth_failed: {e}"}, status_code=500)
-
-            # Complete OAuth with AuthKit (WorkOS)
-            workos_api_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").rstrip("/")
-            payload = {
-                "external_auth_id": external_auth_id,
-                "user": {
-                    "id": verified_user_id,
-                    "email": verified_user_email,
-                },
-            }
-            headers = {
-                "Authorization": f"Bearer {os.getenv('WORKOS_API_KEY', '')}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
-            if not headers["Authorization"].strip():
-                return JSONResponse({"error": "WORKOS_API_KEY not configured"}, status_code=500)
-
-            # Debug (redacted) to help diagnose upstream failures
-            try:
-                key_len = len(os.getenv('WORKOS_API_KEY', ''))
-                print(f"🔎 WORKOS complete call -> url={workos_api_url}/authkit/oauth2/complete key_len={key_len}")
-            except Exception:
-                pass
-
+        if bearer_token:
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL") or os.getenv("SUPABASE_URL")
+            if not supabase_url:
+                return JSONResponse({"error": "Supabase URL not configured"}, status_code=500)
+            supabase_apikey = (
+                os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+                or os.getenv("SUPABASE_ANON_KEY")
+                or os.getenv("SUPABASE_SERVICE_ROLE_SECRET")
+            )
+            if not supabase_apikey:
+                return JSONResponse({"error": "Supabase API key not configured (set NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY)"}, status_code=500)
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(f"{workos_api_url}/authkit/oauth2/complete", json=payload, headers=headers) as resp:
-                        text = await resp.text()
-                        if resp.status >= 400:
-                            # Return 400 to avoid Cloudflare 502 HTML replacement and surface JSON/text to client
-                            return JSONResponse({"error": "workos_complete_failed", "status": resp.status, "body": text}, status_code=400)
+                    async with session.get(
+                        f"{supabase_url.rstrip('/')}/auth/v1/user",
+                        headers={
+                            "Authorization": f"Bearer {bearer_token}",
+                            "apikey": supabase_apikey,
+                        },
+                    ) as resp:
+                        user_json_text = await resp.text()
+                        if resp.status != 200:
+                            return JSONResponse({"error": "invalid_supabase_token", "status": resp.status, "body": user_json_text}, status_code=401)
                         try:
-                            data = await resp.json()
+                            user_json = await resp.json()
                         except Exception:
-                            return JSONResponse({"error": "invalid_workos_response", "body": text}, status_code=400)
-                        redirect_uri = data.get("redirect_uri")
-                        if not redirect_uri:
-                            return JSONResponse({"error": "missing_redirect_uri", "workos": data}, status_code=400)
-                        return RedirectResponse(url=redirect_uri, status_code=302)
+                            return JSONResponse({"error": "invalid_supabase_user_response", "body": user_json_text}, status_code=502)
+                        verified_user_id = user_json.get("id") or user_json.get("user", {}).get("id")
+                        verified_user_email = user_json.get("email") or user_json.get("user", {}).get("email")
             except Exception as e:
-                return JSONResponse({"error": f"workos_request_failed: {e}"}, status_code=400)
+                return JSONResponse({"error": f"supabase_user_fetch_failed: {e}"}, status_code=502)
 
-        # Register Standalone Connect routes
-        mcp.custom_route("/auth/login", methods=["GET"])(_auth_login_handler)
-        mcp.custom_route("/auth/complete", methods=["POST"])(_auth_complete_handler)
+        # Option B: Fallback to email/password against Supabase (for direct /auth/login flow)
+        if not verified_user_id:
+            if not email or not password:
+                return JSONResponse({"error": "email and password required"}, status_code=400)
+            try:
+                supabase = get_supabase()
+                auth_res = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": password,
+                })
+                user = getattr(auth_res, "user", None)
+                if not user or not getattr(user, "id", None):
+                    return JSONResponse({"error": "invalid_credentials"}, status_code=401)
+                verified_user_id = user.id
+                verified_user_email = getattr(user, "email", email)
+            except Exception as e:
+                return JSONResponse({"error": f"supabase_auth_failed: {e}"}, status_code=500)
+
+        # Complete OAuth with AuthKit (WorkOS)
+        workos_api_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").rstrip("/")
+        payload = {
+            "external_auth_id": external_auth_id,
+            "user": {
+                "id": verified_user_id,
+                "email": verified_user_email,
+            },
+        }
+        headers = {
+            "Authorization": f"Bearer {os.getenv('WORKOS_API_KEY', '')}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if not headers["Authorization"].strip():
+            return JSONResponse({"error": "WORKOS_API_KEY not configured"}, status_code=500)
+
+        # Debug (redacted) to help diagnose upstream failures
+        try:
+            key_len = len(os.getenv('WORKOS_API_KEY', ''))
+            print(f"🔎 WORKOS complete call -> url={workos_api_url}/authkit/oauth2/complete key_len={key_len}")
+        except Exception:
+            pass
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"{workos_api_url}/authkit/oauth2/complete", json=payload, headers=headers) as resp:
+                    text = await resp.text()
+                    if resp.status >= 400:
+                        # Return 400 to avoid Cloudflare 502 HTML replacement and surface JSON/text to client
+                        return JSONResponse({"error": "workos_complete_failed", "status": resp.status, "body": text}, status_code=400)
+                    try:
+                        data = await resp.json()
+                    except Exception:
+                        return JSONResponse({"error": "invalid_workos_response", "body": text}, status_code=400)
+                    redirect_uri = data.get("redirect_uri")
+                    if not redirect_uri:
+                        return JSONResponse({"error": "missing_redirect_uri", "workos": data}, status_code=400)
+                    # Return JSON with redirect_uri instead of redirect to avoid CORS issues
+                    return JSONResponse({"success": True, "redirect_uri": redirect_uri})
+        except Exception as e:
+            return JSONResponse({"error": f"workos_request_failed: {e}"}, status_code=400)
+
+    # Wrapper for auth_complete with CORS support
+    async def _auth_complete_with_cors(request):
+        from starlette.responses import Response
+        if request.method == "OPTIONS":
+            return _set_cors_headers(Response(status_code=204))
+        response = await _auth_complete_handler(request)
+        return _set_cors_headers(response)
+
+    # Register Standalone Connect routes at both root and /api/mcp paths
+    mcp.custom_route("/auth/login", methods=["GET"])(_auth_login_handler)
+    mcp.custom_route("/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_with_cors)
+    mcp.custom_route("/api/mcp/auth/login", methods=["GET"])(_auth_login_handler)
+    mcp.custom_route("/api/mcp/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_with_cors)
 
     return mcp
 

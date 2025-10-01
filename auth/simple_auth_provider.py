@@ -11,23 +11,21 @@ import logging
 import httpx
 from typing import Optional, Dict, Any
 
+logger = logging.getLogger(__name__)
+
 try:
     from fastmcp.server.auth import AuthProvider, AccessToken, TokenInvalidException
     from fastmcp import FastMCP
     from starlette.requests import Request
     from starlette.responses import JSONResponse
 except ImportError:
-    logger = logging.getLogger(__name__)
-    logger.error("FastMCP auth imports failed - Simple auth disabled")
-    # Create stubs for development
+    # Create stubs for development (not currently used - AuthKitProvider is primary)
     class AuthProvider:
         def __init__(self, **kwargs): pass
     class AccessToken:
         def __init__(self, **kwargs): pass
     class TokenInvalidException(Exception):
         pass
-
-logger = logging.getLogger(__name__)
 
 
 class SupabaseSimpleAuthProvider(AuthProvider):

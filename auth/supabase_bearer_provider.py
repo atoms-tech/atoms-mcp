@@ -14,13 +14,13 @@ import logging
 import httpx
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
 try:
     from fastmcp.server.auth import TokenVerifier, AccessToken, TokenInvalidException
     from pydantic import AnyHttpUrl
 except ImportError:
-    logger = logging.getLogger(__name__)
-    logger.error("FastMCP auth imports failed - Bearer auth disabled")
-    # Create stubs for development
+    # Create stubs for development (not currently used - AuthKitProvider is primary)
     class TokenVerifier:
         def __init__(self, **kwargs): pass
     class AccessToken:
@@ -28,8 +28,6 @@ except ImportError:
     class TokenInvalidException(Exception):
         pass
     AnyHttpUrl = str
-
-logger = logging.getLogger(__name__)
 
 
 class SupabaseTokenVerifier(TokenVerifier):

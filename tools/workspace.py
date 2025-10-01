@@ -139,7 +139,7 @@ _workspace_manager = WorkspaceManager()
 
 
 async def workspace_operation(
-    auth_token: str,
+    auth_token: Optional[str],
     operation: Literal["get_context", "set_context", "list_workspaces", "get_defaults"],
     context_type: Optional[Literal["organization", "project", "document"]] = None,
     entity_id: Optional[str] = None,
@@ -158,13 +158,15 @@ async def workspace_operation(
         Dict containing operation result
     """
     try:
-        # Validate authentication
+        # Validate authentication (OAuth-only)
+        if not auth_token:
+            raise ValueError("Authorization required: missing bearer token. Please authenticate via OAuth and retry.")
         user_info = await _workspace_manager._validate_auth(auth_token)
-        user_id = user_info["user_id"]
-        
+        user_id = user_info.get("user_id") or user_info.get("sub") or ""
+
         if operation == "get_context":
             result = await _workspace_manager.get_context(user_id)
-            
+
         elif operation == "set_context":
             if not context_type or not entity_id:
                 raise ValueError("context_type and entity_id are required for set_context")
