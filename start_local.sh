@@ -56,6 +56,7 @@ export ATOMS_FASTMCP_HTTP_AUTH_MODE=optional
 
 # Start the server in the background
 cd "$SCRIPT_DIR/.."
+source .venv/bin/activate
 python3 -m atoms_mcp-old.server > /tmp/atoms_mcp.log 2>&1 &
 MCP_PID=$!
 

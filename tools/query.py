@@ -5,7 +5,10 @@ from __future__ import annotations
 import os
 from typing import Dict, Any, List, Optional, Literal
 
-from .base import ToolBase
+try:
+    from .base import ToolBase
+except ImportError:
+    from tools.base import ToolBase
 
 
 class DataQueryEngine(ToolBase):
@@ -19,8 +22,8 @@ class DataQueryEngine(ToolBase):
     def _init_rag_services(self):
         """Initialize RAG services on first use."""
         if self._embedding_service is None:
-            from ..services.embedding_factory import get_embedding_service
-            from ..services.enhanced_vector_search import EnhancedVectorSearchService
+            from services.embedding_factory import get_embedding_service
+            from services.enhanced_vector_search import EnhancedVectorSearchService
 
             # Get the best available embedding service (Vertex AI, OpenAI, HuggingFace, or Mock)
             self._embedding_service = get_embedding_service()
@@ -303,30 +306,38 @@ class DataQueryEngine(ToolBase):
         for rel_table in relationship_tables:
             try:
                 filters = conditions.copy() if conditions else {}
-                
+
                 # Add default filters
                 if "is_deleted" not in filters:
                     filters["is_deleted"] = False
-                
+
                 count = await self._db_count(rel_table, filters)
-                
+
                 if count > 0:
+                    # Special handling for requirement_tests to avoid JSON serialization issues
+                    select_fields = "*"
+                    if rel_table == "requirement_tests":
+                        # Select only basic fields, avoid problematic columns
+                        select_fields = "id,requirement_id,test_id,relationship_type,coverage_level,created_at,updated_at,created_by,is_deleted"
+
                     # Get sample relationships for analysis
                     samples = await self._db_query(
                         rel_table,
+                        select=select_fields,
                         filters=filters,
                         limit=10,
                         order_by="created_at:desc"
                     )
-                    
+
                     relationships[rel_table] = {
                         "total_count": count,
                         "recent_samples": samples
                     }
-                    
+
             except Exception as e:
+                # Gracefully handle errors - don't fail entire query
                 relationships[rel_table] = {
-                    "error": str(e),
+                    "error": f"INTERNAL_SERVER_ERROR: {str(e)}",
                     "total_count": 0
                 }
         
@@ -563,11 +574,19 @@ async def data_query(
         elif query_type == "similarity":
             if not content:
                 raise ValueError("content is required for similarity queries")
-            if not entity_type:
-                raise ValueError("entity_type is required for similarity queries")
+
+            # Accept both entity_type (singular) and entities (array) for flexibility
+            target_entity_type = entity_type
+            if not target_entity_type and valid_entities:
+                # Use first valid entity from entities array
+                target_entity_type = valid_entities[0]
+
+            if not target_entity_type:
+                raise ValueError("entity_type (singular) or entities (array) is required for similarity queries")
+
             result = await _query_engine._similarity_analysis(
                 content=content,
-                entity_type=entity_type,
+                entity_type=target_entity_type,
                 similarity_threshold=similarity_threshold,
                 limit=limit,
                 exclude_id=exclude_id

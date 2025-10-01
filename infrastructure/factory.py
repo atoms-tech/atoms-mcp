@@ -5,11 +5,18 @@ from __future__ import annotations
 import os
 from typing import Dict, Any
 
-from .adapters import AuthAdapter, DatabaseAdapter, StorageAdapter, RealtimeAdapter
-from .supabase_auth import SupabaseAuthAdapter
-from .supabase_db import SupabaseDatabaseAdapter
-from .supabase_storage import SupabaseStorageAdapter
-from .supabase_realtime import SupabaseRealtimeAdapter
+try:
+    from .adapters import AuthAdapter, DatabaseAdapter, StorageAdapter, RealtimeAdapter
+    from .supabase_auth import SupabaseAuthAdapter
+    from .supabase_db import SupabaseDatabaseAdapter
+    from .supabase_storage import SupabaseStorageAdapter
+    from .supabase_realtime import SupabaseRealtimeAdapter
+except ImportError:
+    from infrastructure.adapters import AuthAdapter, DatabaseAdapter, StorageAdapter, RealtimeAdapter
+    from infrastructure.supabase_auth import SupabaseAuthAdapter
+    from infrastructure.supabase_db import SupabaseDatabaseAdapter
+    from infrastructure.supabase_storage import SupabaseStorageAdapter
+    from infrastructure.supabase_realtime import SupabaseRealtimeAdapter
 
 
 class AdapterFactory:

@@ -25,13 +25,22 @@ class AuthAdapter(ABC):
         pass
     
     @abstractmethod
-    async def create_session(self, user_id: str, username: str) -> str:
-        """Create a new session token.
-        
+    async def create_session(
+        self,
+        user_id: str,
+        username: str,
+        *,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
+    ) -> str:
+        """Create a new session token and optionally bind Supabase credentials.
+
         Args:
             user_id: User identifier
             username: User's username/email
-            
+            access_token: Optional Supabase access token to associate with session
+            refresh_token: Optional Supabase refresh token to associate with session
+
         Returns:
             Session token string
         """

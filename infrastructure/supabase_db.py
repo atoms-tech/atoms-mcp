@@ -4,22 +4,37 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Union
 
-from .adapters import DatabaseAdapter
-from ..supabase_client import get_supabase
-from ..errors import normalize_error
+try:
+    from .adapters import DatabaseAdapter
+    from ..supabase_client import get_supabase
+    from ..errors import normalize_error
+except ImportError:
+    from infrastructure.adapters import DatabaseAdapter
+    from supabase_client import get_supabase
+    from errors import normalize_error
 
 
 class SupabaseDatabaseAdapter(DatabaseAdapter):
     """Supabase-based database adapter."""
-    
+
     def __init__(self):
-        self._client = None
-    
+        self._access_token: Optional[str] = None
+
+    def set_access_token(self, token: str):
+        """Set user's access token for RLS context.
+
+        This must be called before any database operations to ensure
+        proper Row-Level Security context.
+        """
+        self._access_token = token
+
     def _get_client(self):
-        """Get Supabase client, cached."""
-        if self._client is None:
-            self._client = get_supabase()
-        return self._client
+        """Get Supabase client with user's JWT for RLS context.
+
+        Creates a fresh client with the user's access token to ensure
+        auth.uid() returns the correct user ID for RLS policies.
+        """
+        return get_supabase(access_token=self._access_token)
     
     def _apply_filters(self, query, filters: Optional[Dict[str, Any]]):
         """Apply filters to a Supabase query."""
@@ -122,25 +137,27 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         *,
         returning: Optional[str] = None
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """Insert one or more records."""
+        """Insert one or more records.
+
+        Note: Supabase v2.5+ automatically returns all fields on insert.
+        The 'returning' parameter is kept for API compatibility but is ignored.
+        """
         try:
             client = self._get_client()
+            # Supabase v2.5+ insert returns all fields by default
+            # Do not chain .select() after .insert() - it's not supported
             query = client.from_(table).insert(data)
-            
-            if returning:
-                query = query.select(returning)
-            
             result = query.execute()
             result_data = getattr(result, "data", None)
-            
+
             if result_data is None:
                 raise ValueError("Insert operation returned no data")
-            
+
             # Return single dict if input was single dict, list otherwise
             if isinstance(data, dict):
                 return result_data[0] if result_data else {}
             return result_data
-        
+
         except Exception as e:
             raise normalize_error(e, f"Failed to insert into {table}")
     
@@ -152,24 +169,25 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         *,
         returning: Optional[str] = None
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """Update records."""
+        """Update records.
+
+        Note: Supabase v2.5+ automatically returns updated data.
+        The 'returning' parameter is kept for API compatibility but is ignored.
+        """
         try:
             client = self._get_client()
             query = client.from_(table).update(data)
-            
             query = self._apply_filters(query, filters)
-            
-            if returning:
-                query = query.select(returning)
-            
+
+            # Execute without chaining .select() - Supabase v2.5+ returns data automatically
             result = query.execute()
             result_data = getattr(result, "data", []) or []
-            
+
             # Return single dict if only one record updated
             if len(result_data) == 1:
                 return result_data[0]
             return result_data
-        
+
         except Exception as e:
             raise normalize_error(e, f"Failed to update {table}")
     
@@ -178,16 +196,19 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         table: str,
         filters: Dict[str, Any]
     ) -> int:
-        """Delete records."""
+        """Delete records.
+
+        Note: Supabase v2.5+ automatically returns deleted data.
+        """
         try:
             client = self._get_client()
             query = client.from_(table).delete()
-            
             query = self._apply_filters(query, filters)
-            
+
+            # Execute without chaining .select() - Supabase v2.5+ returns data automatically
             result = query.execute()
-            # Return count of deleted records (Supabase doesn't return this directly)
-            return len(getattr(result, "data", []) or [])
+            deleted_rows = getattr(result, "data", []) or []
+            return len(deleted_rows)
         
         except Exception as e:
             raise normalize_error(e, f"Failed to delete from {table}")

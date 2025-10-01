@@ -5,9 +5,14 @@ from __future__ import annotations
 import os
 from typing import Dict, Optional
 
-from .adapters import StorageAdapter
-from ..supabase_client import get_supabase
-from ..errors import normalize_error, ApiError
+try:
+    from .adapters import StorageAdapter
+    from ..supabase_client import get_supabase
+    from ..errors import normalize_error, ApiError
+except ImportError:
+    from infrastructure.adapters import StorageAdapter
+    from supabase_client import get_supabase
+    from errors import normalize_error, ApiError
 
 
 class SupabaseStorageAdapter(StorageAdapter):

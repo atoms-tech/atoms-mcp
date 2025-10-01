@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/health",
+      "dest": "server.py"
+    },
+    {
+      "src": "/api/mcp",
+      "dest": "server.py"
+    },
+    {
+      "src": "/auth/complete",
+      "dest": "server.py"
+    },
+    {
+      "src": "/.well-known/(.*)",
+      "dest": "server.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "server.py"
+    }
+  ],
+  "env": {
+    "ATOMS_FASTMCP_TRANSPORT": "http",
+    "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp"
+  }
+}

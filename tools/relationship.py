@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Dict, Any, Optional, List, Literal
 from datetime import datetime, timezone
 
-from .base import ToolBase
+try:
+    from .base import ToolBase
+except ImportError:
+    from tools.base import ToolBase
 
 
 class RelationshipManager(ToolBase):
@@ -128,11 +131,12 @@ class RelationshipManager(ToolBase):
             elif relationship_type == "assignment":
                 link_data["entity_type"] = source.get("type", "unknown")
         
-        # Add audit fields
+        # Add audit fields (only for tables that have created_by column)
+        # Note: organization_members and project_members don't have created_by
         user_id = self._get_user_id()
-        if user_id:
+        if user_id and relationship_type not in ["member"]:
             link_data["created_by"] = user_id
-        
+
         # Create the link
         result = await self._db_insert(table, link_data, returning="*")
         return result
@@ -189,7 +193,9 @@ class RelationshipManager(ToolBase):
         relationship_type: str,
         source: Optional[Dict[str, str]] = None,
         target: Optional[Dict[str, str]] = None,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = 100,
+        offset: Optional[int] = 0
     ) -> List[Dict[str, Any]]:
         """List relationships of a given type."""
         config = self._get_relationship_config(relationship_type)
@@ -235,17 +241,42 @@ class RelationshipManager(ToolBase):
         if "is_deleted" not in query_filters and "is_deleted" in config.get("defaults", {}):
             query_filters["is_deleted"] = False
         
-        # Include related data for member relationships
-        select = "*"
-        if relationship_type == "member":
-            select = "*, profiles(*)"
-        
-        return await self._db_query(
+        # Query the relationship table with pagination
+        relationships = await self._db_query(
             table,
-            select=select,
+            select="*",
             filters=query_filters,
+            limit=limit,
+            offset=offset,
             order_by="created_at:desc"
         )
+
+        # For member relationships, manually join profile data (workaround for missing FK)
+        if relationship_type == "member" and relationships:
+            # Extract unique user IDs
+            user_ids = list(set([
+                rel.get(table_config["target_field"])
+                for rel in relationships
+                if rel.get(table_config["target_field"])
+            ]))
+
+            if user_ids:
+                # Fetch profiles
+                profiles = await self._db_query(
+                    "profiles",
+                    filters={"id": {"in": user_ids}}
+                )
+
+                # Create lookup map
+                profile_map = {p["id"]: p for p in profiles}
+
+                # Join profiles to relationships
+                for rel in relationships:
+                    user_id = rel.get(table_config["target_field"])
+                    if user_id and user_id in profile_map:
+                        rel["profiles"] = profile_map[user_id]
+
+        return relationships
     
     async def check_relationship(
         self,
@@ -313,6 +344,8 @@ async def relationship_operation(
     filters: Optional[Dict[str, Any]] = None,
     source_context: Optional[str] = None,
     soft_delete: bool = True,
+    limit: Optional[int] = 100,
+    offset: Optional[int] = 0,
     format_type: str = "detailed"
 ) -> Dict[str, Any]:
     """Manage relationships between entities.
@@ -361,7 +394,7 @@ async def relationship_operation(
         
         elif operation == "list":
             result = await _relationship_manager.list_relationships(
-                relationship_type, source, target, filters
+                relationship_type, source, target, filters, limit, offset
             )
             return _relationship_manager._format_result(result, format_type)
         

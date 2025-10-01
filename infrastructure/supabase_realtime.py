@@ -5,9 +5,14 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, List, Optional
 
-from .adapters import RealtimeAdapter
-from ..supabase_client import get_supabase
-from ..errors import normalize_error, ApiError
+try:
+    from .adapters import RealtimeAdapter
+    from ..supabase_client import get_supabase
+    from ..errors import normalize_error, ApiError
+except ImportError:
+    from infrastructure.adapters import RealtimeAdapter
+    from supabase_client import get_supabase
+    from errors import normalize_error, ApiError
 
 
 class SupabaseRealtimeAdapter(RealtimeAdapter):

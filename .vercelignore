@@ -1,0 +1,16 @@
+# Vercel ignore file
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+.env.local
+.env.test
+*.log
+.git/
+auth/archived/
+*_old.py
+*_simplified.py
+test_*.py
+*.md
+docs/
