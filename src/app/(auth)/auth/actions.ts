@@ -17,6 +17,7 @@ export async function login(formData: FormData) {
         email: formData.get('email') as string,
         password: formData.get('password') as string,
     };
+    const externalAuthId = (formData.get('external_auth_id') as string) || null;
 
     try {
         const { error, data: authData } = await supabase.auth.signInWithPassword(data);
@@ -26,6 +27,54 @@ export async function login(formData: FormData) {
                 error: error?.message || 'Invalid credentials',
                 success: false,
             };
+        }
+
+        // If this login was initiated by AuthKit (Standalone Connect), complete the flow
+        if (externalAuthId) {
+            try {
+                const mcpBase =
+                    process.env.NEXT_PUBLIC_MCP_BASE_URL ||
+                    'https://atomcp.kooshapari.com';
+                const supaToken = authData.session?.access_token;
+                if (!supaToken) {
+                    return { success: false, error: 'No Supabase session token found' };
+                }
+                const resp = await fetch(`${mcpBase}/auth/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${supaToken}`,
+                    },
+                    body: JSON.stringify({
+                        external_auth_id: externalAuthId,
+                    }),
+                    // We want to capture the redirect URI rather than following it server-side
+                    redirect: 'manual' as RequestRedirect,
+                });
+
+                // WorkOS completion returns 302 with Location header
+                const location = resp.headers.get('location');
+                if ((resp.status === 302 || resp.status === 301) && location) {
+                    return { success: true, mcpRedirectUri: location };
+                }
+                // Some error path with JSON body from our MCP server
+                let errText: string | undefined;
+                try {
+                    errText = await resp.text();
+                } catch {
+                    // ignore
+                }
+                return {
+                    success: false,
+                    error: `Failed to complete AuthKit flow (${resp.status}). ${errText || ''}`.trim(),
+                };
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : String(e);
+                return {
+                    success: false,
+                    error: `AuthKit completion failed: ${errorMessage}`,
+                };
+            }
         }
 
         const organizations = await getUserOrganizationsServer(authData.user.id);

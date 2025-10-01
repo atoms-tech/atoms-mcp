@@ -3,7 +3,7 @@
 import { SiGithub } from '@icons-pack/react-simple-icons';
 import { AlertCircle, Loader2, Mail } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { FormEvent } from 'react';
 import { Suspense, useEffect, useState, useTransition } from 'react';
 
@@ -22,6 +22,8 @@ import { Separator } from '@/components/ui/separator';
 
 // Create a separate client component for the login form
 function LoginForm() {
+    const searchParams = useSearchParams();
+    const externalAuthId = searchParams.get('external_auth_id') || undefined;
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -38,9 +40,21 @@ function LoginForm() {
         const formData = new FormData();
         formData.append('email', email);
         formData.append('password', password);
+        if (externalAuthId) {
+            formData.append('external_auth_id', externalAuthId);
+        }
         startTransition(async () => {
             try {
                 const result = await login(formData);
+
+                if (
+                    result.success &&
+                    'mcpRedirectUri' in result &&
+                    result.mcpRedirectUri
+                ) {
+                    window.location.href = result.mcpRedirectUri as string;
+                    return;
+                }
 
                 if (result.success && result.redirectTo) {
                     router.push(result.redirectTo);

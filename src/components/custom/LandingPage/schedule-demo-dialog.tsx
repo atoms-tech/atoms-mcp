@@ -6,10 +6,10 @@ import {
     endOfMonth,
     format,
     isBefore,
-    isWeekend,
     startOfDay,
     startOfMonth,
 } from 'date-fns';
+import { isWeekend } from 'date-fns/isWeekend';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
