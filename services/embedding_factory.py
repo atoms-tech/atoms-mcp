@@ -41,15 +41,6 @@ def get_embedding_service():
         except Exception as e:
             logger.warning(f"OpenAI embedding service failed to initialize: {e}")
     
-    # Try Hugging Face local embeddings
-    if _check_huggingface_available():
-        try:
-            from .embedding_huggingface import HuggingFaceEmbeddingService
-            logger.info("Using Hugging Face embedding service")
-            return HuggingFaceEmbeddingService()
-        except Exception as e:
-            logger.warning(f"Hugging Face embedding service failed to initialize: {e}")
-    
     # Fallback to mock service for development
     logger.warning("No embedding providers available, using mock service")
     from .embedding_mock import MockEmbeddingService
@@ -95,17 +86,6 @@ def _check_openai_available() -> bool:
         return False
 
 
-def _check_huggingface_available() -> bool:
-    """Check if Hugging Face transformers is available."""
-    try:
-        import transformers
-        import torch
-        return True
-    except ImportError:
-        logger.debug("Hugging Face: transformers or torch package not installed")
-        return False
-
-
 def _check_gcloud_auth() -> bool:
     """Check if gcloud Application Default Credentials are available."""
     try:
@@ -120,7 +100,6 @@ def get_available_providers() -> Dict[str, bool]:
     """Get status of all embedding providers."""
     return {
         "vertex_ai": _check_vertex_ai_available(),
-        "openai": _check_openai_available(), 
-        "huggingface": _check_huggingface_available(),
-        "mock": True  # Always available
+        "openai": _check_openai_available(),
+        "mock": True,  # Always available
     }
