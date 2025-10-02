@@ -12,10 +12,6 @@ from server import create_consolidated_server
 # Create the FastMCP server instance
 mcp = create_consolidated_server()
 
-# Create ASGI application with custom path
-# This is the proper way to deploy FastMCP on Vercel per docs
-app = mcp.http_app(path="/api/mcp")
-
 # Add health check endpoint for Vercel monitoring
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request):
@@ -25,6 +21,12 @@ async def health_check(request):
         "service": "atoms-mcp-server",
         "transport": "http"
     })
+
+# Create ASGI application with custom path
+# CRITICAL: stateless_http=True is REQUIRED for serverless environments like Vercel
+# This tells the MCP StreamableHTTPSessionManager to not maintain task groups between requests
+# Without this, you get "Task group is not initialized" errors in serverless functions
+app = mcp.http_app(path="/api/mcp", stateless_http=True)
 
 # Vercel will import the 'app' variable
 __all__ = ["app"]

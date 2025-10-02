@@ -1,4 +1,4 @@
-fastmcp>=2.12
+fastmcp>=2.12.2
 supabase>=2.5.0
 python-dotenv>=1.0.1
 google-cloud-aiplatform>=1.49.0

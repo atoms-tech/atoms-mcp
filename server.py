@@ -136,6 +136,17 @@ def create_consolidated_server() -> FastMCP:
         if cleaned.endswith("/mcp"):
             cleaned = cleaned[: -len("/mcp")]
         base_url = cleaned
+
+    # Vercel-specific: use VERCEL_URL if no public URL is configured
+    vercel_url = os.getenv("VERCEL_URL")
+    if not public_base_url and vercel_url:
+        guess = f"https://{vercel_url}".rstrip("/")
+        # Strip /api/mcp suffix if present
+        if guess.endswith("/api/mcp"):
+            guess = guess[: -len("/api/mcp")]
+        base_url = guess
+        logger.info(f"Using VERCEL_URL for base URL: {base_url}")
+
     logger.info(f"Resolved base URL for AuthKit/public metadata: {base_url}")
     print(f"🌐 AUTH BASE URL -> {base_url}")
 
@@ -438,8 +449,18 @@ def create_consolidated_server() -> FastMCP:
     async def _oauth_protected_resource_handler(request):
         from starlette.responses import JSONResponse
         authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
+
+        # Determine resource URL from request headers (for Vercel preview/custom domains)
+        scheme = request.headers.get("x-forwarded-proto", "https")
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+        if host:
+            resource = f"{scheme}://{host}"
+        else:
+            # Fallback to base_url
+            resource = f"{base_url}"
+
         return JSONResponse({
-            "resource": f"{base_url}",
+            "resource": resource,
             "authorization_servers": [authkit_domain] if authkit_domain else [],
             "bearer_methods_supported": ["header"],
         })
@@ -477,18 +498,24 @@ def create_consolidated_server() -> FastMCP:
             data = await request.json()
         except Exception as e:
             logger.error(f"Failed to parse request body: {e}")
-            return JSONResponse({"error": "Invalid request body", "details": str(e)}, status_code=400)
+            resp = JSONResponse({"error": "Invalid request body", "details": str(e)}, status_code=400)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
         try:
             external_auth_id = data.get("external_auth_id")
             if not external_auth_id:
-                return JSONResponse({"error": "external_auth_id required"}, status_code=400)
+                resp = JSONResponse({"error": "external_auth_id required"}, status_code=400)
+                resp.headers["Access-Control-Allow-Origin"] = "*"
+                return resp
 
             # Get Supabase JWT from Authorization header
             auth_header = request.headers.get("authorization", "")
             if not auth_header.startswith("Bearer "):
                 logger.error("Missing Bearer token in Authorization header")
-                return JSONResponse({"error": "Authorization header required"}, status_code=401)
+                resp = JSONResponse({"error": "Authorization header required"}, status_code=401)
+                resp.headers["Access-Control-Allow-Origin"] = "*"
+                return resp
 
             bearer_token = auth_header.split(" ", 1)[1].strip()
 
@@ -498,7 +525,9 @@ def create_consolidated_server() -> FastMCP:
 
             if not supabase_url or not supabase_key:
                 logger.error("Supabase env vars not configured")
-                return JSONResponse({"error": "Supabase not configured"}, status_code=500)
+                resp = JSONResponse({"error": "Supabase not configured"}, status_code=500)
+                resp.headers["Access-Control-Allow-Origin"] = "*"
+                return resp
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(
@@ -508,7 +537,9 @@ def create_consolidated_server() -> FastMCP:
                     if resp.status != 200:
                         error_text = await resp.text()
                         logger.error(f"Supabase verification failed ({resp.status}): {error_text}")
-                        return JSONResponse({"error": "Invalid Supabase token", "details": error_text}, status_code=401)
+                        json_resp = JSONResponse({"error": "Invalid Supabase token", "details": error_text}, status_code=401)
+                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
+                        return json_resp
                     user = await resp.json()
 
             # Complete OAuth with WorkOS
@@ -517,7 +548,9 @@ def create_consolidated_server() -> FastMCP:
 
             if not workos_key:
                 logger.error("WORKOS_API_KEY not configured")
-                return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
+                resp = JSONResponse({"error": "WorkOS not configured"}, status_code=500)
+                resp.headers["Access-Control-Allow-Origin"] = "*"
+                return resp
 
             logger.info(f"Completing WorkOS OAuth for user {user.get('email')}")
             logger.info(f"WorkOS API Key prefix: {workos_key[:15]}... (length: {len(workos_key)})")
@@ -538,7 +571,9 @@ def create_consolidated_server() -> FastMCP:
                     if resp.status >= 400:
                         text = await resp.text()
                         logger.error(f"WorkOS completion failed ({resp.status}): {text}")
-                        return JSONResponse({"error": "WorkOS failed", "status": resp.status, "body": text}, status_code=400)
+                        json_resp = JSONResponse({"error": "WorkOS failed", "status": resp.status, "body": text}, status_code=400)
+                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
+                        return json_resp
                     result = await resp.json()
 
                     # Add CORS headers to response
@@ -548,11 +583,13 @@ def create_consolidated_server() -> FastMCP:
         except Exception as e:
             logger.error(f"Unhandled exception in /auth/complete: {e}")
             logger.error(traceback.format_exc())
-            return JSONResponse({
+            resp = JSONResponse({
                 "error": "Internal server error",
                 "details": str(e),
                 "type": type(e).__name__
             }, status_code=500)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
     mcp.custom_route("/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_handler)
     mcp.custom_route("/api/mcp/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_handler)
