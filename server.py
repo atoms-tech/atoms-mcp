@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from fastmcp import FastMCP
-from .supabase_client import get_supabase, MissingSupabaseConfig
-from .errors import ApiError, normalize_error
+from supabase_client import get_supabase, MissingSupabaseConfig
+from errors import ApiError, normalize_error
 
 
 # Simple in-memory session store for demo purposes.
