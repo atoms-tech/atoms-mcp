@@ -463,6 +463,7 @@ def create_consolidated_server() -> FastMCP:
     async def _auth_complete_handler(request):
         import aiohttp
         from starlette.responses import JSONResponse, Response
+        import traceback
 
         # Handle OPTIONS for CORS
         if request.method == "OPTIONS":
@@ -476,68 +477,82 @@ def create_consolidated_server() -> FastMCP:
             data = await request.json()
         except Exception as e:
             logger.error(f"Failed to parse request body: {e}")
-            return JSONResponse({"error": "Invalid request body"}, status_code=400)
+            return JSONResponse({"error": "Invalid request body", "details": str(e)}, status_code=400)
 
-        external_auth_id = data.get("external_auth_id")
-        if not external_auth_id:
-            return JSONResponse({"error": "external_auth_id required"}, status_code=400)
+        try:
+            external_auth_id = data.get("external_auth_id")
+            if not external_auth_id:
+                return JSONResponse({"error": "external_auth_id required"}, status_code=400)
 
-        # Get Supabase JWT from Authorization header
-        auth_header = request.headers.get("authorization", "")
-        if not auth_header.startswith("Bearer "):
-            logger.error("Missing Bearer token in Authorization header")
-            return JSONResponse({"error": "Authorization header required"}, status_code=401)
+            # Get Supabase JWT from Authorization header
+            auth_header = request.headers.get("authorization", "")
+            if not auth_header.startswith("Bearer "):
+                logger.error("Missing Bearer token in Authorization header")
+                return JSONResponse({"error": "Authorization header required"}, status_code=401)
 
-        bearer_token = auth_header.split(" ", 1)[1]
+            bearer_token = auth_header.split(" ", 1)[1].strip()
 
-        # Verify with Supabase
-        supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "").rstrip("/")
-        supabase_key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+            # Verify with Supabase
+            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "").strip().rstrip("/")
+            supabase_key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "").strip()
 
-        if not supabase_url or not supabase_key:
-            logger.error("Supabase env vars not configured")
-            return JSONResponse({"error": "Supabase not configured"}, status_code=500)
+            if not supabase_url or not supabase_key:
+                logger.error("Supabase env vars not configured")
+                return JSONResponse({"error": "Supabase not configured"}, status_code=500)
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{supabase_url}/auth/v1/user",
-                headers={"Authorization": f"Bearer {bearer_token}", "apikey": supabase_key},
-            ) as resp:
-                if resp.status != 200:
-                    error_text = await resp.text()
-                    logger.error(f"Supabase verification failed ({resp.status}): {error_text}")
-                    return JSONResponse({"error": "Invalid Supabase token", "details": error_text}, status_code=401)
-                user = await resp.json()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{supabase_url}/auth/v1/user",
+                    headers={"Authorization": f"Bearer {bearer_token}", "apikey": supabase_key},
+                ) as resp:
+                    if resp.status != 200:
+                        error_text = await resp.text()
+                        logger.error(f"Supabase verification failed ({resp.status}): {error_text}")
+                        return JSONResponse({"error": "Invalid Supabase token", "details": error_text}, status_code=401)
+                    user = await resp.json()
 
-        # Complete OAuth with WorkOS
-        workos_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").rstrip("/")
-        workos_key = os.getenv("WORKOS_API_KEY")
+            # Complete OAuth with WorkOS
+            workos_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").strip().rstrip("/")
+            workos_key = os.getenv("WORKOS_API_KEY", "").strip()
 
-        if not workos_key:
-            logger.error("WORKOS_API_KEY not configured")
-            return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
+            if not workos_key:
+                logger.error("WORKOS_API_KEY not configured")
+                return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
 
-        logger.info(f"Completing WorkOS OAuth for user {user.get('email')}")
+            logger.info(f"Completing WorkOS OAuth for user {user.get('email')}")
+            logger.info(f"WorkOS API Key prefix: {workos_key[:15]}... (length: {len(workos_key)})")
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{workos_url}/authkit/oauth2/complete",
-                json={
-                    "external_auth_id": external_auth_id,
-                    "user": {"id": user["id"], "email": user["email"]},
-                },
-                headers={"Authorization": f"Bearer {workos_key}", "Content-Type": "application/json"},
-            ) as resp:
-                if resp.status >= 400:
-                    text = await resp.text()
-                    logger.error(f"WorkOS completion failed ({resp.status}): {text}")
-                    return JSONResponse({"error": "WorkOS failed", "status": resp.status, "body": text}, status_code=400)
-                result = await resp.json()
+            complete_url = f"{workos_url}/authkit/oauth2/complete"
+            payload = {
+                "external_auth_id": external_auth_id,
+                "user": {"id": user["id"], "email": user["email"]},
+            }
+            logger.info(f"WorkOS request: POST {complete_url}")
 
-                # Add CORS headers to response
-                json_resp = JSONResponse({"success": True, "redirect_uri": result["redirect_uri"]})
-                json_resp.headers["Access-Control-Allow-Origin"] = "*"
-                return json_resp
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    complete_url,
+                    json=payload,
+                    headers={"Authorization": f"Bearer {workos_key}", "Content-Type": "application/json"},
+                ) as resp:
+                    if resp.status >= 400:
+                        text = await resp.text()
+                        logger.error(f"WorkOS completion failed ({resp.status}): {text}")
+                        return JSONResponse({"error": "WorkOS failed", "status": resp.status, "body": text}, status_code=400)
+                    result = await resp.json()
+
+                    # Add CORS headers to response
+                    json_resp = JSONResponse({"success": True, "redirect_uri": result["redirect_uri"]})
+                    json_resp.headers["Access-Control-Allow-Origin"] = "*"
+                    return json_resp
+        except Exception as e:
+            logger.error(f"Unhandled exception in /auth/complete: {e}")
+            logger.error(traceback.format_exc())
+            return JSONResponse({
+                "error": "Internal server error",
+                "details": str(e),
+                "type": type(e).__name__
+            }, status_code=500)
 
     mcp.custom_route("/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_handler)
     mcp.custom_route("/api/mcp/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_handler)
