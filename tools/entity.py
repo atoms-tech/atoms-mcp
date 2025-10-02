@@ -337,23 +337,30 @@ class EntityManager(ToolBase):
     ) -> List[Dict[str, Any]]:
         """Search for entities with filters."""
         table = self._resolve_entity_table(entity_type)
-        
+
         # Build query filters
         query_filters = filters.copy() if filters else {}
-        
+
         # Add default filters
         if "is_deleted" not in query_filters:
             query_filters["is_deleted"] = False
-        
+
         # Handle search term
         if search_term:
             # This is simplified - in practice you'd use full-text search
             query_filters["name"] = {"ilike": f"%{search_term}%"}
-        
+
         # Set default ordering
         if not order_by:
             order_by = "created_at:desc"
-        
+
+        # Safety: Enforce maximum limit to prevent oversized responses
+        # Cap at 1000, default to 100 if not specified
+        if limit is None:
+            limit = 100
+        elif limit > 1000:
+            limit = 1000
+
         return await self._db_query(
             table,
             filters=query_filters,
@@ -371,12 +378,17 @@ class EntityManager(ToolBase):
     ) -> List[Dict[str, Any]]:
         """List entities, optionally filtered by parent."""
         filters = {"is_deleted": False}
-        
+
         # Add parent filter
         if parent_type and parent_id:
             parent_key = f"{parent_type}_id"
             filters[parent_key] = parent_id
-        
+
+        # Safety: Always enforce a maximum limit to prevent oversized responses
+        # Default to 100, but never allow unlimited queries
+        if limit is None or limit > 1000:
+            limit = 100
+
         return await self.search_entities(
             entity_type,
             filters=filters,

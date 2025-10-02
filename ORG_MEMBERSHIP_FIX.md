@@ -187,23 +187,118 @@ DROP FUNCTION IF EXISTS auto_add_org_owner();
 3. **Security Maintained**: RLS policies still enforce proper access control
 4. **Convention over Configuration**: Creators automatically own their organizations
 
+## Pagination Fix (BONUS)
+
+While testing, we discovered that `entity_tool` list operations were returning 449K tokens, exceeding MCP's 25K token limit.
+
+**Added Safety Checks**:
+- `tools/entity.py:search_entities()` - Default limit=100, max 1000
+- `tools/entity.py:list_entities()` - Default limit=100, max 1000
+
+**Impact**: Prevents oversized responses, improves API stability
+
+## How to Apply SQL Trigger
+
+### File to Use
+⚠️ **Use the CORRECTED version**: `infrastructure/sql/add_auto_org_membership_CORRECT.sql`
+
+This version matches the actual `organization_members` table schema (no `created_by` column).
+
+### Method 1: Supabase Dashboard (Recommended)
+1. Navigate to: https://supabase.com/dashboard/project/ydogoylwenufckscqijp/sql/new
+2. Copy entire contents of `add_auto_org_membership_CORRECT.sql`
+3. Paste into SQL Editor
+4. Click **RUN**
+5. Verify no errors appear
+
+### Method 2: psql Command Line
+```bash
+psql "your-connection-string" -f infrastructure/sql/add_auto_org_membership_CORRECT.sql
+```
+
+### Verify Trigger Created
+After running the SQL, execute this verification query:
+
+```sql
+SELECT trigger_name, event_object_table, action_statement
+FROM information_schema.triggers
+WHERE trigger_name = 'trigger_auto_add_org_owner';
+```
+
+Expected: 1 row showing trigger on `organizations` table
+
+## Testing After Trigger Application
+
+### Test 1: Auto-Membership on Org Creation
+```python
+# Create new organization
+result = await workspace_operation(
+    auth_token="your-token",
+    operation="set_context",
+    context_type="organization",
+    entity_id="new-org-id"
+)
+
+# Query database to verify membership:
+# SELECT * FROM organization_members
+# WHERE organization_id = 'new-org-id' AND role = 'owner'
+# Expected: 1 row with creator as owner, status='active'
+```
+
+### Test 2: Project Creation (Should Succeed)
+```python
+result = await entity_operation(
+    auth_token="your-token",
+    operation="create",
+    entity_type="project",
+    data={
+        "name": "Test Project",
+        "organization_id": "auto"
+    }
+)
+
+# Expected: success=true, no UNAUTHORIZED_ORG_ACCESS error
+```
+
+### Test 3: Pagination Limits
+```python
+result = await entity_operation(
+    auth_token="your-token",
+    operation="list",
+    entity_type="organization"
+)
+
+# Expected: Returns max 100 items, not 449K tokens
+```
+
 ## Related Files
 
-- `infrastructure/sql/add_auto_org_membership_trigger.sql` - Trigger definition
-- `errors.py` - Error transformation logic
-- `tools/entity.py:85-87` - Already sets `owned_by` for projects
+- `infrastructure/sql/add_auto_org_membership_CORRECT.sql` - **Use this version**
+- `infrastructure/sql/add_auto_org_membership_trigger.sql` - ❌ Don't use (wrong schema)
+- `errors.py` - Error transformation logic (deployed)
+- `tools/entity.py:357-370` - Pagination safety checks (deployed)
+- `tools/entity.py:85-87` - Sets `owned_by` for projects
 - `RLS_FIX_REPORT.md` - Related RLS policy documentation
 
 ## Status
 
-- [x] Trigger SQL created
-- [x] Error handling improved
-- [ ] Trigger applied to database
-- [ ] MCP server redeployed
-- [ ] End-to-end testing completed
+- [x] Corrected trigger SQL created
+- [x] Error handling improved and deployed
+- [x] Pagination safety added and deployed
+- [x] Code pushed to GitHub (vecfin-latest)
+- [x] Render auto-deployed
+- [ ] **⚠️ CRITICAL: Trigger applied to Supabase database**
+- [ ] End-to-end testing with trigger active
+
+## Immediate Action Required
+
+**You must apply the SQL trigger to unblock project creation workflows.**
+
+Run `infrastructure/sql/add_auto_org_membership_CORRECT.sql` in Supabase SQL Editor now.
 
 ---
 
 **Created**: 2025-10-02
+**Updated**: 2025-10-02 18:15 PST (Added pagination fixes, corrected SQL path)
 **Priority**: High - Blocks basic user workflows
-**Impact**: All new organization creation flows
+**Impact**: All organization creation + API response size limits
