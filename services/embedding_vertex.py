@@ -7,6 +7,7 @@ and the env vars `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from typing import Dict, List, Optional, NamedTuple
 import os
@@ -71,6 +72,8 @@ class VertexAIEmbeddingService:
         # Only gemini-embedding-001 is supported
         self.default_model = "gemini-embedding-001"
         self.large_model = self.default_model
+        # Cache the model instance to avoid reloading on every call
+        self._model_instance = None
     
     def _get_cache_key(self, text: str, model: str) -> str:
         """Generate cache key for text and model."""
@@ -120,8 +123,16 @@ class VertexAIEmbeddingService:
             )
         
         try:
-            model_inst = TextEmbeddingModel.from_pretrained(model)
-            embeddings = model_inst.get_embeddings([text], output_dimensionality=768)
+            # Use cached model instance to avoid reloading on every call
+            if self._model_instance is None:
+                self._model_instance = TextEmbeddingModel.from_pretrained(model)
+
+            # Run blocking Vertex AI API call in thread pool to allow true concurrency
+            embeddings = await asyncio.to_thread(
+                self._model_instance.get_embeddings,
+                [text],
+                output_dimensionality=768
+            )
             values = embeddings[0].values if embeddings else []
 
             result = EmbeddingResult(

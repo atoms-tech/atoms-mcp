@@ -102,50 +102,61 @@ class ProgressiveEmbeddingService:
         table_name: str,
         record_id: str,
         record_data: Optional[Dict[str, Any]] = None
-    ) -> Optional[List[float]]:
+    ) -> Optional[Dict[str, Any]]:
         """
         Generate embedding for a single record on-demand.
-        
+
         Args:
             table_name: Database table name
             record_id: Record ID
             record_data: Optional record data (to avoid extra DB query)
-        
+
         Returns:
-            Generated embedding vector or None if failed
+            Dict with embedding vector and timing info, or None if failed
         """
+        import time
+
         record_key = f"{table_name}:{record_id}"
-        
+
         # Prevent duplicate processing
         if record_key in self._processing_records:
             logger.debug(f"Record {record_key} already being processed")
             return None
-        
+
         self._processing_records.add(record_key)
-        
+
+        timings = {}
+
         try:
             # Get record data if not provided
             if record_data is None:
                 record_data = await self._fetch_record(table_name, record_id)
                 if not record_data:
                     return None
-            
+
             # Extract content for embedding
             content = self._extract_content(record_data, table_name)
             if not content:
                 logger.warning(f"No content found for {record_key}")
                 return None
-            
+
             # Generate embedding
+            t0 = time.time()
             embedding_result = await self.embedding_service.generate_embedding(content)
+            timings['embedding'] = time.time() - t0
             embedding_vector = embedding_result.embedding
 
             # Update record with embedding
+            t0 = time.time()
             await self._update_record_embedding(table_name, record_id, embedding_vector, record_data)
-            
+            timings['db_update'] = time.time() - t0
+
             logger.info(f"Generated embedding for {record_key} ({len(content)} chars)")
-            return embedding_vector
-            
+            return {
+                'embedding': embedding_vector,
+                'timings': timings
+            }
+
         except Exception as e:
             logger.error(f"Failed to generate embedding for {record_key}: {e}")
             return None
@@ -237,38 +248,75 @@ class ProgressiveEmbeddingService:
         try:
             config = self.table_configs[table_name]
 
-            # Get created_by to use as updated_by
+            # Get created_by to use as updated_by for RPC fallback
             updated_by = None
             if record_data and 'created_by' in record_data:
                 updated_by = record_data['created_by']
-                logger.info(f"Using created_by as updated_by: {updated_by}")
-            else:
-                logger.warning(f"No created_by found in record_data. Keys: {list(record_data.keys()) if record_data else 'None'}")
 
-            # Use the update_embedding_backfill function to bypass triggers
-            try:
-                logger.info(f"Calling RPC with: table={table_name}, id={record_id}, updated_by={updated_by}")
-                result = self.supabase.rpc('update_embedding_backfill', {
-                    'p_table_name': table_name,
-                    'p_record_id': record_id,
-                    'p_embedding': embedding,
-                    'p_updated_by': updated_by
-                }).execute()
-                logger.info(f"RPC succeeded for {table_name}:{record_id}")
-                return True
-            except Exception as rpc_error:
-                logger.error(f"RPC update failed for {table_name}:{record_id}: {rpc_error}")
-                # Fallback to regular update (will likely fail with updated_by constraint)
-                update_data = {
-                    config['embedding_column']: embedding,
-                    'updated_at': datetime.utcnow().isoformat(),
-                    'updated_by': updated_by
-                }
-                result = self.supabase.table(table_name).update(update_data).eq('id', record_id).execute()
-                return bool(result.data)
+            # Strategy: Try RPC first (bypasses RLS), then fall back to direct update
+            # RPC uses SECURITY DEFINER to bypass RLS policies
+            max_retries = 3
+            retry_delay = 0.1
+            last_error = None
+
+            for attempt in range(max_retries):
+                try:
+                    # RPC call - wrap in thread to avoid blocking event loop
+                    rpc_call = self.supabase.rpc('update_embedding_backfill', {
+                        'p_table_name': table_name,
+                        'p_record_id': record_id,
+                        'p_embedding': embedding,
+                        'p_updated_by': updated_by
+                    })
+                    result = await asyncio.to_thread(rpc_call.execute)
+
+                    # If we get here, RPC succeeded
+                    return True
+
+                except Exception as e:
+                    last_error = e
+                    error_msg = str(e)
+                    # Retry on connection errors
+                    if 'Resource temporarily unavailable' in error_msg or 'Connection' in error_msg:
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(retry_delay * (attempt + 1))
+                            continue
+                    # For other errors, break and try fallback
+                    break
+
+            # All retries failed, try fallback
+            if last_error:
+                rpc_error = last_error
+                # RPC failed, try direct update as fallback
+                error_msg = str(rpc_error)
+
+                # Only log as warning if it's a known RLS issue, otherwise it's an error
+                if 'permission denied' in error_msg.lower():
+                    logger.warning(f"RLS prevented direct update for {table_name}:{record_id}, trying direct table access")
+                else:
+                    logger.error(f"RPC update failed for {table_name}:{record_id}: {error_msg}")
+
+                # Fallback: direct table update (may fail with RLS)
+                try:
+                    update_data = {
+                        config['embedding_column']: embedding
+                    }
+                    update_query = self.supabase.table(table_name).update(update_data).eq('id', record_id)
+                    result = await asyncio.to_thread(update_query.execute)
+
+                    if result.data:
+                        logger.debug(f"✅ Direct update succeeded for {table_name}:{record_id}")
+                        return True
+                    else:
+                        logger.error(f"❌ No rows updated for {table_name}:{record_id}")
+                        return False
+
+                except Exception as direct_error:
+                    logger.error(f"❌ Both RPC and direct update failed for {table_name}:{record_id}: {direct_error}")
+                    return False
 
         except Exception as e:
-            logger.error(f"Error updating embedding for {table_name}:{record_id}: {e}")
+            logger.error(f"❌ Unexpected error updating embedding for {table_name}:{record_id}: {e}")
             return False
     
     def _get_table_name(self, entity_type: str) -> Optional[str]:
