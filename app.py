@@ -34,40 +34,32 @@ app = mcp.http_app(path="/api/mcp", stateless_http=True)
 # doesn't persist across invocations, so we need to ensure the task group is
 # recreated for each request.
 
-# Find the session manager and wrap it to auto-create task groups
-session_manager = None
-for route in app.routes:
-    if hasattr(route, 'endpoint') and hasattr(route.endpoint, '__self__'):
-        endpoint = route.endpoint.__self__
-        if hasattr(endpoint, 'session_manager'):
-            session_manager = endpoint.session_manager
-            break
+# Patch the StreamableHTTPSessionManager directly
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+import inspect
 
-if session_manager:
-    # Store the original handle_request method
-    original_handle_request = session_manager.handle_request
+# Store the original handle_request method
+_original_handle_request = StreamableHTTPSessionManager.handle_request
 
-    # Create a wrapper that ensures task group exists
-    async def handle_request_with_task_group(scope, receive, send):
-        """Wrapper that creates a task group if needed for serverless environments."""
-        if session_manager._task_group is None:
-            # Create a temporary task group for this request
-            async with anyio.create_task_group() as tg:
-                session_manager._task_group = tg
-                try:
-                    await original_handle_request(scope, receive, send)
-                finally:
-                    # Don't clear it here - let it be reused if possible
-                    pass
-        else:
-            # Task group already exists (from lifespan or previous request)
-            await original_handle_request(scope, receive, send)
+# Create a wrapper that ensures task group exists
+async def _patched_handle_request(self, scope, receive, send):
+    """Wrapper that creates a task group if needed for serverless environments."""
+    if self._task_group is None:
+        # Create a temporary task group for this request
+        async with anyio.create_task_group() as tg:
+            self._task_group = tg
+            try:
+                await _original_handle_request(self, scope, receive, send)
+            finally:
+                # Clear the task group after request completes
+                self._task_group = None
+    else:
+        # Task group already exists (from lifespan or previous request)
+        await _original_handle_request(self, scope, receive, send)
 
-    # Replace the method
-    session_manager.handle_request = handle_request_with_task_group
-    print("✅ Patched session_manager to auto-create task groups for serverless")
-else:
-    print("⚠️  Could not find session_manager to patch")
+# Monkey patch the class method
+StreamableHTTPSessionManager.handle_request = _patched_handle_request
+print("✅ Patched StreamableHTTPSessionManager.handle_request for serverless deployment")
 
 # Vercel will import the 'app' variable
 __all__ = ["app"]
