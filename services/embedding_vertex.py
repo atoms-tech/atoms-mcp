@@ -1,6 +1,6 @@
 """Vertex AI embedding service (Gemini) for RAG functionality.
 
-Uses Google Cloud Vertex AI's embeddings model (default: gemini-embeddings-001).
+Uses Google Cloud Vertex AI's gemini-embedding-001 model exclusively.
 Requires Google ADC credentials or service account JSON via `GOOGLE_APPLICATION_CREDENTIALS`,
 and the env vars `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`.
 """
@@ -68,8 +68,8 @@ class VertexAIEmbeddingService:
 
         self.cache: Dict[str, EmbeddingResult] = {}
         self.cache_size = cache_size
-        # Default to the correct Vertex AI embeddings model, allow override
-        self.default_model = os.getenv("VERTEX_EMBEDDINGS_MODEL", "text-embedding-004")
+        # Only gemini-embedding-001 is supported
+        self.default_model = "gemini-embedding-001"
         self.large_model = self.default_model
     
     def _get_cache_key(self, text: str, model: str) -> str:
@@ -93,19 +93,20 @@ class VertexAIEmbeddingService:
         use_cache: bool = True
     ) -> EmbeddingResult:
         """Generate embedding for a single text.
-        
+
         Args:
             text: Text to embed
-            model: Vertex model name (defaults to VERTEX_EMBEDDINGS_MODEL or gemini-embeddings-001)
+            model: Must be gemini-embedding-001 (ignored if different)
             use_cache: Whether to use caching
-            
+
         Returns:
             EmbeddingResult with embedding vector and metadata
         """
         if not text.strip():
             raise ValueError("Text cannot be empty")
-        
-        model = model or self.default_model
+
+        # Only gemini-embedding-001 is supported
+        model = self.default_model
         cache_key = self._get_cache_key(text, model)
         
         # Check cache first
@@ -147,20 +148,21 @@ class VertexAIEmbeddingService:
         batch_size: int = 100
     ) -> BatchEmbeddingResult:
         """Generate embeddings for multiple texts efficiently.
-        
+
         Args:
             texts: List of texts to embed
-            model: Vertex model name
+            model: Must be gemini-embedding-001 (ignored if different)
             use_cache: Whether to use caching
             batch_size: Maximum texts per API call
-            
+
         Returns:
             BatchEmbeddingResult with all embeddings and metadata
         """
         if not texts:
-            return BatchEmbeddingResult([], 0, model or self.default_model, 0)
-        
-        model = model or self.default_model
+            return BatchEmbeddingResult([], 0, self.default_model, 0)
+
+        # Only gemini-embedding-001 is supported
+        model = self.default_model
         all_embeddings = []
         total_tokens = 0
         cached_count = 0

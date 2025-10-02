@@ -57,3 +57,8 @@ bun.lock
 
 .kiro
 .vscode
+
+# Google Cloud credentials
+atoms-mcp-sa-key.json
+*-sa-key.json
+service-account*.json

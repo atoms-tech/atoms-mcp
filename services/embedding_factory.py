@@ -11,40 +11,35 @@ logger = logging.getLogger(__name__)
 
 def get_embedding_service():
     """
-    Get the best available embedding service based on installed dependencies and configuration.
-    
-    Priority order:
-    1. Vertex AI (Google Cloud) - if vertexai package is available
-    2. OpenAI - if openai package is available  
-    3. Hugging Face - if transformers package is available
-    4. Mock service - for testing/development
-    
+    Get the Vertex AI embedding service (gemini-embedding-001).
+
+    Only Vertex AI with gemini-embedding-001 is supported.
+    Raises RuntimeError if Vertex AI is not properly configured.
+
     Returns:
         EmbeddingService instance
+
+    Raises:
+        RuntimeError: If Vertex AI is not available or fails to initialize
     """
-    
-    # Try Vertex AI first (preferred for production)
-    if _check_vertex_ai_available():
-        try:
-            from .embedding_vertex import VertexAIEmbeddingService
-            logger.info("Using Vertex AI embedding service")
-            return VertexAIEmbeddingService()
-        except Exception as e:
-            logger.warning(f"Vertex AI embedding service failed to initialize: {e}")
-    
-    # Try OpenAI as fallback
-    if _check_openai_available():
-        try:
-            from .embedding_openai import OpenAIEmbeddingService
-            logger.info("Using OpenAI embedding service")
-            return OpenAIEmbeddingService()
-        except Exception as e:
-            logger.warning(f"OpenAI embedding service failed to initialize: {e}")
-    
-    # Fallback to mock service for development
-    logger.warning("No embedding providers available, using mock service")
-    from .embedding_mock import MockEmbeddingService
-    return MockEmbeddingService()
+
+    # Check Vertex AI availability
+    if not _check_vertex_ai_available():
+        raise RuntimeError(
+            "Vertex AI is not properly configured. Required:\n"
+            "  - GOOGLE_CLOUD_PROJECT environment variable\n"
+            "  - GOOGLE_APPLICATION_CREDENTIALS or gcloud auth\n"
+            "  - vertexai Python package installed"
+        )
+
+    # Initialize Vertex AI embedding service
+    try:
+        from .embedding_vertex import VertexAIEmbeddingService
+        logger.info("Using Vertex AI embedding service (gemini-embedding-001)")
+        return VertexAIEmbeddingService()
+    except Exception as e:
+        logger.error(f"Vertex AI embedding service failed to initialize: {e}")
+        raise RuntimeError(f"Failed to initialize Vertex AI embeddings: {e}") from e
 
 
 def _check_vertex_ai_available() -> bool:
@@ -70,22 +65,6 @@ def _check_vertex_ai_available() -> bool:
         return False
 
 
-def _check_openai_available() -> bool:
-    """Check if OpenAI is available and configured."""
-    try:
-        import openai
-        
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.debug("OpenAI: Missing OPENAI_API_KEY environment variable")
-            return False
-        
-        return True
-    except ImportError:
-        logger.debug("OpenAI: openai package not installed")
-        return False
-
-
 def _check_gcloud_auth() -> bool:
     """Check if gcloud Application Default Credentials are available."""
     try:
@@ -100,6 +79,5 @@ def get_available_providers() -> Dict[str, bool]:
     """Get status of all embedding providers."""
     return {
         "vertex_ai": _check_vertex_ai_available(),
-        "openai": _check_openai_available(),
-        "mock": True,  # Always available
+        "mock": True,  # Always available for development
     }

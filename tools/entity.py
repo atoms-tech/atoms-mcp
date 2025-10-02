@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import asyncio
 from typing import Dict, Any, Optional, List, Literal, Union
 from datetime import datetime, timezone
 
@@ -148,21 +149,55 @@ class EntityManager(ToolBase):
         """Create a new entity."""
         # Resolve smart defaults
         data = await self._resolve_smart_defaults(entity_type, data)
-        
+
         # Apply defaults and validate
         data = self._apply_defaults(entity_type, data)
         self._validate_required_fields(entity_type, data)
-        
+
         # Get table name
         table = self._resolve_entity_table(entity_type)
-        
+
         # Create entity
         result = await self._db_insert(table, data, returning="*")
 
         # Skip relationship inclusion for create to avoid Supabase client issues
         # Relationships can be fetched separately with read operation if needed
 
+        # Generate embedding asynchronously for searchable entities
+        # This runs in background and won't block the response
+        if entity_type in ["organization", "project", "document", "requirement"]:
+            asyncio.create_task(self._generate_embedding_async(entity_type, result))
+
         return result
+
+    async def _generate_embedding_async(self, entity_type: str, entity_data: Dict[str, Any]):
+        """Generate embedding for entity in background.
+
+        This method runs asynchronously and won't block entity creation.
+        Errors are logged but don't fail the entity creation operation.
+        """
+        try:
+            from services.progressive_embedding import ProgressiveEmbeddingService
+            from services.embedding_factory import get_embedding_service
+
+            # Initialize services
+            embedding_service = get_embedding_service()
+            progressive_service = ProgressiveEmbeddingService(self.supabase, embedding_service)
+
+            # Get table name for this entity type
+            table_name = progressive_service._get_table_name(entity_type)
+
+            # Generate embedding
+            await progressive_service.generate_embedding_on_demand(
+                table_name,
+                entity_data["id"],
+                entity_data
+            )
+
+        except Exception as e:
+            # Log error but don't fail entity creation
+            # In production, this should use proper logging
+            print(f"Warning: Failed to generate embedding for {entity_type} {entity_data.get('id')}: {e}")
     
     async def read_entity(
         self,

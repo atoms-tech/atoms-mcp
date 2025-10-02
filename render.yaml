@@ -37,6 +37,14 @@ services:
       - key: WORKOS_API_URL
         value: https://api.workos.com
 
+      # Google Cloud / Vertex AI (add as secret environment variables)
+      - key: GOOGLE_CLOUD_PROJECT
+        sync: false
+      - key: GOOGLE_CLOUD_LOCATION
+        value: us-central1
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false  # Path to service account JSON file or set credentials directly
+
     # Health check
     healthCheckPath: /health
 

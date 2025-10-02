@@ -25,7 +25,7 @@ class DataQueryEngine(ToolBase):
             from services.embedding_factory import get_embedding_service
             from services.enhanced_vector_search import EnhancedVectorSearchService
 
-            # Get the best available embedding service (Vertex AI, OpenAI, HuggingFace, or Mock)
+            # Get the embedding service (Vertex AI with gemini-embedding-001 only)
             self._embedding_service = get_embedding_service()
             self._vector_search_service = EnhancedVectorSearchService(self.supabase, self._embedding_service)
     

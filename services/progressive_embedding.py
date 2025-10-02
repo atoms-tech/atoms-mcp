@@ -139,9 +139,9 @@ class ProgressiveEmbeddingService:
             # Generate embedding
             embedding_result = await self.embedding_service.generate_embedding(content)
             embedding_vector = embedding_result.embedding
-            
+
             # Update record with embedding
-            await self._update_record_embedding(table_name, record_id, embedding_vector)
+            await self._update_record_embedding(table_name, record_id, embedding_vector, record_data)
             
             logger.info(f"Generated embedding for {record_key} ({len(content)} chars)")
             return embedding_vector
@@ -230,19 +230,43 @@ class ProgressiveEmbeddingService:
         self,
         table_name: str,
         record_id: str,
-        embedding: List[float]
+        embedding: List[float],
+        record_data: Optional[Dict[str, Any]] = None
     ) -> bool:
         """Update record with generated embedding."""
         try:
             config = self.table_configs[table_name]
-            
-            result = self.supabase.table(table_name).update({
-                config['embedding_column']: embedding,
-                'updated_at': datetime.utcnow().isoformat()
-            }).eq('id', record_id).execute()
-            
-            return bool(result.data)
-            
+
+            # Get created_by to use as updated_by
+            updated_by = None
+            if record_data and 'created_by' in record_data:
+                updated_by = record_data['created_by']
+                logger.info(f"Using created_by as updated_by: {updated_by}")
+            else:
+                logger.warning(f"No created_by found in record_data. Keys: {list(record_data.keys()) if record_data else 'None'}")
+
+            # Use the update_embedding_backfill function to bypass triggers
+            try:
+                logger.info(f"Calling RPC with: table={table_name}, id={record_id}, updated_by={updated_by}")
+                result = self.supabase.rpc('update_embedding_backfill', {
+                    'p_table_name': table_name,
+                    'p_record_id': record_id,
+                    'p_embedding': embedding,
+                    'p_updated_by': updated_by
+                }).execute()
+                logger.info(f"RPC succeeded for {table_name}:{record_id}")
+                return True
+            except Exception as rpc_error:
+                logger.error(f"RPC update failed for {table_name}:{record_id}: {rpc_error}")
+                # Fallback to regular update (will likely fail with updated_by constraint)
+                update_data = {
+                    config['embedding_column']: embedding,
+                    'updated_at': datetime.utcnow().isoformat(),
+                    'updated_by': updated_by
+                }
+                result = self.supabase.table(table_name).update(update_data).eq('id', record_id).execute()
+                return bool(result.data)
+
         except Exception as e:
             logger.error(f"Error updating embedding for {table_name}:{record_id}: {e}")
             return False
