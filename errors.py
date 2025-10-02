@@ -23,6 +23,42 @@ def normalize_error(err: Exception | str, fallback_message: str) -> ApiError:
     if isinstance(err, ApiError):
         return err
     if isinstance(err, Exception):
-        return create_api_error_internal(str(err) or fallback_message, details={"cause": repr(err)})
+        error_str = str(err)
+
+        # Transform common RLS errors into user-friendly messages
+        if "row-level security policy" in error_str.lower():
+            if "projects" in error_str:
+                return ApiError(
+                    code="UNAUTHORIZED_ORG_ACCESS",
+                    message="You don't have permission to create projects in this organization. Please ensure you're a member of the organization first.",
+                    status=403,
+                    details={"cause": repr(err), "hint": "Use the workspace_tool to verify your organization membership or contact an organization owner."}
+                )
+            else:
+                return ApiError(
+                    code="UNAUTHORIZED_ACCESS",
+                    message="You don't have permission to perform this action. Please check your organization membership.",
+                    status=403,
+                    details={"cause": repr(err)}
+                )
+
+        # Transform other common database errors
+        if "unique constraint" in error_str.lower():
+            return ApiError(
+                code="DUPLICATE_ENTRY",
+                message="An item with this identifier already exists.",
+                status=409,
+                details={"cause": repr(err)}
+            )
+
+        if "foreign key" in error_str.lower():
+            return ApiError(
+                code="INVALID_REFERENCE",
+                message="Referenced item does not exist.",
+                status=400,
+                details={"cause": repr(err)}
+            )
+
+        return create_api_error_internal(error_str or fallback_message, details={"cause": repr(err)})
     return create_api_error_internal(fallback_message)
 
