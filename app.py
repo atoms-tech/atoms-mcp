@@ -24,9 +24,24 @@ async def health_check(request):
 
 # Create ASGI application with custom path
 # CRITICAL: stateless_http=True is REQUIRED for serverless environments like Vercel
-# This tells the MCP StreamableHTTPSessionManager to not maintain task groups between requests
-# Without this, you get "Task group is not initialized" errors in serverless functions
 app = mcp.http_app(path="/api/mcp", stateless_http=True)
+
+# WORKAROUND: Manually patch the session manager to ensure stateless mode
+# This is needed because stateless_http parameter isn't propagating correctly
+try:
+    # Access the HTTP handler from the app routes
+    for route in app.routes:
+        if hasattr(route, 'app') and hasattr(route.app, 'session_manager'):
+            route.app.session_manager.stateless = True
+            print("✅ Patched session_manager.stateless = True")
+        elif hasattr(route, 'endpoint'):
+            # Try to find session manager in endpoint
+            endpoint = route.endpoint
+            if hasattr(endpoint, '__self__') and hasattr(endpoint.__self__, 'session_manager'):
+                endpoint.__self__.session_manager.stateless = True
+                print("✅ Patched endpoint session_manager.stateless = True")
+except Exception as e:
+    print(f"⚠️  Could not patch session_manager: {e}")
 
 # Vercel will import the 'app' variable
 __all__ = ["app"]
