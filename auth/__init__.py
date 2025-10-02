@@ -1,29 +1,20 @@
-"""Authentication providers for FastMCP integration."""
+"""Auth utilities for Atoms MCP."""
 
-from .supabase_provider import (
-    create_supabase_jwt_verifier,
-    SupabaseAuthProvider  # Backward compatibility alias
+from .session_middleware import (
+    SessionMiddleware,
+    get_session_context,
+    get_session_token,
+    mark_session_modified,
+    update_session_state,
 )
-from .supabase_bearer_provider import (
-    create_supabase_bearer_provider,
-    SupabaseTokenVerifier
-)
-from .supabase_oauth_provider import (
-    create_supabase_oauth_provider,
-    SupabaseOAuthProvider
-)
-from .simple_auth_provider import (
-    create_supabase_simple_auth_provider,
-    SupabaseSimpleAuthProvider
-)
+from .session_manager import SessionManager, create_session_manager
 
 __all__ = [
-    "create_supabase_jwt_verifier",
-    "SupabaseAuthProvider", 
-    "create_supabase_bearer_provider",
-    "SupabaseTokenVerifier",
-    "create_supabase_oauth_provider",
-    "SupabaseOAuthProvider",
-    "create_supabase_simple_auth_provider",
-    "SupabaseSimpleAuthProvider"
+    "SessionMiddleware",
+    "SessionManager",
+    "create_session_manager",
+    "get_session_context",
+    "get_session_token",
+    "mark_session_modified",
+    "update_session_state",
 ]

@@ -105,29 +105,6 @@ FROM pg_policies
 WHERE tablename = 'profiles';
 ```
 
-### 3. Test Authentication Flow
-
-After setup, test with a real user:
-
-```python
-# Test script to verify Supabase integration
-import asyncio
-from auth.workos_supabase_proxy import WorkOSSupabaseAuthProxy
-
-async def test_supabase_integration():
-    proxy = WorkOSSupabaseAuthProxy()
-    
-    # Test with real user credentials
-    result = await proxy.validate_supabase_credentials(
-        "your-test-user@example.com", 
-        "your-password"
-    )
-    
-    print(f"Auth result: {result}")
-
-asyncio.run(test_supabase_integration())
-```
-
 ## 🔍 Troubleshooting
 
 ### Common Issues
