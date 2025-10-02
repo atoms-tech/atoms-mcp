@@ -13,11 +13,57 @@ except ImportError:
 
 class DataQueryEngine(ToolBase):
     """Advanced data querying and analysis engine with RAG capabilities."""
-    
+
     def __init__(self):
         super().__init__()
         self._embedding_service = None
         self._vector_search_service = None
+
+    def _sanitize_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove large fields from metadata to prevent token overflow.
+
+        Strips out embedding vectors, large text fields, and other heavy data
+        while preserving essential identifying information.
+        """
+        if not metadata:
+            return {}
+
+        # Fields to exclude (commonly large or redundant)
+        exclude_fields = {
+            'embedding',  # Vector embeddings are huge
+            'description',  # Can be very long
+            'content',  # Already in result.content
+            'properties',  # Can contain arbitrary large data
+            'metadata',  # Recursive metadata
+            'blocks',  # Can be large nested structures
+            'requirements',  # Large arrays
+            'tests',  # Large arrays
+            'trace_links',  # Large arrays
+        }
+
+        # Keep only small, identifying fields
+        sanitized = {}
+        for key, value in metadata.items():
+            if key in exclude_fields:
+                continue
+
+            # Skip None values
+            if value is None:
+                continue
+
+            # Include small values only
+            if isinstance(value, (str, int, float, bool)):
+                # Limit string length
+                if isinstance(value, str) and len(value) > 200:
+                    sanitized[key] = value[:200] + "..."
+                else:
+                    sanitized[key] = value
+            elif isinstance(value, dict) and len(str(value)) < 500:
+                sanitized[key] = value
+            elif isinstance(value, list) and len(value) < 10:
+                sanitized[key] = value
+
+        return sanitized
     
     def _init_rag_services(self):
         """Initialize RAG services on first use."""
@@ -61,10 +107,15 @@ class DataQueryEngine(ToolBase):
                     limit=limit or 10,
                     order_by="updated_at:desc"
                 )
-                
+
+                # Sanitize results to prevent token overflow
+                sanitized_results = []
+                for result in entity_results:
+                    sanitized_results.append(self._sanitize_metadata(result))
+
                 results[entity_type] = {
                     "count": len(entity_results),
-                    "results": entity_results
+                    "results": sanitized_results
                 }
                 
             except Exception as e:
@@ -403,7 +454,7 @@ class DataQueryEngine(ToolBase):
                     "entity_type": result.entity_type,
                     "content": result.content,
                     "similarity_score": result.similarity,
-                    "metadata": result.metadata
+                    "metadata": self._sanitize_metadata(result.metadata)
                 })
             
             return {
