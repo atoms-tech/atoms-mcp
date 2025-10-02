@@ -35,7 +35,11 @@ logger = logging.getLogger("atoms_fastmcp")
 
 
 def _extract_bearer_token() -> Optional[str]:
-    """Return the bearer token from the FastMCP access token context."""
+    """Return the bearer token from the FastMCP access token context.
+
+    For persistent server deployment (Render/Railway/Fly.io), FastMCP's
+    built-in OAuth handles sessions in-memory - no external persistence needed!
+    """
     access_token = get_access_token()
     if not access_token:
         return None
@@ -576,10 +580,14 @@ def create_consolidated_server() -> FastMCP:
                         return json_resp
                     result = await resp.json()
 
-                    # Add CORS headers to response
-                    json_resp = JSONResponse({"success": True, "redirect_uri": result["redirect_uri"]})
+                    # Return success - OAuth session handled by FastMCP in-memory
+                    json_resp = JSONResponse({
+                        "success": True,
+                        "redirect_uri": result["redirect_uri"]
+                    })
                     json_resp.headers["Access-Control-Allow-Origin"] = "*"
                     return json_resp
+
         except Exception as e:
             logger.error(f"Unhandled exception in /auth/complete: {e}")
             logger.error(traceback.format_exc())
