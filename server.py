@@ -34,6 +34,119 @@ except ImportError:
 logger = logging.getLogger("atoms_fastmcp")
 
 
+def _markdown_serializer(data: Any) -> str:
+    """Serialize tool responses as Markdown for better readability and token efficiency.
+
+    Converts Python objects to well-formatted Markdown:
+    - Dicts → Tables or code blocks
+    - Lists → Bulleted or numbered lists
+    - Primitives → Inline code or plain text
+    """
+    if data is None:
+        return "*No data*"
+
+    if isinstance(data, str):
+        return data  # Already a string, bypass serialization
+
+    if isinstance(data, bool):
+        return "✅ Yes" if data else "❌ No"
+
+    if isinstance(data, (int, float)):
+        return f"`{data}`"
+
+    if isinstance(data, dict):
+        return _dict_to_markdown(data)
+
+    if isinstance(data, list):
+        return _list_to_markdown(data)
+
+    # Fallback to string representation
+    return f"```\n{str(data)}\n```"
+
+
+def _dict_to_markdown(d: Dict[str, Any], indent: int = 0) -> str:
+    """Convert dict to Markdown format."""
+    if not d:
+        return "*Empty*"
+
+    # Check if dict looks like a single result with success/data structure
+    if "success" in d and "data" in d:
+        lines = []
+        success = d.get("success")
+        lines.append(f"**Status**: {'✅ Success' if success else '❌ Failed'}")
+
+        if not success and "error" in d:
+            lines.append(f"**Error**: `{d['error']}`")
+
+        if "data" in d:
+            data = d["data"]
+            if isinstance(data, list) and len(data) > 0:
+                lines.append(f"\n**Results** ({len(data)} items):\n")
+                lines.append(_list_to_markdown(data))
+            elif isinstance(data, dict):
+                lines.append("\n**Data**:")
+                lines.append(_dict_to_markdown(data, indent=1))
+            elif data:
+                lines.append(f"**Data**: {data}")
+
+        # Add metadata if present
+        metadata_fields = ["count", "total_results", "search_time_ms", "timestamp"]
+        metadata = {k: v for k, v in d.items() if k in metadata_fields}
+        if metadata:
+            lines.append("\n**Metadata**:")
+            for key, value in metadata.items():
+                lines.append(f"- {key}: `{value}`")
+
+        return "\n".join(lines)
+
+    # Regular dict - format as key-value list
+    lines = []
+    prefix = "  " * indent
+    for key, value in d.items():
+        if isinstance(value, dict):
+            lines.append(f"{prefix}**{key}**:")
+            lines.append(_dict_to_markdown(value, indent + 1))
+        elif isinstance(value, list):
+            lines.append(f"{prefix}**{key}**: ({len(value)} items)")
+            if len(value) <= 3:
+                lines.append(_list_to_markdown(value, indent + 1))
+        elif value is None:
+            continue  # Skip null values
+        else:
+            # Truncate long strings
+            str_value = str(value)
+            if len(str_value) > 100:
+                str_value = str_value[:100] + "..."
+            lines.append(f"{prefix}**{key}**: `{str_value}`")
+
+    return "\n".join(lines)
+
+
+def _list_to_markdown(lst: list, indent: int = 0) -> str:
+    """Convert list to Markdown format."""
+    if not lst:
+        return "*Empty list*"
+
+    lines = []
+    prefix = "  " * indent
+
+    # If list of dicts (common for entity results), format as cards
+    if all(isinstance(item, dict) for item in lst):
+        for i, item in enumerate(lst, 1):
+            lines.append(f"\n{prefix}### {i}. {item.get('name', item.get('id', 'Item'))}")
+            # Show key fields only
+            key_fields = ["id", "name", "type", "status", "created_at", "similarity_score"]
+            for key in key_fields:
+                if key in item and item[key] is not None:
+                    lines.append(f"{prefix}- **{key}**: `{item[key]}`")
+    else:
+        # Simple list
+        for item in lst:
+            lines.append(f"{prefix}- {item}")
+
+    return "\n".join(lines)
+
+
 def _extract_bearer_token() -> Optional[str]:
     """Return the bearer token from the FastMCP access token context.
 
@@ -185,6 +298,7 @@ def create_consolidated_server() -> FastMCP:
             "and query_tool for data exploration including RAG search."
         ),
         auth=auth_provider,
+        tool_serializer=_markdown_serializer,  # Custom Markdown output for better readability
     )
 
     # Register consolidated tools
