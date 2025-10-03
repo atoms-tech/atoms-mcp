@@ -50,9 +50,10 @@ class DataQueryEngine(ToolBase):
                 # Add search term (simplified - in practice would use full-text search)
                 if search_term:
                     filters["name"] = {"ilike": f"%{search_term}%"}
-                
-                # Add default filters
-                if "is_deleted" not in filters:
+
+                # Add default filters (skip for tables without is_deleted column)
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
                 
                 # Execute search
@@ -95,14 +96,15 @@ class DataQueryEngine(ToolBase):
     ) -> Dict[str, Any]:
         """Perform aggregation queries across entities."""
         results = {}
-        
+
         for entity_type in entities:
             try:
                 table = self._resolve_entity_table(entity_type)
                 filters = conditions.copy() if conditions else {}
-                
-                # Add default filters
-                if "is_deleted" not in filters:
+
+                # Add default filters (skip for tables without is_deleted column)
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
                 
                 # Get total count
@@ -156,13 +158,15 @@ class DataQueryEngine(ToolBase):
     ) -> Dict[str, Any]:
         """Perform deep analysis of entities and their relationships."""
         analysis = {}
-        
+
         for entity_type in entities:
             try:
                 table = self._resolve_entity_table(entity_type)
                 filters = conditions.copy() if conditions else {}
-                
-                if "is_deleted" not in filters:
+
+                # Add default filters (skip for tables without is_deleted column)
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
                 
                 # Basic metrics
@@ -299,22 +303,24 @@ class DataQueryEngine(ToolBase):
     ) -> Dict[str, Any]:
         """Analyze relationships between entities."""
         relationships = {}
-        
+
         # Analyze common relationship patterns
         relationship_tables = [
             "organization_members",
-            "project_members", 
+            "project_members",
             "trace_links",
             "assignments",
             "requirement_tests"
         ]
-        
+
         for rel_table in relationship_tables:
             try:
                 filters = conditions.copy() if conditions else {}
 
-                # Add default filters
-                if "is_deleted" not in filters:
+                # Add default filters (most relationship tables have is_deleted, but check just in case)
+                # Currently all relationship tables have soft-delete, but being defensive
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and rel_table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
 
                 count = await self._db_count(rel_table, filters)

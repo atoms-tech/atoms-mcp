@@ -379,7 +379,13 @@ class EntityManager(ToolBase):
         limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """List entities, optionally filtered by parent."""
-        filters = {"is_deleted": False}
+        # Build filters - skip is_deleted for tables that don't have it
+        table = self._resolve_entity_table(entity_type)
+        tables_without_soft_delete = {'test_req', 'properties'}
+
+        filters = {}
+        if table not in tables_without_soft_delete:
+            filters["is_deleted"] = False
 
         # Add parent filter
         if parent_type and parent_id:
