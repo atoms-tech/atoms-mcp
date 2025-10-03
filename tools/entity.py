@@ -341,8 +341,10 @@ class EntityManager(ToolBase):
         # Build query filters
         query_filters = filters.copy() if filters else {}
 
-        # Add default filters
-        if "is_deleted" not in query_filters:
+        # Add default filters (but skip is_deleted for tables that don't have it)
+        # test_req and properties tables don't have is_deleted column
+        tables_without_soft_delete = {'test_req', 'properties'}
+        if "is_deleted" not in query_filters and table not in tables_without_soft_delete:
             query_filters["is_deleted"] = False
 
         # Handle search term

@@ -155,8 +155,59 @@ class ToolBase:
             raise ValueError(f"Unknown entity type: {entity_type}")
         return table
     
+    def _sanitize_entity(self, entity: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove large fields from entity to prevent token overflow.
+
+        Strips out embedding vectors, large text fields, and nested structures
+        while preserving essential identifying information.
+        """
+        if not entity:
+            return {}
+
+        # Fields to always exclude (commonly large or redundant)
+        exclude_fields = {
+            'embedding',  # Vector embeddings are huge (768 floats)
+            'properties',  # Can contain arbitrary large nested data
+            'metadata',  # Can be recursive
+            'blocks',  # Large nested structures
+            'requirements',  # Large arrays
+            'tests',  # Large arrays
+            'trace_links',  # Large arrays
+            'ai_analysis',  # Can be very large with history
+        }
+
+        # Keep only essential fields
+        sanitized = {}
+        for key, value in entity.items():
+            if key in exclude_fields:
+                continue
+
+            # Skip None values
+            if value is None:
+                continue
+
+            # Include primitives and small values
+            if isinstance(value, (str, int, float, bool)):
+                # Limit string length
+                if isinstance(value, str) and len(value) > 200:
+                    sanitized[key] = value[:200] + "..."
+                else:
+                    sanitized[key] = value
+            elif isinstance(value, dict) and len(str(value)) < 500:
+                sanitized[key] = value
+            elif isinstance(value, list) and len(value) < 10:
+                sanitized[key] = value
+
+        return sanitized
+
     def _format_result(self, data: Any, format_type: str = "detailed") -> Dict[str, Any]:
         """Format result data based on requested format."""
+        # Always sanitize data before formatting to prevent token overflow
+        if isinstance(data, list):
+            data = [self._sanitize_entity(item) if isinstance(item, dict) else item for item in data]
+        elif isinstance(data, dict):
+            data = self._sanitize_entity(data)
+
         if format_type == "raw":
             return {"data": data}
         elif format_type == "summary":
