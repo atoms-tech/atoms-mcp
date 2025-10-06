@@ -1,0 +1,100 @@
+{
+  "test_run_id": "c8329656-b0d1-4a11-b7cd-e7e6f588729f",
+  "timestamp": "2025-10-06T02:38:26.781649",
+  "workflows_tested": [
+    "organization_onboarding",
+    "setup_project",
+    "import_requirements",
+    "setup_test_matrix",
+    "bulk_status_update"
+  ],
+  "summary": {
+    "total_workflows": 5,
+    "total_scenarios": 3,
+    "passed_scenarios": 1,
+    "failed_scenarios": 2,
+    "pass_rate": "33.3%",
+    "total_duration_seconds": 0.03383493423461914,
+    "entities_created": {
+      "organizations": [],
+      "projects": [],
+      "documents": [],
+      "requirements": [],
+      "test_matrices": []
+    }
+  },
+  "detailed_results": {
+    "organization_onboarding": {
+      "workflow": "organization_onboarding",
+      "scenarios": [
+        {
+          "name": "basic_onboarding",
+          "success": false,
+          "result": {
+            "success": false,
+            "error": "All connection attempts failed",
+            "tool": "workflow_tool"
+          },
+          "transaction_mode": true
+        },
+        {
+          "name": "onboarding_with_project",
+          "success": false,
+          "result": {
+            "success": false,
+            "error": "All connection attempts failed",
+            "tool": "workflow_tool"
+          },
+          "transaction_mode": true
+        },
+        {
+          "name": "missing_required_params",
+          "success": true,
+          "result": {
+            "success": false,
+            "error": "All connection attempts failed",
+            "tool": "workflow_tool"
+          },
+          "transaction_mode": true,
+          "expected_error": true
+        }
+      ],
+      "entities_created": [],
+      "relationships_created": [],
+      "duration_seconds": 0.02727031707763672,
+      "total_scenarios": 3,
+      "passed_scenarios": 1
+    },
+    "setup_project": {
+      "workflow": "setup_project",
+      "scenarios": [],
+      "entities_created": [],
+      "relationships_created": [],
+      "error": "Failed to create prerequisite organization"
+    },
+    "import_requirements": {
+      "workflow": "import_requirements",
+      "scenarios": [],
+      "entities_created": [],
+      "relationships_created": [],
+      "skipped": true,
+      "reason": "No project available"
+    },
+    "setup_test_matrix": {
+      "workflow": "setup_test_matrix",
+      "scenarios": [],
+      "entities_created": [],
+      "relationships_created": [],
+      "skipped": true,
+      "reason": "No project available"
+    },
+    "bulk_status_update": {
+      "workflow": "bulk_status_update",
+      "scenarios": [],
+      "entities_created": [],
+      "relationships_created": [],
+      "skipped": true,
+      "reason": "No requirements available for bulk update"
+    }
+  }
+}
