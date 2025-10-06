@@ -637,18 +637,10 @@ def create_consolidated_server() -> FastMCP:
         from auth.session_manager import create_session_manager
 
     # Wrap the ASGI app with SessionMiddleware
-    if hasattr(mcp, 'app') and mcp.app is not None:
-        mcp.app = SessionMiddleware(
-            mcp.app,
-            session_manager_factory=lambda: create_session_manager()
-        )
-        logger.info("✅ SessionMiddleware added for persistent session support")
-        print("✅ SessionMiddleware added - sessions persisted in Supabase")
-    else:
-        logger.warning("Could not add SessionMiddleware - mcp.app not available")
-
+    # SessionMiddleware is added in app.py after calling mcp.http_app()
+    # This is the correct place because mcp.app doesn't exist until http_app() is called
     # Note: /auth/complete endpoint is now handled by PersistentAuthKitProvider
-    # The following handler has been replaced with session-aware version in PersistentAuthKitProvider
+    logger.info("✅ Server created - SessionMiddleware will be added in app.py")
 
     return mcp
 

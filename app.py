@@ -14,6 +14,22 @@ from server import create_consolidated_server
 # Create the FastMCP server instance
 mcp = create_consolidated_server()
 
+# Add root route handler
+@mcp.custom_route("/", methods=["GET"])
+async def root(request):
+    """Root endpoint with service information."""
+    return JSONResponse({
+        "service": "Atoms MCP Server",
+        "version": "1.0.0",
+        "endpoints": {
+            "mcp": "/api/mcp",
+            "health": "/health",
+            "auth_start": "/auth/start",
+            "auth_complete": "/auth/complete"
+        },
+        "status": "running"
+    })
+
 # Add health check endpoint for Vercel monitoring
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request):
