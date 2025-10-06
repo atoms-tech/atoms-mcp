@@ -99,13 +99,16 @@ class EntityManager(ToolBase):
         # Apply auto fields
         user_id = self._get_user_id()
 
-        # Ensure created_by is always set (required for RLS policies)
+        # Ensure created_by and updated_by are always set (required NOT NULL columns)
         if "created_by" not in result:
             if not user_id:
                 raise ValueError(f"Cannot create {entity_type}: user_id not available in context. Check authentication.")
             result["created_by"] = user_id
 
-        if "updated_by" not in result and user_id:
+        # updated_by is also required on create for most tables
+        if "updated_by" not in result:
+            if not user_id:
+                raise ValueError(f"Cannot create {entity_type}: user_id not available in context for updated_by.")
             result["updated_by"] = user_id
 
         # Special handling for projects - set owned_by
