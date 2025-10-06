@@ -15,6 +15,19 @@ from starlette.routing import Route
 logger = logging.getLogger(__name__)
 
 
+# Global aiohttp session for connection pooling across requests
+_http_session: Optional[aiohttp.ClientSession] = None
+
+
+def _get_http_session() -> aiohttp.ClientSession:
+    """Get shared aiohttp session with connection pooling."""
+    global _http_session
+    if _http_session is None or _http_session.closed:
+        connector = aiohttp.TCPConnector(limit=100, limit_per_host=30, ttl_dns_cache=300)
+        _http_session = aiohttp.ClientSession(connector=connector)
+    return _http_session
+
+
 class PersistentAuthKitProvider(AuthKitProvider):
     """AuthKitProvider with Supabase-backed session persistence.
 
@@ -138,8 +151,8 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
 
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
+                session = _get_http_session()
+                async with session.get(
                         f"{supabase_url}/auth/v1/user",
                         headers={
                             "Authorization": f"Bearer {bearer_token}",
@@ -178,8 +191,8 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     "user": {"id": user["id"], "email": user["email"]},
                 }
 
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
+                session = _get_http_session()
+                async with session.post(
                         complete_url,
                         json=payload,
                         headers={

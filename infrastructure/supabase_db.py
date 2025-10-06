@@ -74,6 +74,33 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         
         return query
     
+    def _get_cache_key(self, operation: str, **kwargs) -> str:
+        """Generate cache key for operation."""
+        import hashlib
+        import json
+        key_data = {"op": operation, **kwargs}
+        key_str = json.dumps(key_data, sort_keys=True)
+        return hashlib.md5(key_str.encode()).hexdigest()
+
+    def _get_cached(self, cache_key: str) -> Optional[Any]:
+        """Get cached result if still valid."""
+        import time
+        if cache_key in self._query_cache:
+            data, timestamp = self._query_cache[cache_key]
+            if time.time() - timestamp < self._cache_ttl:
+                return data
+            else:
+                del self._query_cache[cache_key]
+        return None
+
+    def _set_cache(self, cache_key: str, data: Any):
+        """Cache result with timestamp."""
+        import time
+        self._query_cache[cache_key] = (data, time.time())
+        # Limit cache size
+        if len(self._query_cache) > 1000:
+            self._query_cache.clear()
+
     async def query(
         self,
         table: str,
@@ -84,28 +111,39 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         limit: Optional[int] = None,
         offset: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Execute a query on a table."""
+        """Execute a query on a table with caching."""
+        # Check cache for read-only queries
+        cache_key = self._get_cache_key("query", table=table, select=select, filters=filters, order_by=order_by, limit=limit, offset=offset)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         try:
             client = self._get_client()
             query = client.from_(table).select(select or "*")
-            
+
             query = self._apply_filters(query, filters)
-            
+
             if order_by:
                 # Parse order_by string: "column" or "column:desc"
                 parts = order_by.split(":")
                 col = parts[0]
                 desc = len(parts) > 1 and parts[1].lower() == "desc"
                 query = query.order(col, desc=desc)
-            
+
             if offset:
                 query = query.range(offset, (offset + limit - 1) if limit else None)
             elif limit:
                 query = query.limit(limit)
-            
+
             result = query.execute()
-            return getattr(result, "data", []) or []
-        
+            data = getattr(result, "data", []) or []
+
+            # Cache result
+            self._set_cache(cache_key, data)
+
+            return data
+
         except Exception as e:
             raise normalize_error(e, f"Failed to query table {table}")
     
@@ -132,6 +170,12 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
                 return None
             raise normalize_error(e, f"Failed to get single record from {table}")
     
+    def _invalidate_cache_for_table(self, table: str):
+        """Invalidate all cached queries for a table."""
+        keys_to_remove = [k for k in self._query_cache.keys() if table in str(k)]
+        for key in keys_to_remove:
+            del self._query_cache[key]
+
     async def insert(
         self,
         table: str,
@@ -139,21 +183,22 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         *,
         returning: Optional[str] = None
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """Insert one or more records.
+        """Insert one or more records with cache invalidation.
 
         Note: Supabase v2.5+ automatically returns all fields on insert.
         The 'returning' parameter is kept for API compatibility but is ignored.
         """
         try:
             client = self._get_client()
-            # Supabase v2.5+ insert returns all fields by default
-            # Do not chain .select() after .insert() - it's not supported
             query = client.from_(table).insert(data)
             result = query.execute()
             result_data = getattr(result, "data", None)
 
             if result_data is None:
                 raise ValueError("Insert operation returned no data")
+
+            # Invalidate cache for this table
+            self._invalidate_cache_for_table(table)
 
             # Return single dict if input was single dict, list otherwise
             if isinstance(data, dict):
@@ -171,7 +216,7 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         *,
         returning: Optional[str] = None
     ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """Update records.
+        """Update records with cache invalidation.
 
         Note: Supabase v2.5+ automatically returns updated data.
         The 'returning' parameter is kept for API compatibility but is ignored.
@@ -181,9 +226,11 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             query = client.from_(table).update(data)
             query = self._apply_filters(query, filters)
 
-            # Execute without chaining .select() - Supabase v2.5+ returns data automatically
             result = query.execute()
             result_data = getattr(result, "data", []) or []
+
+            # Invalidate cache for this table
+            self._invalidate_cache_for_table(table)
 
             # Return single dict if only one record updated
             if len(result_data) == 1:
@@ -198,7 +245,7 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         table: str,
         filters: Dict[str, Any]
     ) -> int:
-        """Delete records.
+        """Delete records with cache invalidation.
 
         Note: Supabase v2.5+ automatically returns deleted data.
         """
@@ -207,11 +254,14 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             query = client.from_(table).delete()
             query = self._apply_filters(query, filters)
 
-            # Execute without chaining .select() - Supabase v2.5+ returns data automatically
             result = query.execute()
             deleted_rows = getattr(result, "data", []) or []
+
+            # Invalidate cache for this table
+            self._invalidate_cache_for_table(table)
+
             return len(deleted_rows)
-        
+
         except Exception as e:
             raise normalize_error(e, f"Failed to delete from {table}")
     
@@ -220,15 +270,26 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         table: str,
         filters: Optional[Dict[str, Any]] = None
     ) -> int:
-        """Count records in a table."""
+        """Count records in a table with caching."""
+        # Check cache
+        cache_key = self._get_cache_key("count", table=table, filters=filters)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         try:
             client = self._get_client()
             query = client.from_(table).select("*", count="exact", head=True)
-            
+
             query = self._apply_filters(query, filters)
-            
+
             result = query.execute()
-            return getattr(result, "count", 0) or 0
-        
+            count = getattr(result, "count", 0) or 0
+
+            # Cache result
+            self._set_cache(cache_key, count)
+
+            return count
+
         except Exception as e:
             raise normalize_error(e, f"Failed to count records in {table}")

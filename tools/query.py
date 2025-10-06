@@ -37,25 +37,25 @@ class DataQueryEngine(ToolBase):
         conditions: Optional[Dict[str, Any]] = None,
         limit: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Perform cross-entity search."""
-        results = {}
-        
-        for entity_type in entities:
+        """Perform cross-entity search with parallel execution."""
+
+        async def search_entity(entity_type: str):
+            """Search a single entity type."""
             try:
                 table = self._resolve_entity_table(entity_type)
-                
+
                 # Build search filters
                 filters = conditions.copy() if conditions else {}
-                
-                # Add search term (simplified - in practice would use full-text search)
+
+                # Add search term
                 if search_term:
                     filters["name"] = {"ilike": f"%{search_term}%"}
 
-                # Add default filters (skip for tables without is_deleted column)
+                # Add default filters
                 tables_without_soft_delete = {'test_req', 'properties'}
                 if "is_deleted" not in filters and table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
-                
+
                 # Execute search
                 entity_results = await self._db_query(
                     table,
@@ -64,23 +64,28 @@ class DataQueryEngine(ToolBase):
                     order_by="updated_at:desc"
                 )
 
-                # Sanitize results to prevent token overflow
-                sanitized_results = []
-                for result in entity_results:
-                    sanitized_results.append(self._sanitize_entity(result))
+                # Sanitize results
+                sanitized_results = [self._sanitize_entity(r) for r in entity_results]
 
-                results[entity_type] = {
+                return (entity_type, {
                     "count": len(entity_results),
                     "results": sanitized_results
-                }
-                
+                })
+
             except Exception as e:
-                results[entity_type] = {
+                return (entity_type, {
                     "error": str(e),
                     "count": 0,
                     "results": []
-                }
-        
+                })
+
+        # Execute all searches in parallel
+        search_tasks = [search_entity(et) for et in entities]
+        search_results = await asyncio.gather(*search_tasks)
+
+        # Convert to dict
+        results = dict(search_results)
+
         return {
             "search_term": search_term,
             "entities_searched": entities,
@@ -94,57 +99,66 @@ class DataQueryEngine(ToolBase):
         conditions: Optional[Dict[str, Any]] = None,
         projections: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """Perform aggregation queries across entities."""
-        results = {}
+        """Perform aggregation queries across entities with parallel execution."""
 
-        for entity_type in entities:
+        async def aggregate_entity(entity_type: str):
+            """Aggregate a single entity type."""
             try:
                 table = self._resolve_entity_table(entity_type)
                 filters = conditions.copy() if conditions else {}
 
-                # Add default filters (skip for tables without is_deleted column)
+                # Add default filters
                 tables_without_soft_delete = {'test_req', 'properties'}
                 if "is_deleted" not in filters and table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
-                
-                # Get total count
-                total_count = await self._db_count(table, filters)
-                
-                # Get status breakdown if entity has status field
-                status_breakdown = {}
+
+                # Parallel execution of count queries
+                from datetime import datetime, timedelta
+                thirty_days_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
+                recent_filters = filters.copy()
+                recent_filters["created_at"] = {"gte": thirty_days_ago}
+
+                # Execute counts in parallel
+                count_tasks = [
+                    self._db_count(table, filters),  # total
+                    self._db_count(table, recent_filters) if filters else asyncio.sleep(0)  # recent
+                ]
+
+                # Add status query if applicable
                 if entity_type in ["requirement", "test", "project"]:
-                    # This is simplified - would need proper aggregation queries
-                    all_records = await self._db_query(
-                        table,
-                        select="status",
-                        filters=filters
-                    )
-                    for record in all_records:
+                    count_tasks.append(self._db_query(table, select="status", filters=filters))
+
+                count_results = await asyncio.gather(*count_tasks, return_exceptions=True)
+
+                total_count = count_results[0] if not isinstance(count_results[0], Exception) else 0
+                recent_count = count_results[1] if len(count_results) > 1 and not isinstance(count_results[1], Exception) else 0
+
+                # Status breakdown
+                status_breakdown = {}
+                if len(count_results) > 2 and not isinstance(count_results[2], Exception):
+                    for record in count_results[2]:
                         status = record.get("status", "unknown")
                         status_breakdown[status] = status_breakdown.get(status, 0) + 1
-                
-                # Get date-based aggregations
-                recent_count = 0
-                if total_count > 0:
-                    # Count created in last 30 days
-                    from datetime import datetime, timedelta
-                    thirty_days_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
-                    recent_filters = filters.copy()
-                    recent_filters["created_at"] = {"gte": thirty_days_ago}
-                    recent_count = await self._db_count(table, recent_filters)
-                
-                results[entity_type] = {
+
+                return (entity_type, {
                     "total_count": total_count,
                     "recent_count": recent_count,
                     "status_breakdown": status_breakdown
-                }
-                
+                })
+
             except Exception as e:
-                results[entity_type] = {
+                return (entity_type, {
                     "error": str(e),
                     "total_count": 0
-                }
-        
+                })
+
+        # Execute all aggregations in parallel
+        agg_tasks = [aggregate_entity(et) for et in entities]
+        agg_results = await asyncio.gather(*agg_tasks)
+
+        # Convert to dict
+        results = dict(agg_results)
+
         return {
             "aggregation_type": "summary_stats",
             "entities_analyzed": entities,
@@ -156,10 +170,9 @@ class DataQueryEngine(ToolBase):
         entities: List[str],
         conditions: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Perform deep analysis of entities and their relationships."""
-        analysis = {}
+        """Perform deep analysis of entities and their relationships with full parallelization."""
 
-        for entity_type in entities:
+        async def analyze_entity(entity_type: str):
             try:
                 table = self._resolve_entity_table(entity_type)
                 filters = conditions.copy() if conditions else {}
@@ -174,28 +187,28 @@ class DataQueryEngine(ToolBase):
                 
                 # Entity-specific analysis
                 if entity_type == "organization":
-                    # Analyze organization metrics
+                    # Analyze organization metrics with parallel queries
                     orgs = await self._db_query(table, filters=filters)
-                    
-                    member_counts = []
-                    project_counts = []
-                    
-                    for org in orgs:
-                        # Get member count
-                        member_count = await self._db_count(
+
+                    # Parallelize all member/project count queries
+                    async def get_org_stats(org):
+                        member_task = self._db_count(
                             "organization_members",
                             {"organization_id": org["id"], "status": "active"}
                         )
-                        member_counts.append(member_count)
-                        
-                        # Get project count
-                        project_count = await self._db_count(
+                        project_task = self._db_count(
                             "projects",
                             {"organization_id": org["id"], "is_deleted": False}
                         )
-                        project_counts.append(project_count)
+                        return await asyncio.gather(member_task, project_task, return_exceptions=True)
+
+                    org_stats_tasks = [get_org_stats(org) for org in orgs]
+                    all_org_stats = await asyncio.gather(*org_stats_tasks)
+
+                    member_counts = [stats[0] for stats in all_org_stats if not isinstance(stats[0], Exception)]
+                    project_counts = [stats[1] for stats in all_org_stats if len(stats) > 1 and not isinstance(stats[1], Exception)]
                     
-                    analysis[entity_type] = {
+                    return (entity_type, {
                         "total_organizations": total_count,
                         "avg_members_per_org": sum(member_counts) / len(member_counts) if member_counts else 0,
                         "avg_projects_per_org": sum(project_counts) / len(project_counts) if project_counts else 0,
@@ -203,41 +216,41 @@ class DataQueryEngine(ToolBase):
                             "min": min(member_counts) if member_counts else 0,
                             "max": max(member_counts) if member_counts else 0
                         }
-                    }
-                
+                    })
+
                 elif entity_type == "project":
-                    # Analyze project metrics
+                    # Analyze project metrics with massive parallelization
                     projects = await self._db_query(table, filters=filters)
-                    
-                    doc_counts = []
-                    req_counts = []
-                    
-                    for project in projects:
-                        # Get document count
-                        doc_count = await self._db_count(
-                            "documents",
-                            {"project_id": project["id"], "is_deleted": False}
-                        )
-                        doc_counts.append(doc_count)
-                        
-                        # Get requirement count (through documents)
+
+                    async def get_project_stats(project):
+                        """Get all stats for a single project in parallel."""
+                        # Get documents first
                         docs = await self._db_query(
                             "documents",
                             select="id",
                             filters={"project_id": project["id"], "is_deleted": False}
                         )
-                        
-                        project_req_count = 0
-                        for doc in docs:
-                            req_count = await self._db_count(
-                                "requirements",
-                                {"document_id": doc["id"], "is_deleted": False}
-                            )
-                            project_req_count += req_count
-                        
-                        req_counts.append(project_req_count)
-                    
-                    analysis[entity_type] = {
+
+                        # Count documents and all requirements in parallel
+                        doc_count = len(docs)
+                        req_tasks = [
+                            self._db_count("requirements", {"document_id": doc["id"], "is_deleted": False})
+                            for doc in docs
+                        ]
+
+                        req_counts = await asyncio.gather(*req_tasks, return_exceptions=True)
+                        total_reqs = sum(c for c in req_counts if not isinstance(c, Exception))
+
+                        return (doc_count, total_reqs)
+
+                    # Execute all project analyses in parallel
+                    project_tasks = [get_project_stats(p) for p in projects]
+                    all_project_stats = await asyncio.gather(*project_tasks)
+
+                    doc_counts = [stats[0] for stats in all_project_stats]
+                    req_counts = [stats[1] for stats in all_project_stats]
+
+                    return (entity_type, {
                         "total_projects": total_count,
                         "avg_documents_per_project": sum(doc_counts) / len(doc_counts) if doc_counts else 0,
                         "avg_requirements_per_project": sum(req_counts) / len(req_counts) if req_counts else 0,
@@ -246,28 +259,28 @@ class DataQueryEngine(ToolBase):
                             "medium": len([c for c in req_counts if 10 <= c < 50]),
                             "complex": len([c for c in req_counts if c >= 50])
                         }
-                    }
-                
+                    })
+
                 elif entity_type == "requirement":
                     # Analyze requirements
                     reqs = await self._db_query(table, filters=filters, select="status, priority")
-                    
+
                     status_counts = {}
                     priority_counts = {}
-                    
+
                     for req in reqs:
                         status = req.get("status", "unknown")
                         priority = req.get("priority", "unknown")
-                        
+
                         status_counts[status] = status_counts.get(status, 0) + 1
                         priority_counts[priority] = priority_counts.get(priority, 0) + 1
-                    
+
                     # Get test coverage
                     total_reqs = len(reqs)
                     tested_reqs = await self._db_count("requirement_tests")
                     coverage_percentage = (tested_reqs / total_reqs * 100) if total_reqs > 0 else 0
-                    
-                    analysis[entity_type] = {
+
+                    return (entity_type, {
                         "total_requirements": total_count,
                         "status_distribution": status_counts,
                         "priority_distribution": priority_counts,
@@ -275,21 +288,28 @@ class DataQueryEngine(ToolBase):
                             "tested_requirements": tested_reqs,
                             "coverage_percentage": round(coverage_percentage, 2)
                         }
-                    }
+                    })
                 
                 else:
                     # Basic analysis for other entity types
-                    analysis[entity_type] = {
+                    return (entity_type, {
                         "total_count": total_count,
                         "analysis": "basic_metrics_only"
-                    }
-                    
+                    })
+
             except Exception as e:
-                analysis[entity_type] = {
+                return (entity_type, {
                     "error": str(e),
                     "total_count": 0
-                }
-        
+                })
+
+        # Execute all analyses in parallel
+        analysis_tasks = [analyze_entity(et) for et in entities]
+        analysis_results = await asyncio.gather(*analysis_tasks)
+
+        # Convert to dict
+        analysis = dict(analysis_results)
+
         return {
             "analysis_type": "deep_analysis",
             "entities_analyzed": entities,
