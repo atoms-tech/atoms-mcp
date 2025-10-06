@@ -175,6 +175,10 @@ class ToolBase:
             'tests',  # Large arrays
             'trace_links',  # Large arrays
             'ai_analysis',  # Can be very large with history
+            'fts_vector',  # Full-text search vectors
+            'content',  # Document content can be huge
+            'description',  # Descriptions can be very long
+            'preferences',  # User preferences object
         }
 
         # Keep only essential fields
@@ -189,14 +193,16 @@ class ToolBase:
 
             # Include primitives and small values
             if isinstance(value, (str, int, float, bool)):
-                # Limit string length
-                if isinstance(value, str) and len(value) > 200:
-                    sanitized[key] = value[:200] + "..."
+                # Limit string length more aggressively
+                if isinstance(value, str) and len(value) > 80:
+                    sanitized[key] = value[:80] + "..."
                 else:
                     sanitized[key] = value
-            elif isinstance(value, dict) and len(str(value)) < 500:
+            elif isinstance(value, dict) and len(str(value)) < 200:
+                # Truncate dict if still too large
                 sanitized[key] = value
-            elif isinstance(value, list) and len(value) < 10:
+            elif isinstance(value, list) and len(value) < 3:
+                # Only include very small lists
                 sanitized[key] = value
 
         return sanitized

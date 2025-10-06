@@ -120,7 +120,6 @@ class PersistentAuthKitProvider(AuthKitProvider):
         async def session_aware_auth_complete(request):
             """Handle OAuth completion with session creation."""
             try:
-                import aiohttp
                 from supabase_client import get_supabase
                 from auth.session_manager import create_session_manager
 

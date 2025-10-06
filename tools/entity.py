@@ -384,11 +384,11 @@ class EntityManager(ToolBase):
             order_by = "created_at:desc"
 
         # Safety: Enforce maximum limit to prevent oversized responses
-        # Cap at 1000, default to 100 if not specified
+        # Cap at 100, default to 20 if not specified (for MCP token limits)
         if limit is None:
+            limit = 20
+        elif limit > 100:
             limit = 100
-        elif limit > 1000:
-            limit = 1000
 
         return await self._db_query(
             table,
@@ -420,8 +420,10 @@ class EntityManager(ToolBase):
             filters[parent_key] = parent_id
 
         # Safety: Always enforce a maximum limit to prevent oversized responses
-        # Default to 100, but never allow unlimited queries
-        if limit is None or limit > 1000:
+        # Default to 20, max 100 for MCP token limits
+        if limit is None:
+            limit = 20
+        elif limit > 100:
             limit = 100
 
         return await self.search_entities(
