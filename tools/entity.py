@@ -258,38 +258,42 @@ class EntityManager(ToolBase):
         # Don't set updated_at manually - let database trigger handle it
         # This prevents "Concurrent update detected" errors from optimistic locking
 
-        # Always set updated_by (required field)
-        user_id = self._get_user_id()
-        print(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
-        logger.info(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
+        # Tables that don't have updated_by column
+        tables_without_updated_by = {'profiles', 'test_req', 'properties'}
 
-        if not user_id:
-            # Fallback: Query existing record to get created_by
-            print(f"⚠️ UPDATE: No user_id in context, using fallback query")
-            logger.info(f"⚠️ UPDATE: No user_id in context, using fallback query")
-            try:
-                # Use direct Supabase client to bypass RLS temporarily
-                result = self.supabase.table(table).select("created_by, updated_by").eq("id", entity_id).execute()
-                print(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
-                logger.info(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
-                if result.data and len(result.data) > 0:
-                    user_id = result.data[0].get("created_by") or result.data[0].get("updated_by")
-                    print(f"✅ UPDATE: Got user_id from fallback: {user_id}")
-                    logger.info(f"✅ UPDATE: Got user_id from fallback: {user_id}")
-            except Exception as e:
-                print(f"❌ UPDATE: Fallback query failed: {e}")
-                logger.error(f"❌ UPDATE: Fallback query failed: {e}")
-                pass
+        # Set updated_by if the table has this column
+        if table not in tables_without_updated_by:
+            user_id = self._get_user_id()
+            print(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
+            logger.info(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
 
-        # Ensure updated_by is always set
-        if not user_id:
-            print(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
-            logger.error(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
-            raise ValueError(f"Could not determine user_id for update operation. Context: {self._user_context}")
+            if not user_id:
+                # Fallback: Query existing record to get created_by
+                print(f"⚠️ UPDATE: No user_id in context, using fallback query")
+                logger.info(f"⚠️ UPDATE: No user_id in context, using fallback query")
+                try:
+                    # Use direct Supabase client to bypass RLS temporarily
+                    result = self.supabase.table(table).select("created_by, updated_by").eq("id", entity_id).execute()
+                    print(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
+                    logger.info(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
+                    if result.data and len(result.data) > 0:
+                        user_id = result.data[0].get("created_by") or result.data[0].get("updated_by")
+                        print(f"✅ UPDATE: Got user_id from fallback: {user_id}")
+                        logger.info(f"✅ UPDATE: Got user_id from fallback: {user_id}")
+                except Exception as e:
+                    print(f"❌ UPDATE: Fallback query failed: {e}")
+                    logger.error(f"❌ UPDATE: Fallback query failed: {e}")
+                    pass
 
-        update_data["updated_by"] = user_id
-        print(f"✅ UPDATE: Set updated_by to: {user_id}")
-        logger.info(f"✅ UPDATE: Set updated_by to: {user_id}")
+            # Ensure updated_by is always set for tables that require it
+            if not user_id:
+                print(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
+                logger.error(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
+                raise ValueError(f"Could not determine user_id for update operation. Context: {self._user_context}")
+
+            update_data["updated_by"] = user_id
+            print(f"✅ UPDATE: Set updated_by to: {user_id}")
+            logger.info(f"✅ UPDATE: Set updated_by to: {user_id}")
 
         result = await self._db_update(
             table,

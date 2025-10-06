@@ -55,15 +55,22 @@ class VectorSearchService:
             "organization": "organizations",
         }
 
-        # Entity type to RPC function name mappings
-        # Provide an RPC per entity that returns rows with
-        # (id, content, metadata, similarity)
+        # Entity type to RPC function name mappings for vector search
+        # Provide an RPC per entity that returns rows with (id, content, metadata, similarity)
         self.rpc_functions = {
             "requirement": "match_requirements",
             "document": "match_documents",
             # "test": "match_tests",  # Disabled due to permission issues
             "project": "match_projects",
             "organization": "match_organizations",
+        }
+
+        # FTS RPC function mappings for keyword search
+        self.fts_rpc_functions = {
+            "requirement": "search_requirements_fts",
+            "document": "search_documents_fts",
+            "project": "search_projects_fts",
+            "organization": "search_organizations_fts",
         }
     
     async def semantic_search(
@@ -161,38 +168,77 @@ class VectorSearchService:
         entity_types: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None
     ) -> SearchResponse:
-        """Perform keyword-based search using PostgreSQL full-text search.
-        
+        """Perform keyword search using PostgreSQL FTS (tsvector) if available, fallback to ILIKE.
+
         Args:
             query: Search query text
             limit: Maximum results to return
             entity_types: Specific entity types to search
             filters: Additional filters to apply
-            
+
         Returns:
             SearchResponse with ranked results
         """
         start_time = datetime.now()
-        
+
         # Determine which entity types to search
         search_entities = entity_types if entity_types else list(self.searchable_entities.keys())
         search_entities = [e for e in search_entities if e in self.searchable_entities]
-        
+
         if not search_entities:
             return SearchResponse([], 0, 0, 0.0, "keyword")
-        
+
         all_results = []
-        
-        # Search each entity type
+
+        # Try FTS RPC functions first (10-100x faster than ILIKE)
+        use_fts = True  # Will fallback to ILIKE if RPC doesn't exist
+
         for entity_type in search_entities:
-            table_name = self.searchable_entities[entity_type]
-            
             try:
-                # Build query - use wildcard to get all columns
-                # Different tables have different column structures
+                if use_fts and entity_type in self.fts_rpc_functions:
+                    # Use FTS RPC function for fast ranked search
+                    rpc_name = self.fts_rpc_functions[entity_type]
+
+                    try:
+                        # Call FTS RPC function
+                        response = self.supabase.rpc(
+                            rpc_name,
+                            {
+                                "search_query": query,
+                                "match_limit": limit,
+                                "filters": filters
+                            }
+                        ).execute()
+
+                        # Process FTS results (have rank scores)
+                        for row in (response.data or []):
+                            name = row.get("name", "")
+                            description = row.get("description", "")
+                            content = f"{name}: {description}" if name and description else (name or description or "")
+                            rank = row.get("rank", 1.0)
+
+                            result = SearchResult(
+                                id=row["id"],
+                                content=content,
+                                similarity=float(rank),  # Use FTS rank as similarity
+                                metadata={"fts_rank": rank},
+                                entity_type=entity_type
+                            )
+                            all_results.append(result)
+
+                        continue  # Skip ILIKE fallback if FTS worked
+
+                    except Exception as fts_error:
+                        # FTS RPC doesn't exist yet - fall back to ILIKE
+                        print(f"⚠️ FTS not available for {entity_type}, using ILIKE fallback: {fts_error}")
+                        use_fts = False  # Disable FTS for remaining entities
+
+                # Fallback: ILIKE search (slower but works without FTS setup)
+                table_name = self.searchable_entities[entity_type]
+
                 query_builder = self.supabase.table(table_name).select("*")
-                
-                # Apply default filters (skip for tables without is_deleted)
+
+                # Apply default filters
                 tables_without_soft_delete = {'test_req', 'properties'}
                 if table_name not in tables_without_soft_delete:
                     query_builder = query_builder.eq("is_deleted", False)
@@ -202,8 +248,7 @@ class VectorSearchService:
                     for key, value in filters.items():
                         query_builder = query_builder.eq(key, value)
 
-                # Build flexible search across available text columns
-                # Try multiple column combinations
+                # Build search conditions
                 search_conditions = []
                 if entity_type in ["organization", "project", "document"]:
                     search_conditions.append(f"name.ilike.%{query}%")
@@ -211,30 +256,27 @@ class VectorSearchService:
                 elif entity_type == "requirement":
                     search_conditions.append(f"name.ilike.%{query}%")
                     search_conditions.append(f"description.ilike.%{query}%")
-                    search_conditions.append(f"content.ilike.%{query}%")  # requirements may have content field
 
                 if search_conditions:
                     response = query_builder.or_(",".join(search_conditions)).limit(limit).execute()
                 else:
-                    # Fallback: just use name
                     response = query_builder.ilike("name", f"%{query}%").limit(limit).execute()
 
                 # Process results
                 for row in (response.data or []):
-                    # Combine name and description as content
                     name = row.get("name", "")
                     description = row.get("description", "")
                     content = f"{name}: {description}" if name and description else (name or description or "")
-                    
+
                     result = SearchResult(
                         id=row["id"],
                         content=content,
-                        similarity=1.0,  # Default score for keyword matches
-                        metadata={},  # No metadata for keyword search
+                        similarity=1.0,  # Default score for ILIKE matches
+                        metadata={},
                         entity_type=entity_type
                     )
                     all_results.append(result)
-                    
+
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
@@ -242,7 +284,6 @@ class VectorSearchService:
                 print(f"❌ Keyword search error [{entity_type}]: {e}")
                 import traceback
                 print(traceback.format_exc())
-                # Continue to search other entity types
                 continue
         
         # Apply global limit
