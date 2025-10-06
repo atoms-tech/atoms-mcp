@@ -238,110 +238,65 @@ class PersistentAuthKitProvider(AuthKitProvider):
                             return json_resp
                         result = await resp.json()
 
-                # Create persistent session in Supabase
-                try:
-                    logger.info(f"🔧 Starting session creation for user {user['id']}")
-                    print(f"🔧 Starting session creation for user {user['id']}")
+                # AuthKit manages sessions via JWT - no need for mcp_sessions table
+                logger.info(f"✅ OAuth complete for user {user['id']}, JWT issued by Supabase")
+                print(f"✅ OAuth complete for user {user['id']}, JWT issued by Supabase")
 
-                    # Use user's JWT for session creation (RLS will allow user to create own session)
-                    logger.info(f"🔧 Creating session manager with bearer token...")
-                    print(f"🔧 Creating session manager with bearer token...")
-                    session_manager = create_session_manager(access_token=bearer_token)
+                # Get the redirect URI from WorkOS result
+                redirect_uri = result.get("redirect_uri")
 
-                    oauth_data = {
-                        "access_token": bearer_token,
-                        "token_type": "Bearer",
-                        "user": user,
-                        "workos_redirect": result.get("redirect_uri")
-                    }
+                if redirect_uri:
+                    # Redirect to client's callback URL to complete OAuth flow
+                    from starlette.responses import RedirectResponse
 
-                    logger.info(f"🔧 Calling session_manager.create_session()...")
-                    print(f"🔧 Calling session_manager.create_session()...")
-                    session_id = await session_manager.create_session(
-                        user_id=user["id"],
-                        oauth_data=oauth_data,
-                        mcp_state={}
-                    )
+                    logger.info(f"🔄 Redirecting to client callback: {redirect_uri}")
 
-                    logger.info(f"✅ Created persistent session {session_id} for user {user['id']}")
-                    print(f"✅ Created persistent session {session_id} for user {user['id']}")
-
-                    # Get the redirect URI from WorkOS result
-                    redirect_uri = result.get("redirect_uri")
-
-                    if redirect_uri:
-                        # IMPORTANT: Redirect to client's callback URL with authorization code
-                        # This completes the OAuth flow for MCP clients waiting at their callback
-                        from starlette.responses import RedirectResponse
-
-                        logger.info(f"🔄 Redirecting to client callback: {redirect_uri}")
-
-                        redirect_resp = RedirectResponse(url=redirect_uri, status_code=302)
-                        redirect_resp.headers["Access-Control-Allow-Origin"] = "*"
-
-                        # Set session cookie so browser-based clients can use it
-                        redirect_resp.set_cookie(
-                            key="mcp_session_id",
-                            value=session_id,
-                            httponly=True,
-                            secure=True,
-                            samesite="lax",
-                            max_age=self.session_ttl_hours * 3600
-                        )
-
-                        return redirect_resp
-                    else:
-                        # Fallback: return JSON for non-standard OAuth flows
-                        json_resp = JSONResponse({
-                            "success": True,
-                            "session_id": session_id,
-                        })
-                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
-
-                        json_resp.set_cookie(
-                            key="mcp_session_id",
-                            value=session_id,
-                            httponly=True,
-                            secure=True,
-                            samesite="lax",
-                            max_age=self.session_ttl_hours * 3600
-                        )
-
-                        return json_resp
-
-                except Exception as e:
-                    import sys
-                    import traceback
-                    error_msg = f"Failed to create session: {e}"
-                    stack_trace = traceback.format_exc()
-
-                    # Write to stderr for Vercel to capture
-                    print(f"❌ SESSION ERROR: {error_msg}", file=sys.stderr)
-                    print(stack_trace, file=sys.stderr)
-
-                    logger.error(error_msg)
-                    logger.error(stack_trace)
-
-                    resp = JSONResponse({
-                        "error": "Session creation failed",
-                        "details": str(e),
-                        "type": type(e).__name__,
-                        "traceback": stack_trace  # Include in response for debugging
-                    }, status_code=500)
-                    resp.headers["Access-Control-Allow-Origin"] = "*"
-                    return resp
+                    redirect_resp = RedirectResponse(url=redirect_uri, status_code=302)
+                    redirect_resp.headers["Access-Control-Allow-Origin"] = "*"
+                    return redirect_resp
+                else:
+                    # Fallback: return JSON for non-standard OAuth flows
+                    json_resp = JSONResponse({
+                        "success": True,
+                        "user_id": user["id"],
+                        "redirect_uri": result.get("redirect_uri")
+                    })
+                    json_resp.headers["Access-Control-Allow-Origin"] = "*"
+                    return json_resp
 
             except Exception as e:
-                logger.error(f"Unhandled exception in /auth/complete: {e}")
+                import sys
                 import traceback
-                logger.error(traceback.format_exc())
+                error_msg = f"OAuth completion failed: {e}"
+                stack_trace = traceback.format_exc()
+
+                # Write to stderr for Vercel to capture
+                print(f"❌ OAuth ERROR: {error_msg}", file=sys.stderr)
+                print(stack_trace, file=sys.stderr)
+
+                logger.error(error_msg)
+                logger.error(stack_trace)
+
                 resp = JSONResponse({
-                    "error": "Internal server error",
+                    "error": "OAuth completion failed",
                     "details": str(e),
-                    "type": type(e).__name__
+                    "type": type(e).__name__,
+                    "traceback": stack_trace
                 }, status_code=500)
                 resp.headers["Access-Control-Allow-Origin"] = "*"
                 return resp
+
+        except Exception as e:
+            logger.error(f"Unhandled exception in /auth/complete: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            resp = JSONResponse({
+                "error": "Internal server error",
+                "details": str(e),
+                "type": type(e).__name__
+            }, status_code=500)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
         # Handle OPTIONS for CORS
         async def auth_complete_options(request):
