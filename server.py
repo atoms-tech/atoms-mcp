@@ -211,25 +211,32 @@ async def _check_rate_limit(user_id: str) -> None:
         )
 
 
-async def _validate_and_rate_limit() -> str:
-    """Validate auth and apply rate limiting. Returns user_id.
+async def _apply_rate_limit_if_configured() -> Optional[str]:
+    """Apply rate limiting if configured. Returns auth token.
 
     Returns:
-        user_id for use in operations
+        auth_token for use in operations
 
     Raises:
-        RuntimeError: If rate limit exceeded or auth fails
+        RuntimeError: If rate limit exceeded
     """
     auth_token = _extract_bearer_token()
 
-    # Validate auth and get user_id
-    from tools.base import ToolBase
-    tool_base = ToolBase()
-    await tool_base._validate_auth(auth_token)
-    user_id = tool_base._get_user_id()
-
-    # Apply rate limiting
-    await _check_rate_limit(user_id)
+    # Only apply rate limiting if we have a token and rate limiter is configured
+    global _rate_limiter
+    if auth_token and _rate_limiter:
+        # Extract user_id from token without full validation (tools will validate)
+        try:
+            from tools.base import ToolBase
+            tool_base = ToolBase()
+            await tool_base._validate_auth(auth_token)
+            user_id = tool_base._get_user_id()
+            await _check_rate_limit(user_id)
+        except Exception as e:
+            # If rate limit check fails, let it propagate
+            # But if auth parsing fails, tools will handle it
+            if "Rate limit" in str(e):
+                raise
 
     return auth_token
 
@@ -409,7 +416,7 @@ def create_consolidated_server() -> FastMCP:
         - List organizations: operation="list_workspaces"
         """
         try:
-            auth_token = await _validate_and_rate_limit()
+            auth_token = await _apply_rate_limit_if_configured()
             return await workspace_operation(
                 auth_token=auth_token,
                 operation=operation,
@@ -461,7 +468,7 @@ def create_consolidated_server() -> FastMCP:
         - Search projects: operation="search", entity_type="project", search_term="test"
         """
         try:
-            auth_token = await _validate_and_rate_limit()
+            auth_token = await _apply_rate_limit_if_configured()
             # Apply default limit to prevent oversized responses
             if operation == "list" and limit is None:
                 limit = 100
@@ -531,7 +538,7 @@ def create_consolidated_server() -> FastMCP:
           source={"type": "project", "id": "proj_123"}
         """
         try:
-            auth_token = await _validate_and_rate_limit()
+            auth_token = await _apply_rate_limit_if_configured()
             return await relationship_operation(
                 auth_token=auth_token,
                 operation=operation,
@@ -576,7 +583,7 @@ def create_consolidated_server() -> FastMCP:
         - Bulk update: workflow="bulk_status_update", parameters={"entity_type": "requirement", "entity_ids": ["req_1", "req_2"], "new_status": "approved"}
         """
         try:
-            auth_token = await _validate_and_rate_limit()
+            auth_token = await _apply_rate_limit_if_configured()
             return await workflow_execute(
                 auth_token=auth_token,
                 workflow=workflow,
@@ -630,7 +637,7 @@ def create_consolidated_server() -> FastMCP:
         - Get statistics: query_type="aggregate", entities=["organization", "project"]
         """
         try:
-            auth_token = await _validate_and_rate_limit()
+            auth_token = await _apply_rate_limit_if_configured()
             return await data_query(
                 auth_token=auth_token,
                 query_type=query_type,
