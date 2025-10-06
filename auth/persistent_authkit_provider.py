@@ -247,13 +247,23 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     return json_resp
 
                 except Exception as e:
-                    logger.error(f"Failed to create session: {e}")
+                    import sys
                     import traceback
-                    logger.error(traceback.format_exc())
+                    error_msg = f"Failed to create session: {e}"
+                    stack_trace = traceback.format_exc()
+
+                    # Write to stderr for Vercel to capture
+                    print(f"❌ SESSION ERROR: {error_msg}", file=sys.stderr)
+                    print(stack_trace, file=sys.stderr)
+
+                    logger.error(error_msg)
+                    logger.error(stack_trace)
+
                     resp = JSONResponse({
                         "error": "Session creation failed",
                         "details": str(e),
-                        "type": type(e).__name__
+                        "type": type(e).__name__,
+                        "traceback": stack_trace  # Include in response for debugging
                     }, status_code=500)
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
