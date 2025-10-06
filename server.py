@@ -159,7 +159,10 @@ def _extract_bearer_token() -> Optional[str]:
     """
     # Try session context first (stateless mode with Supabase persistence)
     try:
-        from auth.session_middleware import get_session_token
+        try:
+            from .auth.session_middleware import get_session_token
+        except ImportError:
+            from auth.session_middleware import get_session_token
         session_token = get_session_token()
         if session_token:
             logger.debug("Using token from session context (Supabase-backed)")
@@ -298,7 +301,10 @@ def create_consolidated_server() -> FastMCP:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
     # Use PersistentAuthKitProvider for stateless deployments with Supabase sessions
-    from auth.persistent_authkit_provider import PersistentAuthKitProvider
+    try:
+        from .auth.persistent_authkit_provider import PersistentAuthKitProvider
+    except ImportError:
+        from auth.persistent_authkit_provider import PersistentAuthKitProvider
 
     session_ttl_hours = int(os.getenv("MCP_SESSION_TTL_HOURS", "24"))
 
@@ -623,8 +629,12 @@ def create_consolidated_server() -> FastMCP:
 
     # Add SessionMiddleware for persistent session support
     # This loads OAuth sessions from Supabase on each request (stateless mode)
-    from auth.session_middleware import SessionMiddleware
-    from auth.session_manager import create_session_manager
+    try:
+        from .auth.session_middleware import SessionMiddleware
+        from .auth.session_manager import create_session_manager
+    except ImportError:
+        from auth.session_middleware import SessionMiddleware
+        from auth.session_manager import create_session_manager
 
     # Wrap the ASGI app with SessionMiddleware
     if hasattr(mcp, 'app') and mcp.app is not None:
