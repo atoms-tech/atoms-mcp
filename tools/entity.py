@@ -95,7 +95,8 @@ class EntityManager(ToolBase):
         if schema.get("auto_slug") and not result.get("slug") and result.get("name"):
             result["slug"] = _slugify(result["name"])
 
-        if entity_type.lower() == "document":
+        # Auto-generate slug for organizations and documents if not provided
+        if entity_type.lower() in ["organization", "document"]:
             if not result.get("slug") and result.get("name"):
                 result["slug"] = _slugify(result["name"])
         
