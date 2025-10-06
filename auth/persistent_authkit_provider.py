@@ -96,7 +96,12 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     return resp
 
                 external_auth_id = data.get("external_auth_id")
+                logger.info(f"🔧 OAuth complete: external_auth_id={external_auth_id}")
+                print(f"🔧 OAuth complete: external_auth_id={external_auth_id}")
+
                 if not external_auth_id:
+                    logger.error("❌ Missing external_auth_id in request")
+                    print("❌ Missing external_auth_id in request")
                     resp = JSONResponse(
                         {"error": "external_auth_id required"},
                         status_code=400
@@ -106,6 +111,8 @@ class PersistentAuthKitProvider(AuthKitProvider):
 
                 # Get Supabase JWT from Authorization header
                 auth_header = request.headers.get("authorization", "")
+                logger.info(f"🔧 Auth header present: {bool(auth_header)}")
+                print(f"🔧 Auth header present: {bool(auth_header)}")
                 if not auth_header.startswith("Bearer "):
                     logger.error("Missing Bearer token in Authorization header")
                     resp = JSONResponse(
