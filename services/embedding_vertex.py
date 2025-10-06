@@ -62,8 +62,35 @@ class VertexAIEmbeddingService:
         if not project:
             raise RuntimeError("GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) must be set for Vertex AI embeddings")
 
+        # For Vercel serverless: use credentials from JSON env var
+        creds_json_str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        credentials = None
+        if creds_json_str:
+            try:
+                import json
+                import tempfile
+                from google.oauth2 import service_account
+
+                # Parse JSON and create credentials
+                creds_dict = json.loads(creds_json_str)
+
+                # For authorized_user type, use default credentials
+                if creds_dict.get("type") == "authorized_user":
+                    # Write to temp file for ADC
+                    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
+                        json.dump(creds_dict, f)
+                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
+                    logger.debug(f"✅ Using Google credentials from env var (authorized_user)")
+                else:
+                    # Service account credentials
+                    credentials = service_account.Credentials.from_service_account_info(creds_dict)
+                    logger.debug(f"✅ Using Google credentials from env var (service_account)")
+            except Exception as e:
+                logger.warning(f"Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: {e}")
+
         try:
-            vertexai.init(project=project, location=location)
+            vertexai.init(project=project, location=location, credentials=credentials)
+            logger.debug(f"✅ Vertex AI initialized: {project}/{location}")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Vertex AI: {e}")
 

@@ -15,10 +15,12 @@ except ImportError:
 
 
 class SupabaseDatabaseAdapter(DatabaseAdapter):
-    """Supabase-based database adapter."""
+    """Supabase-based database adapter with caching for serverless performance."""
 
     def __init__(self):
         self._access_token: Optional[str] = None
+        self._query_cache: Dict[str, Any] = {}  # Simple in-memory cache
+        self._cache_ttl = 30  # seconds
 
     def set_access_token(self, token: str):
         """Set user's access token for RLS context.

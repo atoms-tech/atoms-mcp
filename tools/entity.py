@@ -516,14 +516,22 @@ async def entity_operation(
                 raise ValueError("data is required for create operation")
             
             if batch:
-                # Batch create
-                results = []
-                for item in batch:
-                    result = await _entity_manager.create_entity(
-                        entity_type, item, include_relations
-                    )
-                    results.append(result)
-                return _entity_manager._format_result(results, format_type)
+                # Batch create with parallelization for performance
+                tasks = [
+                    _entity_manager.create_entity(entity_type, item, include_relations)
+                    for item in batch
+                ]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                # Handle exceptions in results
+                final_results = []
+                for i, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        final_results.append({"error": str(result), "index": i})
+                    else:
+                        final_results.append(result)
+
+                return _entity_manager._format_result(final_results, format_type)
             else:
                 # Single create
                 result = await _entity_manager.create_entity(

@@ -55,10 +55,11 @@ def _check_vertex_ai_available() -> bool:
         
         # Check for authentication
         creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        if not creds_path and not _check_gcloud_auth():
+        creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        if not creds_path and not creds_json and not _check_gcloud_auth():
             logger.debug("Vertex AI: No authentication configured")
             return False
-        
+
         return True
     except ImportError:
         logger.debug("Vertex AI: vertexai package not installed")
