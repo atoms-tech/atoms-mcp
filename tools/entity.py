@@ -484,46 +484,31 @@ async def entity_operation(
     soft_delete: bool = True,
     format_type: str = "detailed"
 ) -> Dict[str, Any]:
-    """Unified CRUD operations for any entity type.
-    
-    Args:
-        auth_token: Authentication token
-        operation: CRUD operation to perform
-        entity_type: Type of entity (organization, project, document, etc.)
-        data: Data for create/update operations
-        filters: Filter conditions for search
-        entity_id: ID for read/update/delete operations
-        include_relations: Whether to include related entities
-        batch: List of entities for batch operations
-        search_term: Text search term
-        parent_type: Parent entity type for filtering
-        parent_id: Parent entity ID for filtering
-        limit: Maximum results to return
-        offset: Offset for pagination
-        order_by: Sort order (e.g., "name:asc", "created_at:desc")
-        soft_delete: Use soft delete for delete operations
-        format_type: Result format (detailed, summary, raw)
-    
-    Returns:
-        Dict containing operation result
-    """
+    """Unified CRUD operations with performance timing."""
+    import time
+    timings = {}
+    start_total = time.time()
+
     try:
         # Validate authentication
+        t_auth_start = time.time()
         await _entity_manager._validate_auth(auth_token)
+        timings["auth_validation"] = time.time() - t_auth_start
         
         if operation == "create":
             if not data:
                 raise ValueError("data is required for create operation")
-            
+
+            t_op_start = time.time()
             if batch:
-                # Batch create with parallelization for performance
+                # Batch create with parallelization
                 tasks = [
                     _entity_manager.create_entity(entity_type, item, include_relations)
                     for item in batch
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                # Handle exceptions in results
+                # Handle exceptions
                 final_results = []
                 for i, result in enumerate(results):
                     if isinstance(result, Exception):
@@ -531,60 +516,88 @@ async def entity_operation(
                     else:
                         final_results.append(result)
 
-                return _entity_manager._format_result(final_results, format_type)
+                timings["batch_create"] = time.time() - t_op_start
+                timings["total"] = time.time() - start_total
+                formatted = _entity_manager._format_result(final_results, format_type)
+                return _entity_manager._add_timing_metrics(formatted, timings)
             else:
                 # Single create
                 result = await _entity_manager.create_entity(
                     entity_type, data, include_relations
                 )
-                return _entity_manager._format_result(result, format_type)
+                timings["create"] = time.time() - t_op_start
+                timings["total"] = time.time() - start_total
+                formatted = _entity_manager._format_result(result, format_type)
+                return _entity_manager._add_timing_metrics(formatted, timings)
         
         elif operation == "read":
             if not entity_id:
                 raise ValueError("entity_id is required for read operation")
-            
+
+            t_op_start = time.time()
             result = await _entity_manager.read_entity(
                 entity_type, entity_id, include_relations
             )
+            timings["read"] = time.time() - t_op_start
+
             if result is None:
                 return {"success": False, "error": "Entity not found"}
-            
-            return _entity_manager._format_result(result, format_type)
+
+            timings["total"] = time.time() - start_total
+            formatted = _entity_manager._format_result(result, format_type)
+            return _entity_manager._add_timing_metrics(formatted, timings)
         
         elif operation == "update":
             if not entity_id or not data:
                 raise ValueError("entity_id and data are required for update operation")
-            
+
+            t_op_start = time.time()
             result = await _entity_manager.update_entity(
                 entity_type, entity_id, data, include_relations
             )
-            return _entity_manager._format_result(result, format_type)
+            timings["update"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            formatted = _entity_manager._format_result(result, format_type)
+            return _entity_manager._add_timing_metrics(formatted, timings)
         
         elif operation == "delete":
             if not entity_id:
                 raise ValueError("entity_id is required for delete operation")
-            
+
+            t_op_start = time.time()
             success = await _entity_manager.delete_entity(
                 entity_type, entity_id, soft_delete
             )
-            return {
+            timings["delete"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+
+            result = {
                 "success": success,
                 "entity_id": entity_id,
                 "entity_type": entity_type,
                 "soft_delete": soft_delete
             }
-        
+            return _entity_manager._add_timing_metrics(result, timings)
+
         elif operation == "search":
+            t_op_start = time.time()
             result = await _entity_manager.search_entities(
                 entity_type, filters, search_term, limit, offset, order_by
             )
-            return _entity_manager._format_result(result, format_type)
-        
+            timings["search"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            formatted = _entity_manager._format_result(result, format_type)
+            return _entity_manager._add_timing_metrics(formatted, timings)
+
         elif operation == "list":
+            t_op_start = time.time()
             result = await _entity_manager.list_entities(
                 entity_type, parent_type, parent_id, limit
             )
-            return _entity_manager._format_result(result, format_type)
+            timings["list"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            formatted = _entity_manager._format_result(result, format_type)
+            return _entity_manager._add_timing_metrics(formatted, timings)
         
         else:
             raise ValueError(f"Unknown operation: {operation}")

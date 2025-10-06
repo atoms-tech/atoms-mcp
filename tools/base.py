@@ -200,6 +200,14 @@ class ToolBase:
 
         return sanitized
 
+    def _add_timing_metrics(self, result: Dict[str, Any], timings: Dict[str, float]) -> Dict[str, Any]:
+        """Add timing metrics to result for performance debugging."""
+        result["_performance"] = {
+            "timings_ms": {k: round(v * 1000, 2) for k, v in timings.items()},
+            "total_time_ms": round(sum(timings.values()) * 1000, 2)
+        }
+        return result
+
     def _format_result(self, data: Any, format_type: str = "detailed") -> Dict[str, Any]:
         """Format result data based on requested format."""
         # Always sanitize data before formatting to prevent token overflow

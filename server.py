@@ -391,7 +391,7 @@ def create_consolidated_server() -> FastMCP:
             "and query_tool for data exploration including RAG search."
         ),
         auth=auth_provider,
-        tool_serializer=_markdown_serializer,  # Custom Markdown output for better readability
+        # No custom serializer - use default JSON for performance (minified)
     )
 
     # Register consolidated tools
