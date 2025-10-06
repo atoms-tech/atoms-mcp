@@ -235,10 +235,24 @@ class ToolBase:
             else:
                 return {"summary": str(data)[:200] + "..." if len(str(data)) > 200 else str(data)}
         else:  # detailed
-            return {
-                "success": True,
-                "data": data,
-                "count": len(data) if isinstance(data, list) else 1,
-                "user_id": self._get_user_id(),
-                "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
-            }
+            # Auto-paginate if list is too large (>10 items for MCP)
+            if isinstance(data, list) and len(data) > 10:
+                return {
+                    "success": True,
+                    "data": data[:10],  # Only return first 10
+                    "count": len(data),
+                    "truncated": True,
+                    "total_count": len(data),
+                    "showing": "1-10",
+                    "hint": "Use limit/offset parameters for pagination",
+                    "user_id": self._get_user_id(),
+                    "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+                }
+            else:
+                return {
+                    "success": True,
+                    "data": data,
+                    "count": len(data) if isinstance(data, list) else 1,
+                    "user_id": self._get_user_id(),
+                    "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+                }
