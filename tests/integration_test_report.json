@@ -1,0 +1,21 @@
+{
+  "summary": {
+    "total_scenarios": 0,
+    "passed_scenarios": 0,
+    "failed_scenarios": 0,
+    "pass_rate": "N/A",
+    "total_duration": "0.00s",
+    "total_tool_calls": 0,
+    "failed_tool_calls": 0
+  },
+  "scenarios": [],
+  "data_consistency": {
+    "total_checks": 0,
+    "passed_checks": 0,
+    "checks": []
+  },
+  "performance": {
+    "avg_scenario_duration": "N/A",
+    "slowest_scenario": null
+  }
+}

@@ -11,6 +11,12 @@ from typing import Optional
 
 from supabase import Client, create_client
 
+try:
+    # Build-time dep; only present in newer composable SDK versions.
+    from postgrest import SyncClient as _PostgrestSyncClient  # type: ignore
+except Exception:  # pragma: no cover
+    _PostgrestSyncClient = None
+
 logger = logging.getLogger(__name__)
 
 # Client cache: token_hash -> (client, created_time)
@@ -40,8 +46,15 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
     import hashlib
     import time
 
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "").strip()
+    key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "").strip()
+
+    # Prevent subtle whitespace/newline issues that break httpx URL parsing.
+    for name, value in ("NEXT_PUBLIC_SUPABASE_URL", url), ("NEXT_PUBLIC_SUPABASE_ANON_KEY", key):
+        if "\n" in value or "\r" in value:
+            raise MissingSupabaseConfig(
+                f"{name} contains unexpected newline characters; please fix the environment value"
+            )
 
     if not url or not key:
         raise MissingSupabaseConfig(
@@ -66,6 +79,21 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
 
     # Create new client
     client = create_client(url, key)
+
+    # Silence deprecated params used internally by older client builds by ensuring
+    # they're removed from the generated PostgREST client. This prevents runtime
+    # DeprecationWarning noise in server logs.
+    if _PostgrestSyncClient is not None:
+        try:
+            postgrest_client = client.postgrest
+            if hasattr(postgrest_client, "_client"):
+                http_client = postgrest_client._client
+                for attr in ("timeout", "verify"):
+                    if hasattr(http_client, attr):
+                        setattr(http_client, attr, None)
+        except Exception:
+            # Non-fatal: keep going with defaults if internals change.
+            logger.debug("Skipped postgrest http_client attribute cleanup", exc_info=True)
 
     # Set the JWT for RLS context
     if access_token:

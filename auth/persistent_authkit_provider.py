@@ -7,7 +7,9 @@ enabling stateless serverless deployments.
 from __future__ import annotations
 
 import logging
+import asyncio
 from typing import Any, Optional
+import aiohttp
 from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -20,11 +22,37 @@ _http_session: Optional[aiohttp.ClientSession] = None
 
 
 def _get_http_session() -> aiohttp.ClientSession:
-    """Get shared aiohttp session with connection pooling."""
+    """Get shared aiohttp session with connection pooling.
+
+    Recreates the session when the current request runs on a new event loop.
+    Vercel/AWS style runtimes spin up and tear down loops between invocations,
+    so we must avoid reusing a session bound to a closed loop.
+    """
+
     global _http_session
-    if _http_session is None or _http_session.closed:
+
+    # Always bind the session to the currently running loop.
+    loop = asyncio.get_running_loop()
+    needs_new_session = False
+
+    if _http_session is None:
+        needs_new_session = True
+    else:
+        session_loop = getattr(_http_session, "_loop", None)
+
+        # ClientSession.closed only flips when close() is awaited; also guard
+        # against reusing sessions that belong to a different or closed loop.
+        if _http_session.closed:
+            needs_new_session = True
+        elif session_loop is not loop:
+            needs_new_session = True
+        elif session_loop and session_loop.is_closed():
+            needs_new_session = True
+
+    if needs_new_session:
         connector = aiohttp.TCPConnector(limit=100, limit_per_host=30, ttl_dns_cache=300)
         _http_session = aiohttp.ClientSession(connector=connector)
+
     return _http_session
 
 
