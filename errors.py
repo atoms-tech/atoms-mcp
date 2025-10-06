@@ -32,11 +32,11 @@ def normalize_error(err: Exception | str, fallback_message: str) -> ApiError:
                 table_name = "test_req" if "test_req" in error_str else "properties"
                 return ApiError(
                     code="TABLE_ACCESS_RESTRICTED",
-                    message=f"Access to {table_name} table is restricted. This table requires database-level permissions that are not configured.",
+                    message=f"Access to {table_name} table is restricted. Either missing GRANT or RLS policy USING clause is blocking access.",
                     status=403,
                     details={
-                        "cause": repr(err),
-                        "hint": f"Contact your database administrator to grant SELECT permissions on the {table_name} table, or use RLS policies to control access."
+                        "cause": error_str,  # Show actual error, not repr
+                        "hint": f"Run: GRANT SELECT ON {table_name} TO authenticated; OR fix RLS policy USING clause to allow org member access."
                     }
                 )
             else:
