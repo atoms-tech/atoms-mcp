@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
 from supabase import Client
@@ -47,7 +47,7 @@ class SessionManager:
             session_id: Generated session identifier
         """
         session_id = str(uuid.uuid4())
-        expires_at = datetime.now(datetime.now().astimezone().tzinfo) + timedelta(hours=self.session_ttl_hours)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=self.session_ttl_hours)
 
         try:
             # Ensure user_id is valid UUID format

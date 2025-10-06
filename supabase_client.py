@@ -67,12 +67,19 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
                 # The client library will automatically use this in the Authorization header
                 client.postgrest.auth(access_token)
             else:
-                # For Supabase JWTs, use set_session
+                # For Supabase JWTs, set both the auth session and PostgREST header
                 client.auth.set_session(
                     access_token=access_token,
                     refresh_token=None
                 )
-                logger.debug("✅ Session set with Supabase JWT for RLS context")
+                # Ensure PostgREST requests include the bearer token so RLS evaluates
+                # under the 'authenticated' role with auth.uid(). Some versions of
+                # supabase-py require explicit postgrest.auth() for database queries.
+                try:
+                    client.postgrest.auth(access_token)
+                except Exception as e2:
+                    logger.debug(f"postgrest.auth failed (continuing): {e2}")
+                logger.debug("✅ Session + PostgREST auth set with Supabase JWT for RLS context")
         except Exception as e:
             logger.warning(f"⚠️ Could not configure auth: {e}")
             # Continue anyway - queries may still work
