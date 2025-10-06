@@ -39,8 +39,14 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # Reset session context for this request
         _request_session_context.clear()
 
-        # Extract session_id from header or cookie
+        # Try to extract session_id first (UUID-based sessions)
         session_id = self._extract_session_id(request)
+
+        # If no session_id, try to validate JWT and create/load session
+        if not session_id:
+            jwt_token = self._extract_jwt_token(request)
+            if jwt_token:
+                session_id = await self._handle_jwt_auth(jwt_token)
 
         if session_id:
             logger.debug(f"Processing request with session_id: {session_id}")
@@ -69,7 +75,13 @@ class SessionMiddleware(BaseHTTPMiddleware):
                         status_code=401
                     )
         else:
-            logger.debug("No session_id in request")
+            logger.debug("No session_id or valid JWT in request")
+            # For MCP endpoints, require authentication
+            if request.url.path.startswith("/api/mcp") and not request.url.path.startswith("/api/mcp/auth"):
+                return JSONResponse(
+                    {"error": "Authentication required"},
+                    status_code=401
+                )
 
         # Process request
         response = await call_next(request)
@@ -85,6 +97,76 @@ class SessionMiddleware(BaseHTTPMiddleware):
             logger.debug(f"✅ Saved updated session state for {session_id}")
 
         return response
+
+    def _extract_jwt_token(self, request: Request) -> Optional[str]:
+        """Extract JWT token from Authorization header.
+
+        Returns:
+            JWT token string or None
+        """
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+            # If it's longer than UUID (36 chars), it's likely a JWT
+            if len(token) > 36:
+                return token
+        return None
+
+    async def _handle_jwt_auth(self, jwt_token: str) -> Optional[str]:
+        """Validate JWT and create/load session.
+
+        Args:
+            jwt_token: Supabase JWT from AuthKit OAuth
+
+        Returns:
+            session_id or None
+        """
+        try:
+            # Validate JWT with Supabase
+            from supabase_client import get_supabase
+
+            supabase = get_supabase(access_token=jwt_token)
+
+            # Get user info from Supabase
+            user_response = supabase.auth.get_user(jwt_token)
+            if not user_response or not user_response.user:
+                logger.warning("JWT validation failed: invalid token")
+                return None
+
+            user = user_response.user
+            user_id = user.id
+
+            logger.info(f"✅ Validated JWT for user {user_id}")
+
+            # Check if user already has an active session
+            session_manager = self.session_manager_factory()
+
+            # Try to find existing session for this user
+            # For now, create a new session (you could add logic to reuse existing)
+            oauth_data = {
+                "access_token": jwt_token,
+                "token_type": "Bearer",
+                "user": {
+                    "id": user_id,
+                    "email": user.email
+                }
+            }
+
+            session_id = await session_manager.create_session(
+                user_id=user_id,
+                oauth_data=oauth_data,
+                mcp_state={}
+            )
+
+            logger.info(f"✅ Created/loaded session {session_id} from JWT")
+
+            return session_id
+
+        except Exception as e:
+            logger.error(f"JWT auth failed: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
 
     def _extract_session_id(self, request: Request) -> Optional[str]:
         """Extract session_id from request headers or cookies.
