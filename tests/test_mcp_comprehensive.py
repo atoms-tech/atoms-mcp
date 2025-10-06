@@ -369,42 +369,41 @@ async def main():
 
         # Create OAuth client
         print("\n🔐 Starting OAuth flow...")
-        oauth = OAuth(mcp_url=MCP_ENDPOINT, client_name="Atoms MCP Test Suite")
+
+        oauth_url_captured = None
+
+        # Custom OAuth class that captures URL instead of opening browser
+        class PlaywrightOAuth(OAuth):
+            async def redirect_handler(self, authorization_url: str) -> None:
+                nonlocal oauth_url_captured
+                oauth_url_captured = authorization_url
+                # Don't open browser - Playwright will handle it
+
+        oauth = PlaywrightOAuth(mcp_url=MCP_ENDPOINT, client_name="Atoms MCP Test Suite")
         client = Client(MCP_ENDPOINT, auth=oauth)
 
         # Start authentication in background
         auth_task = asyncio.create_task(client.__aenter__())
 
-        # Wait for OAuth URL to appear in stderr
+        # Wait for OAuth URL to be captured
         print("⏳ Waiting for OAuth URL...")
-        oauth_url = None
 
         for i in range(20):
             await asyncio.sleep(0.5)
 
-            # Check captured output
-            output = captured_output.getvalue()
-            if "https://decent-hymn" in output or "oauth2/authorize" in output:
-                # Extract the URL
-                for line in output.split('\n'):
-                    line = line.strip()
-                    if line.startswith("https://") and "oauth2/authorize" in line:
-                        oauth_url = line
-                        # Restore stderr so we can print
-                        sys_module.stderr = original_stderr
-                        print(f"✅ Captured OAuth URL after {i * 0.5:.1f}s")
-                        print(f"   URL: {oauth_url[:80]}...")
-                        break
-
-                if oauth_url:
-                    break
+            if oauth_url_captured:
+                # Restore stderr
+                sys_module.stderr = original_stderr
+                print(f"✅ Captured OAuth URL after {i * 0.5:.1f}s")
+                print(f"   URL: {oauth_url_captured[:80]}...")
+                break
 
         # Restore stderr
         sys_module.stderr = original_stderr
 
-        if oauth_url:
+        if oauth_url_captured:
             # Start Playwright automation
-            automation_task = asyncio.create_task(automate_oauth_login(oauth_url))
+            automation_task = asyncio.create_task(automate_oauth_login(oauth_url_captured))
 
             # Wait for both to complete
             results = await asyncio.gather(auth_task, automation_task, return_exceptions=True)
