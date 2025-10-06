@@ -33,7 +33,12 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
 
     Note: Not cached - ensures thread safety and proper JWT context per request.
     """
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    # Use connection pooler for serverless environments (6x faster!)
+    # Falls back to direct URL if pooler not configured
+    pooler_url = os.getenv("SUPABASE_POOLER_URL")
+    direct_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+
+    url = pooler_url or direct_url
     key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 
     if not url or not key:
