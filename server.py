@@ -364,10 +364,9 @@ def create_consolidated_server() -> FastMCP:
         authkit_domain=authkit_domain,
         base_url=base_url,
         required_scopes=["openid", "profile", "email"],
-        session_ttl_hours=session_ttl_hours,
     )
-    logger.info(f"✅ PersistentAuthKitProvider configured: {authkit_domain} (TTL: {session_ttl_hours}h)")
-    print(f"✅ PersistentAuthKitProvider configured: {authkit_domain} (TTL: {session_ttl_hours}h)")
+    logger.info(f"✅ PersistentAuthKitProvider configured: {authkit_domain}")
+    print(f"✅ PersistentAuthKitProvider configured: {authkit_domain}")
 
     # Initialize rate limiter for API protection
     try:
