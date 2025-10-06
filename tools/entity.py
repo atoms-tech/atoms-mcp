@@ -60,9 +60,9 @@ class EntityManager(ToolBase):
                 "relationships": ["blocks", "requirements", "project"]
             },
             "requirement": {
-                "required_fields": ["name", "document_id", "block_id"],
+                "required_fields": ["name", "document_id"],  # block_id is optional
                 "auto_fields": ["id", "created_at", "updated_at", "version", "external_id"],
-                "default_values": {"is_deleted": False, "status": "active", "properties": {}, "priority": "low", "type": "component"},
+                "default_values": {"is_deleted": False, "status": "active", "properties": {}, "priority": "low", "type": "component", "block_id": None},
                 "relationships": ["document", "tests", "trace_links"]
             },
             "test": {
@@ -253,9 +253,10 @@ class EntityManager(ToolBase):
 
         table = self._resolve_entity_table(entity_type)
 
-        # Add updated timestamp and user
+        # Prepare update data
         update_data = data.copy()
-        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        # Don't set updated_at manually - let database trigger handle it
+        # This prevents "Concurrent update detected" errors from optimistic locking
 
         # Always set updated_by (required field)
         user_id = self._get_user_id()
@@ -315,8 +316,8 @@ class EntityManager(ToolBase):
             # Soft delete
             delete_data = {
                 "is_deleted": True,
-                "deleted_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat()
+                "deleted_at": datetime.now(timezone.utc).isoformat()
+                # Don't set updated_at - let database trigger handle it
             }
 
             # Get user_id with fallback
