@@ -188,11 +188,9 @@ class VectorSearchService:
             table_name = self.searchable_entities[entity_type]
             
             try:
-                # Build query with filters first, then apply text search
-                # Select common columns (not all tables have metadata)
-                query_builder = self.supabase.table(table_name).select(
-                    "id, name, description"
-                )
+                # Build query - use wildcard to get all columns
+                # Different tables have different column structures
+                query_builder = self.supabase.table(table_name).select("*")
                 
                 # Apply default filters (skip for tables without is_deleted)
                 tables_without_soft_delete = {'test_req', 'properties'}
@@ -204,8 +202,22 @@ class VectorSearchService:
                     for key, value in filters.items():
                         query_builder = query_builder.eq(key, value)
 
-                # Use ilike for keyword matching on name and description
-                response = query_builder.or_(f"name.ilike.%{query}%,description.ilike.%{query}%").limit(limit).execute()
+                # Build flexible search across available text columns
+                # Try multiple column combinations
+                search_conditions = []
+                if entity_type in ["organization", "project", "document"]:
+                    search_conditions.append(f"name.ilike.%{query}%")
+                    search_conditions.append(f"description.ilike.%{query}%")
+                elif entity_type == "requirement":
+                    search_conditions.append(f"name.ilike.%{query}%")
+                    search_conditions.append(f"description.ilike.%{query}%")
+                    search_conditions.append(f"content.ilike.%{query}%")  # requirements may have content field
+
+                if search_conditions:
+                    response = query_builder.or_(",".join(search_conditions)).limit(limit).execute()
+                else:
+                    # Fallback: just use name
+                    response = query_builder.ilike("name", f"%{query}%").limit(limit).execute()
 
                 # Process results
                 for row in (response.data or []):
