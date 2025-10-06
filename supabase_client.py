@@ -44,42 +44,14 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
     # Create client
     client = create_client(url, key)
 
-    # For third-party auth (WorkOS/AuthKit), DON'T use set_session
-    # Instead, pass the JWT directly in API headers
-    # The Supabase client will use it automatically when making requests
+    # Set the JWT for RLS context (works for both Supabase and third-party JWTs)
     if access_token:
-        # Store the token for use in requests
-        # For third-party JWTs, we set it on the headers instead of session
         try:
-            # Detect token type
-            is_authkit = False
-            try:
-                import jwt as jwt_lib
-                decoded = jwt_lib.decode(access_token, options={"verify_signature": False})
-                iss = decoded.get('iss', '')
-                is_authkit = 'workos' in iss or 'authkit' in iss.lower()
-            except:
-                pass
-
-            if is_authkit:
-                # For AuthKit JWTs (third-party), set in headers, not session
-                logger.debug("✅ Using AuthKit JWT in headers for RLS context")
-                # The client library will automatically use this in the Authorization header
-                client.postgrest.auth(access_token)
-            else:
-                # For Supabase JWTs, set both the auth session and PostgREST header
-                client.auth.set_session(
-                    access_token=access_token,
-                    refresh_token=None
-                )
-                # Ensure PostgREST requests include the bearer token so RLS evaluates
-                # under the 'authenticated' role with auth.uid(). Some versions of
-                # supabase-py require explicit postgrest.auth() for database queries.
-                try:
-                    client.postgrest.auth(access_token)
-                except Exception as e2:
-                    logger.debug(f"postgrest.auth failed (continuing): {e2}")
-                logger.debug("✅ Session + PostgREST auth set with Supabase JWT for RLS context")
+            # For database queries, we need to set the Authorization header
+            # This works for both Supabase JWTs and third-party JWTs (like AuthKit)
+            # The postgrest client will use this token for RLS evaluation
+            client.postgrest.auth(access_token)
+            logger.debug("✅ JWT set for RLS context in database queries")
         except Exception as e:
             logger.warning(f"⚠️ Could not configure auth: {e}")
             # Continue anyway - queries may still work
