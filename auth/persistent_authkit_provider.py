@@ -266,25 +266,48 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     logger.info(f"✅ Created persistent session {session_id} for user {user['id']}")
                     print(f"✅ Created persistent session {session_id} for user {user['id']}")
 
-                    # Return success with session_id
-                    json_resp = JSONResponse({
-                        "success": True,
-                        "session_id": session_id,
-                        "redirect_uri": result["redirect_uri"]
-                    })
-                    json_resp.headers["Access-Control-Allow-Origin"] = "*"
+                    # Get the redirect URI from WorkOS result
+                    redirect_uri = result.get("redirect_uri")
 
-                    # Also set session cookie for browser clients
-                    json_resp.set_cookie(
-                        key="mcp_session_id",
-                        value=session_id,
-                        httponly=True,
-                        secure=True,
-                        samesite="lax",
-                        max_age=self.session_ttl_hours * 3600
-                    )
+                    if redirect_uri:
+                        # IMPORTANT: Redirect to client's callback URL with authorization code
+                        # This completes the OAuth flow for MCP clients waiting at their callback
+                        from starlette.responses import RedirectResponse
 
-                    return json_resp
+                        logger.info(f"🔄 Redirecting to client callback: {redirect_uri}")
+
+                        redirect_resp = RedirectResponse(url=redirect_uri, status_code=302)
+                        redirect_resp.headers["Access-Control-Allow-Origin"] = "*"
+
+                        # Set session cookie so browser-based clients can use it
+                        redirect_resp.set_cookie(
+                            key="mcp_session_id",
+                            value=session_id,
+                            httponly=True,
+                            secure=True,
+                            samesite="lax",
+                            max_age=self.session_ttl_hours * 3600
+                        )
+
+                        return redirect_resp
+                    else:
+                        # Fallback: return JSON for non-standard OAuth flows
+                        json_resp = JSONResponse({
+                            "success": True,
+                            "session_id": session_id,
+                        })
+                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
+
+                        json_resp.set_cookie(
+                            key="mcp_session_id",
+                            value=session_id,
+                            httponly=True,
+                            secure=True,
+                            samesite="lax",
+                            max_age=self.session_ttl_hours * 3600
+                        )
+
+                        return json_resp
 
                 except Exception as e:
                     import sys
