@@ -219,24 +219,21 @@ def create_session_manager(access_token: Optional[str] = None) -> SessionManager
     """Factory function to create a SessionManager with Supabase client.
 
     Args:
-        access_token: Optional access token for user context
+        access_token: Optional access token for user context (Supabase JWT)
 
     Returns:
         Configured SessionManager instance
     """
     from supabase_client import get_supabase
 
-    # Get Supabase client - use service role if available for session management
-    # Otherwise fall back to anon key (requires RLS policies on mcp_sessions)
-    service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    if service_role_key:
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        from supabase import create_client
-        client = create_client(url, service_role_key)
-        logger.debug("Using service role key for session management")
+    # Always use anon key + user JWT for RLS context
+    # This allows users to create their own sessions with proper RLS policies
+    client = get_supabase(access_token)
+
+    if access_token:
+        logger.info("✅ Using anon key + user JWT for session management")
     else:
-        client = get_supabase(access_token)
-        logger.debug("Using anon key for session management (ensure RLS policies allow)")
+        logger.info("Using anon key (unauthenticated) for session management")
 
     session_ttl = int(os.getenv("MCP_SESSION_TTL_HOURS", "24"))
     return SessionManager(client, session_ttl_hours=session_ttl)

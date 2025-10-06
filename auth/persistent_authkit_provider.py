@@ -193,8 +193,8 @@ class PersistentAuthKitProvider(AuthKitProvider):
 
                 # Create persistent session in Supabase
                 try:
-                    # Use service role for session creation (elevated privileges needed)
-                    session_manager = create_session_manager()
+                    # Use user's JWT for session creation (RLS will allow user to create own session)
+                    session_manager = create_session_manager(access_token=bearer_token)
 
                     oauth_data = {
                         "access_token": bearer_token,
