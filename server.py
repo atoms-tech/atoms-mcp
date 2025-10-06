@@ -193,6 +193,47 @@ def _extract_bearer_token() -> Optional[str]:
     return None
 
 
+async def _check_rate_limit(user_id: str) -> None:
+    """Check rate limit for user and raise exception if exceeded.
+
+    Args:
+        user_id: User identifier for rate limiting
+
+    Raises:
+        RuntimeError: If rate limit exceeded
+    """
+    global _rate_limiter
+    if _rate_limiter and not await _rate_limiter.check_limit(user_id):
+        remaining = _rate_limiter.get_remaining(user_id)
+        raise RuntimeError(
+            f"Rate limit exceeded. Please wait before making more requests. "
+            f"Remaining: {remaining} requests in current window."
+        )
+
+
+async def _validate_and_rate_limit() -> str:
+    """Validate auth and apply rate limiting. Returns user_id.
+
+    Returns:
+        user_id for use in operations
+
+    Raises:
+        RuntimeError: If rate limit exceeded or auth fails
+    """
+    auth_token = _extract_bearer_token()
+
+    # Validate auth and get user_id
+    from tools.base import ToolBase
+    tool_base = ToolBase()
+    await tool_base._validate_auth(auth_token)
+    user_id = tool_base._get_user_id()
+
+    # Apply rate limiting
+    await _check_rate_limit(user_id)
+
+    return auth_token
+
+
 def _load_env_files() -> None:
     """Load environment variables from .env and .env.local if available."""
     try:
@@ -229,6 +270,10 @@ def _load_env_files() -> None:
 
     for k, v in merged.items():
         os.environ.setdefault(k, v)
+
+
+# Global rate limiter instance
+_rate_limiter = None
 
 
 def create_consolidated_server() -> FastMCP:
@@ -317,6 +362,18 @@ def create_consolidated_server() -> FastMCP:
     logger.info(f"✅ PersistentAuthKitProvider configured: {authkit_domain} (TTL: {session_ttl_hours}h)")
     print(f"✅ PersistentAuthKitProvider configured: {authkit_domain} (TTL: {session_ttl_hours}h)")
 
+    # Initialize rate limiter for API protection
+    try:
+        from .infrastructure.rate_limiter import SlidingWindowRateLimiter
+    except ImportError:
+        from infrastructure.rate_limiter import SlidingWindowRateLimiter
+
+    # Configure rate limits (can be overridden via env vars)
+    global _rate_limiter
+    rate_limit_rpm = int(os.getenv("MCP_RATE_LIMIT_RPM", "120"))  # 120 requests/minute default
+    _rate_limiter = SlidingWindowRateLimiter(window_seconds=60, max_requests=rate_limit_rpm)
+    logger.info(f"✅ Rate limiter configured: {rate_limit_rpm} requests/minute")
+
     mcp = FastMCP(
         name="atoms-fastmcp-consolidated",
         instructions=(
@@ -352,7 +409,7 @@ def create_consolidated_server() -> FastMCP:
         - List organizations: operation="list_workspaces"
         """
         try:
-            auth_token = _extract_bearer_token()
+            auth_token = await _validate_and_rate_limit()
             return await workspace_operation(
                 auth_token=auth_token,
                 operation=operation,
@@ -404,7 +461,7 @@ def create_consolidated_server() -> FastMCP:
         - Search projects: operation="search", entity_type="project", search_term="test"
         """
         try:
-            auth_token = _extract_bearer_token()
+            auth_token = await _validate_and_rate_limit()
             # Apply default limit to prevent oversized responses
             if operation == "list" and limit is None:
                 limit = 100
@@ -474,7 +531,7 @@ def create_consolidated_server() -> FastMCP:
           source={"type": "project", "id": "proj_123"}
         """
         try:
-            auth_token = _extract_bearer_token()
+            auth_token = await _validate_and_rate_limit()
             return await relationship_operation(
                 auth_token=auth_token,
                 operation=operation,
@@ -519,7 +576,7 @@ def create_consolidated_server() -> FastMCP:
         - Bulk update: workflow="bulk_status_update", parameters={"entity_type": "requirement", "entity_ids": ["req_1", "req_2"], "new_status": "approved"}
         """
         try:
-            auth_token = _extract_bearer_token()
+            auth_token = await _validate_and_rate_limit()
             return await workflow_execute(
                 auth_token=auth_token,
                 workflow=workflow,
@@ -573,7 +630,7 @@ def create_consolidated_server() -> FastMCP:
         - Get statistics: query_type="aggregate", entities=["organization", "project"]
         """
         try:
-            auth_token = _extract_bearer_token()
+            auth_token = await _validate_and_rate_limit()
             return await data_query(
                 auth_token=auth_token,
                 query_type=query_type,
