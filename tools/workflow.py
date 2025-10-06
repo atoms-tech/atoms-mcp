@@ -217,11 +217,32 @@ class WorkflowExecutor(ToolBase):
         results = []
         project_id = params["project_id"]
         
-        # Step 1: Get all requirements for the project
-        requirements = await _entity_manager.search_entities(
-            "requirement",
-            filters={"documents.project_id": project_id}
+        # Step 1: Get all requirements for the project (via documents)
+        # First get all documents for the project
+        documents = await _entity_manager.search_entities(
+            "document",
+            filters={"project_id": project_id, "is_deleted": False}
         )
+
+        # Then get requirements from all documents in parallel
+        if documents:
+            req_tasks = [
+                _entity_manager.search_entities(
+                    "requirement",
+                    filters={"document_id": doc["id"], "is_deleted": False}
+                )
+                for doc in documents
+            ]
+            doc_requirements = await asyncio.gather(*req_tasks, return_exceptions=True)
+
+            # Flatten results
+            requirements = []
+            for reqs in doc_requirements:
+                if not isinstance(reqs, Exception):
+                    requirements.extend(reqs)
+        else:
+            requirements = []
+
         results.append({"step": "fetch_requirements", "count": len(requirements)})
         
         # Step 2: Create test matrix view

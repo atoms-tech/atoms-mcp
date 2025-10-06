@@ -70,6 +70,18 @@ class EntityManager(ToolBase):
                 "auto_fields": ["id", "created_at", "updated_at"],
                 "default_values": {"is_active": True, "status": "pending", "priority": "medium"},
                 "relationships": ["requirements", "project"]
+            },
+            "user": {
+                "required_fields": ["id"],  # User/profile lookup by ID
+                "auto_fields": ["created_at", "updated_at"],
+                "default_values": {},
+                "relationships": ["organizations", "projects"]
+            },
+            "profile": {
+                "required_fields": ["id"],  # Profile lookup by ID
+                "auto_fields": ["created_at", "updated_at"],
+                "default_values": {},
+                "relationships": ["organizations", "projects"]
             }
         }
         return schemas.get(entity_type.lower(), {})

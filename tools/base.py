@@ -130,7 +130,7 @@ class ToolBase:
         """Map entity type to database table name."""
         entity_table_map = {
             "organization": "organizations",
-            "project": "projects", 
+            "project": "projects",
             "document": "documents",
             "requirement": "requirements",
             "test": "test_req",
@@ -147,7 +147,8 @@ class ToolBase:
             "project_member": "project_members",
             "organization_invitation": "organization_invitations",
             "requirement_test": "requirement_tests",
-            "profile": "profiles"
+            "profile": "profiles",
+            "user": "profiles"  # Map 'user' to profiles table
         }
         
         table = entity_table_map.get(entity_type.lower())
