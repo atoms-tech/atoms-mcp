@@ -72,10 +72,13 @@ class WorkflowExecutor(ToolBase):
         if params.get("add_creator_as_admin", True):
             logger.info("👤 Step 2: Adding creator as admin...")
             try:
+                user_id = self._get_user_id()
+                if not user_id:
+                    raise ValueError("User ID not available in context for adding creator as admin")
                 member_result = await _relationship_manager.link_entities(
                     "member",
                     {"type": "project", "id": project["id"]},
-                    {"type": "user", "id": self._get_user_id()},
+                    {"type": "user", "id": user_id},
                     {"role": "admin"},
                     source_context=org_id
                 )
@@ -121,8 +124,11 @@ class WorkflowExecutor(ToolBase):
             except ImportError:
                 from tools.workspace import _workspace_manager
 
+            user_id = self._get_user_id()
+            if not user_id:
+                raise ValueError("User ID not available in context for setting workspace context")
             await _workspace_manager.set_context(
-                self._get_user_id(), "project", project["id"]
+                user_id, "project", project["id"]
             )
             results.append({"step": "set_workspace_context", "status": "success", "result": "context_set"})
             logger.info("✅ Step 4: Workspace context set")
@@ -354,10 +360,13 @@ class WorkflowExecutor(ToolBase):
         # Step 2: Add creator as admin
         logger.info("👤 Step 2: Adding creator as admin...")
         try:
+            user_id = self._get_user_id()
+            if not user_id:
+                raise ValueError("User ID not available in context for adding creator as admin")
             member_result = await _relationship_manager.link_entities(
                 "member",
                 {"type": "organization", "id": org["id"]},
-                {"type": "user", "id": self._get_user_id()},
+                {"type": "user", "id": user_id},
                 {"role": "admin", "status": "active"}
             )
             results.append({"step": "add_admin_member", "status": "success", "result": member_result})
@@ -381,10 +390,13 @@ class WorkflowExecutor(ToolBase):
                 logger.info(f"✅ Step 3a: Starter project created - {project['id']}")
 
                 # Add creator as project admin
+                user_id = self._get_user_id()
+                if not user_id:
+                    raise ValueError("User ID not available in context for adding project admin")
                 project_member = await _relationship_manager.link_entities(
                     "member",
                     {"type": "project", "id": project["id"]},
-                    {"type": "user", "id": self._get_user_id()},
+                    {"type": "user", "id": user_id},
                     {"role": "admin", "status": "active"},
                     source_context=org["id"]
                 )
@@ -398,8 +410,11 @@ class WorkflowExecutor(ToolBase):
         # Step 4: Set workspace context
         logger.info("🎯 Step 4: Setting workspace context...")
         try:
+            user_id = self._get_user_id()
+            if not user_id:
+                raise ValueError("User ID not available in context for setting workspace context")
             await _workspace_manager.set_context(
-                self._get_user_id(), "organization", org["id"]
+                user_id, "organization", org["id"]
             )
             results.append({"step": "set_workspace_context", "status": "success", "result": "context_set"})
             logger.info("✅ Step 4: Workspace context set")

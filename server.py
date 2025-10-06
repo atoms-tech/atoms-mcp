@@ -429,8 +429,8 @@ def create_consolidated_server() -> FastMCP:
 
     @mcp.tool(tags={"entity", "crud"})
     async def entity_tool(
-        operation: str,
         entity_type: str,
+        operation: Optional[str] = None,  # Now optional - can be inferred
         data: Optional[dict] = None,
         filters: Optional[dict] = None,
         entity_id: Optional[str] = None,
@@ -445,30 +445,45 @@ def create_consolidated_server() -> FastMCP:
         soft_delete: bool = True,
         format_type: str = "detailed",
     ) -> dict:
-        """Unified CRUD operations for any entity type.
+        """Unified CRUD operations with smart parameter inference and fuzzy matching.
 
-        Operations:
-        - create: Create new entity (requires data)
-        - read: Get entity by ID (requires entity_id)
-        - update: Update entity (requires entity_id and data)
-        - delete: Delete entity (requires entity_id)
-        - search: Search entities with filters
-        - list: List entities, optionally by parent
+        Operations (optional - auto-inferred from parameters):
+        - create: Inferred when only `data` provided
+        - read: Inferred when only `entity_id` provided
+        - update: Inferred when both `entity_id` and `data` provided
+        - delete: Must be explicit or inferred from soft_delete=True
+        - search: Inferred when `search_term` provided
+        - list: Inferred when `parent_type`/`parent_id` provided or no other params
 
-        Entity types: organization, project, document, requirement, test, property, etc.
-
-        Smart features:
-        - Use "auto" for organization_id/project_id to use workspace context
-        - Set include_relations=true for related data
-        - Use batch for multiple operations
+        Entity ID Fuzzy Matching:
+        - Accept entity names instead of UUIDs: entity_id="Vehicle Project"
+        - Partial matches work: entity_id="Vehicle"
+        - Auto-selects best match (70%+ similarity)
+        - Returns suggestions if ambiguous
 
         Examples:
-        - Create project: operation="create", entity_type="project", data={"name": "My Project", "organization_id": "auto"}
-        - List requirements: operation="list", entity_type="requirement", parent_type="document", parent_id="doc_123"
-        - Search projects: operation="search", entity_type="project", search_term="test"
+        - Read by name: entity_type="project", entity_id="Vehicle" (auto-resolves to UUID)
+        - Create: entity_type="project", data={"name": "My Project"} (operation inferred)
+        - Update: entity_type="document", entity_id="MCP Test", data={"description": "..."} (both inferred + resolved)
+        - List: entity_type="document", parent_type="project", parent_id="Vehicle Project" (fuzzy parent resolution)
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
+
+            # Smart operation inference
+            if not operation:
+                if data and not entity_id:
+                    operation = "create"
+                elif entity_id and data:
+                    operation = "update"
+                elif entity_id:
+                    operation = "read"
+                elif search_term:
+                    operation = "search"
+                elif parent_type or parent_id:
+                    operation = "list"
+                else:
+                    operation = "list"  # Default to list
             # Apply default limit to prevent oversized responses
             if operation == "list" and limit is None:
                 limit = 100

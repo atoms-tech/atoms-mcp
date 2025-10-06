@@ -25,6 +25,28 @@ def normalize_error(err: Exception | str, fallback_message: str) -> ApiError:
     if isinstance(err, Exception):
         error_str = str(err)
 
+        # Check for permission denied errors (code 42501)
+        if "permission denied" in error_str.lower() or "42501" in error_str:
+            # Specific handling for tables without RLS policies
+            if "test_req" in error_str or "properties" in error_str:
+                table_name = "test_req" if "test_req" in error_str else "properties"
+                return ApiError(
+                    code="TABLE_ACCESS_RESTRICTED",
+                    message=f"Access to {table_name} table is restricted. This table requires database-level permissions that are not configured.",
+                    status=403,
+                    details={
+                        "cause": repr(err),
+                        "hint": f"Contact your database administrator to grant SELECT permissions on the {table_name} table, or use RLS policies to control access."
+                    }
+                )
+            else:
+                return ApiError(
+                    code="PERMISSION_DENIED",
+                    message="You don't have permission to access this resource.",
+                    status=403,
+                    details={"cause": repr(err)}
+                )
+
         # Transform common RLS errors into user-friendly messages
         if "row-level security policy" in error_str.lower():
             if "projects" in error_str:

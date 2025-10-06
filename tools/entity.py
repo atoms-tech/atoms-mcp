@@ -24,9 +24,18 @@ def _slugify(value: str) -> str:
 
 class EntityManager(ToolBase):
     """Manages CRUD operations for all entity types."""
-    
+
     def __init__(self):
         super().__init__()
+
+    def _is_uuid_format(self, value: str) -> bool:
+        """Check if string is a valid UUID format."""
+        import re
+        uuid_pattern = re.compile(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+            re.IGNORECASE
+        )
+        return bool(uuid_pattern.match(value))
     
     def _get_entity_schema(self, entity_type: str) -> Dict[str, Any]:
         """Get schema information for entity type."""
@@ -494,7 +503,37 @@ async def entity_operation(
         t_auth_start = time.time()
         await _entity_manager._validate_auth(auth_token)
         timings["auth_validation"] = time.time() - t_auth_start
-        
+
+        # Fuzzy resolution for entity_id if needed
+        if entity_id and not _entity_manager._is_uuid_format(entity_id):
+            t_resolve_start = time.time()
+            from tools.entity_resolver import EntityResolver
+            resolver = EntityResolver(_entity_manager._get_adapters()["database"])
+            resolution = await resolver.resolve_entity_id(
+                entity_type,
+                entity_id,
+                filters=filters,
+                threshold=70
+            )
+            timings["fuzzy_resolution"] = time.time() - t_resolve_start
+
+            if not resolution["success"]:
+                # Return suggestions if available
+                if "suggestions" in resolution:
+                    return {
+                        "success": False,
+                        "error": resolution["error"],
+                        "suggestions": resolution["suggestions"],
+                        "hint": "Use the exact entity_id from suggestions or be more specific"
+                    }
+                return {"success": False, "error": resolution["error"]}
+
+            # Use resolved entity_id
+            entity_id = resolution["entity_id"]
+            if "note" in resolution:
+                # Store note about fuzzy match for user awareness
+                timings["fuzzy_match_note"] = resolution["note"]
+
         if operation == "create":
             if not data:
                 raise ValueError("data is required for create operation")
@@ -541,7 +580,29 @@ async def entity_operation(
             timings["read"] = time.time() - t_op_start
 
             if result is None:
-                return {"success": False, "error": "Entity not found"}
+                # Entity not found - provide helpful suggestions
+                from tools.entity_resolver import EntityResolver
+                resolver = EntityResolver(_entity_manager._get_adapters()["database"])
+
+                # Search for similar entities
+                suggestions_result = await resolver.resolve_entity_id(
+                    entity_type,
+                    entity_id,
+                    filters=filters,
+                    threshold=50,  # Lower threshold for suggestions
+                    return_suggestions=True
+                )
+
+                error_response = {
+                    "success": False,
+                    "error": f"{entity_type} with ID '{entity_id}' not found"
+                }
+
+                if "suggestions" in suggestions_result:
+                    error_response["suggestions"] = suggestions_result["suggestions"]
+                    error_response["hint"] = "Did you mean one of these? Use the exact ID or name from suggestions."
+
+                return error_response
 
             timings["total"] = time.time() - start_total
             formatted = _entity_manager._format_result(result, format_type)
