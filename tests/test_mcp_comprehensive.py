@@ -76,97 +76,64 @@ async def automate_oauth_login(oauth_url: str) -> bool:
     print(f"🔗 URL: {oauth_url[:80]}...")
 
     try:
-        from mcp__playwright__browser_navigate import browser_navigate
-        from mcp__playwright__browser_type import browser_type
-        from mcp__playwright__browser_click import browser_click
-        from mcp__playwright__browser_wait_for import browser_wait_for
-        from mcp__playwright__browser_snapshot import browser_snapshot
-        from mcp__playwright__browser_close import browser_close
+        from playwright.async_api import async_playwright
     except ImportError:
-        print("⚠️  Playwright MCP tools not available")
+        print("⚠️  Playwright not installed. Run: pip install playwright && playwright install chromium")
         return False
 
     try:
-        # Step 1: Navigate to OAuth URL
-        print("\n🌐 Step 1: Navigating to OAuth URL...")
-        await browser_navigate(url=oauth_url)
-        await asyncio.sleep(3)
+        # Use Playwright directly (not MCP tools)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=False)  # Visible for debugging
+            page = await browser.new_page()
 
-        snapshot = await browser_snapshot()
-        print("   📸 Snapshot: Login page loaded")
+            # Step 1: Navigate to OAuth URL
+            print("\n🌐 Step 1: Navigating to OAuth URL...")
+            await page.goto(oauth_url)
+            await asyncio.sleep(2)
 
-        # Step 2: Fill in credentials
-        print("\n📝 Step 2: Filling in credentials...")
+            # Step 2: Fill in credentials
+            print("\n📝 Step 2: Filling in credentials...")
+            print(f"   🔍 Looking for email field...")
+            await page.fill('#email', TEST_EMAIL)
+            print(f"   ✅ Entered email: {TEST_EMAIL}")
+            await asyncio.sleep(0.5)
 
-        print("   🔍 Looking for email field (#email)...")
-        await browser_type(
-            element="email field",
-            ref="#email",
-            text=TEST_EMAIL
-        )
-        print(f"   ✅ Entered email: {TEST_EMAIL}")
-        await asyncio.sleep(0.5)
+            print("   🔍 Looking for password field...")
+            await page.fill('#password', TEST_PASSWORD)
+            print(f"   ✅ Entered password")
+            await asyncio.sleep(0.5)
 
-        print("   🔍 Looking for password field (#password)...")
-        await browser_type(
-            element="password field",
-            ref="#password",
-            text=TEST_PASSWORD
-        )
-        print(f"   ✅ Entered password")
-        await asyncio.sleep(0.5)
+            # Step 3: Click Sign in
+            print("\n🖱️  Step 3: Clicking Sign in button...")
+            await page.click('button[type="submit"]')
+            print("   ✅ Clicked Sign in")
 
-        # Step 3: Click Sign in
-        print("\n🖱️  Step 3: Clicking Sign in button...")
-        await browser_click(
-            element="Sign in button",
-            ref="button[type='submit']"
-        )
-        print("   ✅ Clicked Sign in")
+            # Wait for AuthKit allow access page
+            print("\n⏳ Step 4: Waiting for AuthKit 'Allow access' page...")
+            await asyncio.sleep(3)
 
-        # Wait for AuthKit allow access page
-        print("\n⏳ Step 4: Waiting for AuthKit 'Allow access' page...")
-        await asyncio.sleep(3)
+            # Step 5: Click "Allow" button on AuthKit consent page
+            print("\n🖱️  Step 5: Clicking 'Allow' on AuthKit consent page...")
+            try:
+                # Wait for and click Allow button
+                await page.click('button:has-text("Allow"), button:has-text("Authorize"), button[type="submit"]', timeout=5000)
+                print("   ✅ Clicked Allow")
+            except Exception as e:
+                print(f"   ⚠️  Could not find Allow button: {e}")
 
-        snapshot = await browser_snapshot()
-        print("   📸 Snapshot: Should be on Allow access page")
+            # Wait for OAuth callback to complete
+            print("\n⏳ Step 6: Waiting for OAuth callback...")
+            await asyncio.sleep(5)
 
-        # Step 4: Click "Allow" button on AuthKit consent page
-        print("\n🖱️  Step 5: Clicking 'Allow' on AuthKit consent page...")
-        try:
-            # AuthKit typically has a button with text "Allow" or "Authorize"
-            await browser_click(
-                element="Allow button",
-                ref="button:has-text('Allow'), button:has-text('Authorize'), button[type='submit']"
-            )
-            print("   ✅ Clicked Allow")
-        except Exception as e:
-            print(f"   ⚠️  Could not find Allow button: {e}")
-            print("   📸 Taking snapshot...")
-            await browser_snapshot()
-
-        # Wait for final redirect to callback
-        print("\n⏳ Step 6: Waiting for OAuth callback redirect...")
-        await asyncio.sleep(5)
-
-        snapshot = await browser_snapshot()
-        print("   📸 Snapshot: Final page")
-
-        await browser_close()
-        print("\n✅ Playwright automation completed - browser closed")
-        return True
+            await browser.close()
+            print("\n✅ Playwright automation completed - browser closed")
+            return True
 
     except Exception as e:
         print(f"\n❌ Playwright automation failed: {e}")
         import traceback
         print(traceback.format_exc())
-
-        print("\n📸 Taking error snapshot...")
-        try:
-            await browser_snapshot()
-            await browser_close()
-        except:
-            pass
         return False
 
 
