@@ -194,21 +194,21 @@ class VectorSearchService:
                     "id, name, description"
                 )
                 
-                # Apply default filters
-                query_builder = query_builder.eq("is_deleted", False)
-                
+                # Apply default filters (skip for tables without is_deleted)
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if table_name not in tables_without_soft_delete:
+                    query_builder = query_builder.eq("is_deleted", False)
+
                 # Apply additional filters
                 if filters:
                     for key, value in filters.items():
                         query_builder = query_builder.eq(key, value)
-                
-                # Use ilike for more reliable keyword matching on both name and description
-                response = query_builder.or_(f"name.ilike.%{query}%,description.ilike.%{query}%").execute()
-                
-                # Process results (keyword search doesn't have similarity scores)
-                # Apply limit manually since text_search changes query builder type
-                limited_data = response.data[:limit] if response.data else []
-                for row in limited_data:
+
+                # Use ilike for keyword matching on name and description
+                response = query_builder.or_(f"name.ilike.%{query}%,description.ilike.%{query}%").limit(limit).execute()
+
+                # Process results
+                for row in (response.data or []):
                     # Combine name and description as content
                     name = row.get("name", "")
                     description = row.get("description", "")
@@ -224,15 +224,26 @@ class VectorSearchService:
                     all_results.append(result)
                     
             except Exception as e:
-                print(f"Error searching {entity_type}: {str(e)}")
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"❌ Keyword search failed for {entity_type}: {e}")
+                print(f"❌ Keyword search error [{entity_type}]: {e}")
+                import traceback
+                print(traceback.format_exc())
+                # Continue to search other entity types
                 continue
         
         # Apply global limit
         final_results = all_results[:limit]
-        
+
         # Calculate search time
         search_time = (datetime.now() - start_time).total_seconds() * 1000
-        
+
+        # Debug logging
+        print(f"🔍 Keyword search complete: query='{query}', entities={search_entities}, results={len(final_results)}")
+        if not final_results:
+            print(f"⚠️ No keyword search results found for query '{query}' across {search_entities}")
+
         return SearchResponse(
             results=final_results,
             total_results=len(final_results),

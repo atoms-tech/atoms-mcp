@@ -348,6 +348,12 @@ All critical MCP tool errors have been fixed:
 
 **Action Required**: Run `COMPREHENSIVE_RLS_SETUP.sql` on production database
 
+```bash
+psql $DATABASE_URL -f COMPREHENSIVE_RLS_SETUP.sql
+```
+
+**Important Note**: The SQL script has been corrected to remove all `NEW.` table alias references in WITH CHECK clauses, as PostgreSQL RLS policies don't support table aliases. All policies now use implicit column references (e.g., `organization_id` instead of `NEW.organization_id`).
+
 **Expected Result**:
 - Write Operations: **40% → 90%** ready
 - Workflow Operations: **33% → 85%** ready
