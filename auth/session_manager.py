@@ -60,14 +60,23 @@ class SessionManager:
                 "expires_at": expires_at.isoformat(),
             }
 
+            logger.info(f"🔧 Attempting to insert session into mcp_sessions table...")
+            print(f"🔧 Attempting to insert session into mcp_sessions table...")
+            print(f"🔧 Session ID: {session_id}, User ID: {user_id}")
+
             result = self.client.table("mcp_sessions").insert(insert_data).execute()
 
             logger.info(f"✅ Created session {session_id} for user {user_id}")
+            print(f"✅ Session created successfully: {session_id}")
             return session_id
 
         except Exception as e:
-            logger.error(f"Failed to create session: {e}")
-            logger.error(f"Insert data was: {insert_data}")
+            logger.error(f"❌ Failed to create session: {e}")
+            logger.error(f"❌ Insert data was: {insert_data}")
+            print(f"❌ Session creation failed: {e}")
+            print(f"❌ User ID: {user_id}, Session ID: {session_id}")
+            import traceback
+            print(traceback.format_exc())
             raise
 
     async def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:

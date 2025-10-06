@@ -193,7 +193,12 @@ class PersistentAuthKitProvider(AuthKitProvider):
 
                 # Create persistent session in Supabase
                 try:
+                    logger.info(f"🔧 Starting session creation for user {user['id']}")
+                    print(f"🔧 Starting session creation for user {user['id']}")
+
                     # Use user's JWT for session creation (RLS will allow user to create own session)
+                    logger.info(f"🔧 Creating session manager with bearer token...")
+                    print(f"🔧 Creating session manager with bearer token...")
                     session_manager = create_session_manager(access_token=bearer_token)
 
                     oauth_data = {
@@ -203,6 +208,8 @@ class PersistentAuthKitProvider(AuthKitProvider):
                         "workos_redirect": result.get("redirect_uri")
                     }
 
+                    logger.info(f"🔧 Calling session_manager.create_session()...")
+                    print(f"🔧 Calling session_manager.create_session()...")
                     session_id = await session_manager.create_session(
                         user_id=user["id"],
                         oauth_data=oauth_data,
@@ -210,6 +217,7 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     )
 
                     logger.info(f"✅ Created persistent session {session_id} for user {user['id']}")
+                    print(f"✅ Created persistent session {session_id} for user {user['id']}")
 
                     # Return success with session_id
                     json_resp = JSONResponse({
