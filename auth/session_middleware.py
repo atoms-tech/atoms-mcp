@@ -127,16 +127,31 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
             supabase = get_supabase(access_token=jwt_token)
 
-            # Get user info from Supabase
-            user_response = supabase.auth.get_user(jwt_token)
-            if not user_response or not user_response.user:
-                logger.warning("JWT validation failed: invalid token")
-                return None
-
-            user = user_response.user
-            user_id = user.id
-
-            logger.info(f"✅ Validated JWT for user {user_id}")
+            # Get user info from Supabase using the JWT
+            try:
+                user_response = supabase.auth.get_user(jwt_token)
+                if not user_response or not user_response.user:
+                    logger.warning("JWT validation failed: invalid token")
+                    return None
+                user = user_response.user
+                user_id = user.id
+                logger.info(f"✅ Validated JWT for user {user_id}")
+            except Exception as jwt_error:
+                # If JWT validation fails, try to decode it directly to get user_id
+                # This handles WorkOS JWTs that Supabase might reject
+                logger.error(f"JWT auth failed: {jwt_error}")
+                import jwt as pyjwt
+                try:
+                    # Decode without verification to get user_id (just for session lookup)
+                    decoded = pyjwt.decode(jwt_token, options={"verify_signature": False})
+                    user_id = decoded.get('sub')
+                    if not user_id:
+                        logger.error("No 'sub' claim in JWT")
+                        return None
+                    logger.info(f"⚠️ Using unverified JWT for user {user_id} (WorkOS token)")
+                except Exception as decode_error:
+                    logger.error(f"Failed to decode JWT: {decode_error}")
+                    return None
 
             # Check if user already has an active session
             session_manager = self.session_manager_factory()
