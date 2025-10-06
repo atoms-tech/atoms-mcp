@@ -13,6 +13,10 @@ from supabase import Client, create_client
 
 logger = logging.getLogger(__name__)
 
+# Client cache: token_hash -> (client, created_time)
+_client_cache: dict = {}
+_cache_ttl = 300  # 5 minutes
+
 
 class MissingSupabaseConfig(RuntimeError):
     pass
@@ -31,14 +35,12 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
     Returns:
         Supabase client instance
 
-    Note: Not cached - ensures thread safety and proper JWT context per request.
+    Note: Cached per-token for performance in serverless environments.
     """
-    # Use connection pooler for serverless environments (6x faster!)
-    # Falls back to direct URL if pooler not configured
-    pooler_url = os.getenv("SUPABASE_POOLER_URL")
-    direct_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    import hashlib
+    import time
 
-    url = pooler_url or direct_url
+    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 
     if not url or not key:
@@ -46,19 +48,40 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
             "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set"
         )
 
-    # Create client
+    # Create cache key from token (or use 'anon' for no token)
+    cache_key = "anon"
+    if access_token:
+        cache_key = hashlib.md5(access_token.encode()).hexdigest()[:16]
+
+    # Check cache
+    now = time.time()
+    if cache_key in _client_cache:
+        cached_client, created_at = _client_cache[cache_key]
+        if now - created_at < _cache_ttl:
+            logger.debug(f"✅ Using cached Supabase client (age: {now - created_at:.1f}s)")
+            return cached_client
+        else:
+            # Expired, remove from cache
+            del _client_cache[cache_key]
+
+    # Create new client
     client = create_client(url, key)
 
-    # Set the JWT for RLS context (works for both Supabase and third-party JWTs)
+    # Set the JWT for RLS context
     if access_token:
         try:
-            # For database queries, we need to set the Authorization header
-            # This works for both Supabase JWTs and third-party JWTs (like AuthKit)
-            # The postgrest client will use this token for RLS evaluation
             client.postgrest.auth(access_token)
             logger.debug("✅ JWT set for RLS context in database queries")
         except Exception as e:
             logger.warning(f"⚠️ Could not configure auth: {e}")
-            # Continue anyway - queries may still work
 
+    # Cache it
+    _client_cache[cache_key] = (client, now)
+
+    # Clean old entries (keep cache size manageable)
+    if len(_client_cache) > 100:
+        cutoff = now - _cache_ttl
+        _client_cache.clear()  # Simple approach: clear all on overflow
+
+    logger.debug(f"✅ Created new Supabase client (cached for {_cache_ttl}s)")
     return client
