@@ -358,8 +358,6 @@ def create_consolidated_server() -> FastMCP:
     except ImportError:
         from auth.persistent_authkit_provider import PersistentAuthKitProvider
 
-    session_ttl_hours = int(os.getenv("MCP_SESSION_TTL_HOURS", "24"))
-
     auth_provider = PersistentAuthKitProvider(
         authkit_domain=authkit_domain,
         base_url=base_url,
