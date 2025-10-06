@@ -20,17 +20,16 @@ _request_session_context: Dict[str, Any] = {}
 
 
 class SessionMiddleware(BaseHTTPMiddleware):
-    """Middleware to load/save MCP sessions from Supabase."""
+    """Middleware to extract JWT and set user context for AuthKit auth."""
 
-    def __init__(self, app, session_manager_factory):
+    def __init__(self, app, session_manager_factory=None):
         """Initialize middleware.
 
         Args:
             app: ASGI app
-            session_manager_factory: Callable that returns SessionManager instance
+            session_manager_factory: DEPRECATED - no longer used (kept for backward compatibility)
         """
         super().__init__(app)
-        self.session_manager_factory = session_manager_factory
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Extract JWT and set user context - AuthKit manages sessions."""

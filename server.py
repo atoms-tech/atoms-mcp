@@ -706,20 +706,15 @@ def create_consolidated_server() -> FastMCP:
     mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])(_oauth_protected_resource_handler)
     mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])(_oauth_authorization_server_handler)
 
-    # Add SessionMiddleware for persistent session support
-    # This loads OAuth sessions from Supabase on each request (stateless mode)
+    # SessionMiddleware extracts JWT and sets user context
+    # No session persistence needed - AuthKit manages sessions via JWT
     try:
         from .auth.session_middleware import SessionMiddleware
-        from .auth.session_manager import create_session_manager
     except ImportError:
         from auth.session_middleware import SessionMiddleware
-        from auth.session_manager import create_session_manager
 
-    # Wrap the ASGI app with SessionMiddleware
     # SessionMiddleware is added in app.py after calling mcp.http_app()
-    # This is the correct place because mcp.app doesn't exist until http_app() is called
-    # Note: /auth/complete endpoint is now handled by PersistentAuthKitProvider
-    logger.info("✅ Server created - SessionMiddleware will be added in app.py")
+    logger.info("✅ Server created - SessionMiddleware handles JWT extraction")
 
     return mcp
 
