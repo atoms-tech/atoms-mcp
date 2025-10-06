@@ -196,13 +196,12 @@ class PersistentAuthKitProvider(AuthKitProvider):
             resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             return resp
 
-        # Replace default /auth/complete with session-aware version
-        routes = [
-            route for route in routes
-            if not (route.path == f"{mcp_path}/auth/complete" and route.methods == {"POST"})
-        ]
-
+        # Add Standalone Connect endpoints at ROOT path (not under mcp_path)
+        # AuthKit calls these directly from browser redirect
         routes.extend([
+            Route("/auth/complete", session_aware_auth_complete, methods=["POST"]),
+            Route("/auth/complete", auth_complete_options, methods=["OPTIONS"]),
+            # Also add under mcp_path for backward compatibility
             Route(f"{mcp_path}/auth/complete", session_aware_auth_complete, methods=["POST"]),
             Route(f"{mcp_path}/auth/complete", auth_complete_options, methods=["OPTIONS"]),
         ])
