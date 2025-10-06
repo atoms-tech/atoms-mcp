@@ -42,9 +42,9 @@ def normalize_error(err: Exception | str, fallback_message: str) -> ApiError:
             else:
                 return ApiError(
                     code="PERMISSION_DENIED",
-                    message="You don't have permission to access this resource.",
+                    message=f"Permission denied: {error_str}",  # Show actual error
                     status=403,
-                    details={"cause": repr(err)}
+                    details={"cause": error_str, "full_error": repr(err)}
                 )
 
         # Transform common RLS errors into user-friendly messages
