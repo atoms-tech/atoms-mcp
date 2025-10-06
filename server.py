@@ -148,17 +148,35 @@ def _list_to_markdown(lst: list, indent: int = 0) -> str:
 
 
 def _extract_bearer_token() -> Optional[str]:
-    """Return the bearer token from the FastMCP access token context.
+    """Return the bearer token from session context or FastMCP access token.
 
-    For persistent server deployment (Render/Railway/Fly.io), FastMCP's
-    built-in OAuth handles sessions in-memory - no external persistence needed!
+    Priority order:
+    1. Session context (from SessionMiddleware + Supabase mcp_sessions)
+    2. FastMCP in-memory OAuth tokens (backward compatibility)
+
+    This enables both stateless serverless deployments (via sessions)
+    and traditional persistent deployments (via FastMCP OAuth).
     """
+    # Try session context first (stateless mode with Supabase persistence)
+    try:
+        from auth.session_middleware import get_session_token
+        session_token = get_session_token()
+        if session_token:
+            logger.debug("Using token from session context (Supabase-backed)")
+            return session_token
+    except ImportError:
+        pass
+    except Exception as e:
+        logger.debug(f"Failed to get session token: {e}")
+
+    # Fall back to FastMCP in-memory OAuth (traditional mode)
     access_token = get_access_token()
     if not access_token:
         return None
 
     token = getattr(access_token, "token", None)
     if token:
+        logger.debug("Using token from FastMCP context (in-memory)")
         return token
 
     claims = getattr(access_token, "claims", None)
@@ -166,6 +184,7 @@ def _extract_bearer_token() -> Optional[str]:
         for key in ("access_token", "session_token", "supabase_jwt", "supabase_token"):
             candidate = claims.get(key)
             if candidate:
+                logger.debug(f"Using token from FastMCP claims.{key}")
                 return candidate
 
     return None
@@ -278,15 +297,19 @@ def create_consolidated_server() -> FastMCP:
     if not authkit_domain:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
-    from fastmcp.server.auth.providers.workos import AuthKitProvider
+    # Use PersistentAuthKitProvider for stateless deployments with Supabase sessions
+    from auth.persistent_authkit_provider import PersistentAuthKitProvider
 
-    auth_provider = AuthKitProvider(
+    session_ttl_hours = int(os.getenv("MCP_SESSION_TTL_HOURS", "24"))
+
+    auth_provider = PersistentAuthKitProvider(
         authkit_domain=authkit_domain,
         base_url=base_url,
         required_scopes=["openid", "profile", "email"],
+        session_ttl_hours=session_ttl_hours,
     )
-    logger.info(f"✅ AuthKitProvider configured: {authkit_domain}")
-    print(f"✅ AuthKitProvider configured: {authkit_domain}")
+    logger.info(f"✅ PersistentAuthKitProvider configured: {authkit_domain} (TTL: {session_ttl_hours}h)")
+    print(f"✅ PersistentAuthKitProvider configured: {authkit_domain} (TTL: {session_ttl_hours}h)")
 
     mcp = FastMCP(
         name="atoms-fastmcp-consolidated",
@@ -598,123 +621,24 @@ def create_consolidated_server() -> FastMCP:
     mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])(_oauth_protected_resource_handler)
     mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])(_oauth_authorization_server_handler)
 
-    # Standalone Connect endpoint for custom login page
-    async def _auth_complete_handler(request):
-        import aiohttp
-        from starlette.responses import JSONResponse, Response
-        import traceback
+    # Add SessionMiddleware for persistent session support
+    # This loads OAuth sessions from Supabase on each request (stateless mode)
+    from auth.session_middleware import SessionMiddleware
+    from auth.session_manager import create_session_manager
 
-        # Handle OPTIONS for CORS
-        if request.method == "OPTIONS":
-            resp = Response(status_code=204)
-            resp.headers["Access-Control-Allow-Origin"] = "*"
-            resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-            resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-            return resp
+    # Wrap the ASGI app with SessionMiddleware
+    if hasattr(mcp, 'app') and mcp.app is not None:
+        mcp.app = SessionMiddleware(
+            mcp.app,
+            session_manager_factory=lambda: create_session_manager()
+        )
+        logger.info("✅ SessionMiddleware added for persistent session support")
+        print("✅ SessionMiddleware added - sessions persisted in Supabase")
+    else:
+        logger.warning("Could not add SessionMiddleware - mcp.app not available")
 
-        try:
-            data = await request.json()
-        except Exception as e:
-            logger.error(f"Failed to parse request body: {e}")
-            resp = JSONResponse({"error": "Invalid request body", "details": str(e)}, status_code=400)
-            resp.headers["Access-Control-Allow-Origin"] = "*"
-            return resp
-
-        try:
-            external_auth_id = data.get("external_auth_id")
-            if not external_auth_id:
-                resp = JSONResponse({"error": "external_auth_id required"}, status_code=400)
-                resp.headers["Access-Control-Allow-Origin"] = "*"
-                return resp
-
-            # Get Supabase JWT from Authorization header
-            auth_header = request.headers.get("authorization", "")
-            if not auth_header.startswith("Bearer "):
-                logger.error("Missing Bearer token in Authorization header")
-                resp = JSONResponse({"error": "Authorization header required"}, status_code=401)
-                resp.headers["Access-Control-Allow-Origin"] = "*"
-                return resp
-
-            bearer_token = auth_header.split(" ", 1)[1].strip()
-
-            # Verify with Supabase
-            supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "").strip().rstrip("/")
-            supabase_key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "").strip()
-
-            if not supabase_url or not supabase_key:
-                logger.error("Supabase env vars not configured")
-                resp = JSONResponse({"error": "Supabase not configured"}, status_code=500)
-                resp.headers["Access-Control-Allow-Origin"] = "*"
-                return resp
-
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{supabase_url}/auth/v1/user",
-                    headers={"Authorization": f"Bearer {bearer_token}", "apikey": supabase_key},
-                ) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        logger.error(f"Supabase verification failed ({resp.status}): {error_text}")
-                        json_resp = JSONResponse({"error": "Invalid Supabase token", "details": error_text}, status_code=401)
-                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
-                        return json_resp
-                    user = await resp.json()
-
-            # Complete OAuth with WorkOS
-            workos_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").strip().rstrip("/")
-            workos_key = os.getenv("WORKOS_API_KEY", "").strip()
-
-            if not workos_key:
-                logger.error("WORKOS_API_KEY not configured")
-                resp = JSONResponse({"error": "WorkOS not configured"}, status_code=500)
-                resp.headers["Access-Control-Allow-Origin"] = "*"
-                return resp
-
-            logger.info(f"Completing WorkOS OAuth for user {user.get('email')}")
-            logger.info(f"WorkOS API Key prefix: {workos_key[:15]}... (length: {len(workos_key)})")
-
-            complete_url = f"{workos_url}/authkit/oauth2/complete"
-            payload = {
-                "external_auth_id": external_auth_id,
-                "user": {"id": user["id"], "email": user["email"]},
-            }
-            logger.info(f"WorkOS request: POST {complete_url}")
-
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    complete_url,
-                    json=payload,
-                    headers={"Authorization": f"Bearer {workos_key}", "Content-Type": "application/json"},
-                ) as resp:
-                    if resp.status >= 400:
-                        text = await resp.text()
-                        logger.error(f"WorkOS completion failed ({resp.status}): {text}")
-                        json_resp = JSONResponse({"error": "WorkOS failed", "status": resp.status, "body": text}, status_code=400)
-                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
-                        return json_resp
-                    result = await resp.json()
-
-                    # Return success - OAuth session handled by FastMCP in-memory
-                    json_resp = JSONResponse({
-                        "success": True,
-                        "redirect_uri": result["redirect_uri"]
-                    })
-                    json_resp.headers["Access-Control-Allow-Origin"] = "*"
-                    return json_resp
-
-        except Exception as e:
-            logger.error(f"Unhandled exception in /auth/complete: {e}")
-            logger.error(traceback.format_exc())
-            resp = JSONResponse({
-                "error": "Internal server error",
-                "details": str(e),
-                "type": type(e).__name__
-            }, status_code=500)
-            resp.headers["Access-Control-Allow-Origin"] = "*"
-            return resp
-
-    mcp.custom_route("/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_handler)
-    mcp.custom_route("/api/mcp/auth/complete", methods=["POST", "OPTIONS"])(_auth_complete_handler)
+    # Note: /auth/complete endpoint is now handled by PersistentAuthKitProvider
+    # The following handler has been replaced with session-aware version in PersistentAuthKitProvider
 
     return mcp
 
