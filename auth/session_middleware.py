@@ -47,7 +47,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
             try:
                 decoded = pyjwt.decode(jwt_token, options={"verify_signature": False})
                 logger.info(f"🔧 Decoded JWT claims: {list(decoded.keys())}")
+                print(f"🔧 Decoded JWT claims: {list(decoded.keys())}")  # Force print to stdout
                 logger.info(f"   Token first 20 chars: {jwt_token[:20]}...")
+                print(f"   Token first 20 chars: {jwt_token[:20]}...")  # Force print
 
                 # Try multiple claim names for user_id
                 user_id = (
