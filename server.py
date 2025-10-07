@@ -351,7 +351,7 @@ def create_consolidated_server() -> FastMCP:
     auth_provider = PersistentAuthKitProvider(
         authkit_domain=authkit_domain,
         base_url=base_url,
-        required_scopes=["openid", "profile", "email"],
+        required_scopes=None,  # Don't require specific scopes - accept any AuthKit token
     )
     logger.info(f"✅ PersistentAuthKitProvider configured: {authkit_domain}")
     print(f"✅ PersistentAuthKitProvider configured: {authkit_domain}")
