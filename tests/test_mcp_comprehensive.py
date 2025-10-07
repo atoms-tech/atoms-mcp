@@ -152,47 +152,29 @@ async def automate_oauth_login(oauth_url: str) -> bool:
                 text_content = await page.text_content('body')
                 print(text_content[:800] if text_content else "(empty)")
 
-                # Get console logs using native Playwright
+                # Console logs
                 print(f"\n📋 Browser console logs:")
-                # Console messages are captured via page.on("console") - skip for now
-                print(f"   (use visible browser mode to see console in DevTools)")
+                print(f"   (streaming logs captured in background)")
 
-                # Collect Vercel logs with timeout
-                print(f"\n📡 Collecting Vercel server logs...")
+                # Show preview of captured Vercel logs so far
+                print(f"\n📡 Vercel server logs (recent):")
                 try:
-                    import subprocess
-                    # Use asyncio subprocess with timeout
-                    proc = await asyncio.create_subprocess_exec(
-                        "vercel", "logs", "https://mcp.atoms.tech",
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE
-                    )
+                    if os.path.exists(vercel_log_file):
+                        with open(vercel_log_file, 'r') as f:
+                            logs = f.read()
 
-                    try:
-                        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
-                        logs = stdout.decode('utf-8')
-
-                        # Filter for auth/complete logs
-                        auth_logs = [line for line in logs.split('\n') if 'auth/complete' in line.lower() or '🔧' in line or '❌' in line]
-
+                        # Show recent auth/complete logs
+                        auth_logs = [line for line in logs.split('\n') if 'auth/complete' in line or '🔧' in line or '❌' in line]
                         if auth_logs:
-                            print(f"   ✅ Recent /auth/complete logs ({len(auth_logs)} entries):")
-                            for log in auth_logs[-10:]:  # Last 10 relevant logs
+                            print(f"   Recent logs ({len(auth_logs)} entries):")
+                            for log in auth_logs[-10:]:
                                 print(f"   {log}")
                         else:
-                            print(f"   ⚠️  No /auth/complete logs found in recent history")
-
-                    except asyncio.TimeoutError:
-                        print(f"   ⏱️  Log collection timed out after 5s")
-                        proc.kill()
-                        print(f"   → Check manually: vercel logs https://mcp.atoms.tech")
-
-                except FileNotFoundError:
-                    print(f"   ⚠️  Vercel CLI not found")
-                    print(f"   → Install: npm i -g vercel")
+                            print(f"   (no auth/complete logs yet)")
+                    else:
+                        print(f"   (log file not created yet)")
                 except Exception as e:
-                    print(f"   ❌ Error collecting logs: {e}")
-                    print(f"   → Check manually: vercel logs https://mcp.atoms.tech")
+                    print(f"   Error reading logs: {e}")
 
                 await browser.close()
                 return False
