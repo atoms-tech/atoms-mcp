@@ -91,18 +91,50 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
 
-                # Get Supabase JWT from Authorization header
+                # Get Supabase JWT from Authorization header OR cookies (Standalone Connect)
+                bearer_token = None
+
+                # Try Authorization header first
                 auth_header = request.headers.get("authorization", "")
-                if not auth_header.startswith("Bearer "):
-                    logger.error("Missing Bearer token in Authorization header")
+                if auth_header.startswith("Bearer "):
+                    bearer_token = auth_header.split(" ", 1)[1].strip()
+                    logger.info(f"✅ Got token from Authorization header")
+
+                # Fall back to cookies (for browser-based Standalone Connect)
+                if not bearer_token:
+                    # Supabase stores auth token in cookies
+                    # Cookie names: sb-<project-ref>-auth-token or similar
+                    all_cookies = request.cookies
+                    logger.info(f"🔧 Checking cookies: {list(all_cookies.keys())}")
+
+                    # Look for Supabase auth token cookie
+                    for cookie_name, cookie_value in all_cookies.items():
+                        if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
+                            try:
+                                # Supabase cookies are JSON with access_token
+                                import json
+                                cookie_data = json.loads(cookie_value)
+                                if isinstance(cookie_data, list) and len(cookie_data) > 0:
+                                    bearer_token = cookie_data[0].get('access_token')
+                                elif isinstance(cookie_data, dict):
+                                    bearer_token = cookie_data.get('access_token')
+
+                                if bearer_token:
+                                    logger.info(f"✅ Got token from cookie: {cookie_name}")
+                                    break
+                            except:
+                                continue
+
+                if not bearer_token:
+                    logger.error("❌ No Supabase JWT found in Authorization header or cookies")
+                    logger.error(f"   Headers: {dict(request.headers)}")
+                    logger.error(f"   Cookies: {list(request.cookies.keys())}")
                     resp = JSONResponse(
-                        {"error": "Authorization header required"},
+                        {"error": "Supabase authentication required", "details": "No JWT in Authorization header or cookies"},
                         status_code=401
                     )
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
-
-                bearer_token = auth_header.split(" ", 1)[1].strip()
 
                 # Verify with Supabase to get user info
                 import os
