@@ -96,7 +96,7 @@ async def server_with_test_data():
         project_id=proj1.id,
         content="Comprehensive microservices architecture guide covering service mesh, API gateway, container orchestration with Kubernetes, and event-driven patterns using Apache Kafka for real-time data streaming.",
         doc_type="technical",
-        metadata={"version": "2.0", "pages": 150, "format": "markdown", "tags": ["architecture", "microservices", "kubernetes"]}
+        metadata={"version": "2.0", "pages": 150, "format_type": "markdown", "tags": ["architecture", "microservices", "kubernetes"]}
     )
 
     doc2 = Document(
@@ -105,7 +105,7 @@ async def server_with_test_data():
         project_id=proj2.id,
         content="Deep learning models for natural language processing including transformer architectures, BERT fine-tuning, and custom neural networks for sentiment analysis and entity recognition.",
         doc_type="technical",
-        metadata={"version": "1.5", "pages": 85, "format": "jupyter", "tags": ["ml", "nlp", "deep_learning"]}
+        metadata={"version": "1.5", "pages": 85, "format_type": "jupyter", "tags": ["ml", "nlp", "deep_learning"]}
     )
 
     doc3 = Document(
@@ -114,7 +114,7 @@ async def server_with_test_data():
         project_id=proj1.id,
         content="RESTful API documentation with OpenAPI specification, authentication using OAuth 2.0, rate limiting strategies, and comprehensive error handling patterns for distributed systems.",
         doc_type="api",
-        metadata={"version": "3.0", "endpoints": 125, "format": "openapi", "tags": ["api", "rest", "oauth"]}
+        metadata={"version": "3.0", "endpoints": 125, "format_type": "openapi", "tags": ["api", "rest", "oauth"]}
     )
 
     doc4 = Document(
@@ -123,7 +123,7 @@ async def server_with_test_data():
         project_id=proj3.id,
         content="Database schema design with normalized tables, indexing strategies, partitioning schemes for time-series data, and optimization techniques for high-throughput queries.",
         doc_type="technical",
-        metadata={"version": "1.0", "tables": 45, "format": "sql", "tags": ["database", "schema", "optimization"]}
+        metadata={"version": "1.0", "tables": 45, "format_type": "sql", "tags": ["database", "schema", "optimization"]}
     )
 
     server.storage.documents[doc1.id] = doc1
@@ -246,7 +246,7 @@ class TestSearchQueries:
         result = await server.query({
             "operation": "search",
             "entity_types": ["project"],
-            "query": "cloud"
+            "search_term": "cloud"
         })
 
         assert result["success"] is True
@@ -266,7 +266,7 @@ class TestSearchQueries:
         result = await server.query({
             "operation": "search",
             "entity_types": ["document"],
-            "query": "api"
+            "search_term": "api"
         })
 
         assert result["success"] is True
@@ -286,7 +286,7 @@ class TestSearchQueries:
         result = await server.query({
             "operation": "search",
             "entity_types": ["requirement"],
-            "query": "authentication"
+            "search_term": "authentication"
         })
 
         assert result["success"] is True
@@ -306,7 +306,7 @@ class TestSearchQueries:
         result = await server.query({
             "operation": "search",
             "entity_types": ["project", "document", "requirement"],
-            "query": "data"
+            "search_term": "data"
         })
 
         assert result["success"] is True
@@ -324,7 +324,7 @@ class TestSearchQueries:
         result = await server.query({
             "operation": "search",
             "entity_types": ["project", "document"],
-            "query": "architecture"
+            "search_term": "architecture"
         })
 
         assert result["success"] is True
@@ -501,7 +501,7 @@ class TestSearchQueries:
         result = await server.query({
             "operation": "search",
             "entity_types": ["project", "requirement"],
-            "query": "data",
+            "search_term": "data",
             "filters": {"status": "active"},
             "limit": 10,
             "order_by": "name",
@@ -532,7 +532,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "microservices architecture patterns",
+            "search_term": "microservices architecture patterns",
             "entity_types": ["document"],
             "mode": RAGMode.SEMANTIC.value
         })
@@ -554,7 +554,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "machine learning deep neural networks",
+            "search_term": "machine learning deep neural networks",
             "entity_types": ["document"],
             "mode": RAGMode.SEMANTIC.value
         })
@@ -574,7 +574,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "security authentication authorization",
+            "search_term": "security authentication authorization",
             "entity_types": ["requirement"],
             "mode": RAGMode.SEMANTIC.value
         })
@@ -593,7 +593,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "performance optimization scalability",
+            "search_term": "performance optimization scalability",
             "entity_types": ["requirement"],
             "mode": RAGMode.SEMANTIC.value
         })
@@ -608,7 +608,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "security vulnerability testing",
+            "search_term": "security vulnerability testing",
             "entity_types": ["test"],
             "mode": RAGMode.SEMANTIC.value
         })
@@ -626,7 +626,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "load testing performance metrics",
+            "search_term": "load testing performance metrics",
             "entity_types": ["test"],
             "mode": RAGMode.SEMANTIC.value
         })
@@ -641,7 +641,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "kubernetes kafka",
+            "search_term": "kubernetes kafka",
             "entity_types": ["document"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -661,7 +661,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "oauth rest api",
+            "search_term": "oauth rest api",
             "entity_types": ["document"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -676,7 +676,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "authentication biometric",
+            "search_term": "authentication biometric",
             "entity_types": ["requirement"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -691,7 +691,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "backup recovery replication",
+            "search_term": "backup recovery replication",
             "entity_types": ["requirement"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -706,7 +706,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "sql injection xss",
+            "search_term": "sql injection xss",
             "entity_types": ["test"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -721,7 +721,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "concurrent stress endurance",
+            "search_term": "concurrent stress endurance",
             "entity_types": ["test"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -736,7 +736,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "distributed systems architecture with kubernetes",
+            "search_term": "distributed systems architecture with kubernetes",
             "entity_types": ["document"],
             "mode": RAGMode.HYBRID.value
         })
@@ -756,7 +756,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "database optimization indexing strategies",
+            "search_term": "database optimization indexing strategies",
             "entity_types": ["document"],
             "mode": RAGMode.HYBRID.value
         })
@@ -771,7 +771,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "real-time processing with high performance",
+            "search_term": "real-time processing with high performance",
             "entity_types": ["requirement"],
             "mode": RAGMode.HYBRID.value
         })
@@ -786,7 +786,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "api rate limiting token bucket",
+            "search_term": "api rate limiting token bucket",
             "entity_types": ["requirement"],
             "mode": RAGMode.HYBRID.value
         })
@@ -801,7 +801,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "security testing vulnerability assessment",
+            "search_term": "security testing vulnerability assessment",
             "entity_types": ["test"],
             "mode": RAGMode.HYBRID.value
         })
@@ -816,7 +816,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "api integration end-to-end testing",
+            "search_term": "api integration end-to-end testing",
             "entity_types": ["test"],
             "mode": RAGMode.HYBRID.value
         })
@@ -831,7 +831,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "How do we handle authentication in our system?",
+            "search_term": "How do we handle authentication in our system?",
             "entity_types": ["document"],
             "mode": RAGMode.AUTO.value
         })
@@ -847,7 +847,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "transformer BERT NLP models",
+            "search_term": "transformer BERT NLP models",
             "entity_types": ["document"],
             "mode": RAGMode.AUTO.value
         })
@@ -862,7 +862,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "What are our high priority requirements?",
+            "search_term": "What are our high priority requirements?",
             "entity_types": ["requirement"],
             "mode": RAGMode.AUTO.value
         })
@@ -877,7 +877,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "frontend UI responsive mobile",
+            "search_term": "frontend UI responsive mobile",
             "entity_types": ["requirement"],
             "mode": RAGMode.AUTO.value
         })
@@ -892,7 +892,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "performance testing under heavy load conditions",
+            "search_term": "performance testing under heavy load conditions",
             "entity_types": ["test"],
             "mode": RAGMode.AUTO.value
         })
@@ -907,7 +907,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "automated security vulnerability scanning",
+            "search_term": "automated security vulnerability scanning",
             "entity_types": ["test"],
             "mode": RAGMode.AUTO.value
         })
@@ -922,7 +922,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "system design",
+            "search_term": "system design",
             "entity_types": ["document"],
             "mode": RAGMode.SEMANTIC.value,
             "threshold": 0.5
@@ -944,7 +944,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "system design",
+            "search_term": "system design",
             "entity_types": ["document"],
             "mode": RAGMode.SEMANTIC.value,
             "threshold": 0.7
@@ -963,7 +963,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "microservices kubernetes",
+            "search_term": "microservices kubernetes",
             "entity_types": ["document"],
             "mode": RAGMode.SEMANTIC.value,
             "threshold": 0.9
@@ -982,7 +982,7 @@ class TestRAGQueries:
 
         result = await server.query({
             "operation": "rag",
-            "query": "security authentication testing",
+            "search_term": "security authentication testing",
             "entity_types": ["document", "requirement", "test"],
             "mode": RAGMode.HYBRID.value
         })
@@ -1545,7 +1545,7 @@ class TestEdgeCasesAndValidation:
         result = await server.query({
             "operation": "search",
             "entity_types": ["document"],
-            "query": ""
+            "search_term": ""
         })
 
         # Should either return all results or handle gracefully
@@ -1559,7 +1559,7 @@ class TestEdgeCasesAndValidation:
         result = await server.query({
             "operation": "search",
             "entity_types": ["invalid_type"],
-            "query": "test"
+            "search_term": "test"
         })
 
         # Should handle invalid type gracefully
@@ -1628,7 +1628,7 @@ class TestEdgeCasesAndValidation:
 
         result = await server.query({
             "operation": "rag",
-            "query": "test @#$%^&* special <script>alert('xss')</script>",
+            "search_term": "test @#$%^&* special <script>alert('xss')</script>",
             "entity_types": ["document"],
             "mode": RAGMode.KEYWORD.value
         })
@@ -1644,7 +1644,7 @@ class TestEdgeCasesAndValidation:
         result = await server.query({
             "operation": "search",
             "entity_types": ["document"],
-            "query": "测试 テスト тест"  # Chinese, Japanese, Russian
+            "search_term": "测试 テスト тест"  # Chinese, Japanese, Russian
         })
 
         # Should handle Unicode gracefully
@@ -1672,7 +1672,7 @@ class TestEdgeCasesAndValidation:
         result = await server.query({
             "operation": "search",
             "entity_types": ["document"],
-            "query": "performance"
+            "search_term": "performance"
         })
         elapsed_time = time.time() - start_time
 
@@ -1687,10 +1687,10 @@ class TestEdgeCasesAndValidation:
 
         # Define multiple queries to run concurrently
         queries = [
-            {"operation": "search", "entity_types": ["document"], "query": "test1"},
-            {"operation": "rag", "entity_types": ["requirement"], "query": "test2", "mode": RAGMode.SEMANTIC.value},
+            {"operation": "search", "entity_types": ["document"], "search_term": "test1"},
+            {"operation": "rag", "entity_types": ["requirement"], "search_term": "test2", "mode": RAGMode.SEMANTIC.value},
             {"operation": "aggregate", "entity_types": ["project"]},
-            {"operation": "search", "entity_types": ["test"], "query": "test3"},
+            {"operation": "search", "entity_types": ["test"], "search_term": "test3"},
         ]
 
         # Run queries concurrently

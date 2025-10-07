@@ -288,8 +288,8 @@ async def test_set_context_organization(client):
 
     result = await client.call_tool("workspace_tool", {
         "operation": "set_context",
-        "type": "organization",
-        "id": org_id
+        "context_type": "organization",
+        "entity_id": org_id
     })
 
     assert result["success"], "Operation should succeed"
@@ -321,8 +321,8 @@ async def test_set_context_project(client):
 
     result = await client.call_tool("workspace_tool", {
         "operation": "set_context",
-        "type": "project",
-        "id": project_id,
+        "context_type": "project",
+        "entity_id": project_id,
         "organization_id": org_id
     })
 
@@ -359,8 +359,8 @@ async def test_set_context_document(client):
 
     result = await client.call_tool("workspace_tool", {
         "operation": "set_context",
-        "type": "document",
-        "id": document_id,
+        "context_type": "document",
+        "entity_id": document_id,
         "project_id": project_id,
         "organization_id": org_id
     })
@@ -395,8 +395,8 @@ async def test_set_context_invalid_type(client):
     """Test set_context with invalid context type (error test)."""
     result = await client.call_tool("workspace_tool", {
         "operation": "set_context",
-        "type": "invalid_type",
-        "id": DataGenerator.uuid()
+        "context_type": "invalid_type",
+        "entity_id": DataGenerator.uuid()
     })
 
     # This should fail

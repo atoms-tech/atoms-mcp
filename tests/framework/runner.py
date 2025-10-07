@@ -493,13 +493,10 @@ class TestRunner:
             with self._results_lock:
                 self.results.append(result)
 
+            # Silent for cached tests - just update progress
             if pbar:
                 pbar.update(1)
-                worker_tag = f" [W{worker_id}]" if worker_id is not None else ""
-                pbar.write(f"💾 {test_name} (cached){worker_tag}")
-            else:
-                worker_tag = f" [W{worker_id}]" if worker_id is not None else ""
-                print(f"💾 {test_name} (cached){worker_tag}")
+            # No output for cached tests
             return
 
         # Run test
@@ -541,14 +538,13 @@ class TestRunner:
             with self._results_lock:
                 self.results.append(result)
 
-            # Progress output
-            icon = "⏭️ " if skipped else ("✅" if success else "❌")
-            worker_tag = f" [W{worker_id}]" if worker_id is not None else ""
+            # Output: ONLY failures, suppress success/skip/cached
             if pbar:
                 pbar.update(1)
-                pbar.write(f"{icon} {test_name} ({duration_ms:.2f}ms){worker_tag}")
-            else:
-                print(f"{icon} {test_name} ({duration_ms:.2f}ms){worker_tag}")
+                if not success and not skipped:  # Only print failures
+                    print(f"❌ {test_name} ({duration_ms:.2f}ms)")
+            elif not success and not skipped:
+                print(f"❌ {test_name} ({duration_ms:.2f}ms)")
 
         except Exception as e:
             duration_ms = (time.time() - start) * 1000

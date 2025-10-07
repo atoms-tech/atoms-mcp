@@ -617,7 +617,6 @@ class ComprehensiveMCPTests:
                 "entity_type": "organization",
                 "operation": "read",
                 "search_term": "test",
-                "fuzzy": True
             }, False),
 
             # UPDATE operations - skip for now (needs real entity ID)

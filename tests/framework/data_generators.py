@@ -30,64 +30,119 @@ class DataGenerator:
 
     @staticmethod
     def organization_data(name: Optional[str] = None) -> Dict[str, Any]:
-        """Generate organization test data."""
+        """Generate organization test data with valid slug."""
         import uuid
-        # Use UUID for guaranteed unique, valid slug
-        unique_slug = str(uuid.uuid4())[:8]  # First 8 chars of UUID (lowercase hex)
+        import re
+        # Use UUID for guaranteed unique slug
+        unique_slug = str(uuid.uuid4())[:8]
+        # Ensure slug matches: ^[a-z][a-z0-9-]*$ (starts with letter, only lowercase letters, numbers, hyphens)
+        unique_slug = re.sub(r'[^a-z0-9-]', '', unique_slug.lower())
+        # Ensure starts with letter
+        if not unique_slug or not unique_slug[0].isalpha():
+            unique_slug = f"org{unique_slug}"
+
         return {
             "name": name or f"Test Org {unique_slug}",
-            "slug": f"testorg-{unique_slug}",  # Valid slug: starts with letter, has hyphens
+            "slug": unique_slug,  # Just the unique slug, must match ^[a-z][a-z0-9-]*$
             "description": f"Automated test organization",
             "type": "team",
         }
 
     @staticmethod
-    def project_data(name: Optional[str] = None, organization_id: str = "auto") -> Dict[str, Any]:
-        """Generate project test data."""
+    def project_data(name: Optional[str] = None, organization_id: Optional[str] = None) -> Dict[str, Any]:
+        """Generate project test data.
+
+        Args:
+            name: Optional project name
+            organization_id: Organization ID (required). Pass a real org ID from list operation.
+                            Don't use 'auto' - it requires workspace context to be set.
+
+        Returns:
+            Dict with project data
+        """
         import uuid
         unique_slug = str(uuid.uuid4())[:8]
-        return {
+        data = {
             "name": name or f"Test Project {unique_slug}",
             "slug": f"testproject-{unique_slug}",
-            "organization_id": organization_id,
             "description": f"Automated test project",
         }
+        # Only include organization_id if provided (let caller handle it)
+        if organization_id:
+            data["organization_id"] = organization_id
+        return data
 
     @staticmethod
-    def document_data(name: Optional[str] = None, project_id: str = "auto") -> Dict[str, Any]:
-        """Generate document test data."""
+    def document_data(name: Optional[str] = None, project_id: Optional[str] = None) -> Dict[str, Any]:
+        """Generate document test data.
+
+        Args:
+            name: Optional document name
+            project_id: Project ID (required). Pass a real project ID from list operation.
+                       Don't use 'auto' - it requires workspace context to be set.
+
+        Returns:
+            Dict with document data
+        """
         import uuid
         unique_slug = str(uuid.uuid4())[:8]
-        return {
+        data = {
             "name": name or f"Test Document {unique_slug}",
             "slug": f"testdocument-{unique_slug}",
-            "project_id": project_id,
             "description": f"Automated test document",
         }
+        # Only include project_id if provided (let caller handle it)
+        if project_id:
+            data["project_id"] = project_id
+        return data
 
     @staticmethod
-    def requirement_data(name: Optional[str] = None, document_id: str = "auto") -> Dict[str, Any]:
-        """Generate requirement test data."""
+    def requirement_data(name: Optional[str] = None, document_id: Optional[str] = None) -> Dict[str, Any]:
+        """Generate requirement test data.
+
+        Args:
+            name: Optional requirement name
+            document_id: Document ID (required). Pass a real document ID from list operation.
+                        Don't use 'auto' - it requires workspace context to be set.
+
+        Returns:
+            Dict with requirement data
+        """
         unique = DataGenerator.unique_id()
-        return {
+        data = {
             "name": name or f"REQ-TEST-{unique}",
-            "document_id": document_id,
             "description": f"Automated test requirement created at {unique}",
             "priority": "medium",
             "status": "active",
         }
+        # Only include document_id if provided (let caller handle it)
+        if document_id:
+            data["document_id"] = document_id
+        return data
 
     @staticmethod
-    def test_data(title: Optional[str] = None, project_id: str = "auto") -> Dict[str, Any]:
-        """Generate test case data."""
+    def test_data(title: Optional[str] = None, project_id: Optional[str] = None) -> Dict[str, Any]:
+        """Generate test case data.
+
+        Args:
+            title: Optional test title
+            project_id: Project ID (required). Pass a real project ID from list operation.
+                       Don't use 'auto' - it requires workspace context to be set.
+
+        Returns:
+            Dict with test data
+        """
         unique = DataGenerator.unique_id()
-        return {
+        data = {
             "title": title or f"Test Case {unique}",
-            "project_id": project_id,
             "description": f"Automated test case created at {unique}",
             "status": "pending",
             "priority": "medium",
         }
+        # Only include project_id if provided (let caller handle it)
+        if project_id:
+            data["project_id"] = project_id
+        return data
 
     @staticmethod
     def batch_data(entity_type: str, count: int = 3) -> List[Dict[str, Any]]:

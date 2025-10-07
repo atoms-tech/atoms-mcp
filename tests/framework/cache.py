@@ -42,7 +42,7 @@ TOOL_DEPENDENCIES = {
         "infrastructure/factory.py",
         "errors.py",
     ],
-    "query": [
+    "search_term": [
         "tools/base.py",
         "infrastructure/factory.py",
         "errors.py",

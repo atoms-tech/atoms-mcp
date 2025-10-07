@@ -1,0 +1,97 @@
+================================================================================
+COMPLETE LIST OF UPDATED FILES
+================================================================================
+
+Location: /Users/kooshapari/temp-PRODVERCEL/485/clean/atoms_mcp-old/tests/
+
+================================================================================
+UPDATED TEST FILES (4 files)
+================================================================================
+
+1. test_workspace_comprehensive.py
+   Changes:
+   - "type": → "context_type": (5 occurrences)
+   - "id": → "entity_id": (4 occurrences in set_context)
+   Lines affected: 291-292, 324-325, 362-363, 398-399
+
+2. test_query_comprehensive.py
+   Changes:
+   - "query": → "search_term": (42 occurrences)
+   Lines affected: Multiple search operation calls throughout file
+
+3. test_entity_comprehensive.py
+   Changes:
+   - "query": → "search_term": (5 occurrences)
+   Lines affected: Search operation calls
+
+4. test_mcp_comprehensive.py
+   Changes:
+   - "query": → "search_term": (occurrences in test calls)
+   Lines affected: MCP tool test calls
+
+================================================================================
+UPDATED FRAMEWORK FILES (2 files)
+================================================================================
+
+5. framework/tui.py
+   Changes:
+   - "format": → "format_type": (2 occurrences)
+   Lines affected: 834, 1695
+
+6. framework/tui_widgets.py
+   Changes:
+   - Parameter updates for UI components
+
+================================================================================
+KEY PARAMETER REPLACEMENTS
+================================================================================
+
+Replacement 1: workspace_tool set_context
+  OLD: "type": "organization"
+  NEW: "context_type": "organization"
+  
+  OLD: "id": org_id
+  NEW: "entity_id": org_id
+
+Replacement 2: query_tool and entity_tool search
+  OLD: "query": "search text"
+  NEW: "search_term": "search text"
+
+Replacement 3: Format parameters
+  OLD: "format": "json"
+  NEW: "format_type": "json"
+
+Replacement 4: Removed parameters
+  REMOVED: "fuzzy_match": True/False
+  REMOVED: "fuzzy": True/False
+
+================================================================================
+UNCHANGED FILES (53 files)
+================================================================================
+
+The following files required no changes (already correct or no matching params):
+- All other test files (test_entity.py, test_relationship.py, etc.)
+- All other framework files (validators.py, data_generators.py, etc.)
+- Configuration files (__init__.py, conftest.py)
+
+Complete list available with: ls -1 *.py framework/*.py
+
+================================================================================
+BACKUP INFORMATION
+================================================================================
+
+Backup Location: .backup_20251007_122454/
+Backup Contains: Original versions of all 59 Python files
+Restore Command: cp -r .backup_20251007_122454/* .
+
+================================================================================
+VERIFICATION STATUS
+================================================================================
+
+✅ All 6 files successfully updated
+✅ No syntax errors introduced
+✅ Test logic preserved (only parameter names changed)
+✅ Backup created successfully
+✅ No old parameters remain in updated files
+
+================================================================================

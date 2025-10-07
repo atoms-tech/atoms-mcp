@@ -1272,7 +1272,7 @@ class ExportDialogWidget(Widget):
             selected_format = option.id if option else None
 
         export_options = {
-            "format": selected_format,
+            "format_type": selected_format,
             "output_path": self.query_one("#output-path", Input).value,
             "include_logs": self.query_one("#include-logs", Checkbox).value,
             "include_screenshots": self.query_one("#include-screenshots", Checkbox).value,

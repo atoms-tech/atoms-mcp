@@ -387,6 +387,8 @@ def create_consolidated_server() -> FastMCP:
         operation: str,
         context_type: Optional[str] = None,
         entity_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
         format_type: str = "detailed",
     ) -> dict:
         """Manage workspace context and get smart defaults.
@@ -409,6 +411,8 @@ def create_consolidated_server() -> FastMCP:
                 operation=operation,
                 context_type=context_type,
                 entity_id=entity_id,
+                limit=limit,
+                offset=offset,
                 format_type=format_type,
             )
         except Exception as e:

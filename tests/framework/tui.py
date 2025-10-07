@@ -831,7 +831,7 @@ class ExportModal(ModalScreen):
     def export_results(self) -> None:
         """Export results and close dialog."""
         export_config = {
-            "format": self.query_one("#format", Select).value,
+            "format_type": self.query_one("#format", Select).value,
             "output_path": self.query_one("#output_path", Input).value,
             "include_errors": self.query_one("#include_errors", Checkbox).value,
             "include_timing": self.query_one("#include_timing", Checkbox).value,
@@ -1692,7 +1692,7 @@ class TestDashboardApp(App):
     def action_quick_export(self) -> None:
         """Quick export to JSON (Phase 4)."""
         config = {
-            "format": "json",
+            "format_type": "json",
             "output_path": f"test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             "include_errors": True,
             "include_timing": True,

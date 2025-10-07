@@ -30,7 +30,7 @@ from test_utils import (
 )
 
 
-class DataGenerator:
+class WorkflowDataGenerator:
     """Generate test data for workflow tests."""
 
     @staticmethod
@@ -126,7 +126,7 @@ class WorkflowTestSuite:
 
     def __init__(self, call_mcp: Callable):
         self.call_mcp = call_mcp
-        self.data_generator = DataGenerator()
+        self.data_generator = WorkflowDataGenerator()
         self.assertion_helpers = AssertionHelpers()
         self.performance_analyzer = PerformanceAnalyzer()
         self.created_entities = []

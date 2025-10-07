@@ -77,20 +77,45 @@ class ResponseValidator:
         return entities[0].get("id")
 
     @staticmethod
-    async def create_test_entity(client, entity_type: str, data_generator_func) -> Optional[str]:
+    async def create_test_entity(client, entity_type: str, data_generator_func, **data_kwargs) -> Optional[str]:
         """Create test entity and return ID, or None if create fails.
 
         This helper ensures proper CREATE→OPERATE→DELETE pattern with skip propagation.
+        Automatically resolves parent IDs for nested entities (project→org, document→project, etc)
 
         Args:
             client: MCP client
             entity_type: Type of entity to create
             data_generator_func: Function that returns entity data dict
+            **data_kwargs: Additional keyword arguments to pass to data_generator_func
 
         Returns:
             entity_id if create succeeded, None if failed (caller should skip/return)
         """
-        data = data_generator_func()
+        from tests.framework.data_generators import DataGenerator
+
+        # Auto-resolve parent IDs for nested entity types
+        if entity_type == "project" and "organization_id" not in data_kwargs:
+            org_id = await ResponseValidator.get_or_create_organization(client)
+            if org_id:
+                data_kwargs["organization_id"] = org_id
+
+        elif entity_type == "document" and "project_id" not in data_kwargs:
+            project_id = await ResponseValidator.get_or_create_project(client)
+            if project_id:
+                data_kwargs["project_id"] = project_id
+
+        elif entity_type == "requirement" and "document_id" not in data_kwargs:
+            doc_id = await ResponseValidator.get_or_create_document(client)
+            if doc_id:
+                data_kwargs["document_id"] = doc_id
+
+        elif entity_type == "test" and "project_id" not in data_kwargs:
+            project_id = await ResponseValidator.get_or_create_project(client)
+            if project_id:
+                data_kwargs["project_id"] = project_id
+
+        data = data_generator_func(**data_kwargs)
         create_result = await client.call_tool("entity_tool", {
             "entity_type": entity_type,
             "operation": "create",
@@ -101,6 +126,80 @@ class ResponseValidator:
             return None
 
         return ResponseValidator.extract_id(create_result.get("response", {}))
+
+    @staticmethod
+    async def get_or_create_organization(client) -> Optional[str]:
+        """Get existing organization ID or create a new test organization.
+
+        Returns:
+            organization_id if successful, None otherwise
+        """
+        # Try to get existing org first
+        org_id = await ResponseValidator.get_existing_entity_id(client, "organization")
+        if org_id:
+            return org_id
+
+        # Create new org
+        from tests.framework.data_generators import DataGenerator
+        return await ResponseValidator.create_test_entity(
+            client, "organization", DataGenerator.organization_data
+        )
+
+    @staticmethod
+    async def get_or_create_project(client, organization_id: Optional[str] = None) -> Optional[str]:
+        """Get existing project ID or create a new test project.
+
+        Args:
+            organization_id: Optional organization ID. If not provided, will get/create one.
+
+        Returns:
+            project_id if successful, None otherwise
+        """
+        # Get org_id if not provided
+        if not organization_id:
+            organization_id = await ResponseValidator.get_or_create_organization(client)
+            if not organization_id:
+                return None
+
+        # Try to get existing project first
+        project_id = await ResponseValidator.get_existing_entity_id(client, "project")
+        if project_id:
+            return project_id
+
+        # Create new project
+        from tests.framework.data_generators import DataGenerator
+        return await ResponseValidator.create_test_entity(
+            client, "project", DataGenerator.project_data,
+            organization_id=organization_id
+        )
+
+    @staticmethod
+    async def get_or_create_document(client, project_id: Optional[str] = None) -> Optional[str]:
+        """Get existing document ID or create a new test document.
+
+        Args:
+            project_id: Optional project ID. If not provided, will get/create one.
+
+        Returns:
+            document_id if successful, None otherwise
+        """
+        # Get project_id if not provided
+        if not project_id:
+            project_id = await ResponseValidator.get_or_create_project(client)
+            if not project_id:
+                return None
+
+        # Try to get existing document first
+        doc_id = await ResponseValidator.get_existing_entity_id(client, "document")
+        if doc_id:
+            return doc_id
+
+        # Create new document
+        from tests.framework.data_generators import DataGenerator
+        return await ResponseValidator.create_test_entity(
+            client, "document", DataGenerator.document_data,
+            project_id=project_id
+        )
 
 
 class FieldValidator:
