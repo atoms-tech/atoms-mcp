@@ -44,14 +44,12 @@ async def health_check(request):
 # CRITICAL: stateless_http=True is REQUIRED for serverless environments like Vercel
 _base_app = mcp.http_app(path="/api/mcp", stateless_http=True)
 
-# Add session middleware for stateless OAuth session persistence
-from auth.session_middleware import SessionMiddleware
-from auth.session_manager import create_session_manager
+# Add compression middleware
+# NOTE: SessionMiddleware is NOT needed - FastMCP's AuthKitProvider handles auth
 from starlette.middleware.gzip import GZipMiddleware
 
-# Wrap with compression first, then session middleware
-_compressed_app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 bytes
-app = SessionMiddleware(_compressed_app, session_manager_factory=create_session_manager)
+# Wrap with compression only
+app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 bytes
 
 # CRITICAL FIX for Vercel serverless:
 # The issue is that MCP's stateless mode still requires a task group, which is

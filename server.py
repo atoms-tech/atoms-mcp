@@ -148,48 +148,38 @@ def _list_to_markdown(lst: list, indent: int = 0) -> str:
 
 
 def _extract_bearer_token() -> Optional[str]:
-    """Return the bearer token from session context or FastMCP access token.
+    """Return the bearer token from FastMCP's AuthKit OAuth.
 
-    Priority order:
-    1. Session context (from SessionMiddleware + Supabase mcp_sessions)
-    2. FastMCP in-memory OAuth tokens (backward compatibility)
+    For stateless serverless with AuthKit:
+    - FastMCP's AuthKitProvider validates OAuth tokens
+    - Token is available via get_access_token()
+    - No SessionMiddleware needed
 
-    This enables both stateless serverless deployments (via sessions)
-    and traditional persistent deployments (via FastMCP OAuth).
+    Returns:
+        AuthKit JWT token or None
     """
-    # Try session context first (stateless mode with Supabase persistence)
-    try:
-        try:
-            from .auth.session_middleware import get_session_token
-        except ImportError:
-            from auth.session_middleware import get_session_token
-        session_token = get_session_token()
-        if session_token:
-            logger.debug("Using token from session context (Supabase-backed)")
-            return session_token
-    except ImportError:
-        pass
-    except Exception as e:
-        logger.debug(f"Failed to get session token: {e}")
-
-    # Fall back to FastMCP in-memory OAuth (traditional mode)
+    # Get token from FastMCP's OAuth context
     access_token = get_access_token()
     if not access_token:
+        logger.debug("No access token from FastMCP")
         return None
 
+    # AuthKit tokens are stored in .token attribute
     token = getattr(access_token, "token", None)
     if token:
-        logger.debug("Using token from FastMCP context (in-memory)")
+        logger.debug("Using AuthKit token from FastMCP")
         return token
 
+    # Fallback: check claims dict
     claims = getattr(access_token, "claims", None)
     if isinstance(claims, dict):
-        for key in ("access_token", "session_token", "supabase_jwt", "supabase_token"):
+        for key in ("access_token", "token", "supabase_jwt"):
             candidate = claims.get(key)
             if candidate:
-                logger.debug(f"Using token from FastMCP claims.{key}")
+                logger.debug(f"Using token from claims.{key}")
                 return candidate
 
+    logger.debug("No valid token found in access_token object")
     return None
 
 
