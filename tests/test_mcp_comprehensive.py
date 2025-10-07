@@ -92,31 +92,23 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             await page.goto(oauth_url)
             await asyncio.sleep(2)
 
-            # Check for existing errors on page using accessibility snapshot
-            try:
-                from mcp__playwright__browser_snapshot import browser_snapshot
-                snapshot = await browser_snapshot()
-                snapshot_text = str(snapshot)
+            # Check for existing errors on page (native Playwright)
+            page_content = await page.content()
 
-                if "Failed to complete AuthKit flow" in snapshot_text:
-                    print("   ❌ ERROR DETECTED on login page:")
-                    if "500" in snapshot_text:
-                        print("      → 500 Internal Server Error")
-                    elif "404" in snapshot_text:
-                        print("      → 404 Not Found - /auth/complete endpoint missing")
-                    elif "302" in snapshot_text:
-                        print("      → 302 Redirect error")
-                    print("      → Check that /auth/complete endpoint is properly configured")
-                    print(f"\n📸 Page snapshot:\n{snapshot_text[:500]}")
-                    await browser.close()
-                    return False
-            except ImportError:
-                # Fallback to page.content() if MCP tools not available
-                page_content = await page.content()
-                if "Failed to complete AuthKit flow" in page_content:
-                    print("   ❌ ERROR DETECTED on login page")
-                    await browser.close()
-                    return False
+            if "Failed to complete AuthKit flow" in page_content:
+                print("   ❌ ERROR DETECTED on login page:")
+                if "530" in page_content:
+                    print("      → 530 Error")
+                elif "500" in page_content:
+                    print("      → 500 Internal Server Error")
+                elif "404" in page_content:
+                    print("      → 404 Not Found")
+
+                text = await page.text_content('body')
+                print(f"\n📸 Page text:\n{text[:500] if text else '(empty)'}")
+
+                await browser.close()
+                return False
 
             # Step 2: Fill in credentials
             print("\n📝 Step 2: Filling in credentials...")
@@ -165,10 +157,42 @@ async def automate_oauth_login(oauth_url: str) -> bool:
                 # Console messages are captured via page.on("console") - skip for now
                 print(f"   (use visible browser mode to see console in DevTools)")
 
-                # Skip Vercel log collection
-                print(f"\n📡 Vercel server logs:")
-                print(f"   → Run: vercel logs https://mcp.atoms.tech")
-                print(f"   → Look for /auth/complete errors")
+                # Collect Vercel logs with timeout
+                print(f"\n📡 Collecting Vercel server logs...")
+                try:
+                    import subprocess
+                    # Use asyncio subprocess with timeout
+                    proc = await asyncio.create_subprocess_exec(
+                        "vercel", "logs", "https://mcp.atoms.tech",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+
+                    try:
+                        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
+                        logs = stdout.decode('utf-8')
+
+                        # Filter for auth/complete logs
+                        auth_logs = [line for line in logs.split('\n') if 'auth/complete' in line.lower() or '🔧' in line or '❌' in line]
+
+                        if auth_logs:
+                            print(f"   ✅ Recent /auth/complete logs ({len(auth_logs)} entries):")
+                            for log in auth_logs[-10:]:  # Last 10 relevant logs
+                                print(f"   {log}")
+                        else:
+                            print(f"   ⚠️  No /auth/complete logs found in recent history")
+
+                    except asyncio.TimeoutError:
+                        print(f"   ⏱️  Log collection timed out after 5s")
+                        proc.kill()
+                        print(f"   → Check manually: vercel logs https://mcp.atoms.tech")
+
+                except FileNotFoundError:
+                    print(f"   ⚠️  Vercel CLI not found")
+                    print(f"   → Install: npm i -g vercel")
+                except Exception as e:
+                    print(f"   ❌ Error collecting logs: {e}")
+                    print(f"   → Check manually: vercel logs https://mcp.atoms.tech")
 
                 await browser.close()
                 return False
