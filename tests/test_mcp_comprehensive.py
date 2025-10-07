@@ -210,14 +210,37 @@ async def automate_oauth_login(oauth_url: str) -> bool:
                 await page.wait_for_selector(allow_button, timeout=10000)
                 print(f"   ✅ Button is now enabled")
 
+                # Monitor network requests when clicking Allow
+                network_requests = []
+
+                def log_request(request):
+                    network_requests.append({
+                        "url": request.url,
+                        "method": request.method,
+                        "post_data": request.post_data if request.method == "POST" else None
+                    })
+
+                page.on("request", log_request)
+
                 # Click the Allow button
                 await page.click(allow_button)
                 print("   ✅ Clicked 'Allow access'")
+
+                # Wait a bit for network requests
+                await asyncio.sleep(2)
+
+                # Show network activity
+                print(f"\n📡 Network requests after clicking Allow:")
+                for req in network_requests[-5:]:  # Last 5 requests
+                    print(f"   {req['method']} {req['url']}")
+                    if req['post_data']:
+                        print(f"      POST data: {req['post_data'][:100]}")
+
             except Exception as e:
                 print(f"   ❌ Could not click Allow button: {e}")
-                print(f"   📸 Taking screenshot...")
-                await page.screenshot(path="allow_button_error.png")
-                print(f"      → Screenshot saved to allow_button_error.png")
+                from mcp__playwright__browser_snapshot import browser_snapshot
+                await browser_snapshot()
+                print(f"      → Snapshot captured")
 
             # Wait for OAuth callback to complete
             print("\n⏳ Step 6: Waiting for OAuth callback...")

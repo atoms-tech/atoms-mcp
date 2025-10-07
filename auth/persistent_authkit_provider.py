@@ -92,15 +92,62 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     logger.error("❌ WORKOS_API_KEY not configured")
                     return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
 
+                # Extract user from Supabase cookies
+                logger.info(f"📡 Extracting user from Supabase cookies...")
+                all_cookies = request.cookies
+                logger.info(f"   Available cookies: {list(all_cookies.keys())}")
+
+                user_info = None
+                supabase_token = None
+
+                for cookie_name, cookie_value in all_cookies.items():
+                    if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
+                        try:
+                            import json
+                            cookie_data = json.loads(cookie_value)
+
+                            # Supabase cookie format: [{"access_token": "...", "user": {...}}] or {"access_token": "...", "user": {...}}
+                            if isinstance(cookie_data, list) and len(cookie_data) > 0:
+                                user_info = cookie_data[0].get('user')
+                                supabase_token = cookie_data[0].get('access_token')
+                            elif isinstance(cookie_data, dict):
+                                user_info = cookie_data.get('user')
+                                supabase_token = cookie_data.get('access_token')
+
+                            if user_info:
+                                logger.info(f"✅ Found user in cookie: {cookie_name}")
+                                logger.info(f"   User email: {user_info.get('email')}")
+                                break
+                        except Exception as e:
+                            logger.info(f"   Cookie {cookie_name} not JSON: {e}")
+                            continue
+
+                if not user_info:
+                    logger.error("❌ No Supabase user in cookies")
+                    logger.error(f"   Checked cookies: {list(all_cookies.keys())}")
+                    return JSONResponse(
+                        {"error": "User not authenticated", "details": "No Supabase user found in cookies"},
+                        status_code=401
+                    )
+
+                # Complete AuthKit OAuth with user info
                 logger.info(f"📡 Completing AuthKit OAuth...")
 
-                # Call /authkit/oauth2/complete with just the token
-                # Since Supabase accepts AuthKit tokens, we don't need separate verification
                 complete_url = f"{workos_url}/authkit/oauth2/complete"
-                payload = {"pending_authentication_token": pending_auth_token}
+                payload = {
+                    "pending_authentication_token": pending_auth_token,
+                    "external_auth_id": user_info.get("id"),  # Supabase user ID
+                    "user": {
+                        "id": user_info.get("id"),
+                        "email": user_info.get("email"),
+                        "first_name": user_info.get("user_metadata", {}).get("first_name"),
+                        "last_name": user_info.get("user_metadata", {}).get("last_name")
+                    }
+                }
 
                 logger.info(f"   Calling: {complete_url}")
-                logger.info(f"   Payload: {list(payload.keys())}")
+                logger.info(f"   external_auth_id: {user_info.get('id')}")
+                logger.info(f"   user email: {user_info.get('email')}")
 
                 async with session.post(
                     complete_url,
