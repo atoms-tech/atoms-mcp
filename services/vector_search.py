@@ -99,8 +99,8 @@ class VectorSearchService:
         embedding_result = await self.embedding_service.generate_embedding(query)
         query_vector = embedding_result.embedding
 
-        # Check if embedding generation failed
-        if query_vector is None:
+        # Check if embedding generation failed or is empty
+        if query_vector is None or not query_vector or len(query_vector) == 0:
             return SearchResponse([], 0, 0, 0.0, "semantic")
 
         # Determine which entity types to search
