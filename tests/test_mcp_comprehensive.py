@@ -142,6 +142,8 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             # Check for errors after login attempt using snapshot
             try:
                 from mcp__playwright__browser_snapshot import browser_snapshot
+                from mcp__playwright__browser_console_messages import browser_console_messages
+
                 snapshot = await browser_snapshot()
                 snapshot_text = str(snapshot)
 
@@ -154,7 +156,39 @@ async def automate_oauth_login(oauth_url: str) -> bool:
                     elif "302" in snapshot_text:
                         print("      → 302 Redirect loop or misconfiguration")
 
-                    print(f"\n📸 Error page snapshot:\n{snapshot_text[:800]}")
+                    print(f"\n📸 Page snapshot (accessibility tree):")
+                    print(snapshot_text[:1000])
+
+                    # Get browser console logs
+                    print(f"\n📋 Browser console logs:")
+                    try:
+                        console_logs = await browser_console_messages(onlyErrors=True)
+                        print(console_logs if console_logs else "   (no console errors)")
+                    except Exception as e:
+                        print(f"   Could not get console logs: {e}")
+
+                    # Get Vercel deployment logs for /auth/complete
+                    print(f"\n📡 Fetching Vercel logs for /auth/complete...")
+                    try:
+                        import subprocess
+                        result = subprocess.run(
+                            ["vercel", "logs", "https://mcp.atoms.tech", "--output", "raw"],
+                            capture_output=True,
+                            text=True,
+                            timeout=10
+                        )
+                        logs = result.stdout
+                        # Filter for recent auth/complete calls
+                        auth_logs = [line for line in logs.split('\n') if 'auth/complete' in line.lower()]
+                        if auth_logs:
+                            print("   Recent /auth/complete logs:")
+                            for log in auth_logs[-5:]:  # Last 5 logs
+                                print(f"   {log}")
+                        else:
+                            print("   (no /auth/complete logs found)")
+                    except Exception as e:
+                        print(f"   Could not fetch Vercel logs: {e}")
+
                     await browser.close()
                     return False
             except ImportError:
