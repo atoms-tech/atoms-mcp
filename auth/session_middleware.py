@@ -38,8 +38,18 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # Reset session context for this request
         _request_session_context.clear()
 
+        # Debug: log ALL MCP requests
+        if request.url.path.startswith("/api/mcp"):
+            print(f"🔍 MCP Request: {request.method} {request.url.path}")
+            print(f"   Auth header: {request.headers.get('authorization', 'NONE')[:50]}...")
+
         # Extract JWT token from request (AuthKit JWT)
         jwt_token = self._extract_jwt_token(request)
+
+        if jwt_token:
+            print(f"✅ Extracted JWT token: {jwt_token[:30]}...")
+        else:
+            print(f"❌ No JWT token found in request")
 
         if jwt_token:
             # Decode JWT to get user info (AuthKit already validated it)
