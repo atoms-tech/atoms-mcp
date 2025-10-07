@@ -1,0 +1,4 @@
+# Git Hooks
+
+Pre-commit: Quality gates (syntax, files, secrets)
+Pre-push: Test gates + auto-deploy to production
