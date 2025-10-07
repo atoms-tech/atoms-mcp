@@ -94,13 +94,49 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     logger.error("WORKOS_API_KEY not configured")
                     return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
 
-                logger.info(f"📡 Calling WorkOS authenticate endpoint...")
+                logger.info(f"📡 Calling AuthKit OAuth completion endpoint...")
 
-                # Call WorkOS /user_management/authenticate
-                complete_url = f"{workos_url}/user_management/authenticate"
+                # Call AuthKit /authkit/oauth2/complete (Standalone Connect)
+                complete_url = f"{workos_url}/authkit/oauth2/complete"
+
+                # For Standalone Connect, we need to provide user info from Supabase
+                # Since Supabase accepts AuthKit tokens, get user from cookies
+                all_cookies = request.cookies
+                logger.info(f"   Cookies: {list(all_cookies.keys())}")
+
+                # Extract user info from Supabase cookie
+                user_info = None
+                for cookie_name, cookie_value in all_cookies.items():
+                    if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
+                        try:
+                            import json
+                            cookie_data = json.loads(cookie_value)
+                            if isinstance(cookie_data, list) and len(cookie_data) > 0:
+                                user_info = cookie_data[0].get('user')
+                            elif isinstance(cookie_data, dict):
+                                user_info = cookie_data.get('user')
+                            if user_info:
+                                logger.info(f"✅ Got user from cookie: {cookie_name}")
+                                break
+                        except:
+                            continue
+
+                if not user_info:
+                    logger.error("❌ No user info in Supabase cookies")
+                    return JSONResponse(
+                        {"error": "User authentication required"},
+                        status_code=401
+                    )
+
+                # AuthKit Standalone Connect completion payload
                 payload = {
                     "pending_authentication_token": pending_auth_token,
-                    "grant_type": "urn:workos:oauth:grant-type:organization-selection"
+                    "user": {
+                        "id": user_info.get("id"),
+                        "email": user_info.get("email"),
+                        "first_name": user_info.get("user_metadata", {}).get("first_name"),
+                        "last_name": user_info.get("user_metadata", {}).get("last_name")
+                    }
                 }
 
                 async with session.post(
