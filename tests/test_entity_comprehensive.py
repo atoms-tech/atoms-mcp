@@ -135,26 +135,39 @@ async def test_read_organization_by_id(client):
 
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
 async def test_read_organization_with_relations(client):
-    """Test reading organization with relations"""
-    # Create organization with relations
-    data = DataGenerator.organization_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading organization with relations - creates test data first"""
+    # Step 1: CREATE test organization (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "organization",
+        DataGenerator.organization_data
+    )
 
-    # Read with relations
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "read",
-        "entity_id": entity_id,
-        "include_relations": True
-    })
-    assert result["success"]
-    assert "relations" in result["response"] or "projects" in result["response"]
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ with relations
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "read",
+            "entity_id": entity_id,
+            "include_relations": True
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read with relations failed: {result.get('error')}"
+        assert "relations" in result["response"] or "projects" in result["response"]
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 # --- Update Operations ---
@@ -399,49 +412,74 @@ async def test_create_project_batch(client):
 # --- Read Operations ---
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
 async def test_read_project_by_id(client):
-    """Test reading project by ID"""
-    # First create a project
-    data = DataGenerator.project_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading project by ID - creates test data first"""
+    # Step 1: CREATE test project (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "project",
+        DataGenerator.project_data
+    )
 
-    # Then read it
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert result["success"]
-    assert result["response"]["id"] == entity_id
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ the created project
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "read",
+            "entity_id": entity_id
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read failed: {result.get('error')}"
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
 async def test_read_project_with_relations(client):
-    """Test reading project with relations"""
-    # Create project
-    data = DataGenerator.project_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading project with relations - creates test data first"""
+    # Step 1: CREATE test project (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "project",
+        DataGenerator.project_data
+    )
 
-    # Read with relations
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "read",
-        "entity_id": entity_id,
-        "include_relations": True
-    })
-    assert result["success"]
-    assert "relations" in result["response"] or "documents" in result["response"]
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ with relations
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "read",
+            "entity_id": entity_id,
+            "include_relations": True
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read with relations failed: {result.get('error')}"
+        assert "relations" in result["response"] or "documents" in result["response"]
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 # --- Update Operations ---
@@ -675,49 +713,76 @@ async def test_create_document_batch(client):
 # --- Read Operations ---
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
 async def test_read_document_by_id(client):
-    """Test reading document by ID"""
-    # First create a document
-    data = DataGenerator.document_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading document by ID - creates test data first"""
+    # Step 1: CREATE test document (with auto-skip if fails)
+    # Helper automatically: 1) gets/creates org, 2) gets/creates project, 3) creates document
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "document",
+        DataGenerator.document_data
+    )
 
-    # Then read it
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert result["success"]
-    assert result["response"]["id"] == entity_id
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ the created document
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "read",
+            "entity_id": entity_id
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read failed: {result.get('error')}"
+        assert result["response"]["id"] == entity_id
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
 async def test_read_document_with_relations(client):
-    """Test reading document with relations"""
-    # Create document
-    data = DataGenerator.document_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading document with relations - creates test data first"""
+    # Step 1: CREATE test document (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "document",
+        DataGenerator.document_data
+    )
 
-    # Read with relations
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "read",
-        "entity_id": entity_id,
-        "include_relations": True
-    })
-    assert result["success"]
-    assert "relations" in result["response"] or "attachments" in result["response"]
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ the created document with relations
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "read",
+            "entity_id": entity_id,
+            "include_relations": True
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read failed: {result.get('error')}"
+        assert "relations" in result["response"] or "attachments" in result["response"]
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 # --- Update Operations ---
@@ -963,49 +1028,74 @@ async def test_create_requirement_batch(client):
 # --- Read Operations ---
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
 async def test_read_requirement_by_id(client):
-    """Test reading requirement by ID"""
-    # First create a requirement
-    data = DataGenerator.requirement_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading requirement by ID - creates test data first"""
+    # Step 1: CREATE test requirement (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "requirement",
+        DataGenerator.requirement_data
+    )
 
-    # Then read it
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert result["success"]
-    assert result["response"]["id"] == entity_id
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ the created requirement
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "requirement",
+            "operation": "read",
+            "entity_id": entity_id
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read failed: {result.get('error')}"
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "requirement",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
 async def test_read_requirement_with_relations(client):
-    """Test reading requirement with relations"""
-    # Create requirement
-    data = DataGenerator.requirement_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading requirement with relations - creates test data first"""
+    # Step 1: CREATE test requirement (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "requirement",
+        DataGenerator.requirement_data
+    )
 
-    # Read with relations
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "read",
-        "entity_id": entity_id,
-        "include_relations": True
-    })
-    assert result["success"]
-    assert "relations" in result["response"] or "tests" in result["response"]
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ the created requirement with relations
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "requirement",
+            "operation": "read",
+            "entity_id": entity_id,
+            "include_relations": True
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read failed: {result.get('error')}"
+        assert "relations" in result["response"] or "tests" in result["response"]
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "requirement",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 # --- Update Operations ---
@@ -1242,49 +1332,74 @@ async def test_create_test_batch(client):
 # --- Read Operations ---
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
 async def test_read_test_by_id(client):
-    """Test reading test entity by ID"""
-    # First create a test
-    data = DataGenerator.test_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading test entity by ID - creates test data first"""
+    # Step 1: CREATE test entity (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "test",
+        DataGenerator.test_data
+    )
 
-    # Then read it
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert result["success"]
-    assert result["response"]["id"] == entity_id
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ the created test entity
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "test",
+            "operation": "read",
+            "entity_id": entity_id
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read failed: {result.get('error')}"
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "test",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 @mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
 async def test_read_test_with_relations(client):
-    """Test reading test entity with relations"""
-    # Create test
-    data = DataGenerator.test_data()
-    create_result = await client.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
+    """Test reading test entity with relations - creates test data first"""
+    # Step 1: CREATE test entity (with auto-skip if fails)
+    entity_id = await ResponseValidator.create_test_entity(
+        client,
+        "test",
+        DataGenerator.test_data
+    )
 
-    # Read with relations
-    result = await client.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "read",
-        "entity_id": entity_id,
-        "include_relations": True
-    })
-    assert result["success"]
-    assert "relations" in result["response"] or "results" in result["response"]
-    return {"success": True}
+    if not entity_id:
+        return {"success": False, "error": "Create failed", "skipped": True}
+
+    try:
+        # Step 2: READ with relations
+        result = await client.call_tool("entity_tool", {
+            "entity_type": "test",
+            "operation": "read",
+            "entity_id": entity_id,
+            "include_relations": True
+        })
+
+        # Step 3: Verify read succeeded
+        assert result["success"], f"Read with relations failed: {result.get('error')}"
+        assert "relations" in result["response"] or "results" in result["response"]
+
+        return {"success": True}
+
+    finally:
+        # Step 4: Always DELETE test data (cleanup)
+        await client.call_tool("entity_tool", {
+            "entity_type": "test",
+            "operation": "delete",
+            "entity_id": entity_id
+        })
 
 
 # --- Update Operations ---

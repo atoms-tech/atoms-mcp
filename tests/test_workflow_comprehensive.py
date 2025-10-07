@@ -430,13 +430,16 @@ class TestSetupProjectWorkflow(WorkflowTestSuite):
 
     async def test_invalid_organization_id(self, call_mcp):
         """Test setup_project with invalid organization ID."""
+        # Use a properly formatted UUID that doesn't exist
+        invalid_org_id = str(uuid.uuid4())
+
         result, _ = await call_mcp(
             "workflow_tool",
             {
                 "workflow": "setup_project",
                 "parameters": {
                     "name": "Invalid Org Project",
-                    "organization_id": "org_invalid_12345"
+                    "organization_id": invalid_org_id
                 }
             }
         )
@@ -697,13 +700,15 @@ class TestImportRequirementsWorkflow(WorkflowTestSuite):
     async def test_invalid_document_id(self, call_mcp):
         """Test import_requirements with invalid document ID."""
         requirements = self.data_generator.generate_requirements(3)
+        # Use a properly formatted UUID that doesn't exist
+        invalid_doc_id = str(uuid.uuid4())
 
         result, _ = await call_mcp(
             "workflow_tool",
             {
                 "workflow": "import_requirements",
                 "parameters": {
-                    "document_id": "doc_invalid_12345",
+                    "document_id": invalid_doc_id,
                     "requirements": requirements
                 }
             }
@@ -950,12 +955,15 @@ class TestSetupTestMatrixWorkflow(WorkflowTestSuite):
 
     async def test_invalid_project_id(self, call_mcp):
         """Test setup_test_matrix with invalid project ID."""
+        # Use a properly formatted UUID that doesn't exist
+        invalid_project_id = str(uuid.uuid4())
+
         result, _ = await call_mcp(
             "workflow_tool",
             {
                 "workflow": "setup_test_matrix",
                 "parameters": {
-                    "project_id": "proj_invalid_12345"
+                    "project_id": invalid_project_id
                 }
             }
         )
@@ -1257,7 +1265,8 @@ class TestBulkStatusUpdateWorkflow(WorkflowTestSuite):
     async def test_partial_failure(self, call_mcp):
         """Test bulk_status_update with some invalid IDs."""
         valid_ids = await self.create_test_entities(call_mcp, "requirement", 3)
-        invalid_ids = ["req_invalid_1", "req_invalid_2"]
+        # Use properly formatted UUIDs that don't exist
+        invalid_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
         all_ids = valid_ids + invalid_ids
 
         result, _ = await call_mcp(
@@ -1286,7 +1295,8 @@ class TestBulkStatusUpdateWorkflow(WorkflowTestSuite):
 
     async def test_all_invalid_ids(self, call_mcp):
         """Test bulk_status_update with all invalid IDs."""
-        invalid_ids = ["req_invalid_1", "req_invalid_2", "req_invalid_3"]
+        # Use properly formatted UUIDs that don't exist
+        invalid_ids = [str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())]
 
         result, _ = await call_mcp(
             "workflow_tool",
