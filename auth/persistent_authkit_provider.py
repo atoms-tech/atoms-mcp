@@ -108,97 +108,30 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
 
-                external_auth_id = data.get("external_auth_id")
-                logger.info(f"🔧 OAuth complete: external_auth_id={external_auth_id}")
+                # Extract pending_authentication_token (from AuthKit Allow form)
+                pending_auth_token = data.get("pending_authentication_token")
+                authorization_session_id = data.get("authorization_session_id")
+                redirect_uri = data.get("redirect_uri")
+                state = data.get("state")
+                client_id = data.get("client_id")
 
-                if not external_auth_id:
-                    logger.error("❌ Missing external_auth_id in request")
+                logger.info(f"🔧 OAuth approval data:")
+                logger.info(f"   pending_authentication_token: {pending_auth_token[:20] if pending_auth_token else None}...")
+                logger.info(f"   authorization_session_id: {authorization_session_id}")
+                logger.info(f"   redirect_uri: {redirect_uri}")
+                logger.info(f"   state: {state}")
+                logger.info(f"   client_id: {client_id}")
+
+                if not pending_auth_token or not authorization_session_id:
+                    logger.error("❌ Missing required fields from AuthKit")
                     resp = JSONResponse(
-                        {"error": "external_auth_id required"},
+                        {"error": "Missing required fields", "details": "Need pending_authentication_token and authorization_session_id"},
                         status_code=400
                     )
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
 
-                # Get Supabase JWT from Authorization header OR cookies (Standalone Connect)
-                bearer_token = None
-
-                # Try Authorization header first
-                auth_header = request.headers.get("authorization", "")
-                if auth_header.startswith("Bearer "):
-                    bearer_token = auth_header.split(" ", 1)[1].strip()
-                    logger.info(f"✅ Got token from Authorization header")
-
-                # Fall back to cookies (for browser-based Standalone Connect)
-                if not bearer_token:
-                    # Supabase stores auth token in cookies
-                    # Cookie names: sb-<project-ref>-auth-token or similar
-                    all_cookies = request.cookies
-                    logger.info(f"🔧 Checking cookies: {list(all_cookies.keys())}")
-
-                    # Look for Supabase auth token cookie
-                    for cookie_name, cookie_value in all_cookies.items():
-                        if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
-                            try:
-                                # Supabase cookies are JSON with access_token
-                                import json
-                                cookie_data = json.loads(cookie_value)
-                                if isinstance(cookie_data, list) and len(cookie_data) > 0:
-                                    bearer_token = cookie_data[0].get('access_token')
-                                elif isinstance(cookie_data, dict):
-                                    bearer_token = cookie_data.get('access_token')
-
-                                if bearer_token:
-                                    logger.info(f"✅ Got token from cookie: {cookie_name}")
-                                    break
-                            except:
-                                continue
-
-                if not bearer_token:
-                    logger.error("❌ No Supabase JWT found in Authorization header or cookies")
-                    logger.error(f"   Headers: {dict(request.headers)}")
-                    logger.error(f"   Cookies: {list(request.cookies.keys())}")
-                    resp = JSONResponse(
-                        {"error": "Supabase authentication required", "details": "No JWT in Authorization header or cookies"},
-                        status_code=401
-                    )
-                    resp.headers["Access-Control-Allow-Origin"] = "*"
-                    return resp
-
-                # Verify with Supabase to get user info
-                import os
-                supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "").strip().rstrip("/")
-                supabase_key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "").strip()
-
-                if not supabase_url or not supabase_key:
-                    logger.error("Supabase env vars not configured")
-                    resp = JSONResponse(
-                        {"error": "Supabase not configured"},
-                        status_code=500
-                    )
-                    resp.headers["Access-Control-Allow-Origin"] = "*"
-                    return resp
-
-                # Verify with Supabase (using fresh session)
-                async with session.get(
-                    f"{supabase_url}/auth/v1/user",
-                    headers={
-                        "Authorization": f"Bearer {bearer_token}",
-                        "apikey": supabase_key
-                    },
-                ) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        logger.error(f"Supabase verification failed ({resp.status}): {error_text}")
-                        json_resp = JSONResponse(
-                            {"error": "Invalid Supabase token", "details": error_text},
-                            status_code=401
-                        )
-                        json_resp.headers["Access-Control-Allow-Origin"] = "*"
-                        return json_resp
-                    user = await resp.json()
-
-                # Complete OAuth with WorkOS
+                # Complete OAuth with WorkOS using pending_authentication_token
                 workos_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").strip().rstrip("/")
                 workos_key = os.getenv("WORKOS_API_KEY", "").strip()
 
@@ -211,12 +144,13 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
 
-                logger.info(f"Completing WorkOS OAuth for user {user.get('email')}")
+                logger.info(f"Completing WorkOS OAuth with pending_authentication_token")
 
-                complete_url = f"{workos_url}/authkit/oauth2/complete"
+                # Use WorkOS complete endpoint with pending_authentication_token
+                complete_url = f"{workos_url}/user_management/authenticate"
                 payload = {
-                    "external_auth_id": external_auth_id,
-                    "user": {"id": user["id"], "email": user["email"]},
+                    "pending_authentication_token": pending_auth_token,
+                    "grant_type": "urn:workos:oauth:grant-type:organization-selection"
                 }
 
                 async with session.post(
@@ -238,23 +172,27 @@ class PersistentAuthKitProvider(AuthKitProvider):
                         return json_resp
                     result = await resp.json()
 
-                # OAuth complete - redirect browser to client callback
-                logger.info(f"✅ OAuth complete for user {user['id']}")
+                # OAuth complete - extract user and redirect to client
+                user_data = result.get("user", {})
+                logger.info(f"✅ OAuth complete for user {user_data.get('email')}")
+                logger.info(f"   WorkOS result: {list(result.keys())}")
 
-                redirect_uri = result.get("redirect_uri")
-                if redirect_uri:
-                    logger.info(f"🔄 Redirecting to client callback: {redirect_uri}")
+                # Get redirect_uri from form data or WorkOS result
+                final_redirect_uri = redirect_uri or result.get("redirect_uri")
+
+                if final_redirect_uri:
+                    logger.info(f"🔄 Redirecting to client callback: {final_redirect_uri}")
                     # IMPORTANT: Must use 302 redirect to send browser back to client's callback
-                    redirect_resp = RedirectResponse(url=redirect_uri, status_code=302)
+                    redirect_resp = RedirectResponse(url=final_redirect_uri, status_code=302)
                     redirect_resp.headers["Access-Control-Allow-Origin"] = "*"
                     return redirect_resp
                 else:
                     # Fallback if no redirect_uri
-                    logger.warning("No redirect_uri from WorkOS")
+                    logger.warning("No redirect_uri available")
                     json_resp = JSONResponse({
                         "success": True,
                         "message": "OAuth complete but no redirect_uri",
-                        "user_id": user["id"]
+                        "user": user_data
                     })
                     json_resp.headers["Access-Control-Allow-Origin"] = "*"
                     return json_resp
