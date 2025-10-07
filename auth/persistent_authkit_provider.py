@@ -189,17 +189,10 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     return redirect_resp
                 else:
                     # Fallback if no redirect_uri
+                    logger.warning("No redirect_uri from WorkOS")
                     json_resp = JSONResponse({
                         "success": True,
                         "message": "OAuth complete but no redirect_uri",
-                        "user_id": user["id"]
-                    })
-                    json_resp.headers["Access-Control-Allow-Origin"] = "*"
-                    return json_resp
-                else:
-                    # Fallback: return JSON
-                    json_resp = JSONResponse({
-                        "success": True,
                         "user_id": user["id"]
                     })
                     json_resp.headers["Access-Control-Allow-Origin"] = "*"
