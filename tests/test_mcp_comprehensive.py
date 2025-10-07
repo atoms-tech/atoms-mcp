@@ -58,7 +58,7 @@ class OAuthURLCapture(logging.Handler):
                     break
 
 
-async def automate_oauth_login(oauth_url: str) -> bool:
+async def automate_oauth_login(oauth_url: str, vercel_log_file: str = None) -> bool:
     """Automate OAuth login using Playwright (visible browser).
 
     OAuth Flow:
@@ -732,8 +732,8 @@ async def main():
         sys_module.stderr = original_stderr
 
         if oauth_url_captured:
-            # Start Playwright automation
-            automation_task = asyncio.create_task(automate_oauth_login(oauth_url_captured))
+            # Start Playwright automation with log file reference
+            automation_task = asyncio.create_task(automate_oauth_login(oauth_url_captured, vercel_log_file))
 
             # Wait for both to complete
             results = await asyncio.gather(auth_task, automation_task, return_exceptions=True)
