@@ -92,62 +92,79 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     logger.error("❌ WORKOS_API_KEY not configured")
                     return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
 
-                # Extract user from Supabase cookies
-                logger.info(f"📡 Extracting user from Supabase cookies...")
-                all_cookies = request.cookies
-                logger.info(f"   Available cookies: {list(all_cookies.keys())}")
+                # Try to decode pending_authentication_token to get user info
+                logger.info(f"📡 Attempting to decode pending_authentication_token...")
 
                 user_info = None
-                supabase_token = None
+                external_auth_id = None
 
-                for cookie_name, cookie_value in all_cookies.items():
-                    if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
-                        try:
-                            import json
-                            cookie_data = json.loads(cookie_value)
+                # Try decoding as JWT
+                try:
+                    import jwt
+                    decoded = jwt.decode(pending_auth_token, options={"verify_signature": False})
+                    logger.info(f"✅ Decoded token: {list(decoded.keys())}")
+                    user_info = decoded.get("user")
+                    external_auth_id = decoded.get("external_auth_id") or decoded.get("sub")
+                except Exception as e:
+                    logger.info(f"   Token not a JWT: {e}")
 
-                            # Supabase cookie format: [{"access_token": "...", "user": {...}}] or {"access_token": "...", "user": {...}}
-                            if isinstance(cookie_data, list) and len(cookie_data) > 0:
-                                user_info = cookie_data[0].get('user')
-                                supabase_token = cookie_data[0].get('access_token')
-                            elif isinstance(cookie_data, dict):
-                                user_info = cookie_data.get('user')
-                                supabase_token = cookie_data.get('access_token')
-
-                            if user_info:
-                                logger.info(f"✅ Found user in cookie: {cookie_name}")
-                                logger.info(f"   User email: {user_info.get('email')}")
-                                break
-                        except Exception as e:
-                            logger.info(f"   Cookie {cookie_name} not JSON: {e}")
-                            continue
-
+                # If no user from token, try cookies
                 if not user_info:
-                    logger.error("❌ No Supabase user in cookies")
-                    logger.error(f"   Checked cookies: {list(all_cookies.keys())}")
-                    return JSONResponse(
-                        {"error": "User not authenticated", "details": "No Supabase user found in cookies"},
-                        status_code=401
-                    )
+                    logger.info(f"   Checking cookies for user info...")
+                    all_cookies = request.cookies
+                    logger.info(f"   Available cookies: {list(all_cookies.keys())}")
 
-                # Complete AuthKit OAuth with user info
+                    for cookie_name, cookie_value in all_cookies.items():
+                        if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
+                            try:
+                                import json
+                                cookie_data = json.loads(cookie_value)
+                                if isinstance(cookie_data, list) and len(cookie_data) > 0:
+                                    user_info = cookie_data[0].get('user')
+                                elif isinstance(cookie_data, dict):
+                                    user_info = cookie_data.get('user')
+
+                                if user_info:
+                                    logger.info(f"✅ Found user in cookie: {cookie_name}")
+                                    break
+                            except:
+                                continue
+
+                # If still no user, use query params or create placeholder
+                if not user_info:
+                    logger.warning("⚠️  No user in token or cookies, using query params or placeholder")
+                    # Check query params
+                    user_email = request.query_params.get("email")
+                    user_id = request.query_params.get("user_id")
+
+                    if user_email and user_id:
+                        user_info = {"id": user_id, "email": user_email}
+                        external_auth_id = user_id
+                        logger.info(f"✅ Got user from query params")
+                    else:
+                        logger.error("❌ Cannot determine user identity")
+                        return JSONResponse(
+                            {"error": "User identity required", "details": "No user in token, cookies, or query params"},
+                            status_code=401
+                        )
+
+                # Complete AuthKit OAuth
                 logger.info(f"📡 Completing AuthKit OAuth...")
 
                 complete_url = f"{workos_url}/authkit/oauth2/complete"
                 payload = {
                     "pending_authentication_token": pending_auth_token,
-                    "external_auth_id": user_info.get("id"),  # Supabase user ID
+                    "external_auth_id": external_auth_id or user_info.get("id"),
                     "user": {
                         "id": user_info.get("id"),
                         "email": user_info.get("email"),
-                        "first_name": user_info.get("user_metadata", {}).get("first_name"),
-                        "last_name": user_info.get("user_metadata", {}).get("last_name")
+                        "first_name": user_info.get("user_metadata", {}).get("first_name") if user_info.get("user_metadata") else None,
+                        "last_name": user_info.get("user_metadata", {}).get("last_name") if user_info.get("user_metadata") else None
                     }
                 }
 
                 logger.info(f"   Calling: {complete_url}")
-                logger.info(f"   external_auth_id: {user_info.get('id')}")
-                logger.info(f"   user email: {user_info.get('email')}")
+                logger.info(f"   Payload keys: {list(payload.keys())}")
 
                 async with session.post(
                     complete_url,
