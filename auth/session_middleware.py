@@ -46,7 +46,16 @@ class SessionMiddleware(BaseHTTPMiddleware):
             import jwt as pyjwt
             try:
                 decoded = pyjwt.decode(jwt_token, options={"verify_signature": False})
-                user_id = decoded.get('sub')
+                logger.info(f"🔧 Decoded JWT claims: {list(decoded.keys())}")
+                logger.info(f"   Token first 20 chars: {jwt_token[:20]}...")
+
+                # Try multiple claim names for user_id
+                user_id = (
+                    decoded.get('sub') or
+                    decoded.get('user_id') or
+                    decoded.get('id') or
+                    decoded.get('user', {}).get('id')
+                )
 
                 if user_id:
                     # Store user context from JWT claims
@@ -56,16 +65,19 @@ class SessionMiddleware(BaseHTTPMiddleware):
                         "access_token": jwt_token,
                         "user": {
                             "id": user_id,
-                            "email": decoded.get('email'),
+                            "email": decoded.get('email') or decoded.get('user', {}).get('email'),
                             "role": decoded.get('role', 'authenticated')
                         }
                     }
 
-                    logger.debug(f"✅ Set user context from JWT for user {user_id}")
+                    logger.info(f"✅ Set user context from JWT for user {user_id}")
                 else:
-                    logger.warning("No user_id in JWT")
+                    logger.warning(f"⚠️  No user_id in JWT claims: {list(decoded.keys())}")
+                    logger.warning(f"   Full claims: {decoded}")
             except Exception as e:
-                logger.error(f"Failed to decode JWT: {e}")
+                logger.error(f"❌ Failed to decode JWT: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
 
         # Check if MCP endpoint requires auth
         if request.url.path.startswith("/api/mcp") and not request.url.path.startswith("/api/mcp/auth"):
