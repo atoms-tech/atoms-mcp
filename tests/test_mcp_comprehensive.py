@@ -92,21 +92,31 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             await page.goto(oauth_url)
             await asyncio.sleep(2)
 
-            # Check for existing errors on page
-            page_content = await page.content()
-            if "Failed to complete AuthKit flow" in page_content:
-                print("   ❌ ERROR DETECTED on login page:")
-                if "500" in page_content:
-                    print("      → 500 Internal Server Error")
-                elif "404" in page_content:
-                    print("      → 404 Not Found - /auth/complete endpoint missing")
-                elif "302" in page_content:
-                    print("      → 302 Redirect error")
-                print("      → Check that /auth/complete endpoint is properly configured")
-                await page.screenshot(path="login_error.png")
-                print("      → Screenshot saved to login_error.png")
-                await browser.close()
-                return False
+            # Check for existing errors on page using accessibility snapshot
+            try:
+                from mcp__playwright__browser_snapshot import browser_snapshot
+                snapshot = await browser_snapshot()
+                snapshot_text = str(snapshot)
+
+                if "Failed to complete AuthKit flow" in snapshot_text:
+                    print("   ❌ ERROR DETECTED on login page:")
+                    if "500" in snapshot_text:
+                        print("      → 500 Internal Server Error")
+                    elif "404" in snapshot_text:
+                        print("      → 404 Not Found - /auth/complete endpoint missing")
+                    elif "302" in snapshot_text:
+                        print("      → 302 Redirect error")
+                    print("      → Check that /auth/complete endpoint is properly configured")
+                    print(f"\n📸 Page snapshot:\n{snapshot_text[:500]}")
+                    await browser.close()
+                    return False
+            except ImportError:
+                # Fallback to page.content() if MCP tools not available
+                page_content = await page.content()
+                if "Failed to complete AuthKit flow" in page_content:
+                    print("   ❌ ERROR DETECTED on login page")
+                    await browser.close()
+                    return False
 
             # Step 2: Fill in credentials
             print("\n📝 Step 2: Filling in credentials...")
@@ -129,21 +139,30 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             print("\n⏳ Step 4: Waiting for response after sign in...")
             await asyncio.sleep(3)
 
-            # Check for errors after login attempt
-            page_content = await page.content()
-            if "Failed to complete AuthKit flow" in page_content:
-                print("   ❌ LOGIN ERROR DETECTED after sign in:")
-                if "500" in page_content:
-                    print("      → 500 Internal Server Error at /auth/complete")
-                elif "404" in page_content:
-                    print("      → 404 Not Found - /auth/complete endpoint not found")
-                elif "302" in page_content:
-                    print("      → 302 Redirect loop or misconfiguration")
+            # Check for errors after login attempt using snapshot
+            try:
+                from mcp__playwright__browser_snapshot import browser_snapshot
+                snapshot = await browser_snapshot()
+                snapshot_text = str(snapshot)
 
-                await page.screenshot(path="login_error_after_submit.png")
-                print("      → Screenshot saved to login_error_after_submit.png")
-                await browser.close()
-                return False
+                if "Failed to complete AuthKit flow" in snapshot_text:
+                    print("   ❌ LOGIN ERROR DETECTED after sign in:")
+                    if "500" in snapshot_text or "530" in snapshot_text:
+                        print("      → 500/530 Internal Server Error at /auth/complete")
+                    elif "404" in snapshot_text:
+                        print("      → 404 Not Found - /auth/complete endpoint not found")
+                    elif "302" in snapshot_text:
+                        print("      → 302 Redirect loop or misconfiguration")
+
+                    print(f"\n📸 Error page snapshot:\n{snapshot_text[:800]}")
+                    await browser.close()
+                    return False
+            except ImportError:
+                page_content = await page.content()
+                if "Failed to complete AuthKit flow" in page_content:
+                    print("   ❌ LOGIN ERROR DETECTED")
+                    await browser.close()
+                    return False
 
             print("   ✅ No errors detected, proceeding to Allow page...")
             await asyncio.sleep(1)
