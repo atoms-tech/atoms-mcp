@@ -67,13 +67,42 @@ class PersistentAuthKitProvider(AuthKitProvider):
             session = _create_http_session()
 
             try:
-                # Get request data
+                # Log request details for debugging
+                logger.info(f"🔧 /auth/complete called")
+                logger.info(f"   Method: {request.method}")
+                logger.info(f"   Content-Type: {request.headers.get('content-type')}")
+                logger.info(f"   Headers: {dict(request.headers)}")
+
+                # Get request data - try both form and JSON
+                data = {}
+
+                # Try form data first (browser POST from AuthKit)
                 try:
-                    data = await request.json()
-                except Exception as e:
-                    logger.error(f"Failed to parse request body: {e}")
+                    form_data = await request.form()
+                    data = {k: v for k, v in form_data.items()}
+                    if data:
+                        logger.info(f"✅ Parsed form data: {list(data.keys())}")
+                except Exception as form_error:
+                    logger.info(f"   No form data: {form_error}")
+
+                # Try JSON if no form data
+                if not data:
+                    try:
+                        data = await request.json()
+                        logger.info(f"✅ Parsed JSON data: {list(data.keys())}")
+                    except Exception as json_error:
+                        logger.info(f"   No JSON data: {json_error}")
+
+                # Try query params as last resort
+                if not data:
+                    data = {k: v for k, v in request.query_params.items()}
+                    if data:
+                        logger.info(f"✅ Got data from query params: {list(data.keys())}")
+
+                if not data:
+                    logger.error(f"❌ No data in request (form, JSON, or query params)")
                     resp = JSONResponse(
-                        {"error": "Invalid request body", "details": str(e)},
+                        {"error": "No data provided", "details": "Expected external_auth_id in form, JSON, or query params"},
                         status_code=400
                     )
                     resp.headers["Access-Control-Allow-Origin"] = "*"
