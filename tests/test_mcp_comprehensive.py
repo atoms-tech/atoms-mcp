@@ -139,51 +139,39 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             print("\n⏳ Step 4: Waiting for response after sign in...")
             await asyncio.sleep(3)
 
-            # Check for errors after login attempt using snapshot
-            try:
-                from mcp__playwright__browser_snapshot import browser_snapshot
-                from mcp__playwright__browser_console_messages import browser_console_messages
+            # Check for errors using native Playwright (not MCP tools)
+            page_content = await page.content()
 
-                snapshot = await browser_snapshot()
-                snapshot_text = str(snapshot)
+            if "Failed to complete AuthKit flow" in page_content:
+                print("   ❌ LOGIN ERROR DETECTED after sign in:")
 
-                if "Failed to complete AuthKit flow" in snapshot_text:
-                    print("   ❌ LOGIN ERROR DETECTED after sign in:")
-                    if "500" in snapshot_text or "530" in snapshot_text:
-                        print("      → 500/530 Internal Server Error at /auth/complete")
-                    elif "404" in snapshot_text:
-                        print("      → 404 Not Found - /auth/complete endpoint not found")
-                    elif "302" in snapshot_text:
-                        print("      → 302 Redirect loop or misconfiguration")
+                # Detect error type
+                if "530" in page_content:
+                    print("      → 530 Internal Server Error")
+                elif "500" in page_content:
+                    print("      → 500 Internal Server Error")
+                elif "404" in page_content:
+                    print("      → 404 Not Found")
+                elif "302" in page_content:
+                    print("      → 302 Redirect error")
 
-                    print(f"\n📸 Page snapshot (accessibility tree):")
-                    print(snapshot_text[:1000])
+                # Get page text content
+                print(f"\n📸 Page content (first 800 chars):")
+                text_content = await page.text_content('body')
+                print(text_content[:800] if text_content else "(empty)")
 
-                    # Get browser console logs
-                    print(f"\n📋 Collecting browser console logs...")
-                    try:
-                        console_logs = await browser_console_messages(onlyErrors=True)
-                        print(f"   ✅ Console logs collected")
-                        if console_logs:
-                            print(console_logs)
-                        else:
-                            print("   (no console errors)")
-                    except Exception as e:
-                        print(f"   ❌ Could not get console logs: {e}")
+                # Get console logs using native Playwright
+                print(f"\n📋 Browser console logs:")
+                # Console messages are captured via page.on("console") - skip for now
+                print(f"   (use visible browser mode to see console in DevTools)")
 
-                    # Skip Vercel log collection (hangs)
-                    print(f"\n📡 Vercel server logs:")
-                    print(f"   → Run manually: vercel logs https://mcp.atoms.tech")
-                    print(f"   → Or check Vercel dashboard for /auth/complete errors")
+                # Skip Vercel log collection
+                print(f"\n📡 Vercel server logs:")
+                print(f"   → Run: vercel logs https://mcp.atoms.tech")
+                print(f"   → Look for /auth/complete errors")
 
-                    await browser.close()
-                    return False
-            except ImportError:
-                page_content = await page.content()
-                if "Failed to complete AuthKit flow" in page_content:
-                    print("   ❌ LOGIN ERROR DETECTED")
-                    await browser.close()
-                    return False
+                await browser.close()
+                return False
 
             print("   ✅ No errors detected, proceeding to Allow page...")
             await asyncio.sleep(1)
