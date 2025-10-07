@@ -12,6 +12,7 @@ import hashlib
 from typing import Dict, List, Optional, NamedTuple
 import os
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -94,14 +95,57 @@ class VertexAIEmbeddingService:
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Vertex AI: {e}")
 
+        # In-memory cache
         self.cache: Dict[str, EmbeddingResult] = {}
         self.cache_size = cache_size
+
+        # Persistent cache file for backfill reuse
+        self.persistent_cache_file = Path.home() / ".atoms_embedding_cache.json"
+        self._load_persistent_cache()
+
         # Only gemini-embedding-001 is supported
         self.default_model = "gemini-embedding-001"
         self.large_model = self.default_model
         # Cache the model instance to avoid reloading on every call
         self._model_instance = None
-    
+
+    def _load_persistent_cache(self):
+        """Load cache from disk if it exists."""
+        if self.persistent_cache_file.exists():
+            try:
+                import json
+                with open(self.persistent_cache_file, 'r') as f:
+                    data = json.load(f)
+                    # Convert back to EmbeddingResult objects
+                    for key, val in data.items():
+                        self.cache[key] = EmbeddingResult(
+                            embedding=val['embedding'],
+                            tokens_used=val.get('tokens_used', 0),
+                            model=val.get('model', self.default_model),
+                            cached=True
+                        )
+                logger.info(f"✅ Loaded {len(self.cache)} cached embeddings from disk")
+            except Exception as e:
+                logger.warning(f"Failed to load persistent cache: {e}")
+
+    def _save_persistent_cache(self):
+        """Save cache to disk."""
+        try:
+            import json
+            # Convert to JSON-serializable format
+            data = {}
+            for key, result in self.cache.items():
+                data[key] = {
+                    'embedding': result.embedding,
+                    'tokens_used': result.tokens_used,
+                    'model': result.model
+                }
+            with open(self.persistent_cache_file, 'w') as f:
+                json.dump(data, f)
+            logger.debug(f"💾 Saved {len(data)} embeddings to persistent cache")
+        except Exception as e:
+            logger.warning(f"Failed to save persistent cache: {e}")
+
     def _get_cache_key(self, text: str, model: str) -> str:
         """Generate cache key for text and model."""
         content = f"{model}:{text}"
@@ -172,6 +216,10 @@ class VertexAIEmbeddingService:
             if use_cache:
                 self.cache[cache_key] = result
                 self._manage_cache_size()
+
+                # Periodically save to disk (every 100 new embeddings)
+                if len(self.cache) % 100 == 0:
+                    self._save_persistent_cache()
 
             return result
 
