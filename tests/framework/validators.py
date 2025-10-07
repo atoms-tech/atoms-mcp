@@ -44,6 +44,64 @@ class ResponseValidator:
         """Validate standard success response."""
         return result.get("success", False) and result.get("error") is None
 
+    @staticmethod
+    def extract_id(response: Dict[str, Any]) -> Optional[str]:
+        """Extract ID from response, handling multiple formats."""
+        if not isinstance(response, dict):
+            return None
+        if "id" in response:
+            return response["id"]
+        if "data" in response and isinstance(response["data"], dict):
+            return response["data"].get("id")
+        return None
+
+    @staticmethod
+    async def get_existing_entity_id(client, entity_type: str) -> Optional[str]:
+        """Get an existing entity ID from list operation.
+
+        Returns the ID of the first entity of the given type, or None if none exist.
+        """
+        list_result = await client.call_tool("entity_tool", {
+            "entity_type": entity_type,
+            "operation": "list",
+            "limit": 1
+        })
+
+        if not list_result.get("success"):
+            return None
+
+        entities = list_result.get("response", {}).get("data", [])
+        if not entities:
+            return None
+
+        return entities[0].get("id")
+
+    @staticmethod
+    async def create_test_entity(client, entity_type: str, data_generator_func) -> Optional[str]:
+        """Create test entity and return ID, or None if create fails.
+
+        This helper ensures proper CREATE→OPERATE→DELETE pattern with skip propagation.
+
+        Args:
+            client: MCP client
+            entity_type: Type of entity to create
+            data_generator_func: Function that returns entity data dict
+
+        Returns:
+            entity_id if create succeeded, None if failed (caller should skip/return)
+        """
+        data = data_generator_func()
+        create_result = await client.call_tool("entity_tool", {
+            "entity_type": entity_type,
+            "operation": "create",
+            "data": data
+        })
+
+        if not create_result.get("success"):
+            return None
+
+        return ResponseValidator.extract_id(create_result.get("response", {}))
+
 
 class FieldValidator:
     """Validates specific field types and values."""
@@ -81,24 +139,3 @@ class FieldValidator:
             return True
         except:
             return False
-
-    @staticmethod
-    def extract_id(response: Dict[str, Any]) -> Optional[str]:
-        """Extract ID from response, handling multiple formats.
-        
-        Handles:
-        - {"id": "..."}
-        - {"data": {"id": "..."}}
-        """
-        if not isinstance(response, dict):
-            return None
-        
-        # Direct id field
-        if "id" in response:
-            return response["id"]
-        
-        # Nested in data
-        if "data" in response and isinstance(response["data"], dict):
-            return response["data"].get("id")
-        
-        return None

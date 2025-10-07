@@ -15,7 +15,7 @@ class DataGenerator:
     @staticmethod
     def timestamp() -> str:
         """Generate timestamp string for unique identifiers."""
-        return datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        return datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]
 
     @staticmethod
     def unique_id(prefix: str = "") -> str:
@@ -31,33 +31,38 @@ class DataGenerator:
     @staticmethod
     def organization_data(name: Optional[str] = None) -> Dict[str, Any]:
         """Generate organization test data."""
-        unique = DataGenerator.unique_id()
+        import uuid
+        # Use UUID for guaranteed unique, valid slug
+        unique_slug = str(uuid.uuid4())[:8]  # First 8 chars of UUID (lowercase hex)
         return {
-            "name": name or f"Test Org {unique}",
-            "slug": f"test-org-{unique}",
-            "description": f"Automated test organization created at {unique}",
+            "name": name or f"Test Org {unique_slug}",
+            "slug": f"testorg-{unique_slug}",  # Valid slug: starts with letter, has hyphens
+            "description": f"Automated test organization",
             "type": "team",
         }
 
     @staticmethod
     def project_data(name: Optional[str] = None, organization_id: str = "auto") -> Dict[str, Any]:
         """Generate project test data."""
-        unique = DataGenerator.unique_id()
+        import uuid
+        unique_slug = str(uuid.uuid4())[:8]
         return {
-            "name": name or f"Test Project {unique}",
+            "name": name or f"Test Project {unique_slug}",
+            "slug": f"testproject-{unique_slug}",
             "organization_id": organization_id,
-            "description": f"Automated test project created at {unique}",
+            "description": f"Automated test project",
         }
 
     @staticmethod
     def document_data(name: Optional[str] = None, project_id: str = "auto") -> Dict[str, Any]:
         """Generate document test data."""
-        unique = DataGenerator.unique_id()
+        import uuid
+        unique_slug = str(uuid.uuid4())[:8]
         return {
-            "name": name or f"Test Document {unique}",
+            "name": name or f"Test Document {unique_slug}",
+            "slug": f"testdocument-{unique_slug}",
             "project_id": project_id,
-            "description": f"Automated test document created at {unique}",
-            "type": "specification",
+            "description": f"Automated test document",
         }
 
     @staticmethod
