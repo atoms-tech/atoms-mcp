@@ -62,12 +62,29 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 print(f"   Token first 20 chars: {jwt_token[:20]}...")  # Force print
 
                 # Try multiple claim names for user_id
+                # AuthKit/Supabase JWTs may use different claim names
                 user_id = (
-                    decoded.get('sub') or
-                    decoded.get('user_id') or
-                    decoded.get('id') or
-                    decoded.get('user', {}).get('id')
+                    decoded.get('sub') or           # Standard JWT claim
+                    decoded.get('user_id') or       # Custom claim
+                    decoded.get('id') or            # Alternative
+                    decoded.get('user', {}).get('id') or  # Nested user object
+                    decoded.get('uid')              # Supabase uses 'uid' in some contexts
                 )
+
+                # If still no user_id, log what we have and use role claim as fallback
+                if not user_id:
+                    print(f"⚠️  No standard user_id claim found")
+                    print(f"   Available claims: {list(decoded.keys())}")
+                    print(f"   Full JWT: {decoded}")
+
+                    # For AuthKit/Supabase, the 'sub' should be the user ID
+                    # If it's missing, we can't authenticate
+                    if decoded.get('role') == 'authenticated':
+                        # This is a valid authenticated token, just missing user identifier
+                        # Use a hash of the token as user_id for now
+                        import hashlib
+                        user_id = f"jwt_{hashlib.sha256(jwt_token.encode()).hexdigest()[:16]}"
+                        print(f"   Using token hash as user_id: {user_id}")
 
                 if user_id:
                     # Store user context from JWT claims
