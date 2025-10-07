@@ -665,12 +665,44 @@ class ComprehensiveMCPTests:
 
 
 async def main():
-    """Main runner with Playwright automation."""
+    """Main runner with Playwright automation and live log capture."""
     print("=" * 80)
     print("ATOMS MCP COMPREHENSIVE TEST SUITE (AUTOMATED)")
     print(f"Endpoint: {MCP_ENDPOINT}")
     print(f"Email: {TEST_EMAIL}")
     print("=" * 80)
+
+    # Start Vercel log streaming in background BEFORE tests
+    print("\n📡 Starting Vercel log stream...")
+    vercel_log_file = f"vercel_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    vercel_proc = None
+
+    try:
+        vercel_proc = await asyncio.create_subprocess_exec(
+            "vercel", "logs", "https://mcp.atoms.tech",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        print(f"   ✅ Log stream started (PID: {vercel_proc.pid})")
+        print(f"   📝 Logs will be saved to: {vercel_log_file}")
+
+        # Collect logs in background
+        async def collect_logs():
+            """Continuously collect Vercel logs."""
+            with open(vercel_log_file, 'w') as f:
+                while True:
+                    line = await vercel_proc.stdout.readline()
+                    if not line:
+                        break
+                    f.write(line.decode('utf-8'))
+                    f.flush()
+
+        log_task = asyncio.create_task(collect_logs())
+
+    except Exception as e:
+        print(f"   ⚠️  Could not start Vercel logs: {e}")
+        print(f"   Tests will continue without live log capture")
+        vercel_proc = None
 
     # Capture stderr to extract OAuth URL
     import io
@@ -757,6 +789,46 @@ async def main():
         import traceback
         traceback.print_exc()
         return 1
+
+    finally:
+        # Stop Vercel log stream and display captured logs
+        if vercel_proc:
+            print("\n" + "="*80)
+            print("VERCEL SERVER LOGS")
+            print("="*80)
+
+            # Kill the log stream
+            vercel_proc.kill()
+            await asyncio.sleep(1)
+
+            # Read and display relevant logs
+            try:
+                if os.path.exists(vercel_log_file):
+                    with open(vercel_log_file, 'r') as f:
+                        all_logs = f.read()
+
+                    # Filter for relevant logs
+                    relevant_logs = []
+                    for line in all_logs.split('\n'):
+                        if any(keyword in line for keyword in [
+                            'auth/complete', '🔧', '❌', '✅', 'JWT', 'Decoded',
+                            'user_id', 'pending_authentication', '/api/mcp', '401', '500', '530'
+                        ]):
+                            relevant_logs.append(line)
+
+                    if relevant_logs:
+                        print(f"\n📋 Captured {len(relevant_logs)} relevant log entries:")
+                        for log in relevant_logs[-30:]:  # Last 30 relevant logs
+                            print(log)
+                    else:
+                        print("\n⚠️  No relevant logs captured")
+
+                    print(f"\n📄 Full logs saved to: {vercel_log_file}")
+                else:
+                    print("\n⚠️  Log file not created")
+
+            except Exception as e:
+                print(f"\n❌ Error reading logs: {e}")
 
 
 if __name__ == "__main__":
