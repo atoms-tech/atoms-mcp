@@ -16,17 +16,29 @@ from starlette.routing import Route
 logger = logging.getLogger(__name__)
 
 
-# Global aiohttp session for connection pooling across requests
-_http_session: Optional[aiohttp.ClientSession] = None
+# Vercel serverless: create fresh session per request to avoid event loop issues
+# No global session - each request gets its own lifecycle
+def _create_http_session() -> aiohttp.ClientSession:
+    """Create fresh aiohttp session for this request (Vercel-safe pattern).
 
-
-def _get_http_session() -> aiohttp.ClientSession:
-    """Get shared aiohttp session with connection pooling."""
-    global _http_session
-    if _http_session is None or _http_session.closed:
-        connector = aiohttp.TCPConnector(limit=100, limit_per_host=30, ttl_dns_cache=300)
-        _http_session = aiohttp.ClientSession(connector=connector)
-    return _http_session
+    Vercel serverless functions have ephemeral event loops.
+    Creating a new session per request prevents:
+    - Event loop closed errors
+    - Connection pool exhaustion
+    - Stale connection reuse across cold starts
+    """
+    connector = aiohttp.TCPConnector(
+        limit=10,  # Lower limit for serverless (short-lived)
+        limit_per_host=5,
+        ttl_dns_cache=60,  # Shorter TTL for serverless
+        force_close=True  # Clean closure for serverless
+    )
+    timeout = aiohttp.ClientTimeout(total=30, connect=10)
+    return aiohttp.ClientSession(
+        connector=connector,
+        timeout=timeout,
+        raise_for_status=False  # Manual status checking
+    )
 
 
 class PersistentAuthKitProvider(AuthKitProvider):
@@ -46,7 +58,14 @@ class PersistentAuthKitProvider(AuthKitProvider):
 
         # Add custom OAuth completion endpoint
         async def session_aware_auth_complete(request):
-            """Handle OAuth completion and redirect to client."""
+            """Handle OAuth completion and redirect to client.
+
+            Vercel-optimized: Creates fresh aiohttp session per request
+            to avoid event loop closure issues in serverless environments.
+            """
+            # Create fresh session for this request (Vercel serverless pattern)
+            session = _create_http_session()
+
             try:
                 # Get request data
                 try:
@@ -99,7 +118,7 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     resp.headers["Access-Control-Allow-Origin"] = "*"
                     return resp
 
-                session = _get_http_session()
+                # Verify with Supabase (using fresh session)
                 async with session.get(
                     f"{supabase_url}/auth/v1/user",
                     headers={
@@ -158,15 +177,25 @@ class PersistentAuthKitProvider(AuthKitProvider):
                         return json_resp
                     result = await resp.json()
 
-                # OAuth complete - redirect to client callback
+                # OAuth complete - redirect browser to client callback
                 logger.info(f"✅ OAuth complete for user {user['id']}")
 
                 redirect_uri = result.get("redirect_uri")
                 if redirect_uri:
                     logger.info(f"🔄 Redirecting to client callback: {redirect_uri}")
+                    # IMPORTANT: Must use 302 redirect to send browser back to client's callback
                     redirect_resp = RedirectResponse(url=redirect_uri, status_code=302)
                     redirect_resp.headers["Access-Control-Allow-Origin"] = "*"
                     return redirect_resp
+                else:
+                    # Fallback if no redirect_uri
+                    json_resp = JSONResponse({
+                        "success": True,
+                        "message": "OAuth complete but no redirect_uri",
+                        "user_id": user["id"]
+                    })
+                    json_resp.headers["Access-Control-Allow-Origin"] = "*"
+                    return json_resp
                 else:
                     # Fallback: return JSON
                     json_resp = JSONResponse({
@@ -187,6 +216,10 @@ class PersistentAuthKitProvider(AuthKitProvider):
                 }, status_code=500)
                 resp.headers["Access-Control-Allow-Origin"] = "*"
                 return resp
+            finally:
+                # Always close session to prevent event loop issues (Vercel serverless)
+                if session and not session.closed:
+                    await session.close()
 
         # Handle OPTIONS for CORS
         async def auth_complete_options(request):
