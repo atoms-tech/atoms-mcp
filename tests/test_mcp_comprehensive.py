@@ -148,14 +148,23 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             print("   ✅ No errors detected, proceeding to Allow page...")
             await asyncio.sleep(1)
 
-            # Step 5: Click "Allow" button on AuthKit consent page
-            print("\n🖱️  Step 5: Clicking 'Allow' on AuthKit consent page...")
+            # Step 5: Wait for "Allow access" button to be enabled
+            print("\n🖱️  Step 5: Waiting for 'Allow access' button to be enabled...")
             try:
-                # Wait for and click Allow button
-                await page.click('button:has-text("Allow"), button:has-text("Authorize"), button[type="submit"]', timeout=5000)
-                print("   ✅ Clicked Allow")
+                # The button starts disabled, wait for it to be enabled
+                allow_button = 'button[value="approve"][type="submit"]:not([disabled])'
+                print(f"   ⏳ Waiting for button to become enabled...")
+                await page.wait_for_selector(allow_button, timeout=10000)
+                print(f"   ✅ Button is now enabled")
+
+                # Click the Allow button
+                await page.click(allow_button)
+                print("   ✅ Clicked 'Allow access'")
             except Exception as e:
-                print(f"   ⚠️  Could not find Allow button: {e}")
+                print(f"   ❌ Could not click Allow button: {e}")
+                print(f"   📸 Taking screenshot...")
+                await page.screenshot(path="allow_button_error.png")
+                print(f"      → Screenshot saved to allow_button_error.png")
 
             # Wait for OAuth callback to complete
             print("\n⏳ Step 6: Waiting for OAuth callback...")
