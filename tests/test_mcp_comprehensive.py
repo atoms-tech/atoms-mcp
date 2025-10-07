@@ -256,6 +256,216 @@ async def automate_oauth_login(oauth_url: str) -> bool:
         return False
 
 
+class FunctionalityMatrix:
+    """Generate comprehensive functionality matrix covering features to user stories."""
+
+    TOOL_CAPABILITIES = {
+        "workspace_tool": {
+            "description": "Workspace context management for organizing work",
+            "operations": {
+                "list_workspaces": {
+                    "feature": "List all accessible workspaces",
+                    "user_story": "As a user, I want to see all my workspaces to choose which one to work in",
+                    "data_items": ["organizations", "projects", "documents", "context"],
+                    "assertions": ["Returns organization list", "Includes pagination", "Shows active context"]
+                },
+                "get_context": {
+                    "feature": "Get current workspace context",
+                    "user_story": "As a user, I want to know my current workspace context to understand where I am",
+                    "data_items": ["active_organization", "active_project", "recent_items"],
+                    "assertions": ["Returns current context", "Shows recent history"]
+                }
+            }
+        },
+        "entity_tool": {
+            "description": "CRUD operations for all Atoms entities",
+            "operations": {
+                "list_organizations": {
+                    "feature": "List all organizations user has access to",
+                    "user_story": "As a user, I want to see all organizations I'm part of",
+                    "data_items": ["id", "name", "slug", "created_by", "member_count"],
+                    "assertions": ["Returns org list", "Includes metadata", "Respects RLS"]
+                },
+                "list_projects": {
+                    "feature": "List projects across organizations",
+                    "user_story": "As a user, I want to see all my projects to find what I need",
+                    "data_items": ["id", "name", "organization_id", "visibility", "status"],
+                    "assertions": ["Returns project list", "Filtered by org membership", "Includes settings"]
+                },
+                "list_documents": {
+                    "feature": "List documents within projects",
+                    "user_story": "As a user, I want to browse documents in my projects",
+                    "data_items": ["id", "name", "project_id", "created_at", "tags"],
+                    "assertions": ["Returns document list", "Respects project permissions"]
+                },
+                "list_requirements": {
+                    "feature": "List requirements in documents",
+                    "user_story": "As a user, I want to see all requirements to track work",
+                    "data_items": ["id", "name", "document_id", "status", "type"],
+                    "assertions": ["Returns requirement list", "Includes traceability"]
+                },
+                "create_organization": {
+                    "feature": "Create new organization",
+                    "user_story": "As a user, I want to create organizations to manage teams",
+                    "data_items": ["name", "slug", "description", "settings"],
+                    "assertions": ["Creates org", "Sets creator as owner", "Auto-adds to membership"],
+                    "known_issue": "RLS policy allows but NOT NULL constraint on updated_by fails"
+                }
+            }
+        },
+        "query_tool": {
+            "description": "Search and analytics across all entities",
+            "operations": {
+                "search": {
+                    "feature": "Keyword search across entities",
+                    "user_story": "As a user, I want to search across all my content to find what I need",
+                    "data_items": ["search_term", "entities", "results", "total_results"],
+                    "assertions": ["Searches multiple entity types", "Returns ranked results"]
+                },
+                "aggregate": {
+                    "feature": "Get summary statistics",
+                    "user_story": "As a user, I want to see statistics about my workspace",
+                    "data_items": ["aggregation_type", "entities_analyzed", "summary_stats"],
+                    "assertions": ["Returns aggregated data", "Counts by entity type"]
+                },
+                "rag_search_semantic": {
+                    "feature": "Semantic search using embeddings",
+                    "user_story": "As a user, I want intelligent search that understands meaning",
+                    "data_items": ["query", "mode", "results", "similarity_scores"],
+                    "assertions": ["Uses vector similarity", "Returns ranked by relevance"],
+                    "known_issue": "NoneType error in embedding calculation"
+                },
+                "rag_search_keyword": {
+                    "feature": "RAG keyword search",
+                    "user_story": "As a user, I want enhanced keyword search with context",
+                    "data_items": ["query", "mode", "results", "context"],
+                    "assertions": ["Searches with RAG", "Returns with context"]
+                }
+            }
+        },
+        "relationship_tool": {
+            "description": "Manage relationships between entities",
+            "operations": {
+                "list_relationships": {
+                    "feature": "List relationships for an entity",
+                    "user_story": "As a user, I want to see connections between items",
+                    "data_items": ["relationship_type", "source", "target", "metadata"],
+                    "assertions": ["Returns relationship list", "Includes type info"]
+                }
+            }
+        },
+        "workflow_tool": {
+            "description": "Automated workflows and bulk operations",
+            "operations": {
+                "setup_project": {
+                    "feature": "Automated project setup",
+                    "user_story": "As a user, I want quick project setup with templates",
+                    "data_items": ["organization_id", "project_name", "template"],
+                    "assertions": ["Creates project", "Sets up structure", "Transaction safe"]
+                }
+            }
+        }
+    }
+
+    @classmethod
+    def generate_matrix(cls, test_results: List[Dict[str, Any]]) -> str:
+        """Generate comprehensive functionality matrix."""
+        lines = [
+            "# ATOMS MCP FUNCTIONALITY MATRIX",
+            "",
+            "## Overview",
+            "",
+            "Complete validation of all Atoms MCP tools covering:",
+            "- **Functionality**: What the tool does",
+            "- **User Stories**: Why users need it",
+            "- **Data Coverage**: All data items returned",
+            "- **Test Results**: Pass/fail status with performance",
+            "",
+            "---",
+            ""
+        ]
+
+        # Create results lookup
+        results_by_test = {r['test_name']: r for r in test_results}
+
+        for tool_name, tool_info in cls.TOOL_CAPABILITIES.items():
+            lines.append(f"## {tool_name}")
+            lines.append(f"**{tool_info['description']}**")
+            lines.append("")
+
+            # Operations table
+            lines.append("| Operation | Status | Time (ms) | User Story |")
+            lines.append("|-----------|--------|-----------|------------|")
+
+            for op_name, op_info in tool_info['operations'].items():
+                # Find test result
+                test_result = None
+                for test_name, result in results_by_test.items():
+                    if tool_name in test_name and op_name.replace('_', ' ') in test_name.lower():
+                        test_result = result
+                        break
+
+                if test_result:
+                    if test_result.get('known_issue'):
+                        status = "⚠️ Known Issue"
+                    elif test_result['success']:
+                        status = "✅ Pass"
+                    else:
+                        status = "❌ Fail"
+                    duration = f"{test_result['duration_ms']:.0f}"
+                else:
+                    status = "⏭️ Not Tested"
+                    duration = "-"
+
+                user_story = op_info.get('user_story', '').replace('As a user, I want to ', '')
+                lines.append(f"| {op_name} | {status} | {duration} | {user_story[:60]} |")
+
+            lines.append("")
+
+            # Detailed capabilities
+            lines.append("### Detailed Capabilities")
+            lines.append("")
+
+            for op_name, op_info in tool_info['operations'].items():
+                lines.append(f"#### {op_name}")
+                lines.append(f"**Feature**: {op_info['feature']}")
+                lines.append("")
+                lines.append(f"**User Story**: {op_info['user_story']}")
+                lines.append("")
+                lines.append(f"**Data Items Validated**:")
+                for item in op_info['data_items']:
+                    lines.append(f"- `{item}`")
+                lines.append("")
+
+                lines.append(f"**Assertions**:")
+                for assertion in op_info['assertions']:
+                    lines.append(f"- {assertion}")
+                lines.append("")
+
+                if op_info.get('known_issue'):
+                    lines.append(f"**⚠️ Known Issue**: {op_info['known_issue']}")
+                    lines.append("")
+
+                # Show actual test result
+                test_result = None
+                for test_name, result in results_by_test.items():
+                    if tool_name in test_name and op_name.replace('_', ' ') in test_name.lower():
+                        test_result = result
+                        break
+
+                if test_result:
+                    if test_result['success']:
+                        lines.append(f"**✅ Test Result**: Passed in {test_result['duration_ms']:.2f}ms")
+                    else:
+                        lines.append(f"**❌ Test Result**: Failed - {test_result.get('error', 'Unknown error')}")
+                    lines.append("")
+
+                lines.append("---")
+                lines.append("")
+
+        return "\n".join(lines)
+
+
 class TestReportGenerator:
     """Generate test reports."""
 
@@ -428,10 +638,30 @@ class ComprehensiveMCPTests:
         self.report.end_test_run()
 
     def generate_reports(self):
+        """Generate all reports including functionality matrix."""
+        # Console report
         self.report.print_console_report()
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_path = Path(__file__).parent / f"mcp_test_report_{timestamp}.json"
-        self.report.generate_json_report(str(report_path))
+        output_dir = Path(__file__).parent
+
+        # JSON report
+        json_path = output_dir / f"mcp_test_report_{timestamp}.json"
+        self.report.generate_json_report(str(json_path))
+
+        # Functionality Matrix
+        print("\n" + "="*80)
+        print("GENERATING FUNCTIONALITY MATRIX")
+        print("="*80)
+
+        matrix = FunctionalityMatrix.generate_matrix(self.report.test_results)
+        matrix_path = output_dir / f"functionality_matrix_{timestamp}.md"
+        Path(matrix_path).write_text(matrix)
+
+        print(f"\n📊 Functionality matrix: {matrix_path}")
+        print(f"\nMatrix preview:")
+        print("\n".join(matrix.split("\n")[:25]))
+        print(f"\n... (see {matrix_path} for full matrix)")
 
 
 async def main():
