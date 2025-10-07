@@ -169,25 +169,9 @@ async def automate_oauth_login(oauth_url: str) -> bool:
 
                     # Get Vercel deployment logs for /auth/complete
                     print(f"\n📡 Fetching Vercel logs for /auth/complete...")
-                    try:
-                        import subprocess
-                        result = subprocess.run(
-                            ["vercel", "logs", "https://mcp.atoms.tech", "--output", "raw"],
-                            capture_output=True,
-                            text=True,
-                            timeout=10
-                        )
-                        logs = result.stdout
-                        # Filter for recent auth/complete calls
-                        auth_logs = [line for line in logs.split('\n') if 'auth/complete' in line.lower()]
-                        if auth_logs:
-                            print("   Recent /auth/complete logs:")
-                            for log in auth_logs[-5:]:  # Last 5 logs
-                                print(f"   {log}")
-                        else:
-                            print("   (no /auth/complete logs found)")
-                    except Exception as e:
-                        print(f"   Could not fetch Vercel logs: {e}")
+                    print(f"   (skipping - run 'vercel logs https://mcp.atoms.tech' manually to see server logs)")
+                    # Skip Vercel logs collection to avoid hanging
+                    # User can run manually: vercel logs https://mcp.atoms.tech
 
                     await browser.close()
                     return False
