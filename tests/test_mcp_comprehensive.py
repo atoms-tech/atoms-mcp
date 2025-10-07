@@ -160,18 +160,21 @@ async def automate_oauth_login(oauth_url: str) -> bool:
                     print(snapshot_text[:1000])
 
                     # Get browser console logs
-                    print(f"\n📋 Browser console logs:")
+                    print(f"\n📋 Collecting browser console logs...")
                     try:
                         console_logs = await browser_console_messages(onlyErrors=True)
-                        print(console_logs if console_logs else "   (no console errors)")
+                        print(f"   ✅ Console logs collected")
+                        if console_logs:
+                            print(console_logs)
+                        else:
+                            print("   (no console errors)")
                     except Exception as e:
-                        print(f"   Could not get console logs: {e}")
+                        print(f"   ❌ Could not get console logs: {e}")
 
-                    # Get Vercel deployment logs for /auth/complete
-                    print(f"\n📡 Fetching Vercel logs for /auth/complete...")
-                    print(f"   (skipping - run 'vercel logs https://mcp.atoms.tech' manually to see server logs)")
-                    # Skip Vercel logs collection to avoid hanging
-                    # User can run manually: vercel logs https://mcp.atoms.tech
+                    # Skip Vercel log collection (hangs)
+                    print(f"\n📡 Vercel server logs:")
+                    print(f"   → Run manually: vercel logs https://mcp.atoms.tech")
+                    print(f"   → Or check Vercel dashboard for /auth/complete errors")
 
                     await browser.close()
                     return False
