@@ -237,9 +237,9 @@ async def automate_oauth_login(oauth_url: str) -> bool:
 
             except Exception as e:
                 print(f"   ❌ Could not click Allow button: {e}")
-                from mcp__playwright__browser_snapshot import browser_snapshot
-                await browser_snapshot()
-                print(f"      → Snapshot captured")
+                # Get page text for debugging
+                text = await page.text_content('body')
+                print(f"      Page text: {text[:300] if text else '(empty)'}")
 
             # Wait for OAuth callback to complete
             print("\n⏳ Step 6: Waiting for OAuth callback...")
