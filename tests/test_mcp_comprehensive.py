@@ -92,6 +92,22 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             await page.goto(oauth_url)
             await asyncio.sleep(2)
 
+            # Check for existing errors on page
+            page_content = await page.content()
+            if "Failed to complete AuthKit flow" in page_content:
+                print("   ❌ ERROR DETECTED on login page:")
+                if "500" in page_content:
+                    print("      → 500 Internal Server Error")
+                elif "404" in page_content:
+                    print("      → 404 Not Found - /auth/complete endpoint missing")
+                elif "302" in page_content:
+                    print("      → 302 Redirect error")
+                print("      → Check that /auth/complete endpoint is properly configured")
+                await page.screenshot(path="login_error.png")
+                print("      → Screenshot saved to login_error.png")
+                await browser.close()
+                return False
+
             # Step 2: Fill in credentials
             print("\n📝 Step 2: Filling in credentials...")
             print(f"   🔍 Looking for email field...")
@@ -109,9 +125,28 @@ async def automate_oauth_login(oauth_url: str) -> bool:
             await page.click('button[type="submit"]')
             print("   ✅ Clicked Sign in")
 
-            # Wait for AuthKit allow access page
-            print("\n⏳ Step 4: Waiting for AuthKit 'Allow access' page...")
+            # Wait and check for login errors
+            print("\n⏳ Step 4: Waiting for response after sign in...")
             await asyncio.sleep(3)
+
+            # Check for errors after login attempt
+            page_content = await page.content()
+            if "Failed to complete AuthKit flow" in page_content:
+                print("   ❌ LOGIN ERROR DETECTED after sign in:")
+                if "500" in page_content:
+                    print("      → 500 Internal Server Error at /auth/complete")
+                elif "404" in page_content:
+                    print("      → 404 Not Found - /auth/complete endpoint not found")
+                elif "302" in page_content:
+                    print("      → 302 Redirect loop or misconfiguration")
+
+                await page.screenshot(path="login_error_after_submit.png")
+                print("      → Screenshot saved to login_error_after_submit.png")
+                await browser.close()
+                return False
+
+            print("   ✅ No errors detected, proceeding to Allow page...")
+            await asyncio.sleep(1)
 
             # Step 5: Click "Allow" button on AuthKit consent page
             print("\n🖱️  Step 5: Clicking 'Allow' on AuthKit consent page...")
