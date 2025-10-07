@@ -84,7 +84,7 @@ async def automate_oauth_login(oauth_url: str) -> bool:
     try:
         # Use Playwright directly (not MCP tools)
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False)  # Visible for debugging
+            browser = await p.chromium.launch(headless=True)  # Headless for automation
             page = await browser.new_page()
 
             # Step 1: Navigate to OAuth URL
