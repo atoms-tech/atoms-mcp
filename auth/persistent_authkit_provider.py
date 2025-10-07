@@ -1,14 +1,13 @@
 """AuthKit Provider for Standalone Connect with Supabase.
 
-Supabase is configured as a third-party auth provider to accept AuthKit tokens.
-This provider handles the Standalone Connect flow: Login → Allow → Complete.
+Since Supabase has third-party auth configured to accept AuthKit tokens,
+we only need AuthKit JWTs - no separate Supabase verification needed.
 """
 
 from __future__ import annotations
 
 import logging
 import os
-from typing import Any
 import aiohttp
 from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.responses import JSONResponse, RedirectResponse
@@ -26,13 +25,15 @@ def _create_http_session() -> aiohttp.ClientSession:
 class PersistentAuthKitProvider(AuthKitProvider):
     """AuthKit provider for Standalone Connect.
 
-    Handles OAuth flow with Supabase login:
-    1. Client → AuthKit → Supabase login (atoms.tech)
-    2. User authenticates with Supabase
-    3. Supabase → AuthKit → /auth/complete (this endpoint)
-    4. Complete WorkOS OAuth → redirect to client callback
-    5. Client exchanges code for AuthKit token
-    6. AuthKit token works with Supabase (third-party auth configured)
+    Flow:
+    1. Client → AuthKit OAuth
+    2. AuthKit → Supabase login (atoms.tech)
+    3. User authenticates with Supabase
+    4. Browser → /auth/complete with pending_authentication_token
+    5. We complete AuthKit OAuth
+    6. Redirect to client callback
+    7. Client gets AuthKit JWT
+    8. AuthKit JWT works with Supabase (third-party auth configured)
     """
 
     def __init__(self, **kwargs):
@@ -46,7 +47,6 @@ class PersistentAuthKitProvider(AuthKitProvider):
             """Handle Standalone Connect OAuth completion.
 
             Called when user clicks 'Allow' on AuthKit consent page.
-            Completes WorkOS OAuth and redirects to client callback.
             """
             session = _create_http_session()
 
@@ -54,30 +54,28 @@ class PersistentAuthKitProvider(AuthKitProvider):
                 logger.info(f"🔧 /auth/complete called")
                 logger.info(f"   Method: {request.method}")
                 logger.info(f"   Content-Type: {request.headers.get('content-type')}")
+                logger.info(f"   Headers: {list(request.headers.keys())}")
+                logger.info(f"   Cookies: {list(request.cookies.keys())}")
 
                 # Parse form data from AuthKit's Allow form
                 data = {}
                 try:
                     form_data = await request.form()
                     data = {k: v for k, v in form_data.items()}
-                    logger.info(f"✅ Form data: {list(data.keys())}")
+                    logger.info(f"✅ Form data keys: {list(data.keys())}")
                 except Exception as e:
-                    logger.error(f"Failed to parse form data: {e}")
+                    logger.error(f"❌ Failed to parse form data: {e}")
                     return JSONResponse(
                         {"error": "Invalid form data", "details": str(e)},
                         status_code=400
                     )
 
-                # Extract AuthKit form fields
+                # Extract required fields
                 pending_auth_token = data.get("pending_authentication_token")
-                auth_session_id = data.get("authorization_session_id")
                 redirect_uri = data.get("redirect_uri")
-                state = data.get("state")
 
                 logger.info(f"   pending_authentication_token: {pending_auth_token[:20] if pending_auth_token else None}...")
-                logger.info(f"   authorization_session_id: {auth_session_id}")
                 logger.info(f"   redirect_uri: {redirect_uri}")
-                logger.info(f"   state: {state}")
 
                 if not pending_auth_token:
                     logger.error("❌ Missing pending_authentication_token")
@@ -86,58 +84,23 @@ class PersistentAuthKitProvider(AuthKitProvider):
                         status_code=400
                     )
 
-                # Complete WorkOS OAuth using pending_authentication_token
+                # Complete AuthKit OAuth
                 workos_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").strip().rstrip("/")
                 workos_key = os.getenv("WORKOS_API_KEY", "").strip()
 
                 if not workos_key:
-                    logger.error("WORKOS_API_KEY not configured")
+                    logger.error("❌ WORKOS_API_KEY not configured")
                     return JSONResponse({"error": "WorkOS not configured"}, status_code=500)
 
-                logger.info(f"📡 Calling AuthKit OAuth completion endpoint...")
+                logger.info(f"📡 Completing AuthKit OAuth...")
 
-                # Call AuthKit /authkit/oauth2/complete (Standalone Connect)
+                # Call /authkit/oauth2/complete with just the token
+                # Since Supabase accepts AuthKit tokens, we don't need separate verification
                 complete_url = f"{workos_url}/authkit/oauth2/complete"
+                payload = {"pending_authentication_token": pending_auth_token}
 
-                # For Standalone Connect, we need to provide user info from Supabase
-                # Since Supabase accepts AuthKit tokens, get user from cookies
-                all_cookies = request.cookies
-                logger.info(f"   Cookies: {list(all_cookies.keys())}")
-
-                # Extract user info from Supabase cookie
-                user_info = None
-                for cookie_name, cookie_value in all_cookies.items():
-                    if 'auth-token' in cookie_name or cookie_name.startswith('sb-'):
-                        try:
-                            import json
-                            cookie_data = json.loads(cookie_value)
-                            if isinstance(cookie_data, list) and len(cookie_data) > 0:
-                                user_info = cookie_data[0].get('user')
-                            elif isinstance(cookie_data, dict):
-                                user_info = cookie_data.get('user')
-                            if user_info:
-                                logger.info(f"✅ Got user from cookie: {cookie_name}")
-                                break
-                        except:
-                            continue
-
-                if not user_info:
-                    logger.error("❌ No user info in Supabase cookies")
-                    return JSONResponse(
-                        {"error": "User authentication required"},
-                        status_code=401
-                    )
-
-                # AuthKit Standalone Connect completion payload
-                payload = {
-                    "pending_authentication_token": pending_auth_token,
-                    "user": {
-                        "id": user_info.get("id"),
-                        "email": user_info.get("email"),
-                        "first_name": user_info.get("user_metadata", {}).get("first_name"),
-                        "last_name": user_info.get("user_metadata", {}).get("last_name")
-                    }
-                }
+                logger.info(f"   Calling: {complete_url}")
+                logger.info(f"   Payload: {list(payload.keys())}")
 
                 async with session.post(
                     complete_url,
@@ -147,31 +110,34 @@ class PersistentAuthKitProvider(AuthKitProvider):
                         "Content-Type": "application/json"
                     }
                 ) as resp:
+                    response_text = await resp.text()
+                    logger.info(f"   Response status: {resp.status}")
+                    logger.info(f"   Response body: {response_text[:200]}")
+
                     if resp.status >= 400:
-                        text = await resp.text()
-                        logger.error(f"WorkOS authenticate failed ({resp.status}): {text}")
+                        logger.error(f"❌ AuthKit completion failed ({resp.status}): {response_text}")
                         return JSONResponse(
-                            {"error": "WorkOS authentication failed", "status": resp.status, "details": text},
+                            {"error": "AuthKit completion failed", "status": resp.status, "details": response_text},
                             status_code=resp.status
                         )
 
-                    result = await resp.json()
-                    logger.info(f"✅ WorkOS authenticate success")
-                    logger.info(f"   Response keys: {list(result.keys())}")
+                    result = resp.json() if response_text else {}
+                    logger.info(f"✅ AuthKit completion success")
+                    logger.info(f"   Result keys: {list(result.keys())}")
 
-                # Get redirect_uri from WorkOS response or form data
+                # Get redirect_uri from AuthKit response or form data
                 final_redirect_uri = result.get("redirect_uri") or redirect_uri
 
                 if not final_redirect_uri:
                     logger.error("❌ No redirect_uri available")
                     return JSONResponse(
-                        {"error": "No redirect_uri", "details": "Neither WorkOS nor form provided redirect_uri"},
+                        {"error": "No redirect_uri"},
                         status_code=500
                     )
 
-                logger.info(f"🔄 Redirecting to: {final_redirect_uri}")
+                logger.info(f"🔄 Redirecting to client callback: {final_redirect_uri}")
 
-                # Redirect browser to client callback
+                # Redirect browser to client callback with authorization code
                 return RedirectResponse(url=final_redirect_uri, status_code=302)
 
             except Exception as e:
