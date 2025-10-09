@@ -131,46 +131,53 @@ async def main():
     """Main test runner."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run Atoms MCP comprehensive tests")
-    parser.add_argument("--categories", nargs="+", help="Test categories to run (e.g., core entity query)")
-    parser.add_argument("--coverage-level", choices=["minimal", "standard", "comprehensive"], default="standard",
-                       help="Test coverage level")
-    parser.add_argument("--no-cache", action="store_true", help="Disable test caching")
-    parser.add_argument("--clear-cache", action="store_true", help="Clear test cache")
-    parser.add_argument("--clear-oauth", action="store_true", help="Clear OAuth token cache")
-    parser.add_argument("--sequential", action="store_true", help="Run tests sequentially")
-    parser.add_argument("--workers", type=int, default=None, help="Number of parallel workers")
-    parser.add_argument("--priority", type=int, help="Only run tests with priority >= N")
-    parser.add_argument("--verbose", action="store_true", help="Show verbose logging (default: only errors)")
-    parser.add_argument(
-        "--use-shared-session",
-        action="store_true",
-        help="Reuse a shared OAuth session broker instead of launching Playwright",
+    parser = argparse.ArgumentParser(
+        description="Run Atoms MCP comprehensive tests",
+        epilog="""
+Examples:
+  python test_main.py                          # Run all tests on prod
+  python test_main.py -t local                 # Run on local server
+  python test_main.py -t dev -w 4              # Run on dev with 4 workers
+  python test_main.py -k entity query          # Run entity and query tests
+  python test_main.py -v                       # Verbose output
+  python test_main.py --clear-cache            # Clear all caches
+  python test_main.py --clear-oauth            # Clear OAuth cache only
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--enable-rich-progress", action="store_true",
-                       help="Enable rich progress display with live stats")
-    parser.add_argument("--enable-reports", action="store_true",
-                       help="Enable comprehensive reports (JSON, Markdown, Matrix)")
-    parser.add_argument("--validate-auth", action="store_true",
-                       help="Validate authentication before running tests")
-    parser.add_argument("--local", action="store_true",
-                       help="Target local server at http://localhost:50002 (skips OAuth if not configured)")
-    parser.add_argument("--dev", action="store_true",
-                       help="Target development server at https://devmcp.atoms.tech (Vercel preview)")
+
+    # Target selection
+    parser.add_argument("--target", "-t", choices=["local", "dev", "prod"], default="prod",
+                       help="Target environment (default: prod)")
+
+    # Test execution
+    parser.add_argument("--categories", "-k", nargs="+",
+                       help="Test categories to run (e.g., entity query)")
+    parser.add_argument("--workers", "-w", type=int,
+                       help="Number of parallel workers (default: 1)")
+
+    # Output control
+    parser.add_argument("--verbose", "-v", action="store_true",
+                       help="Show detailed output and print statements")
+    parser.add_argument("--quiet", "-q", action="store_true",
+                       help="Minimal output (only errors)")
+    parser.add_argument("--no-progress", action="store_true",
+                       help="Disable rich progress display")
+    parser.add_argument("--no-reports", action="store_true",
+                       help="Disable test reports")
+
+    # Cache management
+    parser.add_argument("--clear-cache", action="store_true",
+                       help="Clear all caches (test + OAuth)")
+    parser.add_argument("--clear-oauth", action="store_true",
+                       help="Clear OAuth credentials cache only")
 
     args = parser.parse_args()
 
     # Determine target endpoint
     global MCP_ENDPOINT
-    endpoint_source = "production (default)"
 
-    # Check for conflicting flags
-    if sum([args.local, args.dev]) > 1:
-        print("Error: Cannot specify multiple target environments (--local, --dev)")
-        print("Please choose only one target environment.")
-        return 1
-
-    if args.dev:
+    if args.target == "dev":
         # Target dev server - check health first
         print("Checking dev server health at https://devmcp.atoms.tech...")
         is_healthy, error_msg = _check_dev_server_health()
@@ -183,7 +190,7 @@ async def main():
         endpoint_source = "development (https://devmcp.atoms.tech)"
         # Unset local server env var if it exists
         os.environ.pop("ATOMS_USE_LOCAL_SERVER", None)
-    elif args.local:
+    elif args.target == "local":
         # Target local server - check if running
         is_running, local_endpoint = _check_local_server_running()
         if not is_running:
@@ -196,7 +203,7 @@ async def main():
 
         # Set environment variable for backward compatibility
         os.environ["ATOMS_USE_LOCAL_SERVER"] = "true"
-    else:
+    else:  # prod
         # Default: use production server
         MCP_ENDPOINT = os.getenv("MCP_ENDPOINT", DEFAULT_PRODUCTION_ENDPOINT)
         endpoint_source = "production (https://atomcp.kooshapari.com)"
@@ -204,20 +211,28 @@ async def main():
         # Unset local server env var if it exists
         os.environ.pop("ATOMS_USE_LOCAL_SERVER", None)
 
-    # Configure logging based on verbose flag
+    # Configure logging based on verbose/quiet flags
+    if args.quiet and args.verbose:
+        print("Error: Cannot use --quiet and --verbose together")
+        return 1
+
+    # verbose=False already handles quiet mode (only shows errors)
     configure_test_logging(verbose=args.verbose)
     suppress_deprecation_warnings()
 
-    # Clear caches silently
+    # Clear OAuth cache if requested
+    oauth_cache_file = Path.home() / ".atoms_mcp_test_cache" / "credentials.json"
+    if args.clear_oauth:
+        if oauth_cache_file.exists():
+            oauth_cache_file.unlink()
+            print("✅ OAuth cache cleared")
+
+    # Clear all caches if requested
     if args.clear_cache:
         TestCache().clear()
-
-    if args.clear_oauth:
-        # Clear OAuth cache if it exists
-        cache_file = Path.home() / ".atoms_mcp_test_cache" / "credentials.json"
-        if cache_file.exists():
-            cache_file.unlink()
-            print("✅ OAuth cache cleared")
+        if oauth_cache_file.exists():
+            oauth_cache_file.unlink()
+        print("✅ All caches cleared (test + OAuth)")
 
     try:
         # Use pytest to run the fast unit tests instead of the custom runner
@@ -227,58 +242,54 @@ async def main():
         import sys
 
         # Build pytest command
-        pytest_args = ["pytest", "tests/unit/", "-v"]
+        pytest_args = ["pytest", "tests/unit/"]
 
+        # Verbosity control
+        if args.quiet:
+            pytest_args.append("-q")  # Quiet mode
+        elif args.verbose:
+            pytest_args.extend(["-vv", "-s", "--tb=long"])  # Very verbose + show prints + full traceback
+        else:
+            pytest_args.extend(["-v", "--tb=short", "-ra"])  # Default: verbose + short traceback
+
+        # Test filtering
         if args.categories:
-            # Filter by category using -k flag
             category_filter = " or ".join(args.categories)
             pytest_args.extend(["-k", category_filter])
 
-        if not args.sequential and args.workers:
-            # Run in parallel
+        # Parallel execution
+        if args.workers:
             pytest_args.extend(["-n", str(args.workers)])
-
-        if args.verbose:
-            pytest_args.append("-s")  # Show print statements
-
-        if args.no_cache:
-            pytest_args.append("--cache-clear")
 
         # Add maxfail for faster feedback
         pytest_args.extend(["--maxfail=10"])
 
-        # Enable AtomsMCPTestRunner features by default (can be disabled with flags)
-        # Enable AtomsMCPTestRunner features
-        if args.enable_rich_progress:
-            pytest_args.append("--enable-rich-progress")
-
-        if args.enable_reports:
+        # Reports and progress (enabled by default)
+        if not args.no_reports:
             pytest_args.append("--enable-reports")
 
-        # Don't enable plugin auth validation - the authenticated_client fixture handles it
-        # pytest_args.append("--validate-auth")
+        if not args.no_progress and not args.no_reports:
+            pytest_args.append("--enable-rich-progress")
 
-        # Verbose on fail: show full output immediately on failure
-        if args.verbose:
-            pytest_args.extend(["-vv", "-s", "--tb=long"])  # Very verbose + show prints + full traceback
-        else:
-            pytest_args.extend(["--tb=short", "-ra"])  # Short traceback + show all (not just first/last)
-
-        print(f"\n🧪 Running Atoms MCP Hybrid Test Runner\n")
-        print("Configuration:")
-        print(f"  • Target: {endpoint_source}")
-        print(f"  • Endpoint: {MCP_ENDPOINT}")
-        print()
-        print("Features:")
-        print(f"  • Fast execution: ✓ (pytest + FastHTTPClient)")
-        print(f"  • Session OAuth: ✓ (authenticate once, use for all tests)")
-        print(f"  • Rich progress: {'✓' if args.enable_rich_progress else '○'}")
-        print(f"  • Reports: {'✓' if args.enable_reports else '○'}")
-        print(f"  • Verbose on fail: ✓ (immediate error display)")
-        print(f"  • Retry + re-auth: ✓ (3 attempts, auto token refresh)")
-        print(f"  • Parallel workers: {args.workers if args.workers else 'sequential'}")
-        print()
-        print(f"Command: {' '.join(pytest_args)}\n")
+        # Skip banner in quiet mode
+        if not args.quiet:
+            print(f"\n🧪 Running Atoms MCP Hybrid Test Runner\n")
+            print("Configuration:")
+            print(f"  • Target: {endpoint_source}")
+            print(f"  • Endpoint: {MCP_ENDPOINT}")
+            print()
+            print("Features:")
+            print(f"  • Fast execution: ✓ (pytest + FastHTTPClient)")
+            print(f"  • Session OAuth: ✓ (authenticate once, use for all tests)")
+            print(f"  • Rich progress: {'✓' if not args.no_progress and not args.no_reports else '○'}")
+            print(f"  • Reports: {'✓' if not args.no_reports else '○'}")
+            print(f"  • Output mode: {'verbose' if args.verbose else 'quiet' if args.quiet else 'normal'}")
+            print(f"  • Retry + re-auth: ✓ (3 attempts, auto token refresh)")
+            print(f"  • Parallel workers: {args.workers if args.workers else '1 (sequential)'}")
+            if args.categories:
+                print(f"  • Test filter: {', '.join(args.categories)}")
+            print()
+            print(f"Command: {' '.join(pytest_args)}\n")
 
         # Run pytest with plugin
         result = subprocess.run(pytest_args, cwd=Path(__file__).parent.parent)

@@ -11,6 +11,18 @@ try:
 except ImportError:
     from tools.base import ToolBase
 
+from schemas.enums import QueryType, RAGMode
+from schemas.constants import Tables, ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE
+from schemas.rls import (
+    PermissionDeniedError,
+    OrganizationPolicy,
+    ProjectPolicy,
+    DocumentPolicy,
+    RequirementPolicy,
+    TestPolicy,
+    ProfilePolicy,
+)
+
 
 class DataQueryEngine(ToolBase):
     """Advanced data querying and analysis engine with RAG capabilities."""
@@ -20,16 +32,53 @@ class DataQueryEngine(ToolBase):
         self._embedding_service = None
         self._vector_search_service = None
 
-    
+    def _get_policy_for_table(self, table: str):
+        """Get RLS policy validator for a table."""
+        user_id = self._get_user_id()
+        if not user_id:
+            return None
+
+        adapters = self._get_adapters()
+        db_adapter = adapters["database"]
+
+        policy_map = {
+            Tables.ORGANIZATIONS: OrganizationPolicy(user_id, db_adapter),
+            Tables.PROJECTS: ProjectPolicy(user_id, db_adapter),
+            Tables.DOCUMENTS: DocumentPolicy(user_id, db_adapter),
+            Tables.REQUIREMENTS: RequirementPolicy(user_id, db_adapter),
+            Tables.TEST_REQ: TestPolicy(user_id, db_adapter),
+            Tables.PROFILES: ProfilePolicy(user_id, db_adapter),
+        }
+        return policy_map.get(table)
+
+    async def _filter_results_by_rls(self, results: List[Dict[str, Any]], table: str) -> List[Dict[str, Any]]:
+        """Filter results based on RLS policies."""
+        policy = self._get_policy_for_table(table)
+        if not policy:
+            # No policy defined, return all results (tables without RLS policies)
+            return results
+
+        filtered_results = []
+        for record in results:
+            try:
+                # Check if user can select this record
+                await policy.validate_select(record)
+                filtered_results.append(record)
+            except PermissionDeniedError:
+                # User can't see this record, skip it silently
+                continue
+
+        return filtered_results
+
     def _init_rag_services(self):
         """Initialize RAG services on first use."""
         if self._embedding_service is None:
-            from services.embedding_factory import get_embedding_service
-            from services.enhanced_vector_search import EnhancedVectorSearchService
-
-            # Get the embedding service (Vertex AI with gemini-embedding-001 only)
+            from config.vector import (
+                get_embedding_service,
+                get_enhanced_vector_search_service,
+            )
             self._embedding_service = get_embedding_service()
-            self._vector_search_service = EnhancedVectorSearchService(self.supabase, self._embedding_service)
+            self._vector_search_service = get_enhanced_vector_search_service(self.supabase)
     
     async def _search_query(
         self,
@@ -53,8 +102,7 @@ class DataQueryEngine(ToolBase):
                     filters["name"] = {"ilike": f"%{search_term}%"}
 
                 # Add default filters
-                tables_without_soft_delete = {'test_req', 'properties'}
-                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                if "is_deleted" not in filters and table not in TABLES_WITHOUT_SOFT_DELETE:
                     filters["is_deleted"] = False
 
                 # Execute search
@@ -65,11 +113,14 @@ class DataQueryEngine(ToolBase):
                     order_by="updated_at:desc"
                 )
 
+                # Filter results through RLS
+                filtered_results = await self._filter_results_by_rls(entity_results, table)
+
                 # Sanitize results
-                sanitized_results = [self._sanitize_entity(r) for r in entity_results]
+                sanitized_results = [self._sanitize_entity(r) for r in filtered_results]
 
                 return (entity_type, {
-                    "count": len(entity_results),
+                    "count": len(sanitized_results),
                     "results": sanitized_results
                 })
 
@@ -109,8 +160,7 @@ class DataQueryEngine(ToolBase):
                 filters = conditions.copy() if conditions else {}
 
                 # Add default filters
-                tables_without_soft_delete = {'test_req', 'properties'}
-                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                if "is_deleted" not in filters and table not in TABLES_WITHOUT_SOFT_DELETE:
                     filters["is_deleted"] = False
 
                 # Parallel execution of count queries
@@ -179,8 +229,7 @@ class DataQueryEngine(ToolBase):
                 filters = conditions.copy() if conditions else {}
 
                 # Add default filters (skip for tables without is_deleted column)
-                tables_without_soft_delete = {'test_req', 'properties'}
-                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                if "is_deleted" not in filters and table not in TABLES_WITHOUT_SOFT_DELETE:
                     filters["is_deleted"] = False
                 
                 # Basic metrics
@@ -189,16 +238,18 @@ class DataQueryEngine(ToolBase):
                 # Entity-specific analysis
                 if entity_type == "organization":
                     # Analyze organization metrics with parallel queries
-                    orgs = await self._db_query(table, filters=filters)
+                    all_orgs = await self._db_query(table, filters=filters)
+                    # Filter organizations through RLS
+                    orgs = await self._filter_results_by_rls(all_orgs, table)
 
                     # Parallelize all member/project count queries
                     async def get_org_stats(org):
                         member_task = self._db_count(
-                            "organization_members",
+                            Tables.ORGANIZATION_MEMBERS,
                             {"organization_id": org["id"], "status": "active"}
                         )
                         project_task = self._db_count(
-                            "projects",
+                            Tables.PROJECTS,
                             {"organization_id": org["id"], "is_deleted": False}
                         )
                         return await asyncio.gather(member_task, project_task, return_exceptions=True)
@@ -221,13 +272,15 @@ class DataQueryEngine(ToolBase):
 
                 elif entity_type == "project":
                     # Analyze project metrics with massive parallelization
-                    projects = await self._db_query(table, filters=filters)
+                    all_projects = await self._db_query(table, filters=filters)
+                    # Filter projects through RLS
+                    projects = await self._filter_results_by_rls(all_projects, table)
 
                     async def get_project_stats(project):
                         """Get all stats for a single project in parallel."""
                         # Get documents first
                         docs = await self._db_query(
-                            "documents",
+                            Tables.DOCUMENTS,
                             select="id",
                             filters={"project_id": project["id"], "is_deleted": False}
                         )
@@ -235,7 +288,7 @@ class DataQueryEngine(ToolBase):
                         # Count documents and all requirements in parallel
                         doc_count = len(docs)
                         req_tasks = [
-                            self._db_count("requirements", {"document_id": doc["id"], "is_deleted": False})
+                            self._db_count(Tables.REQUIREMENTS, {"document_id": doc["id"], "is_deleted": False})
                             for doc in docs
                         ]
 
@@ -264,7 +317,9 @@ class DataQueryEngine(ToolBase):
 
                 elif entity_type == "requirement":
                     # Analyze requirements
-                    reqs = await self._db_query(table, filters=filters, select="status, priority")
+                    all_reqs = await self._db_query(table, filters=filters, select="status, priority")
+                    # Filter requirements through RLS
+                    reqs = await self._filter_results_by_rls(all_reqs, table)
 
                     status_counts = {}
                     priority_counts = {}
@@ -278,7 +333,7 @@ class DataQueryEngine(ToolBase):
 
                     # Get test coverage
                     total_reqs = len(reqs)
-                    tested_reqs = await self._db_count("requirement_tests")
+                    tested_reqs = await self._db_count(Tables.REQUIREMENT_TESTS)
                     coverage_percentage = (tested_reqs / total_reqs * 100) if total_reqs > 0 else 0
 
                     return (entity_type, {
@@ -327,11 +382,11 @@ class DataQueryEngine(ToolBase):
 
         # Analyze common relationship patterns
         relationship_tables = [
-            "organization_members",
-            "project_members",
-            "trace_links",
-            "assignments",
-            "requirement_tests"
+            Tables.ORGANIZATION_MEMBERS,
+            Tables.PROJECT_MEMBERS,
+            Tables.TRACE_LINKS,
+            Tables.ASSIGNMENTS,
+            Tables.REQUIREMENT_TESTS
         ]
 
         for rel_table in relationship_tables:
@@ -340,8 +395,7 @@ class DataQueryEngine(ToolBase):
 
                 # Add default filters (most relationship tables have is_deleted, but check just in case)
                 # Currently all relationship tables have soft-delete, but being defensive
-                tables_without_soft_delete = {'test_req', 'properties'}
-                if "is_deleted" not in filters and rel_table not in tables_without_soft_delete:
+                if "is_deleted" not in filters and rel_table not in TABLES_WITHOUT_SOFT_DELETE:
                     filters["is_deleted"] = False
 
                 count = await self._db_count(rel_table, filters)
@@ -349,7 +403,7 @@ class DataQueryEngine(ToolBase):
                 if count > 0:
                     # Special handling for requirement_tests to avoid JSON serialization issues
                     select_fields = "*"
-                    if rel_table == "requirement_tests":
+                    if rel_table == Tables.REQUIREMENT_TESTS:
                         # Select only basic fields, avoid problematic columns
                         select_fields = "id,requirement_id,test_id,relationship_type,coverage_level,created_at,updated_at,created_by,is_deleted"
 
@@ -391,18 +445,18 @@ class DataQueryEngine(ToolBase):
     ) -> Dict[str, Any]:
         """Perform RAG-enabled search across entities."""
         self._init_rag_services()
-        
+
         # Auto-detect search mode if needed
-        if mode == "auto":
+        if mode == RAGMode.AUTO.value:
             # Simple heuristic: use semantic for longer queries, keyword for short/specific terms
             if len(query.split()) >= 3:
-                mode = "semantic"
+                mode = RAGMode.SEMANTIC.value
             else:
-                mode = "keyword"
-        
+                mode = RAGMode.KEYWORD.value
+
         try:
             # Perform the appropriate search
-            if mode == "semantic":
+            if mode == RAGMode.SEMANTIC.value:
                 search_response = await self._vector_search_service.semantic_search(
                     query=query,
                     similarity_threshold=similarity_threshold,
@@ -410,14 +464,14 @@ class DataQueryEngine(ToolBase):
                     entity_types=entities,
                     filters=conditions
                 )
-            elif mode == "keyword":
+            elif mode == RAGMode.KEYWORD.value:
                 search_response = await self._vector_search_service.keyword_search(
                     query=query,
                     limit=limit,
                     entity_types=entities,
                     filters=conditions
                 )
-            elif mode == "hybrid":
+            elif mode == RAGMode.HYBRID.value:
                 search_response = await self._vector_search_service.hybrid_search(
                     query=query,
                     similarity_threshold=similarity_threshold,
@@ -428,9 +482,24 @@ class DataQueryEngine(ToolBase):
             else:
                 raise ValueError(f"Unsupported search mode: {mode}")
             
-            # Format results for consistent API
+            # Format results and filter through RLS
             formatted_results = []
             for result in search_response.results:
+                # Get the table for this entity type
+                entity_type = result.entity_type
+                table = self._resolve_entity_table(entity_type) if entity_type else None
+
+                # Check RLS permissions if we have a table
+                if table:
+                    policy = self._get_policy_for_table(table)
+                    if policy:
+                        try:
+                            # Validate user can select this result
+                            await policy.validate_select(result.metadata)
+                        except PermissionDeniedError:
+                            # User can't see this record, skip it
+                            continue
+
                 formatted_results.append({
                     "id": result.id,
                     "entity_type": result.entity_type,
@@ -438,12 +507,12 @@ class DataQueryEngine(ToolBase):
                     "similarity_score": result.similarity,
                     "metadata": self._sanitize_entity(result.metadata)
                 })
-            
+
             return {
                 "search_type": "rag_search",
                 "query": query,
                 "mode": search_response.mode,
-                "total_results": search_response.total_results,
+                "total_results": len(formatted_results),  # Update count after filtering
                 "results": formatted_results,
                 "query_embedding_tokens": search_response.query_embedding_tokens,
                 "search_time_ms": search_response.search_time_ms,
@@ -480,9 +549,20 @@ class DataQueryEngine(ToolBase):
                 exclude_id=exclude_id
             )
             
-            # Format results
+            # Format results and filter through RLS
+            table = self._resolve_entity_table(entity_type)
+            policy = self._get_policy_for_table(table) if table else None
+
             formatted_results = []
             for result in search_response.results:
+                # Check RLS permissions
+                if policy:
+                    try:
+                        await policy.validate_select(result.metadata)
+                    except PermissionDeniedError:
+                        # User can't see this record, skip it
+                        continue
+
                 formatted_results.append({
                     "id": result.id,
                     "entity_type": result.entity_type,
@@ -490,12 +570,12 @@ class DataQueryEngine(ToolBase):
                     "similarity_score": result.similarity,
                     "metadata": result.metadata
                 })
-            
+
             return {
                 "analysis_type": "similarity_analysis",
                 "source_content": content[:200] + "..." if len(content) > 200 else content,
                 "entity_type": entity_type,
-                "total_results": search_response.total_results,
+                "total_results": len(formatted_results),  # Update count after filtering
                 "results": formatted_results,
                 "query_embedding_tokens": search_response.query_embedding_tokens,
                 "search_time_ms": search_response.search_time_ms
@@ -570,29 +650,29 @@ async def data_query(
             raise ValueError("No valid entity types provided")
         
         # Execute query based on type
-        if query_type == "search":
+        if query_type == QueryType.SEARCH.value:
             if not search_term:
                 raise ValueError("search_term is required for search queries")
             result = await _query_engine._search_query(
                 valid_entities, search_term, conditions, limit
             )
-        
-        elif query_type == "aggregate":
+
+        elif query_type == QueryType.AGGREGATE.value:
             result = await _query_engine._aggregate_query(
                 valid_entities, conditions, projections
             )
-        
-        elif query_type == "analyze":
+
+        elif query_type == QueryType.ANALYZE.value:
             result = await _query_engine._analyze_query(
                 valid_entities, conditions
             )
-        
-        elif query_type == "relationships":
+
+        elif query_type == QueryType.RELATIONSHIPS.value:
             result = await _query_engine._relationship_query(
                 valid_entities, conditions
             )
-        
-        elif query_type == "rag_search":
+
+        elif query_type == QueryType.RAG_SEARCH.value:
             if not search_term:
                 raise ValueError("search_term is required for rag_search queries")
             result = await _query_engine._rag_search_query(
@@ -603,8 +683,8 @@ async def data_query(
                 limit=limit,
                 conditions=conditions
             )
-        
-        elif query_type == "similarity":
+
+        elif query_type == QueryType.SIMILARITY.value:
             if not content:
                 raise ValueError("content is required for similarity queries")
 
@@ -624,7 +704,7 @@ async def data_query(
                 limit=limit,
                 exclude_id=exclude_id
             )
-        
+
         else:
             raise ValueError(f"Unknown query type: {query_type}")
         

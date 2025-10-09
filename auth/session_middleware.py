@@ -6,13 +6,15 @@ enabling stateless serverless deployments.
 
 from __future__ import annotations
 
-import logging
+from utils.logging_setup import get_logger
 from typing import Optional, Dict, Any
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
+from mcp_qa.utils import decode_jwt, MetricsCollector
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+metrics = MetricsCollector()
 
 # Global context to store session data for the current request
 # This is reset on each request and used by tools to access OAuth tokens
@@ -34,6 +36,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         """Extract JWT and set user context - AuthKit manages sessions."""
         global _request_session_context
+        metrics.increment("middleware_requests")
 
         # Reset session context for this request
         _request_session_context.clear()
@@ -53,9 +56,10 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         if jwt_token:
             # Decode JWT to get user info (AuthKit already validated it)
-            import jwt as pyjwt
             try:
-                decoded = pyjwt.decode(jwt_token, options={"verify_signature": False})
+                with metrics.timer("jwt_decode_middleware_duration"):
+                    # Use consolidated JWT utils from pheno-sdk
+                    decoded = decode_jwt(jwt_token, verify_signature=False)
                 logger.info(f"🔧 Decoded JWT claims: {list(decoded.keys())}")
                 print(f"🔧 Decoded JWT claims: {list(decoded.keys())}")  # Force print to stdout
                 logger.info(f"   Token first 20 chars: {jwt_token[:20]}...")
@@ -87,6 +91,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
                         print(f"   Using token hash as user_id: {user_id}")
 
                 if user_id:
+                    metrics.increment("jwt_auth_success")
                     # Store user context from JWT claims
                     _request_session_context["user_id"] = user_id
                     _request_session_context["access_token"] = jwt_token
@@ -104,6 +109,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
                     logger.warning(f"⚠️  No user_id in JWT claims: {list(decoded.keys())}")
                     logger.warning(f"   Full claims: {decoded}")
             except Exception as e:
+                metrics.increment("jwt_decode_errors")
                 logger.error(f"❌ Failed to decode JWT: {e}")
                 import traceback
                 logger.error(traceback.format_exc())

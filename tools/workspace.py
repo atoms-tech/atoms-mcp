@@ -196,7 +196,9 @@ async def workspace_operation(
     entity_id: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
-    format_type: str = "detailed"
+    format_type: str = "detailed",
+    organization_id: Optional[str] = None,
+    project_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Manage workspace context for the current user.
 
@@ -208,6 +210,8 @@ async def workspace_operation(
         limit: Max results for list_workspaces (default: 100, max: 500)
         offset: Skip N results for list_workspaces pagination (default: 0)
         format_type: Result format (detailed, summary, raw)
+        organization_id: Optional organization context (for hierarchical operations)
+        project_id: Optional project context (for hierarchical operations)
 
     Returns:
         Dict containing operation result

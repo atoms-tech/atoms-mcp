@@ -6,14 +6,16 @@ The pending_authentication_token from AuthKit contains the authenticated user.
 
 from __future__ import annotations
 
-import logging
+from utils.logging_setup import get_logger
 import os
 import aiohttp
 from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.responses import JSONResponse, RedirectResponse
 from starlette.routing import Route
+from mcp_qa.utils import decode_jwt, MetricsCollector
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+metrics = MetricsCollector()
 
 
 def _create_http_session() -> aiohttp.ClientSession:
@@ -35,9 +37,11 @@ class PersistentAuthKitProvider(AuthKitProvider):
         async def standalone_auth_complete(request):
             """Handle Standalone Connect OAuth completion."""
             session = _create_http_session()
+            metrics.increment("auth_completion_attempts")
 
             try:
-                logger.info(f"🔧 /auth/complete called")
+                with metrics.timer("auth_completion_duration"):
+                    logger.info(f"🔧 /auth/complete called")
                 logger.info(f"   Content-Type: {request.headers.get('content-type')}")
 
                 # Parse form data from AuthKit
@@ -61,8 +65,9 @@ class PersistentAuthKitProvider(AuthKitProvider):
 
                 # Decode token to get user info (AuthKit encodes user in the token)
                 try:
-                    import jwt
-                    decoded = jwt.decode(pending_auth_token, options={"verify_signature": False})
+                    with metrics.timer("jwt_decode_duration"):
+                        # Use consolidated JWT utils from pheno-sdk
+                        decoded = decode_jwt(pending_auth_token, verify_signature=False)
                     logger.info(f"✅ Decoded token claims: {list(decoded.keys())}")
 
                     # Extract user from token
@@ -129,10 +134,12 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     return JSONResponse({"error": "No redirect_uri"}, status_code=500)
 
                 logger.info(f"🔄 Redirecting to: {final_redirect}")
+                metrics.increment("auth_completion_success")
                 return RedirectResponse(url=final_redirect, status_code=302)
 
             except Exception as e:
                 logger.error(f"❌ Exception: {e}")
+                metrics.increment("auth_completion_errors")
                 import traceback
                 logger.error(traceback.format_exc())
                 return JSONResponse(

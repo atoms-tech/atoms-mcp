@@ -1,16 +1,66 @@
-# Vercel ignore file
+# Vercel ignore file - Files to exclude from deployment
+
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Python cache and build files
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Testing
 .pytest_cache/
 tests/
+test_*.py
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Environment files (use Vercel Dashboard for env vars)
 .env.local
 .env.test
+.env.development
+
+# Logs
 *.log
+logs/
+
+# Git
 .git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+archive/
+
+# Archived and old files
 auth/archived/
 *_old.py
 *_simplified.py
-test_*.py
-*.md
-docs/
+migrations/
+reporters/
+tui/
+
+# IDE and OS files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.tar.gz
+*.zip
+*.bak

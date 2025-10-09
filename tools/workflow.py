@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Dict, Any, List, Optional
 import asyncio
-import logging
+from utils.logging_setup import get_logger
 
 try:
     from .base import ToolBase
 except ImportError:
     from tools.base import ToolBase
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class WorkflowExecutor(ToolBase):

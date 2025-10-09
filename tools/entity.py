@@ -12,6 +12,39 @@ try:
 except ImportError:
     from tools.base import ToolBase
 
+# Import logging
+from utils.logging_setup import get_logger
+
+# Import schema infrastructure
+from schemas.enums import (
+    EntityType,
+    OrganizationType,
+    EntityStatus,
+    Priority,
+)
+from schemas.constants import (
+    Tables,
+    Fields,
+    ENTITY_TABLE_MAP,
+    REQUIRED_FIELDS,
+    TABLES_WITHOUT_SOFT_DELETE,
+    TABLES_WITHOUT_AUDIT_FIELDS,
+)
+from schemas.validators import (
+    validate_before_create,
+    validate_before_update,
+    ValidationError,
+)
+from schemas.triggers import TriggerEmulator
+from schemas.rls import (
+    OrganizationPolicy,
+    ProjectPolicy,
+    DocumentPolicy,
+    RequirementPolicy,
+    TestPolicy,
+    PermissionDeniedError,
+)
+
 
 slug_pattern = re.compile(r"[^a-z0-9]+")
 
@@ -27,6 +60,8 @@ class EntityManager(ToolBase):
 
     def __init__(self):
         super().__init__()
+        self.trigger_emulator = TriggerEmulator()
+        # User context will be set when auth is validated
 
     def _is_uuid_format(self, value: str) -> bool:
         """Check if string is a valid UUID format."""
@@ -36,50 +71,83 @@ class EntityManager(ToolBase):
             re.IGNORECASE
         )
         return bool(uuid_pattern.match(value))
+
+    def _get_rls_policy(self, entity_type: str):
+        """Get RLS policy validator for entity type."""
+        user_id = self._get_user_id()
+        db_adapter = self._get_adapters()["database"]
+
+        # Map entity types to policy classes
+        policy_classes = {
+            EntityType.ORGANIZATION.value: OrganizationPolicy,
+            EntityType.PROJECT.value: ProjectPolicy,
+            EntityType.DOCUMENT.value: DocumentPolicy,
+            EntityType.REQUIREMENT.value: RequirementPolicy,
+            EntityType.TEST.value: TestPolicy,
+        }
+
+        policy_class = policy_classes.get(entity_type.lower())
+        if policy_class:
+            return policy_class(user_id=user_id, db_adapter=db_adapter)
+        return None
     
     def _get_entity_schema(self, entity_type: str) -> Dict[str, Any]:
-        """Get schema information for entity type."""
+        """Get schema information for entity type using schemas.constants."""
+        # Auto-generated fields (set by database)
+        auto_fields = [Fields.ID, Fields.CREATED_AT, Fields.UPDATED_AT]
+
         schemas = {
             "organization": {
-                "required_fields": ["name", "slug"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_deleted": False, "type": "team"},
+                "required_fields": list(REQUIRED_FIELDS.get("organization", set())),
+                "auto_fields": auto_fields,
+                "default_values": {Fields.IS_DELETED: False, Fields.TYPE: OrganizationType.TEAM.value},
                 "relationships": ["members", "projects", "invitations"]
             },
             "project": {
-                "required_fields": ["name", "organization_id"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_deleted": False},
+                "required_fields": list(REQUIRED_FIELDS.get("project", set())),
+                "auto_fields": auto_fields,
+                "default_values": {Fields.IS_DELETED: False},
                 "relationships": ["members", "documents", "organization"],
                 "auto_slug": True
             },
             "document": {
-                "required_fields": ["name", "project_id"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_deleted": False},
+                "required_fields": list(REQUIRED_FIELDS.get("document", set())),
+                "auto_fields": auto_fields,
+                "default_values": {Fields.IS_DELETED: False},
                 "relationships": ["blocks", "requirements", "project"]
             },
             "requirement": {
-                "required_fields": ["name", "document_id"],  # block_id is optional
-                "auto_fields": ["id", "created_at", "updated_at", "version", "external_id"],
-                "default_values": {"is_deleted": False, "status": "active", "properties": {}, "priority": "low", "type": "component", "block_id": None},
+                "required_fields": list(REQUIRED_FIELDS.get("requirement", set())),
+                "auto_fields": auto_fields + [Fields.VERSION, Fields.EXTERNAL_ID],
+                "default_values": {
+                    Fields.IS_DELETED: False,
+                    Fields.STATUS: EntityStatus.ACTIVE.value,
+                    Fields.PROPERTIES: {},
+                    Fields.PRIORITY: Priority.LOW.value,
+                    Fields.TYPE: "component",
+                    Fields.BLOCK_ID: None
+                },
                 "relationships": ["document", "tests", "trace_links"]
             },
             "test": {
-                "required_fields": ["title", "project_id"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_active": True, "status": "pending", "priority": "medium"},
+                "required_fields": list(REQUIRED_FIELDS.get("test", set())),
+                "auto_fields": auto_fields,
+                "default_values": {
+                    "is_active": True,
+                    Fields.STATUS: EntityStatus.PENDING.value,
+                    Fields.PRIORITY: Priority.MEDIUM.value
+                },
                 "relationships": ["requirements", "project"]
             },
             "user": {
-                "required_fields": ["id"],  # User/profile lookup by ID
-                "auto_fields": ["created_at", "updated_at"],
+                "required_fields": [Fields.ID],  # User/profile lookup by ID
+                "auto_fields": [Fields.CREATED_AT, Fields.UPDATED_AT],
                 "default_values": {},
                 "relationships": ["organizations", "projects"]
             },
             "profile": {
-                "required_fields": ["id"],  # Profile lookup by ID
-                "auto_fields": ["created_at", "updated_at"],
+                "required_fields": [Fields.ID],  # Profile lookup by ID
+                "auto_fields": [Fields.CREATED_AT, Fields.UPDATED_AT],
                 "default_values": {},
                 "relationships": ["organizations", "projects"]
             }
@@ -100,34 +168,34 @@ class EntityManager(ToolBase):
         user_id = self._get_user_id()
 
         # Ensure created_by and updated_by are always set (required NOT NULL columns)
-        if "created_by" not in result:
+        if Fields.CREATED_BY not in result:
             if not user_id:
                 raise ValueError(f"Cannot create {entity_type}: user_id not available in context. Check authentication.")
-            result["created_by"] = user_id
+            result[Fields.CREATED_BY] = user_id
 
         # updated_by is also required on create for most tables
-        if "updated_by" not in result:
+        if Fields.UPDATED_BY not in result:
             if not user_id:
                 raise ValueError(f"Cannot create {entity_type}: user_id not available in context for updated_by.")
-            result["updated_by"] = user_id
+            result[Fields.UPDATED_BY] = user_id
 
         # Special handling for projects - set owned_by
-        if entity_type.lower() == "project" and "owned_by" not in result and user_id:
+        if entity_type.lower() == EntityType.PROJECT.value and "owned_by" not in result and user_id:
             result["owned_by"] = user_id
-        
+
         # Generate external_id for requirements
-        if entity_type.lower() == "requirement" and "external_id" not in result:
+        if entity_type.lower() == EntityType.REQUIREMENT.value and Fields.EXTERNAL_ID not in result:
             # This would be generated by the database trigger normally
-            result["external_id"] = f"REQ-{int(datetime.now().timestamp())}"
+            result[Fields.EXTERNAL_ID] = f"REQ-{int(datetime.now().timestamp())}"
 
         # Auto-generate slug for entities that need it
-        if schema.get("auto_slug") and not result.get("slug") and result.get("name"):
-            result["slug"] = _slugify(result["name"])
+        if schema.get("auto_slug") and not result.get(Fields.SLUG) and result.get(Fields.NAME):
+            result[Fields.SLUG] = _slugify(result[Fields.NAME])
 
         # Auto-generate slug for organizations and documents if not provided
-        if entity_type.lower() in ["organization", "document"]:
-            if not result.get("slug") and result.get("name"):
-                result["slug"] = _slugify(result["name"])
+        if entity_type.lower() in [EntityType.ORGANIZATION.value, EntityType.DOCUMENT.value]:
+            if not result.get(Fields.SLUG) and result.get(Fields.NAME):
+                result[Fields.SLUG] = _slugify(result[Fields.NAME])
         
         return result
     
@@ -150,21 +218,21 @@ class EntityManager(ToolBase):
         defaults = await _workspace_manager.get_smart_defaults(user_id)
         
         # Apply smart defaults
-        if result.get("organization_id") == "auto":
-            if defaults["organization_id"]:
-                result["organization_id"] = defaults["organization_id"]
+        if result.get(Fields.ORGANIZATION_ID) == "auto":
+            if defaults[Fields.ORGANIZATION_ID]:
+                result[Fields.ORGANIZATION_ID] = defaults[Fields.ORGANIZATION_ID]
             else:
                 raise ValueError("No active organization found for 'auto' resolution")
-        
-        if result.get("project_id") == "auto":
-            if defaults["project_id"]:
-                result["project_id"] = defaults["project_id"]
+
+        if result.get(Fields.PROJECT_ID) == "auto":
+            if defaults[Fields.PROJECT_ID]:
+                result[Fields.PROJECT_ID] = defaults[Fields.PROJECT_ID]
             else:
                 raise ValueError("No active project found for 'auto' resolution")
-        
-        if result.get("document_id") == "auto":
-            if defaults["document_id"]:
-                result["document_id"] = defaults["document_id"]
+
+        if result.get(Fields.DOCUMENT_ID) == "auto":
+            if defaults[Fields.DOCUMENT_ID]:
+                result[Fields.DOCUMENT_ID] = defaults[Fields.DOCUMENT_ID]
             else:
                 raise ValueError("No active document found for 'auto' resolution")
         
@@ -184,11 +252,46 @@ class EntityManager(ToolBase):
         data = self._apply_defaults(entity_type, data)
         self._validate_required_fields(entity_type, data)
 
+        # Validate data against database schema
+        try:
+            validate_before_create(entity_type, data)
+        except ValidationError as e:
+            raise ValueError(f"Schema validation failed: {e}")
+
         # Get table name
         table = self._resolve_entity_table(entity_type)
 
+        # Set user context for trigger emulation
+        user_id = self._get_user_id()
+        if user_id:
+            self.trigger_emulator.set_user_context(user_id)
+
+        # Emulate BEFORE INSERT triggers - transform data
+        try:
+            data = self.trigger_emulator.before_insert(table, data)
+        except ValueError as e:
+            raise ValueError(f"Trigger validation failed: {e}")
+
+        # Validate RLS policy before insert
+        policy = self._get_rls_policy(entity_type)
+        if policy:
+            try:
+                await policy.validate_insert(data)
+            except PermissionDeniedError as e:
+                raise ValueError(f"Permission denied: {e.reason}")
+
         # Create entity
         result = await self._db_insert(table, data, returning="*")
+
+        # Emulate AFTER INSERT triggers - handle side effects
+        side_effects = self.trigger_emulator.after_insert(table, result)
+        for effect_table, effect_data in side_effects:
+            try:
+                await self._db_insert(effect_table, effect_data)
+            except Exception as e:
+                # Log side effect failures but don't fail the main operation
+                logger = get_logger(__name__)
+                logger.warning(f"Side effect insert failed for {effect_table}: {e}")
 
         # Skip relationship inclusion for create to avoid Supabase client issues
         # Relationships can be fetched separately with read operation if needed
@@ -207,12 +310,14 @@ class EntityManager(ToolBase):
         Errors are logged but don't fail the entity creation operation.
         """
         try:
-            from services.progressive_embedding import ProgressiveEmbeddingService
-            from services.embedding_factory import get_embedding_service
+            from config.vector import (
+                get_embedding_service,
+                get_progressive_embedding_service,
+            )
 
             # Initialize services
             embedding_service = get_embedding_service()
-            progressive_service = ProgressiveEmbeddingService(self.supabase, embedding_service)
+            progressive_service = get_progressive_embedding_service(self.supabase)
 
             # Get table name for this entity type
             table_name = progressive_service._get_table_name(entity_type)
@@ -237,15 +342,24 @@ class EntityManager(ToolBase):
     ) -> Optional[Dict[str, Any]]:
         """Read an entity by ID."""
         table = self._resolve_entity_table(entity_type)
-        
+
         result = await self._db_get_single(
             table,
             filters={"id": entity_id}
         )
-        
+
+        # Validate RLS policy after fetch
+        if result:
+            policy = self._get_rls_policy(entity_type)
+            if policy:
+                try:
+                    await policy.validate_select(result)
+                except PermissionDeniedError as e:
+                    raise ValueError(f"Permission denied: {e.reason}")
+
         if result and include_relations:
             result = await self._include_relationships(entity_type, result)
-        
+
         return result
     
     async def update_entity(
@@ -256,21 +370,40 @@ class EntityManager(ToolBase):
         include_relations: bool = False
     ) -> Dict[str, Any]:
         """Update an entity."""
-        import logging
-        logger = logging.getLogger(__name__)
+        logger = get_logger(__name__)
+
+        # Validate data against database schema (for updates, partial data is OK)
+        try:
+            validate_before_update(entity_type, data)
+        except ValidationError as e:
+            raise ValueError(f"Schema validation failed: {e}")
 
         table = self._resolve_entity_table(entity_type)
+
+        # Fetch existing record for RLS validation
+        existing_record = await self._db_get_single(
+            table,
+            filters={"id": entity_id}
+        )
+
+        if not existing_record:
+            raise ValueError(f"{entity_type} with ID '{entity_id}' not found")
+
+        # Validate RLS policy before update
+        policy = self._get_rls_policy(entity_type)
+        if policy:
+            try:
+                await policy.validate_update(existing_record, data)
+            except PermissionDeniedError as e:
+                raise ValueError(f"Permission denied: {e.reason}")
 
         # Prepare update data
         update_data = data.copy()
         # Don't set updated_at manually - let database trigger handle it
         # This prevents "Concurrent update detected" errors from optimistic locking
 
-        # Tables that don't have updated_by column
-        tables_without_updated_by = {'profiles', 'test_req', 'properties'}
-
-        # Set updated_by if the table has this column
-        if table not in tables_without_updated_by:
+        # Set updated_by if the table has this column (tables without audit fields don't have it)
+        if table not in TABLES_WITHOUT_AUDIT_FIELDS:
             user_id = self._get_user_id()
             print(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
             logger.info(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
@@ -281,11 +414,11 @@ class EntityManager(ToolBase):
                 logger.info(f"⚠️ UPDATE: No user_id in context, using fallback query")
                 try:
                     # Use direct Supabase client to bypass RLS temporarily
-                    result = self.supabase.table(table).select("created_by, updated_by").eq("id", entity_id).execute()
+                    result = self.supabase.table(table).select(f"{Fields.CREATED_BY}, {Fields.UPDATED_BY}").eq(Fields.ID, entity_id).execute()
                     print(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
                     logger.info(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
                     if result.data and len(result.data) > 0:
-                        user_id = result.data[0].get("created_by") or result.data[0].get("updated_by")
+                        user_id = result.data[0].get(Fields.CREATED_BY) or result.data[0].get(Fields.UPDATED_BY)
                         print(f"✅ UPDATE: Got user_id from fallback: {user_id}")
                         logger.info(f"✅ UPDATE: Got user_id from fallback: {user_id}")
                 except Exception as e:
@@ -299,7 +432,7 @@ class EntityManager(ToolBase):
                 logger.error(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
                 raise ValueError(f"Could not determine user_id for update operation. Context: {self._user_context}")
 
-            update_data["updated_by"] = user_id
+            update_data[Fields.UPDATED_BY] = user_id
             print(f"✅ UPDATE: Set updated_by to: {user_id}")
             logger.info(f"✅ UPDATE: Set updated_by to: {user_id}")
 
@@ -323,12 +456,29 @@ class EntityManager(ToolBase):
     ) -> bool:
         """Delete an entity (soft delete by default)."""
         table = self._resolve_entity_table(entity_type)
-        
+
+        # Fetch existing record for RLS validation
+        existing_record = await self._db_get_single(
+            table,
+            filters={"id": entity_id}
+        )
+
+        if not existing_record:
+            raise ValueError(f"{entity_type} with ID '{entity_id}' not found")
+
+        # Validate RLS policy before delete
+        policy = self._get_rls_policy(entity_type)
+        if policy:
+            try:
+                await policy.validate_delete(existing_record)
+            except PermissionDeniedError as e:
+                raise ValueError(f"Permission denied: {e.reason}")
+
         if soft_delete:
             # Soft delete
             delete_data = {
-                "is_deleted": True,
-                "deleted_at": datetime.now(timezone.utc).isoformat()
+                Fields.IS_DELETED: True,
+                Fields.DELETED_AT: datetime.now(timezone.utc).isoformat()
                 # Don't set updated_at - let database trigger handle it
             }
 
@@ -337,9 +487,9 @@ class EntityManager(ToolBase):
             if not user_id:
                 # Fallback: Query existing record to get created_by
                 try:
-                    result = self.supabase.table(table).select("created_by, updated_by").eq("id", entity_id).execute()
+                    result = self.supabase.table(table).select(f"{Fields.CREATED_BY}, {Fields.UPDATED_BY}").eq(Fields.ID, entity_id).execute()
                     if result.data and len(result.data) > 0:
-                        user_id = result.data[0].get("created_by") or result.data[0].get("updated_by")
+                        user_id = result.data[0].get(Fields.CREATED_BY) or result.data[0].get(Fields.UPDATED_BY)
                 except Exception:
                     pass
 
@@ -347,8 +497,8 @@ class EntityManager(ToolBase):
             if not user_id:
                 raise ValueError(f"Could not determine user_id for delete operation. Context: {self._user_context}")
 
-            delete_data["deleted_by"] = user_id
-            delete_data["updated_by"] = user_id
+            delete_data[Fields.DELETED_BY] = user_id
+            delete_data[Fields.UPDATED_BY] = user_id
             
             result = await self._db_update(
                 table,
@@ -377,15 +527,13 @@ class EntityManager(ToolBase):
         query_filters = filters.copy() if filters else {}
 
         # Add default filters (but skip is_deleted for tables that don't have it)
-        # test_req and properties tables don't have is_deleted column
-        tables_without_soft_delete = {'test_req', 'properties'}
-        if "is_deleted" not in query_filters and table not in tables_without_soft_delete:
-            query_filters["is_deleted"] = False
+        if Fields.IS_DELETED not in query_filters and table not in TABLES_WITHOUT_SOFT_DELETE:
+            query_filters[Fields.IS_DELETED] = False
 
         # Handle search term
         if search_term:
             # This is simplified - in practice you'd use full-text search
-            query_filters["name"] = {"ilike": f"%{search_term}%"}
+            query_filters[Fields.NAME] = {"ilike": f"%{search_term}%"}
 
         # Set default ordering
         if not order_by:
@@ -416,11 +564,10 @@ class EntityManager(ToolBase):
         """List entities, optionally filtered by parent."""
         # Build filters - skip is_deleted for tables that don't have it
         table = self._resolve_entity_table(entity_type)
-        tables_without_soft_delete = {'test_req', 'properties'}
 
         filters = {}
-        if table not in tables_without_soft_delete:
-            filters["is_deleted"] = False
+        if table not in TABLES_WITHOUT_SOFT_DELETE:
+            filters[Fields.IS_DELETED] = False
 
         # Add parent filter
         if parent_type and parent_id:
@@ -447,54 +594,54 @@ class EntityManager(ToolBase):
     ) -> Dict[str, Any]:
         """Include related entities in the response."""
         result = entity.copy()
-        entity_id = entity["id"]
-        
-        if entity_type.lower() == "organization":
+        entity_id = entity[Fields.ID]
+
+        if entity_type.lower() == EntityType.ORGANIZATION.value:
             # Include member count and recent projects
             member_count = await self._db_count(
-                "organization_members",
-                filters={"organization_id": entity_id, "status": "active"}
+                Tables.ORGANIZATION_MEMBERS,
+                filters={Fields.ORGANIZATION_ID: entity_id, Fields.STATUS: "active"}
             )
             result["member_count"] = member_count
-            
+
             recent_projects = await self._db_query(
-                "projects",
-                filters={"organization_id": entity_id, "is_deleted": False},
+                Tables.PROJECTS,
+                filters={Fields.ORGANIZATION_ID: entity_id, Fields.IS_DELETED: False},
                 limit=5,
-                order_by="updated_at:desc"
+                order_by=f"{Fields.UPDATED_AT}:desc"
             )
             result["recent_projects"] = recent_projects
-        
-        elif entity_type.lower() == "project":
+
+        elif entity_type.lower() == EntityType.PROJECT.value:
             # Include document count and members
             doc_count = await self._db_count(
-                "documents", 
-                filters={"project_id": entity_id, "is_deleted": False}
+                Tables.DOCUMENTS,
+                filters={Fields.PROJECT_ID: entity_id, Fields.IS_DELETED: False}
             )
             result["document_count"] = doc_count
-            
+
             members = await self._db_query(
-                "project_members",
-                select="*, profiles(*)",
-                filters={"project_id": entity_id, "status": "active"}
+                Tables.PROJECT_MEMBERS,
+                select=f"*, {Tables.PROFILES}(*)",
+                filters={Fields.PROJECT_ID: entity_id, Fields.STATUS: "active"}
             )
             result["members"] = members
-        
-        elif entity_type.lower() == "document":
+
+        elif entity_type.lower() == EntityType.DOCUMENT.value:
             # Include requirement count and blocks
             req_count = await self._db_count(
-                "requirements",
-                filters={"document_id": entity_id, "is_deleted": False}
+                Tables.REQUIREMENTS,
+                filters={Fields.DOCUMENT_ID: entity_id, Fields.IS_DELETED: False}
             )
             result["requirement_count"] = req_count
-            
+
             blocks = await self._db_query(
-                "blocks",
-                filters={"document_id": entity_id, "is_deleted": False},
+                Tables.BLOCKS,
+                filters={Fields.DOCUMENT_ID: entity_id, Fields.IS_DELETED: False},
                 order_by="position"
             )
             result["blocks"] = blocks
-        
+
         return result
 
 

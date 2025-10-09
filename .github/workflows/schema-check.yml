@@ -1,0 +1,171 @@
+name: Schema Drift Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'schemas/**'
+      - 'infrastructure/sql/**'
+  workflow_dispatch:
+  schedule:
+    # Run daily at 9 AM UTC
+    - cron: '0 9 * * *'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  check-schema-drift:
+    name: Check for Schema Drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check schema drift
+        id: check_drift
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          python scripts/sync_schema.py --check || echo "drift_detected=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Generate drift report
+        if: steps.check_drift.outputs.drift_detected == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          python scripts/sync_schema.py --report
+
+      - name: Upload drift report
+        if: steps.check_drift.outputs.drift_detected == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-drift-report
+          path: schema_drift_report_*.md
+          retention-days: 30
+
+      - name: Comment on PR
+        if: steps.check_drift.outputs.drift_detected == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reports = fs.readdirSync('.').filter(f => f.startsWith('schema_drift_report_'));
+            if (reports.length > 0) {
+              const report = fs.readFileSync(reports[0], 'utf8');
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## ⚠️ Schema Drift Detected\n\n${report}\n\n---\n*This check was performed automatically by the schema-check workflow.*`
+              });
+            }
+
+      - name: Fail if drift detected
+        if: steps.check_drift.outputs.drift_detected == 'true'
+        run: |
+          echo "::error::Schema drift detected! Please sync local schemas with database."
+          exit 1
+
+      - name: Success - No drift
+        if: steps.check_drift.outputs.drift_detected != 'true'
+        run: |
+          echo "✓ No schema drift detected - schemas are in sync!"
+
+  validate-migrations:
+    name: Validate SQL Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for migration files
+        id: check_migrations
+        run: |
+          if [ -d "infrastructure/sql" ] && [ "$(ls -A infrastructure/sql/*.sql 2>/dev/null)" ]; then
+            echo "migrations_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "migrations_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate SQL syntax
+        if: steps.check_migrations.outputs.migrations_found == 'true'
+        run: |
+          # Basic SQL validation (can be enhanced with sqlfluff or similar)
+          for file in infrastructure/sql/*.sql; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              # Check for common issues
+              if grep -q "DROP TABLE" "$file" && ! grep -q "IF EXISTS" "$file"; then
+                echo "::warning::$file contains DROP TABLE without IF EXISTS"
+              fi
+              if grep -q "CREATE TABLE" "$file" && ! grep -q "IF NOT EXISTS" "$file"; then
+                echo "::warning::$file contains CREATE TABLE without IF NOT EXISTS"
+              fi
+            fi
+          done
+
+      - name: Check migration naming
+        if: steps.check_migrations.outputs.migrations_found == 'true'
+        run: |
+          # Ensure migrations follow naming convention
+          for file in infrastructure/sql/*.sql; do
+            basename=$(basename "$file")
+            if [[ ! "$basename" =~ ^[0-9]{14}_.*\.sql$ ]] && [[ ! "$basename" =~ ^[a-z_]+\.sql$ ]]; then
+              echo "::warning::Migration file $basename doesn't follow naming convention"
+            fi
+          done
+
+  update-schema-docs:
+    name: Update Schema Documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Update schema version
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          python scripts/sync_schema.py --update
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update schema version [skip ci]"
+          file_pattern: "schemas/schema_version.py"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"

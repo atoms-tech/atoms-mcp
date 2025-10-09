@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-import logging
+from utils.logging_setup import get_logger
 from typing import Any, Dict, Optional
 
 # Support both package and standalone imports
 try:
     from ..infrastructure.factory import get_adapters
     from ..errors import normalize_error
+    from ..schemas.constants import Tables, ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE
 except ImportError:
     from infrastructure.factory import get_adapters
     from errors import normalize_error
+    from schemas.constants import Tables, ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ToolBase:
@@ -128,30 +130,7 @@ class ToolBase:
     
     def _resolve_entity_table(self, entity_type: str) -> str:
         """Map entity type to database table name."""
-        entity_table_map = {
-            "organization": "organizations",
-            "project": "projects",
-            "document": "documents",
-            "requirement": "requirements",
-            "test": "test_req",
-            "property": "properties",
-            "block": "blocks",
-            "column": "columns",
-            "trace_link": "trace_links",
-            "assignment": "assignments",
-            "audit_log": "audit_logs",
-            "notification": "notifications",
-            "external_document": "external_documents",
-            "test_matrix_view": "test_matrix_views",
-            "organization_member": "organization_members",
-            "project_member": "project_members",
-            "organization_invitation": "organization_invitations",
-            "requirement_test": "requirement_tests",
-            "profile": "profiles",
-            "user": "profiles"  # Map 'user' to profiles table
-        }
-        
-        table = entity_table_map.get(entity_type.lower())
+        table = ENTITY_TABLE_MAP.get(entity_type.lower())
         if not table:
             raise ValueError(f"Unknown entity type: {entity_type}")
         return table

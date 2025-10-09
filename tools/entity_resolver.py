@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import re
 from typing import Dict, Any, List, Optional, Tuple
-import logging
+from utils.logging_setup import get_logger
+from schemas.constants import TABLES_WITHOUT_SOFT_DELETE
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Try to import rapidfuzz, fall back to basic matching if not available
 try:
@@ -72,8 +73,7 @@ class EntityResolver:
                 query_filters["id"] = identifier
 
                 # Skip is_deleted for tables without it
-                tables_without_soft_delete = {'test_req', 'properties'}
-                if table not in tables_without_soft_delete:
+                if table not in TABLES_WITHOUT_SOFT_DELETE:
                     query_filters.setdefault("is_deleted", False)
 
                 entity = await self.db.get_single(table, filters=query_filters)

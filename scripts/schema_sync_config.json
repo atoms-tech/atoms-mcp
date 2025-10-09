@@ -1,0 +1,107 @@
+{
+  "schema_sync": {
+    "version": "1.0.0",
+    "database": {
+      "project_id_env": "SUPABASE_PROJECT_ID",
+      "url_env": "SUPABASE_URL",
+      "service_key_env": "SUPABASE_SERVICE_KEY",
+      "schemas_to_check": ["public"],
+      "exclude_tables": [
+        "schema_migrations",
+        "_prisma_migrations"
+      ],
+      "exclude_enums": []
+    },
+    "local_schemas": {
+      "root_dir": "schemas",
+      "enums_file": "schemas/enums.py",
+      "entities_dir": "schemas/database",
+      "version_file": "schemas/schema_version.py"
+    },
+    "sync_rules": {
+      "auto_update_version": true,
+      "auto_generate_code": false,
+      "require_manual_review": [
+        "enum_removed",
+        "table_removed",
+        "column_removed"
+      ],
+      "severity_levels": {
+        "enum_added": "high",
+        "enum_modified": "medium",
+        "enum_removed": "critical",
+        "table_added": "high",
+        "table_modified": "medium",
+        "table_removed": "critical",
+        "column_added": "medium",
+        "column_modified": "high",
+        "column_removed": "critical"
+      }
+    },
+    "ci_cd": {
+      "enabled": true,
+      "fail_on_drift": true,
+      "generate_reports": true,
+      "report_format": "markdown",
+      "notify_on_drift": true
+    },
+    "naming_conventions": {
+      "enum_class_suffix": "Type",
+      "table_class_suffix": "Row",
+      "special_plurals": {
+        "properties": "property",
+        "entries": "entry",
+        "analyses": "analysis"
+      },
+      "enum_mappings": {
+        "organization": "organization_type",
+        "user_role": "user_role_type",
+        "user_status": "user_status"
+      }
+    },
+    "code_generation": {
+      "enum_template": "schemas/templates/enum_template.py.j2",
+      "table_template": "schemas/templates/table_template.py.j2",
+      "type_mappings": {
+        "uuid": "str",
+        "text": "str",
+        "varchar": "str",
+        "integer": "int",
+        "bigint": "int",
+        "boolean": "bool",
+        "timestamp with time zone": "str",
+        "timestamp without time zone": "str",
+        "jsonb": "dict",
+        "json": "dict",
+        "numeric": "float",
+        "interval": "str"
+      }
+    },
+    "hooks": {
+      "pre_commit": {
+        "enabled": false,
+        "script": "scripts/pre-commit-schema-check.sh"
+      },
+      "pre_push": {
+        "enabled": false,
+        "script": null
+      }
+    },
+    "notifications": {
+      "slack": {
+        "enabled": false,
+        "webhook_url_env": "SLACK_WEBHOOK_URL",
+        "channel": "#schema-updates"
+      },
+      "email": {
+        "enabled": false,
+        "recipients": []
+      }
+    },
+    "monitoring": {
+      "track_drift_history": true,
+      "history_file": "schema_drift_history.json",
+      "max_history_entries": 100
+    }
+  }
+}

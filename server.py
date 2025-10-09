@@ -1,17 +1,66 @@
-"""New atoms_fastmcp server with consolidated, agent-optimized tools."""
+"""
+Atoms FastMCP Server - Consolidated, agent-optimized MCP server.
+
+This is the main entry point for the Atoms MCP server. It provides a
+simplified interface to the modular server implementation.
+
+For the modular implementation, see the `server/` package.
+
+Usage:
+    Run with stdio transport:
+    >>> python server.py
+
+    Run with HTTP transport:
+    >>> ATOMS_FASTMCP_TRANSPORT=http python server.py
+
+    Or import and use programmatically:
+    >>> from server import create_consolidated_server
+    >>> server = create_consolidated_server()
+    >>> server.run(transport="stdio")
+"""
 
 from __future__ import annotations
 
 import os
-import logging
+from utils.logging_setup import get_logger
 import warnings
 from typing import Any, Dict, Optional
+from mcp_qa.utils import get_env, MetricsCollector
 
 # Suppress websockets deprecation warnings from uvicorn
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets")
 
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_access_token
+from pydantic import ValidationError
+
+# Import generated Pydantic models for request validation
+try:
+    from .schemas.generated.fastapi.schema_public_latest import (
+        OrganizationInsert,
+        OrganizationUpdate,
+        ProjectInsert,
+        ProjectUpdate,
+        DocumentInsert,
+        DocumentUpdate,
+        RequirementInsert,
+        RequirementUpdate,
+        ProfileInsert,
+        ProfileUpdate,
+    )
+except ImportError:
+    from schemas.generated.fastapi.schema_public_latest import (
+        OrganizationInsert,
+        OrganizationUpdate,
+        ProjectInsert,
+        ProjectUpdate,
+        DocumentInsert,
+        DocumentUpdate,
+        RequirementInsert,
+        RequirementUpdate,
+        ProfileInsert,
+        ProfileUpdate,
+    )
 
 # Support both relative and absolute imports
 try:
@@ -31,7 +80,8 @@ except ImportError:
         data_query,
     )
 
-logger = logging.getLogger("atoms_fastmcp")
+logger = get_logger("atoms_fastmcp")
+metrics = MetricsCollector()
 
 
 def _markdown_serializer(data: Any) -> str:
@@ -193,7 +243,9 @@ async def _check_rate_limit(user_id: str) -> None:
         RuntimeError: If rate limit exceeded
     """
     global _rate_limiter
+    metrics.increment("rate_limit_checks")
     if _rate_limiter and not await _rate_limiter.check_limit(user_id):
+        metrics.increment("rate_limit_exceeded")
         remaining = _rate_limiter.get_remaining(user_id)
         raise RuntimeError(
             f"Rate limit exceeded. Please wait before making more requests. "
@@ -229,6 +281,60 @@ async def _apply_rate_limit_if_configured() -> Optional[str]:
                 raise
 
     return auth_token
+
+
+def _validate_entity_data(entity_type: str, operation: str, data: dict) -> dict:
+    """Validate entity data using generated Pydantic models.
+
+    Args:
+        entity_type: The type of entity (organization, project, etc.)
+        operation: The operation being performed (create, update)
+        data: The data to validate
+
+    Returns:
+        Validated data as a dictionary
+
+    Raises:
+        ValidationError: If validation fails
+    """
+    # Map entity types to Pydantic models
+    model_map = {
+        "organization": {
+            "create": OrganizationInsert,
+            "update": OrganizationUpdate,
+        },
+        "project": {
+            "create": ProjectInsert,
+            "update": ProjectUpdate,
+        },
+        "document": {
+            "create": DocumentInsert,
+            "update": DocumentUpdate,
+        },
+        "requirement": {
+            "create": RequirementInsert,
+            "update": RequirementUpdate,
+        },
+        "profile": {
+            "create": ProfileInsert,
+            "update": ProfileUpdate,
+        },
+    }
+
+    # Get the appropriate model
+    entity_models = model_map.get(entity_type.lower())
+    if not entity_models:
+        # Entity type not in validation map - skip validation
+        return data
+
+    model = entity_models.get(operation)
+    if not model:
+        # Operation not in validation map - skip validation
+        return data
+
+    # Validate and return cleaned data
+    validated = model(**data)
+    return validated.model_dump(exclude_none=True)
 
 
 def _load_env_files() -> None:
@@ -295,20 +401,20 @@ def create_consolidated_server() -> FastMCP:
     )
 
     # Create auth provider with base URL, preferring public URLs configured for AuthKit/Cloudflare
-    base_url = os.getenv("ATOMS_FASTMCP_BASE_URL")
+    base_url = get_env("ATOMS_FASTMCP_BASE_URL")
     if not base_url:
         # Construct from environment if not provided
-        host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
-        port = os.getenv("ATOMS_FASTMCP_PORT", "8000")
-        transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
+        host = get_env("ATOMS_FASTMCP_HOST", "127.0.0.1")
+        port = get_env("ATOMS_FASTMCP_PORT", "8000")
+        transport = get_env("ATOMS_FASTMCP_TRANSPORT", "stdio")
 
         if transport == "http":
             base_url = f"http://{host}:{port}"
 
     public_base_url = (
-        os.getenv("ATOMS_FASTMCP_PUBLIC_BASE_URL")
-        or os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
-        or os.getenv("PUBLIC_URL")
+        get_env("ATOMS_FASTMCP_PUBLIC_BASE_URL")
+        or get_env("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
+        or get_env("PUBLIC_URL")
     )
     if public_base_url:
         cleaned = public_base_url.rstrip("/")
@@ -319,7 +425,7 @@ def create_consolidated_server() -> FastMCP:
         base_url = cleaned
 
     # Vercel-specific: use VERCEL_URL if no public URL is configured
-    vercel_url = os.getenv("VERCEL_URL")
+    vercel_url = get_env("VERCEL_URL")
     if not public_base_url and vercel_url:
         guess = f"https://{vercel_url}".rstrip("/")
         # Strip /api/mcp suffix if present
@@ -335,10 +441,10 @@ def create_consolidated_server() -> FastMCP:
     fastmcp_vars = {k: v for k, v in os.environ.items() if "FASTMCP" in k}
     logger.info(f"DEBUG: All FASTMCP environment variables: {fastmcp_vars}")
 
-    public_base_url = os.getenv("ATOMS_FASTMCP_PUBLIC_BASE_URL") or base_url
+    public_base_url = get_env("ATOMS_FASTMCP_PUBLIC_BASE_URL") or base_url
 
     # Configure AuthKitProvider for OAuth with Standalone Connect
-    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
+    authkit_domain = get_env("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", required=True)
     if not authkit_domain:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
@@ -358,13 +464,13 @@ def create_consolidated_server() -> FastMCP:
 
     # Initialize rate limiter for API protection
     try:
-        from .infrastructure.rate_limiter import SlidingWindowRateLimiter
+        from observability.rate_limiting.sliding_window import SlidingWindowRateLimiter
     except ImportError:
-        from infrastructure.rate_limiter import SlidingWindowRateLimiter
+        from observability.rate_limiting.sliding_window import SlidingWindowRateLimiter
 
     # Configure rate limits (can be overridden via env vars)
     global _rate_limiter
-    rate_limit_rpm = int(os.getenv("MCP_RATE_LIMIT_RPM", "120"))  # 120 requests/minute default
+    rate_limit_rpm = int(get_env("MCP_RATE_LIMIT_RPM", "120"))  # 120 requests/minute default
     _rate_limiter = SlidingWindowRateLimiter(window_seconds=60, max_requests=rate_limit_rpm)
     logger.info(f"✅ Rate limiter configured: {rate_limit_rpm} requests/minute")
 
@@ -479,15 +585,60 @@ def create_consolidated_server() -> FastMCP:
             if operation == "list" and limit is None:
                 limit = 100
 
+            # Validate data with Pydantic models before processing
+            validated_data = data
+            validated_batch = batch
+
+            if data and operation in ("create", "update"):
+                try:
+                    validated_data = _validate_entity_data(entity_type, operation, data)
+                    metrics.increment(f"validation_success.{entity_type}.{operation}")
+                except ValidationError as e:
+                    metrics.increment(f"validation_failed.{entity_type}.{operation}")
+                    return {
+                        "success": False,
+                        "error": "Validation failed",
+                        "details": e.errors(),
+                        "operation": operation,
+                        "entity_type": entity_type,
+                    }
+
+            # Validate batch operations
+            if batch and operation in ("create", "update"):
+                validated_batch = []
+                validation_errors = []
+
+                for idx, item in enumerate(batch):
+                    try:
+                        validated_item = _validate_entity_data(entity_type, operation, item)
+                        validated_batch.append(validated_item)
+                        metrics.increment(f"validation_success.{entity_type}.{operation}_batch")
+                    except ValidationError as e:
+                        validation_errors.append({
+                            "index": idx,
+                            "item": item,
+                            "errors": e.errors()
+                        })
+                        metrics.increment(f"validation_failed.{entity_type}.{operation}_batch")
+
+                if validation_errors:
+                    return {
+                        "success": False,
+                        "error": "Batch validation failed",
+                        "validation_errors": validation_errors,
+                        "operation": operation,
+                        "entity_type": entity_type,
+                    }
+
             return await entity_operation(
                 auth_token=auth_token,
                 operation=operation,
                 entity_type=entity_type,
-                data=data,
+                data=validated_data,
                 filters=filters,
                 entity_id=entity_id,
                 include_relations=include_relations,
-                batch=batch,
+                batch=validated_batch,
                 search_term=search_term,
                 parent_type=parent_type,
                 parent_id=parent_id,

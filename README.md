@@ -1,126 +1,256 @@
-Atoms FastMCP Server (Python)
+# Atoms MCP Server
+**Model Context Protocol server with entity management, workflows, and collaboration**
 
-## Overview
-- FastMCP 2.12 server with 1:1 coverage of the core atoms API domains, plus Supabase wiring.
-- Auth is explicit: login(username, password) returns a session_token; all other tools require session_token.
-- Transports: STDIO (default) or HTTP. HTTP path defaults to `/api/mcp`.
-- **OAuth 2.0 PKCE + DCR** support via WorkOS AuthKit for production deployments.
+---
 
-## 🚨 Troubleshooting
+## 🎯 **OVERVIEW**
 
-**Having CORS or OAuth issues?**
+Atoms MCP is a production-ready MCP server providing:
+- **Entity Management** - Create, manage, and query entities
+- **Relationship Tracking** - Define and navigate entity relationships
+- **Workflow Orchestration** - Automate multi-step processes
+- **Workspace Collaboration** - Team collaboration features
+- **Vector Search** - Semantic search with embeddings
 
-### 🆕 **UPDATED**: Based on Official WorkOS MCP Documentation
+### Key Features
+- ✅ **OAuth 2.0 PKCE + DCR** - Standards-compliant authentication via WorkOS AuthKit
+- ✅ **Stateless Architecture** - Serverless-ready, no session storage
+- ✅ **Row-Level Security** - Fine-grained data access control
+- ✅ **Pheno-SDK Integration** - Reusable components from pheno-sdk
+- ✅ **Comprehensive Testing** - 18 test files with parallel execution
 
-**Read first**: [`docs/UPDATED_GUIDANCE.md`](docs/UPDATED_GUIDANCE.md) - Key updates based on official WorkOS docs
+---
 
-**Important changes**:
-- ✅ Use `/.well-known/oauth-authorization-server` (not `openid-configuration`) for MCP
-- ✅ Dynamic Client Registration (DCR) is **required** for MCP
-- ✅ Test with OAuth 2.0 endpoints, not OpenID Connect
+## 🚀 **QUICK START**
 
-### 📖 Complete Documentation: [`docs/INDEX.md`](docs/INDEX.md)
-
-Complete documentation index with guides organized by:
-- Error message
-- Use case
-- Task type
-- Reading order
-
-### 🚀 Quick Links
-
-- **Quick Fix (5 min)**: [`docs/QUICK_FIX.md`](docs/QUICK_FIX.md) - Fix the most common issues
-- **Error Analysis**: [`docs/ERROR_ANALYSIS.md`](docs/ERROR_ANALYSIS.md) - Detailed breakdown of your errors
-- **Summary**: [`docs/SUMMARY.md`](docs/SUMMARY.md) - What's fixed and what needs fixing
-- **Verification**: [`docs/VERIFICATION_CHECKLIST.md`](docs/VERIFICATION_CHECKLIST.md) - Step-by-step testing
-
-### ⚡ Common Errors
-
-| Error | Status | Fix |
-|-------|--------|-----|
-| `404 on /.well-known/openid-configuration` | ❌ Needs fix | Update AuthKit domain in `.env` |
-| `Cannot transition from step: client_registration` | ❌ Needs fix | Enable DCR in WorkOS Dashboard |
-| `No 'Access-Control-Allow-Origin' header` | ✅ Fixed | Restart server |
-| `mcp-protocol-version is not allowed` | ✅ Fixed | Restart server |
-
-**See [`docs/INDEX.md`](docs/INDEX.md) for complete documentation.**
-
-## Install
-- Python 3.10+
-- Dependencies are listed at the repo root in `requirements.txt`:
-  - fastmcp>=2.12
-  - supabase>=2.5.0
-
-## Run
-- STDIO (default):
-  `python -m atoms_fastmcp`
-
-- HTTP transport:
-  `ATOMS_FASTMCP_TRANSPORT=http ATOMS_FASTMCP_HOST=127.0.0.1 ATOMS_FASTMCP_PORT=3001 python -m atoms_fastmcp`
-  - HTTP MCP endpoint path: `/api/mcp` (override with `ATOMS_FASTMCP_HTTP_PATH`)
-  - Health check: `GET /health`
-
-## Auth and Env
-
-### Required for Supabase
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-### Optional Development Auth
-- `FASTMCP_DEMO_USER`, `FASTMCP_DEMO_PASS` (if set, login must match these)
-
-### Required for OAuth (Production)
-- `FASTMCP_SERVER_AUTH=fastmcp.server.auth.providers.workos.AuthKitProvider`
-- `FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN` - Your AuthKit domain from WorkOS
-- `FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL` - Your public server URL
-- `FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_REQUIRED_SCOPES=openid,profile,email`
-- `WORKOS_API_KEY` - Your WorkOS API key
-- `WORKOS_CLIENT_ID` - Your WorkOS client ID
-
-**⚠️ Important**: Make sure your `AUTHKIT_DOMAIN` is correct! Test it:
+### 1. Setup
 ```bash
-curl https://YOUR-AUTHKIT-DOMAIN/.well-known/openid-configuration
-# Should return JSON, not 404
+# Clone repository
+git clone https://github.com/atoms-tech/atoms-mcp.git
+cd atoms-mcp
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-Key Domains/Tools (non‑exhaustive)
-- auth: login, logout, get_profile, auth_get_by_email, auth_update_profile, auth_list_profiles, auth_set_approval
-- organizations: list/get/bySlug/listForUser/listIdsByMembership/listWithFilters/getPersonalOrg/create/listMembers/removeMember/invite/addMember/setMemberRole/updateMemberCount
-- projects: getById/listForUser/listMembers/listByOrg/listByMembershipForOrg/listWithFilters/create/update/softDelete/addMember/setMemberRole/removeMember
-- documents: create/getById/listByProject/listWithFilters/update/softDelete/blocksAndRequirements/getBlockById/listBlocks/listColumnsByBlockIds/createBlock/updateBlock/softDeleteBlock/createColumn/deleteColumn
-- requirements: getById/listWithFilters/listByProject/listByDocument/listByBlock/listByBlockIds/listByIds/create/update/softDelete
-- properties: getById/listByOrg/listByDocument/listOrgBase/createMany/update/softDelete/updatePositions
-- trace_links: create/createMany/softDelete/listBySource/listByTarget
-- test_matrix_views: listByProject/insert/update/softDelete/getById/getDefault/getFirstActive/unsetDefaults
-- assignments, audit_logs, notifications (including unreadCount), recent (documents/projects/requirements)
-- diagrams: list/getById/updateName/delete/upsert
-- storage: get_public_url
-- external_documents: get_by_id/list_by_org/upload_base64/remove/update/get_public_url (uses Supabase storage `external_documents` bucket)
+### 2. Run Server Locally
+```bash
+# Start local server with CloudFlare tunnel (for OAuth)
+python start_server.py
 
-## 📚 Documentation Index
+# Server runs on: http://localhost:50002
+# Public URL (via tunnel): https://atomcp.kooshapari.com
+# MCP Endpoint: https://atomcp.kooshapari.com/api/mcp
+```
 
-### Quick Start
-- **[README.md](README.md)** - This file, overview and basic setup
-- **[QUICK_FIX.md](docs/QUICK_FIX.md)** - 5-minute fix for common issues
+### 3. Run Tests
+```bash
+# Run unit tests
+pytest -m unit
 
-### Troubleshooting Guides
-- **[ERROR_ANALYSIS.md](docs/ERROR_ANALYSIS.md)** - Analysis of your current errors
-- **[CORS_TROUBLESHOOTING.md](docs/CORS_TROUBLESHOOTING.md)** - Deep dive into CORS issues
-- **[VERIFICATION_CHECKLIST.md](docs/VERIFICATION_CHECKLIST.md)** - Step-by-step verification
+# Run integration tests (requires server running)
+pytest -m integration
 
-### Setup Guides
-- **[authkit_setup_guide.md](docs/authkit_setup_guide.md)** - Complete OAuth setup with AuthKit
-- **[oauth_setup_guide.md](docs/oauth_setup_guide.md)** - OAuth 2.0 PKCE + DCR guide
-- **[supabase_workos_setup_guide.md](docs/supabase_workos_setup_guide.md)** - Supabase + WorkOS integration
+# Run all tests in parallel
+pytest -n auto
+```
 
-### Examples
-- **[login_flow.md](examples/login_flow.md)** - Basic login flow examples
-- **[mcp_client_auth_flow.md](examples/mcp_client_auth_flow.md)** - MCP client authentication
-- **[mcp_oauth_dcr_flow.md](examples/mcp_oauth_dcr_flow.md)** - OAuth DCR flow examples
+**For complete setup instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
 
-## Notes
-- Session storage is in-memory for dev; replace with your preferred auth/session backend if needed.
-- No external ASGI server required; FastMCP runs HTTP internally.
-- Tool names are snake_case. If you prefer names that mirror atoms-api exactly (e.g., `organizations.getById`), these can be aliased/renamed.
-- **CORS fixes are already in the code** - just restart the server to apply them.
-- **The main blocker is the AuthKit domain** - make sure it's correct in your `.env` file.
+---
+
+## 📚 **DOCUMENTATION**
+
+### Essential Guides
+- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - 3-tier deployment workflow
+- **[QUICK_START.md](QUICK_START.md)** - Quick start guide
+- **[WORKOS_SETUP.md](WORKOS_SETUP.md)** - WorkOS AuthKit configuration
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Testing documentation
+
+### Additional Resources
+- **[docs/REFERENCE.md](docs/REFERENCE.md)** - API reference
+- **[examples/](examples/)** - Usage examples
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
+
+---
+
+## 🔧 **REQUIREMENTS**
+
+- **Python 3.11+**
+- **WorkOS Account** - For AuthKit authentication
+- **Supabase Account** - For data storage
+- **Google Cloud Account** (optional) - For Vertex AI embeddings
+
+---
+
+## 🔐 **AUTHENTICATION**
+
+### Stateless AuthKit Architecture
+
+**IMPORTANT:** Atoms MCP uses **WorkOS AuthKit ONLY** for authentication.
+
+- ✅ **Authentication:** WorkOS AuthKit (OAuth 2.0 PKCE + DCR)
+- ✅ **Data Storage:** Supabase PostgreSQL with RLS
+- ❌ **NOT USED:** Supabase Auth/JWT for authentication
+
+### Environment Variables
+
+```bash
+# WorkOS AuthKit (Required)
+FASTMCP_SERVER_AUTH=fastmcp.server.auth.providers.workos.AuthKitProvider
+FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN=https://your-domain.authkit.app
+FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL=http://localhost:8000
+FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_REQUIRED_SCOPES=openid,profile,email
+WORKOS_API_KEY=sk_test_YOUR_API_KEY
+WORKOS_CLIENT_ID=client_YOUR_CLIENT_ID
+
+# Supabase (Required - Data Storage Only)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...your-service-role-key
+
+# Optional: Vertex AI Embeddings
+GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+```
+
+**For complete configuration, see [SETUP_GUIDE.md](SETUP_GUIDE.md)**
+
+---
+
+## 🚢 **DEPLOYMENT**
+
+### 3-Tier Deployment Model
+
+The Atoms MCP server uses a streamlined 3-tier deployment model:
+
+```
+Local Development → Dev/Preview → Production
+  (CloudFlare tunnel)   (Vercel)     (Vercel)
+```
+
+| Environment | Deployment Method | URL |
+|-------------|------------------|-----|
+| **Local** | `python start_server.py` | https://atomcp.kooshapari.com (via tunnel) |
+| **Dev/Preview** | `git push origin feature-branch` | https://devmcp.atoms.tech |
+| **Production** | `git push origin main` | https://atomcp.kooshapari.com |
+
+### Quick Deployment
+
+```bash
+# Deploy to Dev (preview environment)
+git push origin feature-branch
+# → Vercel auto-deploys to devmcp.atoms.tech
+
+# Deploy to Production
+git push origin main
+# → Vercel auto-deploys to atomcp.kooshapari.com
+```
+
+**For complete deployment guide, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)**
+
+---
+
+## 🧪 **TESTING**
+
+### Quick Start - Fast Tests
+
+```bash
+# Run fast unit tests (<1s per test)
+pytest -m unit
+
+# Run all tests (unit + integration)
+pytest -m "unit or integration"
+
+# Run tests in parallel (faster)
+pytest -n auto
+```
+
+### Test Against Environments
+
+```bash
+# Test local server
+pytest --base-url=http://localhost:50002
+
+# Test dev environment
+pytest --base-url=https://devmcp.atoms.tech
+
+# Test production (smoke tests only)
+pytest -m "unit and not slow" --base-url=https://atomcp.kooshapari.com
+```
+
+**For complete testing documentation, see [TESTING_GUIDE.md](TESTING_GUIDE.md)**
+
+---
+
+## 🛠️ **MCP TOOLS**
+
+### Entity Management
+- `create_entity`, `get_entity`, `update_entity`, `delete_entity`, `list_entities`
+
+### Relationship Management
+- `create_relationship`, `get_relationships`, `delete_relationship`
+
+### Workflow Orchestration
+- `create_workflow`, `execute_workflow`, `get_workflow_status`
+
+### Workspace Collaboration
+- `create_workspace`, `add_workspace_member`, `list_workspaces`
+
+### Query & Search
+- `query_entities`, `vector_search`
+
+**For complete API reference, see [docs/REFERENCE.md](docs/REFERENCE.md)**
+
+---
+
+## 📊 **PROJECT STATUS**
+
+### Consolidation Complete ✅
+
+- **164 files archived** - All redundant files preserved
+- **68% reduction** in root directory files
+- **36% reduction** in test files
+- **Clean architecture** - Clear separation of concerns
+
+**For detailed changes, see [CHANGELOG.md](CHANGELOG.md)**
+
+---
+
+## 🏗️ **ARCHITECTURE**
+
+```
+MCP Clients → FastMCP Server → WorkOS AuthKit → MCP Tools → Services → Supabase
+```
+
+**For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md)**
+
+---
+
+## 📖 **EXAMPLES**
+
+- [Login Flow](examples/login_flow.md)
+- [MCP Client Auth](examples/mcp_client_auth_flow.md)
+- [OAuth DCR](examples/mcp_oauth_dcr_flow.md)
+
+---
+
+## 📝 **LICENSE**
+
+MIT License
+
+---
+
+## 🔗 **LINKS**
+
+- [WorkOS Dashboard](https://dashboard.workos.com)
+- [Supabase Dashboard](https://supabase.com/dashboard)
+- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
+- [MCP Specification](https://modelcontextprotocol.io)
+
+---
+
+**For support, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)**

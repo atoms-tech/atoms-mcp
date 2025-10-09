@@ -9,7 +9,15 @@ import os
 import anyio
 from contextlib import asynccontextmanager
 from starlette.responses import JSONResponse
+
+# Setup structured logging before other imports
+from utils.logging_setup import setup_logging, get_logger
+setup_logging(level="INFO", use_color=False, use_timestamps=True)  # No color for Vercel logs
+logger = get_logger(__name__)
+
 from server import create_consolidated_server
+
+logger.info("Starting Atoms MCP Server", environment="vercel", emoji="🚀")
 
 # Create the FastMCP server instance
 mcp = create_consolidated_server()

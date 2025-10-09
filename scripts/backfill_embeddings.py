@@ -26,7 +26,7 @@ import os
 import sys
 import argparse
 import warnings
-import logging
+from utils.logging_setup import get_logger
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -90,13 +90,15 @@ class EmbeddingBackfiller:
         }
 
     def _init_services(self):
-        """Lazy init embedding services."""
+        """Lazy init embedding components."""
         if self._embedding_service is None:
-            from services.embedding_factory import get_embedding_service
-            from services.progressive_embedding import ProgressiveEmbeddingService
+            from config.vector import (
+                get_embedding_service,
+                get_progressive_embedding_service,
+            )
 
             self._embedding_service = get_embedding_service()
-            self._progressive_service = ProgressiveEmbeddingService(
+            self._progressive_service = get_progressive_embedding_service(
                 self.supabase,
                 self._embedding_service
             )
@@ -464,7 +466,7 @@ async def main():
 
     # Check embedding service
     try:
-        from services.embedding_factory import get_embedding_service
+        from config.vector import get_embedding_service
         service = get_embedding_service()
         print(f"✅ Embedding service initialized: {service.__class__.__name__}")
     except Exception as e:

@@ -9,11 +9,21 @@
   "routes": [
     {
       "src": "/health",
-      "dest": "app.py"
+      "dest": "app.py",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
     },
     {
       "src": "/api/mcp",
-      "dest": "app.py"
+      "dest": "app.py",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
     },
     {
       "src": "/auth/complete",
@@ -31,5 +41,9 @@
   "env": {
     "ATOMS_FASTMCP_TRANSPORT": "http",
     "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp"
-  }
+  },
+  "github": {
+    "silent": true
+  },
+  "alias": ["atomcp.kooshapari.com", "devmcp.atoms.tech"]
 }
