@@ -36,8 +36,18 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
-.env*.local
 .env
+.env.local
+.env*.local
+.env.bak
+.env.production
+.env.development
+.env.test
+.env.render
+.env.vercel.preview
+.env.vercel.production
+.env.vertex
+.emv
 
 # vercel
 .vercel
@@ -62,3 +72,44 @@ bun.lock
 atoms-mcp-sa-key.json
 *-sa-key.json
 service-account*.json
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.#*
+
+# Logs
+*.log
+logs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+.cursor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+.cache/
+
+# Documentation backups (keep only primary docs)
+*_BACKUP.md
+*_OLD.md
+AUTHKIT_SEPARATION.md
+COMPLETE_SETUP_SUMMARY.md
+CONFIGURATION_SUMMARY.md
+DEPLOYMENT_COMPLETE.md
+KINFRA_COMPLETE.md
+KINFRA_CONFIGURATION.md
+KINFRA_SETUP_COMPLETE.md
+KINFRA_WRAPPER_COMPLETE.md
+.env.preview
+.env.production

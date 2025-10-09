@@ -5,7 +5,6 @@ import sys
 import pytest
 import pytest_asyncio
 import time
-import asyncio
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -25,17 +24,21 @@ except ImportError:
     EventBus = None
     Event = None
 
+# Import workflow_kit - now properly installed from pheno-sdk
 try:
     from workflow_kit import WorkflowEngine, Workflow, WorkflowStep
+    from workflow_kit.task import Worker, task
     HAS_WORKFLOW_KIT = True
 except ImportError:
     HAS_WORKFLOW_KIT = False
     WorkflowEngine = None
     Workflow = None
     WorkflowStep = None
+    Worker = None
+    task = None
 
 # Configure pytest-asyncio mode
-pytest_plugins = ["pytest_asyncio"]
+pytest_plugins = ["pytest_asyncio"]  # Disable atoms_pytest_plugin for now (conflicts with parallel execution)
 
 # Import TDD fixtures to make them available
 try:
@@ -84,12 +87,25 @@ def pytest_configure(config):
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Provide session-scoped event loop for async tests."""
+    """Provide session-scoped event loop for async tests.
+
+    Note: This creates a new event loop for the entire test session.
+    The loop is closed after all tests complete.
+    """
+    import asyncio
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
     asyncio.set_event_loop(loop)
+
     yield loop
-    loop.close()
+
+    # Close the loop after all tests complete
+    # Use try-except to handle cases where loop is already closed
+    try:
+        if not loop.is_closed():
+            loop.close()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -159,24 +175,160 @@ def workflow_builder():
 
 
 # ============================================================================
+# IMPORT AUTH FIXTURES
+# ============================================================================
+# Import fixtures from fixtures/auth.py so they're available to all tests
+from tests.fixtures.auth import authenticated_client  # noqa: F401
+
+# ============================================================================
 # MCP TEST FRAMEWORK INTEGRATION
 # ============================================================================
 
+@pytest.fixture(scope="session")
+def local_server_config():
+    """Get local server configuration if available.
+
+    Checks if local MCP server is running on port 50002 (new atoms port).
+    Returns config dict with port, url, etc. if local server enabled.
+
+    Environment Variable:
+        ATOMS_USE_LOCAL_SERVER=true  # Enable local server for tests (set by --local flag)
+    """
+    use_local = os.getenv("ATOMS_USE_LOCAL_SERVER", "").lower() in ("true", "1", "yes", "on")
+
+    if not use_local:
+        return None
+
+    try:
+        import httpx
+        # Check if server is running on port 50002 (new atoms port)
+        try:
+            response = httpx.get("http://localhost:50002/health", timeout=2.0)
+            if response.status_code == 200:
+                return {
+                    "port": 50002,
+                    "url": "http://localhost:50002",
+                    "mcp_endpoint": "http://localhost:50002/api/mcp",
+                }
+        except Exception:
+            pass
+
+        # Fallback: try to get config from SmartInfraManager
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from kinfra import get_smart_infra_manager
+
+            infra = get_smart_infra_manager(project_name="atoms_mcp", domain="atomcp.kooshapari.com")
+            config = infra.get_project_config()
+
+            # Check if server is actually running
+            if config.get("server_running"):
+                port = config.get("assigned_port", 50002)
+                is_healthy, reason = infra.check_mcp_server_health(port)
+
+                if is_healthy:
+                    return {
+                        "port": port,
+                        "url": f"http://localhost:{port}",
+                        "mcp_endpoint": f"http://localhost:{port}/api/mcp",
+                        "tunnel_url": config.get("tunnel_url"),
+                    }
+                else:
+                    print(f"Warning: Local server not healthy: {reason}")
+            else:
+                print("Warning: Local server not running. Start with: python start_server.py")
+        except Exception as e:
+            print(f"Warning: Failed to get local server config: {e}")
+
+    except Exception as e:
+        print(f"Warning: Failed to check local server: {e}")
+
+    return None
+
+
 @pytest_asyncio.fixture(scope="session")
-async def mcp_client():
-    """Provide authenticated MCP client using UnifiedCredentialBroker."""
+async def mcp_client(local_server_config):
+    """Provide authenticated MCP client using UnifiedCredentialBroker.
+
+    Automatically uses local server if available (ATOMS_USE_LOCAL_SERVER=true),
+    otherwise falls back to production server at atomcp.kooshapari.com.
+    """
     from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
-    
-    mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
+
+    # Use local server if available, otherwise production
+    if local_server_config:
+        mcp_endpoint = local_server_config["mcp_endpoint"]
+        print(f"Using local MCP server: {mcp_endpoint}")
+    else:
+        mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://atomcp.kooshapari.com/api/mcp")
+        print(f"Using production MCP server: {mcp_endpoint}")
+
     provider = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")
-    
+
     broker = UnifiedCredentialBroker(mcp_endpoint=mcp_endpoint, provider=provider)
-    
+
     try:
         client, credentials = await broker.get_authenticated_client()
         yield client
     finally:
         await broker.close()
+
+
+# ============================================================================
+# FAST HTTP CLIENT - Session-Scoped for Performance
+# ============================================================================
+
+@pytest_asyncio.fixture(scope="session")
+async def fast_http_client(local_server_config):
+    """Provide session-scoped authenticated HTTP client for fast testing.
+
+    This fixture:
+    - Authenticates ONCE per test session (not per test)
+    - Provides direct HTTP access to MCP tools (no MCP client overhead)
+    - Caches credentials to ~/.atoms_mcp_test_cache/
+    - Supports parallel test execution
+    - Returns AuthenticatedHTTPClient with session token
+    - Automatically uses local server if available (ATOMS_USE_LOCAL_SERVER=true)
+
+    Usage:
+        @pytest.mark.integration
+        async def test_entity_creation(fast_http_client):
+            result = await fast_http_client.call_tool("create_entity", {
+                "name": "Test Entity",
+                "type": "document"
+            })
+            assert result["success"] == True
+
+    The session token is automatically included in all tool calls via the
+    AuthenticatedHTTPClient wrapper, so tests don't need to manually pass it.
+    """
+    from .fixtures.auth import authenticated_client as get_auth_client
+
+    # Override MCP endpoint if using local server
+    if local_server_config:
+        original_endpoint = os.getenv("MCP_ENDPOINT")
+        os.environ["MCP_ENDPOINT"] = local_server_config["mcp_endpoint"]
+        print(f"Fast HTTP client using local server: {local_server_config['mcp_endpoint']}")
+
+    try:
+        # Get session-scoped authenticated client
+        # This performs OAuth once and caches credentials
+        async for client in get_auth_client():
+            # Verify client is working before yielding to tests
+            health_ok = await client.health_check()
+            if not health_ok:
+                pytest.skip("MCP server health check failed - is the server running?")
+
+            yield client
+
+            # Cleanup handled by client context manager
+    finally:
+        # Restore original endpoint
+        if local_server_config and original_endpoint:
+            os.environ["MCP_ENDPOINT"] = original_endpoint
+        elif local_server_config:
+            os.environ.pop("MCP_ENDPOINT", None)
 
 
 @pytest_asyncio.fixture
@@ -229,7 +381,7 @@ def pytest_runtest_makereport(item, call):
     """Hook to capture test results for custom reporters."""
     outcome = yield
     report = outcome.get_result()
-    
+
     # Store result for custom reporters
     if report.when == "call":
         test_name = item.name
@@ -241,8 +393,47 @@ def pytest_runtest_makereport(item, call):
             "duration": report.duration,
             "error": str(report.longrepr) if report.failed else None,
         }
-        
+
         # Store in session for aggregation
         if not hasattr(item.session, "test_results"):
             item.session.test_results = []
         item.session.test_results.append(result)
+
+
+# ============================================================================
+# ATOMS PYTEST PLUGIN SESSION FIXTURES
+# ============================================================================
+
+@pytest.fixture(scope="session")
+def atoms_test_cache():
+    """Provide test cache for session."""
+    from tests.framework import TestCache
+    return TestCache()
+
+
+@pytest.fixture(scope="session")
+def atoms_auth_validation():
+    """Perform auth validation once per session."""
+    import asyncio
+    import os
+
+    try:
+        from mcp_qa.testing.auth_validator import validate_auth
+
+        mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://atomcp.kooshapari.com/api/mcp")
+        provider = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")
+
+        # Run async validation
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        result = loop.run_until_complete(
+            validate_auth(mcp_endpoint=mcp_endpoint, provider=provider)
+        )
+
+        return result
+    except Exception as e:
+        print(f"⚠ Auth validation failed: {e}")
+        return None

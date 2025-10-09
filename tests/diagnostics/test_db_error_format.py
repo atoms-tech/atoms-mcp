@@ -3,9 +3,9 @@
 Test script to verify DB constraint error formatting
 """
 import sys
-sys.path.insert(0, "/Users/kooshapari/temp-PRODVERCEL/485/kush/atoms_mcp-old/tests")
+sys.path.insert(0, "/Users/kooshapari/temp-PRODVERCEL/485/kush/pheno-sdk/mcp-QA")
 
-from framework.reporters import DetailedErrorReporter
+from mcp_qa.reporters import DetailedErrorReporter
 
 # Simulate a DB constraint violation test result
 db_constraint_result = {

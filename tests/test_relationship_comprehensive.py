@@ -141,7 +141,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 2
+        assert len(result["relationships"]) == 2, f"Expected len(result["relationships"]) == 2, got {len(result["relationships"])}"
         assert result["total"] == 2
 
     @pytest.mark.asyncio
@@ -163,7 +163,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 1
+        assert len(result["relationships"]) == 1, f"Expected len(result["relationships"]) == 1, got {len(result["relationships"])}"
         assert result["relationships"][0]["metadata"]["status"] == "active"
 
     @pytest.mark.asyncio
@@ -186,7 +186,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 10
+        assert len(result["relationships"]) == 10, f"Expected len(result["relationships"]) == 10, got {len(result["relationships"])}"
         assert result["limit"] == 10
         assert result["offset"] == 20
 
@@ -253,7 +253,7 @@ class TestRelationshipComprehensive:
 
         result = await relationship_service.handle_request(request)
         assert result["metadata"]["role"] == "owner"
-        assert len(result["metadata"]["permissions"]) == 3
+        assert len(result["metadata"]["permissions"]) == 3, f"Expected len(result["metadata"]["permissions"]) == 3, got {len(result["metadata"]["permissions"])}"
 
     @pytest.mark.asyncio
     async def test_member_organization_special(self, relationship_service):
@@ -475,7 +475,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 1
+        assert len(result["relationships"]) == 1, f"Expected len(result["relationships"]) == 1, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_assignment_list_paginated(self, relationship_service):
@@ -497,7 +497,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 5
+        assert len(result["relationships"]) == 5, f"Expected len(result["relationships"]) == 5, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_assignment_check_exists(self, relationship_service):
@@ -634,7 +634,7 @@ class TestRelationshipComprehensive:
 
         result = await relationship_service.handle_request(request)
         assert result["soft_delete"] is True
-        assert "archived_at" in result
+        assert "archived_at" in result, f"Expected 'archived_at' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_trace_link_unlink_hard(self, relationship_service):
@@ -697,7 +697,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 1
+        assert len(result["relationships"]) == 1, f"Expected len(result["relationships"]) == 1, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_trace_link_list_paginated(self, relationship_service):
@@ -719,7 +719,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 15
+        assert len(result["relationships"]) == 15, f"Expected len(result["relationships"]) == 15, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_trace_link_check_exists(self, relationship_service):
@@ -951,7 +951,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 2
+        assert len(result["relationships"]) == 2, f"Expected len(result["relationships"]) == 2, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_requirement_test_list_paginated(self, relationship_service):
@@ -973,7 +973,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 20
+        assert len(result["relationships"]) == 20, f"Expected len(result["relationships"]) == 20, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_requirement_test_check_exists(self, relationship_service):
@@ -1178,7 +1178,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 1
+        assert len(result["relationships"]) == 1, f"Expected len(result["relationships"]) == 1, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_invitation_list_paginated(self, relationship_service):
@@ -1200,7 +1200,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request)
-        assert len(result["relationships"]) == 25
+        assert len(result["relationships"]) == 25, f"Expected len(result["relationships"]) == 25, got {len(result["relationships"])}"
 
     @pytest.mark.asyncio
     async def test_invitation_check_exists(self, relationship_service):
@@ -1400,7 +1400,7 @@ class TestRelationshipComprehensive:
 
         result = await relationship_service.handle_request(request)
         assert result["metadata"]["permissions"]["projects"]["create"] is True
-        assert len(result["metadata"]["custom_fields"]) == 2
+        assert len(result["metadata"]["custom_fields"]) == 2, f"Expected len(result["metadata"]["custom_fields"]) == 2, got {len(result["metadata"]["custom_fields"])}"
 
     @pytest.mark.asyncio
     async def test_batch_operations_simulation(self, relationship_service):
@@ -1428,7 +1428,7 @@ class TestRelationshipComprehensive:
             result = await relationship_service.handle_request(request)
             results.append(result)
 
-        assert len(results) == 3
+        assert len(results) == 3, f"Expected len(results) == 3, got {len(results)}"
         assert all(r["target_id"] == "proj_shared" for r in results)
 
     @pytest.mark.asyncio
@@ -1461,7 +1461,7 @@ class TestRelationshipComprehensive:
         })
 
         result = await relationship_service.handle_request(request2)
-        assert "warning" in result
+        assert "warning" in result, f"Expected 'warning' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_relationship_versioning(self, relationship_service):
@@ -1490,7 +1490,7 @@ class TestRelationshipComprehensive:
 
         result = await relationship_service.handle_request(request)
         assert result["metadata"]["version"] == 2
-        assert len(result["metadata"]["change_log"]) == 2
+        assert len(result["metadata"]["change_log"]) == 2, f"Expected len(result["metadata"]["change_log"]) == 2, got {len(result["metadata"]["change_log"])}"
 
     @pytest.mark.asyncio
     async def test_time_based_filtering(self, relationship_service):

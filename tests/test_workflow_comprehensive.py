@@ -445,7 +445,7 @@ class TestSetupProjectWorkflow(WorkflowTestSuite):
         )
 
         assert result.get("success") is False, "Should fail with invalid org ID"
-        assert "error" in result
+        assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
 
     async def test_missing_required_params(self, call_mcp):
         """Test setup_project with missing required parameters."""
@@ -461,7 +461,7 @@ class TestSetupProjectWorkflow(WorkflowTestSuite):
         )
 
         assert result.get("success") is False, "Should fail with missing params"
-        assert "error" in result
+        assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
         assert "required" in result["error"].lower()
 
 
@@ -715,7 +715,7 @@ class TestImportRequirementsWorkflow(WorkflowTestSuite):
         )
 
         assert result.get("success") is False
-        assert "error" in result
+        assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
 
     async def test_empty_requirements_list(self, call_mcp):
         """Test import_requirements with empty requirements list."""
@@ -733,7 +733,7 @@ class TestImportRequirementsWorkflow(WorkflowTestSuite):
         )
 
         assert result.get("success") is False
-        assert "error" in result
+        assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
         assert "empty" in result["error"].lower() or "non-empty" in result["error"].lower()
 
 
@@ -1430,7 +1430,7 @@ class TestOrganizationOnboardingWorkflow(WorkflowTestSuite):
             step for step in result.get("results", [])
             if step.get("step") == "create_starter_project"
         ]
-        assert len(project_steps) == 1
+        assert len(project_steps) == 1, f"Expected len(project_steps) == 1, got {len(project_steps)}"
         assert project_steps[0].get("status") == "success"
 
     async def test_create_starter_project_false(self, call_mcp):
@@ -1455,7 +1455,7 @@ class TestOrganizationOnboardingWorkflow(WorkflowTestSuite):
             step for step in result.get("results", [])
             if step.get("step") == "create_starter_project"
         ]
-        assert len(project_steps) == 0
+        assert len(project_steps) == 0, f"Expected len(project_steps) == 0, got {len(project_steps)}"
 
     async def test_all_parameters(self, call_mcp):
         """Test organization_onboarding with all available parameters."""
@@ -1539,7 +1539,7 @@ class TestOrganizationOnboardingWorkflow(WorkflowTestSuite):
         )
 
         assert result.get("success") is False
-        assert "error" in result
+        assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
         assert "name" in result["error"].lower()
 
 

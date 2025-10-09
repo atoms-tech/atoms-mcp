@@ -109,7 +109,7 @@ class TestWorkspaceBulkOperations:
                 cleanup_test_data.track("project", project_id)
         
         # Verify all projects were created
-        assert len(created_projects) == 3
+        assert len(created_projects) == 3, f"Expected len(created_projects) == 3, got {len(created_projects)}"
         
         # List projects and verify they're all there
         projects = await workspace_client.call("list_projects")
@@ -129,7 +129,7 @@ class TestWorkspaceErrorHandling:
         result = await workspace_client.call("invalid_operation")
         
         # Should get an error response
-        assert "error" in result
+        assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     
     async def test_malformed_parameters(self, workspace_client):
         """Test handling of malformed parameters."""

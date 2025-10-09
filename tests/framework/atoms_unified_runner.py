@@ -16,9 +16,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp_qa.testing.unified_runner import UnifiedMCPTestRunner
+from mcp_qa.testing.auth_validator import validate_auth
 
 from .adapters import AtomsMCPClientAdapter
-from .runner import TestRunner
+from .runner import AtomsTestRunner
 from .reporters import (
     ConsoleReporter,
     FunctionalityMatrixReporter,
@@ -83,7 +84,7 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
         self.output_dir = output_dir
         self.enable_all_reporters = enable_all_reporters
         self.show_running = show_running
-        self._test_runner: Optional[TestRunner] = None
+        self._test_runner: Optional[AtomsTestRunner] = None
     
     async def run_all(self, categories: Optional[List[str]] = None) -> Dict[str, Any]:
         """
@@ -95,18 +96,35 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
         Returns:
             Test summary dict with results
         """
-        # Ensure initialization (handles OAuth + parallel client pool)
+        # Ensure initialization (handles OAuth + parallel client pool + auth validation)
         await self.initialize()
-        
+
         if self.verbose:
+            # Show validation results if available
+            if self._validation_result:
+                print("")
+                print(f"📊 Auth Validation Summary:")
+                for check_name, check_result in self._validation_result.checks.items():
+                    status = "✓" if check_result['success'] else "✗"
+                    print(f"   {status} {check_name}: {check_result['message']}")
+                print("")
+
             print(f"🚀 Running Atoms MCP tests...")
             print(f"   Endpoint: {self.mcp_endpoint}")
             print(f"   Parallel: {self.parallel} ({self.workers} workers)")
             print(f"   Cache: {self.cache}")
         
-        # Create Atoms MCP client adapter
+        # Capture OAuth token from the broker for HTTP mode
+        access_token = None
+        if hasattr(self, 'credentials') and self.credentials:
+            access_token = self.credentials.access_token
+
+        # Create Atoms MCP client adapter with HTTP mode
         adapter = AtomsMCPClientAdapter(
-            self.client,
+            client=self.client,
+            mcp_endpoint=self.mcp_endpoint,
+            access_token=access_token,
+            use_direct_http=True,  # Use JSON-RPC 2.0 over HTTP POST (correct MCP protocol)
             verbose_on_fail=True
         )
         
@@ -143,7 +161,7 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
             ])
         
         # Create Atoms TestRunner with parallel client manager if available
-        self._test_runner = TestRunner(
+        self._test_runner = AtomsTestRunner(
             client_adapter=adapter,
             cache=self.cache,
             parallel=self.parallel,

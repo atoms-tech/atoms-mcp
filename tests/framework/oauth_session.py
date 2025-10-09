@@ -100,6 +100,16 @@ class OAuthSessionBroker:
             with cache_path.open("r", encoding="utf-8") as handle:
                 return json.load(handle)
 
+    async def get_access_token(self) -> str:
+        """Return just the access token string."""
+        payload = await self.get_token_payload()
+        access_token = payload.get("access_token")
+
+        if not access_token:
+            raise KeyError("OAuth token payload missing 'access_token'. Delete cache to re-authenticate.")
+
+        return access_token
+
     async def get_authorization_header(self) -> Dict[str, str]:
         """Return an Authorization header derived from the cached token."""
 
@@ -132,5 +142,12 @@ class OAuthSessionBroker:
         """Close the shared client and release resources."""
 
         if self._client is not None:
-            await self._client.__aexit__(None, None, None)
-            self._client = None
+            try:
+                await self._client.__aexit__(None, None, None)
+            except RuntimeError as e:
+                # Ignore "not holding this lock" errors during cleanup
+                # This can happen when async generators are closed while tasks are cancelled
+                if "not holding this lock" not in str(e):
+                    raise
+            finally:
+                self._client = None

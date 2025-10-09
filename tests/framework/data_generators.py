@@ -8,6 +8,9 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+# Import schema enums for type-safe test data generation
+from schemas.enums import OrganizationType, Priority, EntityStatus, TestStatus
+
 
 class DataGenerator:
     """Generate test data for entities."""
@@ -29,8 +32,19 @@ class DataGenerator:
         return str(uuid.uuid4())
 
     @staticmethod
-    def organization_data(name: Optional[str] = None) -> Dict[str, Any]:
-        """Generate organization test data with valid slug."""
+    def organization_data(
+        name: Optional[str] = None,
+        org_type: OrganizationType = OrganizationType.TEAM
+    ) -> Dict[str, Any]:
+        """Generate organization test data with valid slug.
+
+        Args:
+            name: Optional organization name
+            org_type: Organization type (default: TEAM). Must be OrganizationType enum.
+
+        Returns:
+            Dict with organization data using schema-validated types
+        """
         import uuid
         import re
         # Use UUID for guaranteed unique slug
@@ -45,7 +59,7 @@ class DataGenerator:
             "name": name or f"Test Org {unique_slug}",
             "slug": unique_slug,  # Just the unique slug, must match ^[a-z][a-z0-9-]*$
             "description": f"Automated test organization",
-            "type": "team",
+            "type": org_type.value,  # Use enum value (str subclass)
         }
 
     @staticmethod
@@ -97,23 +111,30 @@ class DataGenerator:
         return data
 
     @staticmethod
-    def requirement_data(name: Optional[str] = None, document_id: Optional[str] = None) -> Dict[str, Any]:
+    def requirement_data(
+        name: Optional[str] = None,
+        document_id: Optional[str] = None,
+        priority: Priority = Priority.MEDIUM,
+        status: EntityStatus = EntityStatus.ACTIVE
+    ) -> Dict[str, Any]:
         """Generate requirement test data.
 
         Args:
             name: Optional requirement name
             document_id: Document ID (required). Pass a real document ID from list operation.
                         Don't use 'auto' - it requires workspace context to be set.
+            priority: Priority level (default: MEDIUM)
+            status: Entity status (default: ACTIVE)
 
         Returns:
-            Dict with requirement data
+            Dict with requirement data using schema-validated types
         """
         unique = DataGenerator.unique_id()
         data = {
             "name": name or f"REQ-TEST-{unique}",
             "description": f"Automated test requirement created at {unique}",
-            "priority": "medium",
-            "status": "active",
+            "priority": priority.value,  # Use enum value
+            "status": status.value,  # Use enum value
         }
         # Only include document_id if provided (let caller handle it)
         if document_id:
@@ -121,23 +142,30 @@ class DataGenerator:
         return data
 
     @staticmethod
-    def test_data(title: Optional[str] = None, project_id: Optional[str] = None) -> Dict[str, Any]:
+    def test_data(
+        title: Optional[str] = None,
+        project_id: Optional[str] = None,
+        status: TestStatus = TestStatus.PENDING,
+        priority: Priority = Priority.MEDIUM
+    ) -> Dict[str, Any]:
         """Generate test case data.
 
         Args:
             title: Optional test title
             project_id: Project ID (required). Pass a real project ID from list operation.
                        Don't use 'auto' - it requires workspace context to be set.
+            status: Test status (default: PENDING)
+            priority: Priority level (default: MEDIUM)
 
         Returns:
-            Dict with test data
+            Dict with test data using schema-validated types
         """
         unique = DataGenerator.unique_id()
         data = {
             "title": title or f"Test Case {unique}",
             "description": f"Automated test case created at {unique}",
-            "status": "pending",
-            "priority": "medium",
+            "status": status.value,  # Use enum value
+            "priority": priority.value,  # Use enum value
         }
         # Only include project_id if provided (let caller handle it)
         if project_id:

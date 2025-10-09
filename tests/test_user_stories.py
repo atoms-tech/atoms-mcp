@@ -78,7 +78,7 @@ async def test_story_new_user_full_setup(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -129,7 +129,7 @@ async def test_story_team_collaboration(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -167,7 +167,7 @@ async def test_story_search_and_analyze(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -244,7 +244,7 @@ async def test_story_test_matrix_workflow(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -278,7 +278,7 @@ async def test_story_requirement_traceability(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -312,7 +312,7 @@ async def test_story_bulk_operations(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -365,7 +365,7 @@ async def test_story_rag_enhanced_search(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -403,7 +403,7 @@ async def test_story_workspace_context_switching(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -446,7 +446,7 @@ async def test_story_end_to_end_project_lifecycle(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -482,7 +482,7 @@ async def test_story_requirement_testing_workflow(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -520,7 +520,7 @@ async def test_story_cross_entity_search(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -575,7 +575,7 @@ async def test_story_rag_comparison_workflow(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}
 
 
@@ -618,5 +618,5 @@ async def test_story_relationship_graph_building(client_adapter):
         ],
     )
 
-    result = await story.execute(client)
+    result = await story.execute(client_adapter)
     return {"success": result["success"], "story": result}

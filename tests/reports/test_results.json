@@ -1,0 +1,51 @@
+{
+  "generated_at": "2025-10-09T01:29:09.420210",
+  "metadata": {
+    "endpoint": "https://mcp.atoms.tech/api/mcp",
+    "auth_status": "not_validated",
+    "duration_seconds": 27.82309103012085,
+    "timestamp": "2025-10-09T01:29:09.420109",
+    "pytest_version": "8.4.2"
+  },
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "cached": 0,
+    "pass_rate": 100.0,
+    "avg_duration_ms": 365.5104999973749
+  },
+  "results": [
+    {
+      "test_name": "test_create_validation[organization]",
+      "tool_name": "unknown",
+      "success": true,
+      "failed": false,
+      "skipped": false,
+      "cached": false,
+      "duration_ms": 291.68766699149273,
+      "error": null
+    },
+    {
+      "test_name": "test_create_validation[project]",
+      "tool_name": "unknown",
+      "success": true,
+      "failed": false,
+      "skipped": false,
+      "cached": false,
+      "duration_ms": 256.04083300277125,
+      "error": null
+    },
+    {
+      "test_name": "test_search_organizations_fuzzy",
+      "tool_name": "unknown",
+      "success": true,
+      "failed": false,
+      "skipped": false,
+      "cached": false,
+      "duration_ms": 548.8029999978608,
+      "error": null
+    }
+  ]
+}

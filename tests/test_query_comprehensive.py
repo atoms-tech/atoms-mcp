@@ -250,8 +250,8 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
-        assert len(result["results"]) > 0
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
+        assert len(result["results"]) > 0, f"Expected len(result['results']) > 0, got {len(result['results'])}"
 
         # Verify all results are projects
         for item in result["results"]:
@@ -270,7 +270,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Verify document-specific fields
         for item in result["results"]:
@@ -290,7 +290,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Verify requirement-specific fields
         for item in result["results"]:
@@ -310,7 +310,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Verify mixed entity types
         entity_types = {item["entity_type"] for item in result["results"]}
@@ -328,7 +328,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Verify only projects and documents
         for item in result["results"]:
@@ -403,7 +403,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert len(result["results"]) <= 5
+        assert len(result["results"]) <= 5, f"Expected len(result['results']) <= 5, got {len(result['results'])}"
 
     @pytest.mark.asyncio
     async def test_search_with_limit_20(self, server_with_test_data):
@@ -417,7 +417,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert len(result["results"]) <= 20
+        assert len(result["results"]) <= 20, f"Expected len(result['results']) <= 20, got {len(result['results'])}"
 
     @pytest.mark.asyncio
     async def test_search_with_limit_50(self, server_with_test_data):
@@ -431,7 +431,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert len(result["results"]) <= 50
+        assert len(result["results"]) <= 50, f"Expected len(result['results']) <= 50, got {len(result['results'])}"
 
     @pytest.mark.asyncio
     async def test_search_with_ordering_asc_name(self, server_with_test_data):
@@ -509,7 +509,7 @@ class TestSearchQueries:
         })
 
         assert result["success"] is True
-        assert len(result["results"]) <= 10
+        assert len(result["results"]) <= 10, f"Expected len(result['results']) <= 10, got {len(result['results'])}"
 
         # Verify all conditions
         for item in result["results"]:
@@ -538,8 +538,8 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
-        assert len(result["results"]) > 0
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
+        assert len(result["results"]) > 0, f"Expected len(result['results']) > 0, got {len(result['results'])}"
 
         # Verify semantic relevance
         for item in result["results"]:
@@ -560,7 +560,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Should find ML-related documents
         for item in result["results"]:
@@ -580,7 +580,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         for item in result["results"]:
             assert item["entity_type"] == "requirement"
@@ -599,7 +599,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_semantic_mode_test_security(self, server_with_test_data):
@@ -614,7 +614,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         for item in result["results"]:
             assert item["entity_type"] == "test"
@@ -632,7 +632,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_keyword_mode_document_specific(self, server_with_test_data):
@@ -647,7 +647,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Should find documents with exact keywords
         for item in result["results"]:
@@ -667,7 +667,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_keyword_mode_requirement_auth(self, server_with_test_data):
@@ -682,7 +682,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_keyword_mode_requirement_backup(self, server_with_test_data):
@@ -697,7 +697,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_keyword_mode_test_sql(self, server_with_test_data):
@@ -712,7 +712,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_keyword_mode_test_load(self, server_with_test_data):
@@ -727,7 +727,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_hybrid_mode_document_comprehensive(self, server_with_test_data):
@@ -742,7 +742,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Hybrid should balance semantic and keyword matching
         for item in result["results"]:
@@ -762,7 +762,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_hybrid_mode_requirement_mixed(self, server_with_test_data):
@@ -777,7 +777,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_hybrid_mode_requirement_specific(self, server_with_test_data):
@@ -792,7 +792,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_hybrid_mode_test_comprehensive(self, server_with_test_data):
@@ -807,7 +807,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_hybrid_mode_test_integration(self, server_with_test_data):
@@ -822,7 +822,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_auto_mode_document_natural(self, server_with_test_data):
@@ -837,7 +837,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
         assert "mode_used" in result  # Auto mode should indicate which mode was chosen
 
     @pytest.mark.asyncio
@@ -853,7 +853,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_auto_mode_requirement_question(self, server_with_test_data):
@@ -868,7 +868,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_auto_mode_requirement_keywords(self, server_with_test_data):
@@ -883,7 +883,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_auto_mode_test_mixed(self, server_with_test_data):
@@ -898,7 +898,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_auto_mode_test_specific(self, server_with_test_data):
@@ -913,7 +913,7 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_rag_threshold_low_05(self, server_with_test_data):
@@ -988,11 +988,11 @@ class TestRAGQueries:
         })
 
         assert result["success"] is True
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
         # Should have mixed entity types
         entity_types = {item["entity_type"] for item in result["results"]}
-        assert len(entity_types) > 1
+        assert len(entity_types) > 1, f"Expected len(entity_types) > 1, got {len(entity_types)}"
 
 
 class TestAggregateQueries:
@@ -1009,7 +1009,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
 
         # Should have counts for all entity types
         assert "organization" in result["aggregations"]
@@ -1036,7 +1036,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "organization" in result["aggregations"]
 
         org_agg = result["aggregations"]["organization"]
@@ -1054,7 +1054,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "project" in result["aggregations"]
 
         proj_agg = result["aggregations"]["project"]
@@ -1073,7 +1073,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "document" in result["aggregations"]
 
         doc_agg = result["aggregations"]["document"]
@@ -1092,7 +1092,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "requirement" in result["aggregations"]
 
         req_agg = result["aggregations"]["requirement"]
@@ -1113,7 +1113,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
 
         # Counts should only include active items
         if "project" in result["aggregations"]:
@@ -1133,7 +1133,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "requirement" in result["aggregations"]
 
         # Should only count high/critical priority requirements
@@ -1152,7 +1152,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "samples" in result  # Projections should include sample data
 
         # Verify projected fields
@@ -1174,7 +1174,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
 
         # Verify metadata is included
         if result.get("samples"):
@@ -1193,7 +1193,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
 
         # All entity types should be present
         for entity_type in ["project", "document", "requirement"]:
@@ -1212,15 +1212,15 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
 
         req_agg = result["aggregations"]["requirement"]
         assert "by_status" in req_agg
         assert "by_priority" in req_agg
 
         # Verify grouping structure
-        assert isinstance(req_agg["by_status"], dict)
-        assert isinstance(req_agg["by_priority"], dict)
+        assert isinstance(req_agg["by_status"], dict), f"Expected dict, got {type(req_agg["by_status"]).__name__} | Value: {req_agg["by_status"]}"
+        assert isinstance(req_agg["by_priority"], dict), f"Expected dict, got {type(req_agg["by_priority"]).__name__} | Value: {req_agg["by_priority"]}"
 
     @pytest.mark.asyncio
     async def test_aggregate_test_entity_with_status(self, server_with_test_data):
@@ -1233,7 +1233,7 @@ class TestAggregateQueries:
         })
 
         assert result["success"] is True
-        assert "aggregations" in result
+        assert "aggregations" in result, f"Expected 'aggregations' in result, got keys: {list(result.keys())}"
         assert "test" in result["aggregations"]
 
         test_agg = result["aggregations"]["test"]
@@ -1258,7 +1258,7 @@ class TestSimilarityQueries:
         })
 
         assert result["success"] is True
-        assert "similar_items" in result
+        assert "similar_items" in result, f"Expected 'similar_items' in result, got keys: {list(result.keys())}"
 
         # Should find similar documents
         for item in result["similar_items"]:
@@ -1281,7 +1281,7 @@ class TestSimilarityQueries:
         })
 
         assert result["success"] is True
-        assert "similar_items" in result
+        assert "similar_items" in result, f"Expected 'similar_items' in result, got keys: {list(result.keys())}"
 
         # High threshold should return only very similar items
         for item in result["similar_items"]:
@@ -1301,8 +1301,8 @@ class TestSimilarityQueries:
         })
 
         assert result["success"] is True
-        assert "similar_items" in result
-        assert len(result["similar_items"]) <= 2
+        assert "similar_items" in result, f"Expected 'similar_items' in result, got keys: {list(result.keys())}"
+        assert len(result["similar_items"]) <= 2, f"Expected len(result['similar_items']) <= 2, got {len(result['similar_items'])}"
 
     @pytest.mark.asyncio
     async def test_similarity_cross_entity_type(self, server_with_test_data):
@@ -1318,11 +1318,11 @@ class TestSimilarityQueries:
         })
 
         assert result["success"] is True
-        assert "similar_items" in result
+        assert "similar_items" in result, f"Expected 'similar_items' in result, got keys: {list(result.keys())}"
 
         # Should find similar items from different entity types
         entity_types = {item["entity_type"] for item in result["similar_items"]}
-        assert len(entity_types) >= 1
+        assert len(entity_types) >= 1, f"Expected len(entity_types) >= 1, got {len(entity_types)}"
 
     @pytest.mark.asyncio
     async def test_similarity_requirement_to_requirement(self, server_with_test_data):
@@ -1338,7 +1338,7 @@ class TestSimilarityQueries:
         })
 
         assert result["success"] is True
-        assert "similar_items" in result
+        assert "similar_items" in result, f"Expected 'similar_items' in result, got keys: {list(result.keys())}"
 
         # All results should be requirements
         for item in result["similar_items"]:
@@ -1358,7 +1358,7 @@ class TestSimilarityQueries:
         })
 
         assert result["success"] is True
-        assert "similar_items" in result
+        assert "similar_items" in result, f"Expected 'similar_items' in result, got keys: {list(result.keys())}"
 
         # All similar items should match filter
         for item in result["similar_items"]:
@@ -1382,7 +1382,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         assert "entity_type" in analysis
@@ -1404,7 +1404,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         assert analysis["entity_type"] == "project"
@@ -1426,7 +1426,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         assert analysis["entity_type"] == "requirement"
@@ -1448,7 +1448,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         # Analysis should respect filters
         analysis = result["analysis"]
@@ -1467,7 +1467,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         assert analysis["entity_type"] == "document"
@@ -1487,7 +1487,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         assert analysis["entity_type"] == "test"
@@ -1508,7 +1508,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         assert "relationships" in analysis or "related_entities" in analysis
@@ -1527,7 +1527,7 @@ class TestAnalyzeQueries:
         })
 
         assert result["success"] is True
-        assert "analysis" in result
+        assert "analysis" in result, f"Expected 'analysis' in result, got keys: {list(result.keys())}"
 
         analysis = result["analysis"]
         # Deep analysis should include more detailed metrics
@@ -1609,7 +1609,7 @@ class TestEdgeCasesAndValidation:
         })
 
         assert result["success"] is True
-        assert len(result["results"]) <= 999999
+        assert len(result["results"]) <= 999999, f"Expected len(result['results']) <= 999999, got {len(result['results'])}"
 
         # Test with zero limit
         result = await server.query({
@@ -1619,7 +1619,7 @@ class TestEdgeCasesAndValidation:
         })
 
         # Should either return no results or use default
-        assert "results" in result
+        assert "results" in result, f"Expected 'results' in result, got keys: {list(result.keys())}"
 
     @pytest.mark.asyncio
     async def test_special_characters_in_query(self, server_with_test_data):

@@ -35,30 +35,65 @@ async def authenticated_credentials(auth_session_broker: AuthSessionBroker) -> A
 
 
 @pytest.fixture(scope="session")
-async def authenticated_client(authenticated_credentials: AuthCredentials) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
-    """Session-scoped authenticated HTTP client.
-    
-    This is the main fixture for direct HTTP tool calls - no MCP client overhead.
-    
+async def authenticated_client():
+    """Session-scoped authenticated FastHTTPClient.
+
+    This performs OAuth once per session and provides FastHTTPClient to all tests.
+    Uses JSON-RPC over HTTP POST for fast execution.
+    Automatically re-authenticates when token expires (401 errors).
+
     Usage:
-        async def test_workspace_tool(authenticated_client):
-            result = await authenticated_client.call_tool("workspace_operation", {
-                "session_token": "auto-provided",
-                "operation": "list_projects",
-                "params": {}
+        async def test_entity_tool(authenticated_client):
+            result = await authenticated_client.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "list"
             })
             assert result["success"]
     """
-    client = AuthenticatedHTTPClient(authenticated_credentials)
-    
-    # Verify client is working
-    health_ok = await client.health_check()
-    if not health_ok:
-        pytest.skip("MCP server health check failed")
-    
-    yield client
-    
-    # Cleanup handled by client context manager
+    from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+    from mcp_qa.adapters.fast_http_client import FastHTTPClient
+    import os
+
+    mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://atomcp.kooshapari.com/api/mcp")
+
+    # Use UnifiedCredentialBroker for proper OAuth with Playwright
+    broker = UnifiedCredentialBroker(
+        mcp_endpoint=mcp_endpoint,
+        provider="authkit"
+    )
+
+    client = None
+    try:
+        # This triggers the full OAuth flow with Playwright
+        mcp_client, credentials = await broker.get_authenticated_client()
+
+        # Extract the access token
+        access_token = credentials.access_token
+
+        logger.info(f"🔑 Token captured: {len(access_token)} chars, starts with {access_token[:10]}...")
+
+        # Create re-authentication callback to handle token expiration
+        async def reauthenticate():
+            """Re-authenticate and return fresh access token when current token expires."""
+            logger.info("🔄 Re-authenticating due to token expiration...")
+            mcp_client, new_creds = await broker.get_authenticated_client()
+            logger.info(f"✅ Re-authentication successful - new token valid until {new_creds.expires_at}")
+            return new_creds.access_token
+
+        # Create FastHTTPClient with token, DEBUG enabled, and re-auth callback
+        client = FastHTTPClient(
+            mcp_endpoint=mcp_endpoint,
+            access_token=access_token,
+            debug=True,  # Enable network-level logging
+            reauthenticate_callback=reauthenticate  # Auto re-auth on 401
+        )
+
+        yield client
+
+    finally:
+        if client:
+            await client.close()
+        await broker.close()
 
 
 @pytest.fixture(scope="session") 

@@ -23,7 +23,7 @@ async def test_list_organizations(client_adapter):
     assert result["success"], f"Failed: {result.get('error')}"
 
     response = result["response"]
-    assert "organizations" in response or "data" in response, "Missing organizations in response"
+    assert "organizations" in response or "data" in response, f"Missing organizations/data in response, got keys: {list(response.keys()) if isinstance(response, dict) else type(response).__name__}"
 
 
 @pytest.mark.asyncio
@@ -38,7 +38,7 @@ async def test_list_projects(client_adapter):
     assert result["success"], f"Failed: {result.get('error')}"
 
     response = result["response"]
-    assert "projects" in response or "data" in response, "Missing projects in response"
+    assert "projects" in response or "data" in response, f"Missing projects/data in response, got keys: {list(response.keys()) if isinstance(response, dict) else type(response).__name__}"
 
 
 @pytest.mark.asyncio
@@ -53,7 +53,7 @@ async def test_list_documents(client_adapter):
     assert result["success"], f"Failed: {result.get('error')}"
 
     response = result["response"]
-    assert "documents" in response or "data" in response, "Missing documents in response"
+    assert "documents" in response or "data" in response, f"Missing documents/data in response, got keys: {list(response.keys()) if isinstance(response, dict) else type(response).__name__}"
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_list_requirements(client_adapter):
     assert result["success"], f"Failed: {result.get('error')}"
 
     response = result["response"]
-    assert "requirements" in response or "data" in response, "Missing requirements in response"
+    assert "requirements" in response or "data" in response, f"Missing requirements/data in response, got keys: {list(response.keys()) if isinstance(response, dict) else type(response).__name__}"
 
 
 @pytest.mark.asyncio

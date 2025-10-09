@@ -23,8 +23,8 @@ async def test_list_organizations_basic(client_adapter):
         "entity_type": "organization",
         "operation": "list"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"List organizations failed: {result.get('error', 'unknown error')} | Params: entity_type=organization, operation=list"
+    assert isinstance(result["response"], list), f"Expected list response, got {type(result['response']).__name__} | Response: {result.get('response')}"
     return {"success": True}
 
 
@@ -40,8 +40,8 @@ async def test_list_organizations_limit_10(client_adapter):
         "operation": "list",
         "limit": 10
     })
-    assert result["success"]
-    assert len(result["response"]) <= 10
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -57,8 +57,8 @@ async def test_list_organizations_limit_50(client_adapter):
         "operation": "list",
         "limit": 50
     })
-    assert result["success"]
-    assert len(result["response"]) <= 50
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -75,8 +75,8 @@ async def test_list_organizations_with_parent_filter(client_adapter):
         "operation": "list",
         "parent_id": parent_id
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -94,7 +94,7 @@ async def test_create_organization_basic(client_adapter):
         "operation": "create",
         "data": data
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     assert validators.FieldValidator.is_uuid(result["response"].get("id"))
     assert result["response"]["name"] == data["name"]
     return {"success": True, "entity_id": result["response"]["id"]}
@@ -115,9 +115,9 @@ async def test_create_organization_batch(client_adapter):
             "operation": "create",
             "data": data
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         organizations.append(result["response"]["id"])
-    assert len(organizations) == 3
+    assert len(organizations) == 3, f"Expected len(organizations) == 3, got {len(organizations)}"
     return {"success": True, "entity_ids": organizations}
 
 
@@ -131,7 +131,7 @@ async def test_read_organization_by_id(client_adapter):
     """Test reading organization by ID - creates test data first"""
     # Step 1: CREATE test organization (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "organization",
         DataGenerator.organization_data
     )
@@ -170,7 +170,7 @@ async def test_read_organization_with_relations(client_adapter):
     """Test reading organization with relations - creates test data first"""
     # Step 1: CREATE test organization (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "organization",
         DataGenerator.organization_data
     )
@@ -212,7 +212,7 @@ async def test_update_organization_single_field(client_adapter):
     """Test updating single field of organization"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "organization", DataGenerator.organization_data
+        client_adapter, "organization", DataGenerator.organization_data
     )
 
     if not entity_id:
@@ -249,7 +249,7 @@ async def test_delete_organization_soft(client_adapter):
     """Test soft delete of organization"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "organization", DataGenerator.organization_data
+        client_adapter, "organization", DataGenerator.organization_data
     )
 
     if not entity_id:
@@ -278,8 +278,8 @@ async def test_fuzzy_match_organization(client_adapter):
         "operation": "search",
         "search_term": "test"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -298,8 +298,8 @@ async def test_search_organization_with_filters(client_adapter):
             "type": "enterprise"
         }
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -326,8 +326,8 @@ async def test_create_organization_missing_required_fields(client_adapter):
         "operation": "create",
         "data": {}  # Missing required fields
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -343,8 +343,8 @@ async def test_read_organization_invalid_id(client_adapter):
         "operation": "read",
         "entity_id": "invalid-id-123"
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -395,8 +395,8 @@ async def test_list_projects_basic(client_adapter):
         "entity_type": "project",
         "operation": "list"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -412,8 +412,8 @@ async def test_list_projects_limit_10(client_adapter):
         "operation": "list",
         "limit": 10
     })
-    assert result["success"]
-    assert len(result["response"]) <= 10
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -429,8 +429,8 @@ async def test_list_projects_limit_50(client_adapter):
         "operation": "list",
         "limit": 50
     })
-    assert result["success"]
-    assert len(result["response"]) <= 50
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -447,8 +447,8 @@ async def test_list_projects_with_parent_filter(client_adapter):
         "operation": "list",
         "parent_id": parent_id
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -466,7 +466,7 @@ async def test_create_project_basic(client_adapter):
         "operation": "create",
         "data": data
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     assert validators.FieldValidator.is_uuid(result["response"].get("id"))
     assert result["response"]["name"] == data["name"]
     return {"success": True, "entity_id": result["response"]["id"]}
@@ -487,9 +487,9 @@ async def test_create_project_batch(client_adapter):
             "operation": "create",
             "data": data
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         projects.append(result["response"]["id"])
-    assert len(projects) == 3
+    assert len(projects) == 3, f"Expected len(projects) == 3, got {len(projects)}"
     return {"success": True, "entity_ids": projects}
 
 
@@ -503,7 +503,7 @@ async def test_read_project_by_id(client_adapter):
     """Test reading project by ID - creates test data first"""
     # Step 1: CREATE test project (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "project",
         DataGenerator.project_data
     )
@@ -542,7 +542,7 @@ async def test_read_project_with_relations(client_adapter):
     """Test reading project with relations - creates test data first"""
     # Step 1: CREATE test project (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "project",
         DataGenerator.project_data
     )
@@ -583,7 +583,7 @@ async def test_read_project_with_relations(client_adapter):
 async def test_update_project_single_field(client_adapter):
     """Test updating single field of project"""
     entity_id = await ResponseValidator.create_test_entity(
-        client, "project", DataGenerator.project_data
+        client_adapter, "project", DataGenerator.project_data
     )
     if not entity_id:
         return {"success": False, "error": "Create failed", "skipped": True}
@@ -594,7 +594,7 @@ async def test_update_project_single_field(client_adapter):
             "entity_id": entity_id,
             "data": {"name": "Updated Test Project"}
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         return {"success": True}
     finally:
         await client_adapter.call_tool("entity_tool", {
@@ -613,7 +613,7 @@ async def test_update_project_single_field(client_adapter):
 async def test_delete_project_soft(client_adapter):
     """Test soft delete of project"""
     entity_id = await ResponseValidator.create_test_entity(
-        client, "project", DataGenerator.project_data
+        client_adapter, "project", DataGenerator.project_data
     )
     if not entity_id:
         return {"success": False, "error": "Create failed", "skipped": True}
@@ -622,7 +622,7 @@ async def test_delete_project_soft(client_adapter):
         "operation": "delete",
         "entity_id": entity_id
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     return {"success": True}
 
 
@@ -639,8 +639,8 @@ async def test_fuzzy_match_project(client_adapter):
         "operation": "search",
         "search_term": "test"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -659,8 +659,8 @@ async def test_search_project_with_filters(client_adapter):
             "priority": "high"
         }
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -687,8 +687,8 @@ async def test_create_project_missing_required_fields(client_adapter):
         "operation": "create",
         "data": {}  # Missing required fields
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -704,8 +704,8 @@ async def test_read_project_invalid_id(client_adapter):
         "operation": "read",
         "entity_id": "invalid-id-456"
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -756,8 +756,8 @@ async def test_list_documents_basic(client_adapter):
         "entity_type": "document",
         "operation": "list"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -773,8 +773,8 @@ async def test_list_documents_limit_10(client_adapter):
         "operation": "list",
         "limit": 10
     })
-    assert result["success"]
-    assert len(result["response"]) <= 10
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -790,8 +790,8 @@ async def test_list_documents_limit_50(client_adapter):
         "operation": "list",
         "limit": 50
     })
-    assert result["success"]
-    assert len(result["response"]) <= 50
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -808,8 +808,8 @@ async def test_list_documents_with_parent_filter(client_adapter):
         "operation": "list",
         "parent_id": parent_id
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -827,7 +827,7 @@ async def test_create_document_basic(client_adapter):
         "operation": "create",
         "data": data
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     assert validators.FieldValidator.is_uuid(result["response"].get("id"))
     assert result["response"]["title"] == data["title"]
     return {"success": True, "entity_id": result["response"]["id"]}
@@ -848,9 +848,9 @@ async def test_create_document_batch(client_adapter):
             "operation": "create",
             "data": data
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         documents.append(result["response"]["id"])
-    assert len(documents) == 3
+    assert len(documents) == 3, f"Expected len(documents) == 3, got {len(documents)}"
     return {"success": True, "entity_ids": documents}
 
 
@@ -865,7 +865,7 @@ async def test_read_document_by_id(client_adapter):
     # Step 1: CREATE test document (with auto-skip if fails)
     # Helper automatically: 1) gets/creates org, 2) gets/creates project, 3) creates document
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "document",
         DataGenerator.document_data
     )
@@ -905,7 +905,7 @@ async def test_read_document_with_relations(client_adapter):
     """Test reading document with relations - creates test data first"""
     # Step 1: CREATE test document (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "document",
         DataGenerator.document_data
     )
@@ -947,7 +947,7 @@ async def test_update_document_single_field(client_adapter):
     """Test updating single field of document"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "document", DataGenerator.document_data
+        client_adapter, "document", DataGenerator.document_data
     )
 
     if not entity_id:
@@ -984,7 +984,7 @@ async def test_delete_document_soft(client_adapter):
     """Test soft delete of document"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "document", DataGenerator.document_data
+        client_adapter, "document", DataGenerator.document_data
     )
 
     if not entity_id:
@@ -1014,8 +1014,8 @@ async def test_fuzzy_match_document(client_adapter):
         "operation": "search",
         "search_term": "test"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1034,8 +1034,8 @@ async def test_search_document_with_filters(client_adapter):
             "status": "draft"
         }
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1062,8 +1062,8 @@ async def test_create_document_missing_required_fields(client_adapter):
         "operation": "create",
         "data": {}  # Missing required fields
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -1079,8 +1079,8 @@ async def test_read_document_invalid_id(client_adapter):
         "operation": "read",
         "entity_id": "invalid-id-789"
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -1131,8 +1131,8 @@ async def test_list_requirements_basic(client_adapter):
         "entity_type": "requirement",
         "operation": "list"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1148,8 +1148,8 @@ async def test_list_requirements_limit_10(client_adapter):
         "operation": "list",
         "limit": 10
     })
-    assert result["success"]
-    assert len(result["response"]) <= 10
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -1165,8 +1165,8 @@ async def test_list_requirements_limit_50(client_adapter):
         "operation": "list",
         "limit": 50
     })
-    assert result["success"]
-    assert len(result["response"]) <= 50
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -1183,8 +1183,8 @@ async def test_list_requirements_with_parent_filter(client_adapter):
         "operation": "list",
         "parent_id": parent_id
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1202,7 +1202,7 @@ async def test_create_requirement_basic(client_adapter):
         "operation": "create",
         "data": data
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     assert validators.FieldValidator.is_uuid(result["response"].get("id"))
     assert result["response"]["title"] == data["title"]
     return {"success": True, "entity_id": result["response"]["id"]}
@@ -1223,9 +1223,9 @@ async def test_create_requirement_batch(client_adapter):
             "operation": "create",
             "data": data
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         requirements.append(result["response"]["id"])
-    assert len(requirements) == 3
+    assert len(requirements) == 3, f"Expected len(requirements) == 3, got {len(requirements)}"
     return {"success": True, "entity_ids": requirements}
 
 
@@ -1239,7 +1239,7 @@ async def test_read_requirement_by_id(client_adapter):
     """Test reading requirement by ID - creates test data first"""
     # Step 1: CREATE test requirement (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "requirement",
         DataGenerator.requirement_data
     )
@@ -1278,7 +1278,7 @@ async def test_read_requirement_with_relations(client_adapter):
     """Test reading requirement with relations - creates test data first"""
     # Step 1: CREATE test requirement (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "requirement",
         DataGenerator.requirement_data
     )
@@ -1320,7 +1320,7 @@ async def test_update_requirement_single_field(client_adapter):
     """Test updating single field of requirement"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "requirement", DataGenerator.requirement_data
+        client_adapter, "requirement", DataGenerator.requirement_data
     )
     if not entity_id:
         return {"success": False, "error": "Create failed", "skipped": True}
@@ -1331,7 +1331,7 @@ async def test_update_requirement_single_field(client_adapter):
             "entity_id": entity_id,
             "data": {"title": "Updated Test Requirement"}
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         return {"success": True}
     finally:
         await client_adapter.call_tool("entity_tool", {
@@ -1351,7 +1351,7 @@ async def test_delete_requirement_soft(client_adapter):
     """Test soft delete of requirement"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "requirement", DataGenerator.requirement_data
+        client_adapter, "requirement", DataGenerator.requirement_data
     )
     if not entity_id:
         return {"success": False, "error": "Create failed", "skipped": True}
@@ -1361,7 +1361,7 @@ async def test_delete_requirement_soft(client_adapter):
         "entity_id": entity_id,
         "soft_delete": True
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     return {"success": True}
 
 
@@ -1378,8 +1378,8 @@ async def test_fuzzy_match_requirement(client_adapter):
         "operation": "search",
         "search_term": "test"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1398,8 +1398,8 @@ async def test_search_requirement_with_filters(client_adapter):
             "status": "pending"
         }
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1426,8 +1426,8 @@ async def test_create_requirement_missing_required_fields(client_adapter):
         "operation": "create",
         "data": {}  # Missing required fields
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -1443,8 +1443,8 @@ async def test_read_requirement_invalid_id(client_adapter):
         "operation": "read",
         "entity_id": "invalid-id-abc"
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -1495,8 +1495,8 @@ async def test_list_tests_basic(client_adapter):
         "entity_type": "test",
         "operation": "list"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1512,8 +1512,8 @@ async def test_list_tests_limit_10(client_adapter):
         "operation": "list",
         "limit": 10
     })
-    assert result["success"]
-    assert len(result["response"]) <= 10
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -1529,8 +1529,8 @@ async def test_list_tests_limit_50(client_adapter):
         "operation": "list",
         "limit": 50
     })
-    assert result["success"]
-    assert len(result["response"]) <= 50
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
     return {"success": True}
 
 
@@ -1547,8 +1547,8 @@ async def test_list_tests_with_parent_filter(client_adapter):
         "operation": "list",
         "parent_id": parent_id
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1566,7 +1566,7 @@ async def test_create_test_basic(client_adapter):
         "operation": "create",
         "data": data
     })
-    assert result["success"]
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
     assert validators.FieldValidator.is_uuid(result["response"].get("id"))
     assert result["response"]["name"] == data["name"]
     return {"success": True, "entity_id": result["response"]["id"]}
@@ -1587,9 +1587,9 @@ async def test_create_test_batch(client_adapter):
             "operation": "create",
             "data": data
         })
-        assert result["success"]
+        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
         tests.append(result["response"]["id"])
-    assert len(tests) == 3
+    assert len(tests) == 3, f"Expected len(tests) == 3, got {len(tests)}"
     return {"success": True, "entity_ids": tests}
 
 
@@ -1603,7 +1603,7 @@ async def test_read_test_by_id(client_adapter):
     """Test reading test entity by ID - creates test data first"""
     # Step 1: CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "test",
         DataGenerator.test_data
     )
@@ -1642,7 +1642,7 @@ async def test_read_test_with_relations(client_adapter):
     """Test reading test entity with relations - creates test data first"""
     # Step 1: CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client,
+        client_adapter,
         "test",
         DataGenerator.test_data
     )
@@ -1684,7 +1684,7 @@ async def test_update_test_single_field(client_adapter):
     """Test updating single field of test entity"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "test", DataGenerator.test_data
+        client_adapter, "test", DataGenerator.test_data
     )
 
     if not entity_id:
@@ -1721,7 +1721,7 @@ async def test_delete_test_soft(client_adapter):
     """Test soft delete of test entity"""
     # CREATE test entity (with auto-skip if fails)
     entity_id = await ResponseValidator.create_test_entity(
-        client, "test", DataGenerator.test_data
+        client_adapter, "test", DataGenerator.test_data
     )
 
     if not entity_id:
@@ -1751,8 +1751,8 @@ async def test_fuzzy_match_test(client_adapter):
         "operation": "search",
         "search_term": "test"
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1771,8 +1771,8 @@ async def test_search_test_with_filters(client_adapter):
             "type": "integration"
         }
     })
-    assert result["success"]
-    assert isinstance(result["response"], list)
+    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
+    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
     return {"success": True}
 
 
@@ -1799,8 +1799,8 @@ async def test_create_test_missing_required_fields(client_adapter):
         "operation": "create",
         "data": {}  # Missing required fields
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
@@ -1816,8 +1816,8 @@ async def test_read_test_invalid_id(client_adapter):
         "operation": "read",
         "entity_id": "invalid-id-xyz"
     })
-    assert not result["success"]
-    assert "error" in result
+    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
+    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
     return {"success": True}
 
 
