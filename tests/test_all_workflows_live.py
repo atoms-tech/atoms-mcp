@@ -22,7 +22,6 @@ from typing import Any, Dict, List
 from datetime import datetime
 
 import httpx
-from supabase import create_client
 
 # Configuration
 MCP_BASE_URL = os.getenv("ATOMS_FASTMCP_BASE_URL", "http://127.0.0.1:8000")
@@ -30,8 +29,8 @@ MCP_PATH = os.getenv("ATOMS_FASTMCP_HTTP_PATH", "/api/mcp")
 TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
 TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+SUPABASE_URL = os.getenv("
+SUPABASE_KEY = os.getenv("
 
 class WorkflowTestRunner:
     """Comprehensive workflow testing with real MCP calls."""
@@ -624,7 +623,6 @@ class WorkflowTestRunner:
 
         return self.results
 
-
 async def main():
     """Main test execution."""
     print("Atoms MCP Workflow Testing")
@@ -638,8 +636,8 @@ async def main():
     # Authenticate
     print("\n[Auth] Authenticating with Supabase...")
     try:
-        client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        auth_response = client.auth.sign_in_with_password({
+        client = 
+        auth_response = client
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
@@ -675,7 +673,6 @@ async def main():
     if results["summary"]["failed_scenarios"] > 0:
         sys.exit(1)
     sys.exit(0)
-
 
 if __name__ == "__main__":
     asyncio.run(main())

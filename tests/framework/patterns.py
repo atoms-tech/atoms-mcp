@@ -7,6 +7,7 @@ Provides reusable test patterns from Zen framework:
 - Integration pattern (multi-tool coordination)
 """
 
+import re
 import time
 from typing import Any, Callable, Dict, List
 
@@ -177,16 +178,46 @@ class UserStoryPattern(TestPattern):
         }
 
     def _resolve_params(self, params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Resolve context variables in parameters."""
-        resolved = {}
-        for key, value in params.items():
+        """Resolve context variables anywhere in the params structure."""
+
+        def resolve_value(value: Any) -> Any:
             if isinstance(value, str) and value.startswith("$context."):
-                # Extract from context
-                context_key = value.replace("$context.", "")
-                resolved[key] = context.get(context_key)
-            else:
-                resolved[key] = value
-        return resolved
+                return self._get_context_value(value[len("$context."):], context)
+            if isinstance(value, dict):
+                return {k: resolve_value(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [resolve_value(item) for item in value]
+            return value
+
+        return {key: resolve_value(val) for key, val in params.items()}
+
+    @staticmethod
+    def _get_context_value(path: str, context: Dict[str, Any]) -> Any:
+        """Retrieve nested context values using dot notation and list indexes."""
+
+        current: Any = context
+        token_pattern = re.compile(r"([^[\]]+)|\[(\d+)\]")
+
+        for segment in path.split('.'):
+            if current is None:
+                return None
+
+            for match in token_pattern.finditer(segment):
+                key, idx = match.groups()
+                if key:
+                    if isinstance(current, dict):
+                        current = current.get(key)
+                    else:
+                        current = getattr(current, key, None)
+                else:
+                    if not isinstance(current, list):
+                        return None
+                    current = current[int(idx)] if len(current) > int(idx) else None
+
+                if current is None:
+                    return None
+
+        return current
 
 
 class IntegrationPattern(TestPattern):

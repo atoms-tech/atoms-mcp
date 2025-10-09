@@ -3,6 +3,8 @@ Comprehensive test suite for workspace operations covering all parameter variati
 Tests list_workspaces, get_context, set_context, and get_defaults operations.
 """
 
+import pytest
+
 from tests.framework import mcp_test, validators, DataGenerator
 
 
@@ -10,10 +12,14 @@ from tests.framework import mcp_test, validators, DataGenerator
 # LIST_WORKSPACES TESTS (6 tests)
 # ============================================================================
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_list_workspaces_default_pagination(client):
+async def test_list_workspaces_default_pagination(client_adapter):
     """Test list_workspaces with default pagination settings."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "list_workspaces"
     })
 
@@ -33,10 +39,14 @@ async def test_list_workspaces_default_pagination(client):
     return {"success": True, "test": "default_pagination"}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_list_workspaces_custom_limit(client):
+async def test_list_workspaces_custom_limit(client_adapter):
     """Test list_workspaces with custom limit of 50."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "list_workspaces",
         "limit": 50
     })
@@ -67,10 +77,14 @@ async def test_list_workspaces_custom_limit(client):
     return {"success": True, "test": "custom_limit", "limit": 50}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_list_workspaces_with_offset(client):
+async def test_list_workspaces_with_offset(client_adapter):
     """Test list_workspaces with limit=25 and offset=25 for pagination."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "list_workspaces",
         "limit": 25,
         "offset": 25
@@ -104,10 +118,14 @@ async def test_list_workspaces_with_offset(client):
     return {"success": True, "test": "with_offset", "limit": 25, "offset": 25}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_list_workspaces_exceeds_max_limit(client):
+async def test_list_workspaces_exceeds_max_limit(client_adapter):
     """Test list_workspaces with limit=1000 to check max limit handling."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "list_workspaces",
         "limit": 1000
     })
@@ -140,10 +158,14 @@ async def test_list_workspaces_exceeds_max_limit(client):
     return {"success": True, "test": "exceeds_max_limit", "requested_limit": 1000}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_list_workspaces_with_data_check(client):
+async def test_list_workspaces_with_data_check(client_adapter):
     """Test list_workspaces returns proper workspace data structure."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "list_workspaces"
     })
 
@@ -173,14 +195,18 @@ async def test_list_workspaces_with_data_check(client):
     return {"success": True, "test": "data_structure_check"}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_list_workspaces_consistency_check(client):
+async def test_list_workspaces_consistency_check(client_adapter):
     """Test list_workspaces returns consistent data structure."""
     # Test multiple times to verify consistency
     results = []
 
     for i in range(2):
-        result = await client.call_tool("workspace_tool", {
+        result = await client_adapter.call_tool("workspace_tool", {
             "operation": "list_workspaces",
             "limit": 5  # Small limit for quick test
         })
@@ -210,10 +236,14 @@ async def test_list_workspaces_consistency_check(client):
 # GET_CONTEXT TESTS (2 tests)
 # ============================================================================
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_get_context_basic(client):
+async def test_get_context_basic(client_adapter):
     """Test get_context with default parameters."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "get_context"
     })
 
@@ -245,10 +275,14 @@ async def test_get_context_basic(client):
     return {"success": True, "test": "get_context_basic"}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_get_context_structure(client):
+async def test_get_context_structure(client_adapter):
     """Test get_context returns proper structure."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "get_context"
     })
 
@@ -280,13 +314,17 @@ async def test_get_context_structure(client):
 # SET_CONTEXT TESTS (4 tests)
 # ============================================================================
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_set_context_organization(client):
+async def test_set_context_organization(client_adapter):
     """Test set_context for organization type."""
     # Generate test organization ID
     org_id = DataGenerator.uuid()
 
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "set_context",
         "context_type": "organization",
         "entity_id": org_id
@@ -312,14 +350,18 @@ async def test_set_context_organization(client):
     return {"success": True, "test": "set_organization", "org_id": org_id}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_set_context_project(client):
+async def test_set_context_project(client_adapter):
     """Test set_context for project type."""
     # Generate test IDs
     org_id = DataGenerator.uuid()
     project_id = DataGenerator.uuid()
 
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "set_context",
         "context_type": "project",
         "entity_id": project_id,
@@ -349,15 +391,19 @@ async def test_set_context_project(client):
     return {"success": True, "test": "set_project", "project_id": project_id}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_set_context_document(client):
+async def test_set_context_document(client_adapter):
     """Test set_context for document type."""
     # Generate test IDs
     org_id = DataGenerator.uuid()
     project_id = DataGenerator.uuid()
     document_id = DataGenerator.uuid()
 
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "set_context",
         "context_type": "document",
         "entity_id": document_id,
@@ -390,10 +436,14 @@ async def test_set_context_document(client):
     return {"success": True, "test": "set_document", "document_id": document_id}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_set_context_invalid_type(client):
+async def test_set_context_invalid_type(client_adapter):
     """Test set_context with invalid context type (error test)."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "set_context",
         "context_type": "invalid_type",
         "entity_id": DataGenerator.uuid()
@@ -417,10 +467,14 @@ async def test_set_context_invalid_type(client):
 # GET_DEFAULTS TESTS (2 tests)
 # ============================================================================
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_get_defaults_basic(client):
+async def test_get_defaults_basic(client_adapter):
     """Test get_defaults with default parameters."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "get_defaults"
     })
 
@@ -450,10 +504,14 @@ async def test_get_defaults_basic(client):
     return {"success": True, "test": "get_defaults_basic"}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
-async def test_get_defaults_data_types(client):
+async def test_get_defaults_data_types(client_adapter):
     """Test get_defaults returns proper data types."""
-    result = await client.call_tool("workspace_tool", {
+    result = await client_adapter.call_tool("workspace_tool", {
         "operation": "get_defaults"
     })
 

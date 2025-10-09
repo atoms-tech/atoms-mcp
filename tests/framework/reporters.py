@@ -37,6 +37,17 @@ class TestReporter:
 class ConsoleReporter(TestReporter):
     """Console reporter with formatted output."""
 
+    def __init__(self, verbose: bool = False, show_running: bool = False):
+        """
+        Initialize console reporter.
+
+        Args:
+            verbose: Show detailed output during test execution
+            show_running: Show currently running tests (useful for parallel execution)
+        """
+        self.verbose = verbose
+        self.show_running = show_running
+
     def report(self, results: List[Dict[str, Any]], metadata: Dict[str, Any]) -> None:
         """Print formatted report to console."""
         print("\n" + "=" * 80)
@@ -499,6 +510,20 @@ class DetailedErrorReporter(TestReporter):
     """
 
     KNOWN_ISSUES = {
+        "DB_CONSTRAINT_VIOLATION": {
+            "title": "Database Constraint Violation",
+            "description": "The data violates a database integrity constraint (CHECK, UNIQUE, FOREIGN KEY, or NOT NULL).",
+            "fix": "Review the field values and ensure they meet the database schema requirements.",
+            "doc_link": None,
+            "is_db_constraint": True
+        },
+        "valid_slug": {
+            "title": "Invalid Slug Format",
+            "description": "The slug field contains invalid characters or format.",
+            "fix": "Ensure slug only contains lowercase letters, numbers, and hyphens. No underscores or special characters.",
+            "doc_link": None,
+            "is_db_constraint": True
+        },
         "NOT NULL constraint failed: updated_by": {
             "title": "RLS Policy Constraint",
             "description": "The updated_by field constraint is failing due to RLS policy issues.",
@@ -566,9 +591,33 @@ class DetailedErrorReporter(TestReporter):
         error = result.get("error", "Unknown error")
         duration_ms = result.get("duration_ms", 0)
 
+        # Detect if this is a DB constraint violation
+        is_db_constraint = (
+            "DB_CONSTRAINT_VIOLATION" in error or
+            "check constraint" in error.lower() or
+            "23514" in error or
+            "23505" in error or
+            "23503" in error or
+            "23502" in error
+        )
+
+        # Use different colors for DB constraints vs other errors
+        if is_db_constraint:
+            icon = "🔶"  # Orange diamond for DB constraints
+            title_color = "bold yellow"
+            border_color = "yellow"
+            text_style = "yellow"
+            error_type = "DB CONSTRAINT"
+        else:
+            icon = "❌"  # Red X for other errors
+            title_color = "bold red"
+            border_color = "red"
+            text_style = "red"
+            error_type = "FAILED"
+
         # Main error header
-        title = f"[{idx}/{total}] {test_name} FAILED"
-        self.console.print(f"\n[bold red]❌ {title}[/bold red]")
+        title = f"[{idx}/{total}] {test_name} {error_type}"
+        self.console.print(f"\n[{title_color}]{icon} {title}[/{title_color}]")
         self.console.print("[dim]" + "━" * 80 + "[/dim]")
 
         # Test information
@@ -576,12 +625,14 @@ class DetailedErrorReporter(TestReporter):
         info_table.add_row("[cyan]Test:[/cyan]", test_name)
         info_table.add_row("[cyan]Tool:[/cyan]", tool_name)
         info_table.add_row("[cyan]Duration:[/cyan]", f"{duration_ms:.2f}ms")
+        if is_db_constraint:
+            info_table.add_row("[cyan]Type:[/cyan]", "[yellow]Database Constraint Violation[/yellow]")
         self.console.print(info_table)
 
         # Error message
         self.console.print(f"\n[bold yellow]Error:[/bold yellow]")
-        error_text = Text(error, style="red")
-        self.console.print(Panel(error_text, border_style="red", padding=(1, 2)))
+        error_text = Text(error, style=text_style)
+        self.console.print(Panel(error_text, border_style=border_color, padding=(1, 2)))
 
         # Request parameters (if available)
         request_params = result.get("request_params")

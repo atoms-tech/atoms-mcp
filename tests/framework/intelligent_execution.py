@@ -19,9 +19,9 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional, Any, Callable
 from dataclasses import dataclass, asdict
 from collections import defaultdict
-import logging
+from utils.logging_setup import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

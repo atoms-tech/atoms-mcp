@@ -1,5 +1,5 @@
 """
-Test Data Generators
+Test Data Generators with pheno-sdk workflow-kit integration.
 
 Provides factories for generating realistic test data.
 """

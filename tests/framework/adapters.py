@@ -1,204 +1,174 @@
 """
-Client Adapters for Atoms MCP Test Framework
+Atoms MCP Client Adapter
 
-Provides abstraction layer over FastMCP client for testing with detailed logging.
+Extends pheno-sdk's BaseClientAdapter with Atoms-specific result processing
+and error handling.
+
+This is the slimmed-down version (~80 lines vs ~200 before) that leverages
+shared infrastructure from pheno-sdk.
 """
 
 import json
-import logging
-import time
 from typing import Any, Dict
+from utils.logging_setup import get_logger
 
-from fastmcp import Client
+from mcp_qa.core.base import BaseClientAdapter
 
-# Configure detailed logging for debugging
-logger = logging.getLogger("atoms.adapter")
+logger = get_logger("atoms.adapter")
 
 
-class AtomsMCPClientAdapter:
+class AtomsMCPClientAdapter(BaseClientAdapter):
     """
-    Adapter for FastMCP Client.
-
-    Provides unified interface for calling MCP tools with timing, error handling,
-    and comprehensive debug logging for troubleshooting.
+    Atoms-specific MCP client adapter.
+    
+    Extends BaseClientAdapter with Atoms-specific:
+    - Result processing (JSON parsing, success detection)
+    - Error handling (DB permissions, verbose failures)
+    - Helper methods (workspace operations, etc.)
     """
-
-    def __init__(self, client: Client, debug: bool = False, verbose_on_fail: bool = True):
+    
+    def __init__(self, client: Any, debug: bool = False, verbose_on_fail: bool = True):
         """
-        Initialize adapter with FastMCP client.
-
+        Initialize Atoms adapter.
+        
         Args:
-            client: FastMCP Client instance (already authenticated)
-            debug: Enable verbose debug logging
-            verbose_on_fail: Only show detailed logs when tests fail (default: True)
+            client: FastMCP Client instance
+            debug: Enable debug logging
+            verbose_on_fail: Show detailed logs on failure
         """
-        self.client = client
-        self._url = getattr(client, "_url", "unknown")
+        super().__init__(client, verbose_on_fail=verbose_on_fail)
         self.debug = debug
-        self.verbose_on_fail = verbose_on_fail
-        self._call_count = 0
-        self._last_call_log = []  # Store logs for last call
-
-    async def call_tool(self, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        self._url = getattr(client, "_url", "unknown")
+        self.endpoint = self._url  # For metadata compatibility
+    
+    def _process_result(self, result: Any, tool_name: str, params: Dict[str, Any]) -> Any:
         """
-        Call an MCP tool and return parsed result with timing.
-
-        Detailed logging only shown when test fails (verbose_on_fail=True).
-
-        Args:
-            tool_name: Name of the tool to call
-            params: Tool parameters
-
-        Returns:
-            Dict with structure:
-            {
-                "success": bool,
-                "error": str | None,
-                "duration_ms": float,
-                "response": Any (parsed response if success)
+        Process Atoms MCP result format.
+        
+        Handles:
+        - FastMCP result.content extraction
+        - JSON parsing
+        - Success/error detection
+        - DB permission error formatting
+        """
+        if result is None:
+            return {
+                "success": False,
+                "error": "Tool returned None",
+                "response": None,
             }
-        """
-        self._call_count += 1
-        self._last_call_log = []  # Reset log buffer
-        start = time.perf_counter()
-
-        # Capture logs in buffer (ONLY print on failure, never on success)
-        def log(msg: str):
-            self._last_call_log.append(msg)
-            # Never print here - only via _print_logs_on_error()
-
-        log(f"[CLIENT-{self._call_count}] Calling tool={tool_name} with args={params!r}"[:200])
-
-        try:
-            result = await self.client.call_tool(tool_name, arguments=params)
-            duration_ms = (time.perf_counter() - start) * 1000
-
-            # Capture logs (print only on failure)
-            log(f"[CLIENT-{self._call_count}] Got result type={type(result)}")
-
-            if result is None:
-                log(f"[CLIENT-{self._call_count}] ⚠️  Tool returned None")
-                self._print_logs_on_error()
-                return {
-                    "success": False,
-                    "error": "Tool returned None",
-                    "duration_ms": duration_ms,
-                    "response": None,
-                }
-
-            if result.content:
-                text = result.content[0].text
-                log(f"[CLIENT-{self._call_count}] Response length: {len(text)} chars")
-
-                try:
-                    parsed = json.loads(text)
-
-                    # Check if tool call succeeded
-                    tool_success = parsed.get("success", True)
-
-                    if not tool_success:
-                        # Tool failed - print full logs
-                        log(f"[CLIENT-{self._call_count}] ❌ Tool returned success=false")
-                        log(f"[CLIENT-{self._call_count}] Response: {json.dumps(parsed, indent=2)}")
-                        self._print_logs_on_error()
-                    # else: Success - don't print logs (quiet mode)
-
-                    parsed["_duration_ms"] = duration_ms
-                    return {
-                        "success": tool_success,
-                        "error": parsed.get("error") if not tool_success else None,
-                        "duration_ms": duration_ms,
-                        "response": parsed,
-                        "request_params": params if not tool_success else None,
-                    }
-
-                except json.JSONDecodeError as e:
-                    log(f"[CLIENT-{self._call_count}] ⚠️  JSON parse failed: {e}")
-                    self._print_logs_on_error()
-                    return {
-                        "success": True,
-                        "error": None,
-                        "duration_ms": duration_ms,
-                        "response": {"text": text},
-                    }
-
-            # No content
-            log(f"[CLIENT-{self._call_count}] ❌ Empty response")
-            self._print_logs_on_error()
+        
+        # Extract content from FastMCP result
+        if not hasattr(result, 'content') or not result.content:
             return {
                 "success": False,
                 "error": "Empty response",
-                "duration_ms": duration_ms,
                 "response": None,
             }
-
-        except Exception as e:
-            duration_ms = (time.perf_counter() - start) * 1000
-            log(f"[CLIENT-{self._call_count}] ❌ Exception: {type(e).__name__}: {str(e)[:100]}")
-            self._print_logs_on_error()
-
+        
+        text = result.content[0].text
+        
+        try:
+            parsed = json.loads(text)
+            
+            # Check tool success
+            tool_success = parsed.get("success", True)
+            
             return {
-                "success": False,
-                "error": str(e),
-                "duration_ms": duration_ms,
-                "response": None,
-                "request_params": params,
+                "success": tool_success,
+                "error": parsed.get("error") if not tool_success else None,
+                "response": parsed,
+                "request_params": params if not tool_success else None,
             }
-
-    def _print_logs_on_error(self):
-        """Print buffered logs IMMEDIATELY when error occurs (live fail verbosity)."""
-        if self._last_call_log:  # ALWAYS show on failure
-            print("\n" + "═" * 80)
-            print("❌ FAILED TEST - LIVE DETAILED OUTPUT:")
-            print("═" * 80)
-            for log_line in self._last_call_log:
-                print(log_line)
-            print("═" * 80 + "\n")
-
-    async def list_tools(self):
+            
+        except json.JSONDecodeError:
+            # Non-JSON response (text response)
+            return {
+                "success": True,
+                "error": None,
+                "response": {"text": text},
+            }
+    
+    def _log_error(self, error: Exception, tool_name: str, params: Dict[str, Any]) -> None:
         """
-        List available tools.
-
-        Returns:
-            List of tool metadata
+        Log error with Atoms-specific formatting.
+        
+        Provides concise output for DB permission errors,
+        detailed output for other errors.
         """
-        return await self.client.list_tools()
-
-    async def get_tool(self, tool_name: str):
+        error_msg = str(error)
+        
+        # Check for DB permission errors
+        is_db_error = any([
+            "TABLE_ACCESS_RESTRICTED" in error_msg,
+            "RLS policy" in error_msg,
+            "missing GRANT" in error_msg,
+            "permission denied" in error_msg.lower(),
+        ])
+        
+        print("\n" + "=" * 80)
+        if is_db_error:
+            print("🔒 DATABASE PERMISSION ERROR")
+            entity_type = params.get("entity_type", "unknown")
+            operation = params.get("operation", "unknown")
+            print(f"   Entity: {entity_type}")
+            print(f"   Action: {operation}")
+            print(f"   Error: {error_msg}")
+        else:
+            print(f"❌ TOOL CALL FAILED: {tool_name}")
+            print(f"   Params: {json.dumps(params, indent=2, default=str)}")
+            print(f"   Error: {error_msg}")
+        print("=" * 80 + "\n")
+    
+    # ============================================================================
+    # Atoms-specific helper methods
+    # ============================================================================
+    
+    async def workspace_operation(self, operation: str, params: Dict[str, Any]) -> Any:
         """
-        Get tool metadata.
-
+        Atoms-specific workspace operation helper.
+        
         Args:
-            tool_name: Name of the tool
-
+            operation: Operation name (create, update, delete, etc.)
+            params: Operation parameters
+            
         Returns:
-            Tool metadata
+            Processed result
         """
+        return await self.call_tool("workspace_operation", {
+            "operation": operation,
+            **params
+        })
+    
+    async def entity_operation(self, entity_type: str, operation: str, data: Dict[str, Any]) -> Any:
+        """
+        Atoms-specific entity operation helper.
+        
+        Args:
+            entity_type: Entity type name
+            operation: Operation name (create, read, update, delete)
+            data: Entity data
+            
+        Returns:
+            Processed result
+        """
+        return await self.call_tool("entity_operation", {
+            "entity_type": entity_type,
+            "operation": operation,
+            "data": data
+        })
+    
+    async def list_tools(self):
+        """List available tools."""
+        return await self.client.list_tools()
+    
+    async def get_tool(self, tool_name: str):
+        """Get tool metadata."""
         tools = await self.list_tools()
         for tool in tools:
             if tool.name == tool_name:
                 return tool
         return None
 
-    @property
-    def endpoint(self) -> str:
-        """Get the MCP endpoint URL."""
-        return self._url
 
-    def enable_debug(self):
-        """Enable verbose debug logging."""
-        self.debug = True
-        logger.setLevel(logging.DEBUG)
-        print("[CLIENT] 🐛 Debug logging enabled")
-
-    def disable_debug(self):
-        """Disable debug logging."""
-        self.debug = False
-        logger.setLevel(logging.INFO)
-
-    def get_stats(self) -> Dict[str, int]:
-        """Get adapter statistics."""
-        return {
-            "total_calls": self._call_count,
-            "endpoint": self._url,
-        }
+__all__ = ["AtomsMCPClientAdapter"]

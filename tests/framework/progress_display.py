@@ -170,16 +170,6 @@ class ComprehensiveProgressDisplay:
         # Main progress bar
         components.append(self.progress)
 
-        # Current test info
-        if self.current_test:
-            current_info = Table.grid(padding=(0, 2))
-            current_info.add_column(style="cyan", justify="right")
-            current_info.add_column(style="white")
-            current_info.add_row("Current:", f"[yellow]{self.current_test[:60]}[/yellow]")
-            current_info.add_row("Tool:", f"[blue]{self.current_tool}[/blue]")
-            current_info.add_row("Category:", f"[magenta]{self.current_category}[/magenta]")
-            components.append(Panel(current_info, title="[bold]Current Test[/bold]", border_style="cyan"))
-
         # Statistics table
         stats_table = Table(show_header=False, box=None, padding=(0, 1))
         stats_table.add_column("Label", style="cyan")

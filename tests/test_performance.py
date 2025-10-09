@@ -24,7 +24,6 @@ from datetime import datetime, timezone
 
 import httpx
 import pytest
-from supabase import create_client
 
 MCP_BASE_URL = os.getenv("ATOMS_FASTMCP_BASE_URL", "http://127.0.0.1:8000")
 MCP_PATH = os.getenv("ATOMS_FASTMCP_HTTP_PATH", "/api/mcp")
@@ -32,7 +31,6 @@ TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
 TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.performance]
-
 
 # Performance thresholds (in seconds)
 THRESHOLDS = {
@@ -51,7 +49,6 @@ THRESHOLDS = {
     "query_tool_aggregate": 3.0,
     "query_tool_rag_search": 5.0,
 }
-
 
 class PerformanceMetrics:
     """Collect and analyze performance metrics."""
@@ -109,19 +106,17 @@ class PerformanceMetrics:
 
         return report
 
-
 @pytest.fixture(scope="module")
 def perf_metrics():
     """Provide shared performance metrics instance."""
     return PerformanceMetrics()
 
-
 @pytest.fixture(scope="module")
-def mcp_client(check_server_running, shared_supabase_jwt, perf_metrics):
+def mcp_client(check_server_running, shared_authkit_session, perf_metrics):
     """Return MCP client with performance tracking."""
     base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
     headers = {
-        "Authorization": f"Bearer {shared_supabase_jwt}",
+        "Authorization": f"Bearer {shared_authkit_session}",
         "Content-Type": "application/json",
     }
 
@@ -159,7 +154,6 @@ def mcp_client(check_server_running, shared_supabase_jwt, perf_metrics):
                 return {"success": False, "error": str(e)}, duration
 
     return call_tool
-
 
 # ============================================================================
 # Individual Tool Performance Tests
@@ -286,7 +280,6 @@ class TestEntityToolPerformance:
         print(f"  Concurrent (10 projects): {concurrent_duration:.3f}s ({concurrent_duration/10:.3f}s avg)")
         print(f"  Speedup: {sequential_duration/concurrent_duration:.1f}x")
 
-
 class TestWorkspaceToolPerformance:
     """Test workspace_tool performance."""
 
@@ -316,7 +309,6 @@ class TestWorkspaceToolPerformance:
         })
 
         print(f"  Get Defaults:    {duration:.3f}s")
-
 
 class TestQueryToolPerformance:
     """Test query_tool performance."""
@@ -354,7 +346,6 @@ class TestQueryToolPerformance:
         })
 
         print(f"  RAG Search:     {duration:.3f}s")
-
 
 class TestWorkflowPerformance:
     """Test workflow_tool performance."""
@@ -394,7 +385,6 @@ class TestWorkflowPerformance:
             for step in steps:
                 if step.get("duration"):
                     print(f"    - {step['step']}: {step.get('duration', 'N/A')}")
-
 
 # ============================================================================
 # Load and Stress Tests
@@ -501,7 +491,6 @@ class TestLoadPerformance:
             count = len(result.get("data", []))
             print(f"  Page size {page_size:3d}: {duration:.3f}s ({count} results)")
 
-
 # ============================================================================
 # Report Generation
 # ============================================================================
@@ -561,7 +550,6 @@ class TestPerformanceReport:
             json.dump(report, f, indent=2)
 
         print(f"📊 Detailed report saved to: {report_path}\n")
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

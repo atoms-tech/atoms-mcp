@@ -4,11 +4,17 @@ User Story Integration Tests
 Multi-step workflows testing real user scenarios using UserStoryPattern.
 """
 
+import pytest
+
 from tests.framework import DataGenerator, UserStoryPattern, mcp_test
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=10)
-async def test_story_new_user_full_setup(client):
+async def test_story_new_user_full_setup(client_adapter):
     """User story: New user creates org → project → document → requirements."""
 
     story = UserStoryPattern(
@@ -76,8 +82,12 @@ async def test_story_new_user_full_setup(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=9)
-async def test_story_team_collaboration(client):
+async def test_story_team_collaboration(client_adapter):
     """User story: Team collaboration - invite member → add to project → assign work."""
 
     story = UserStoryPattern(
@@ -85,9 +95,23 @@ async def test_story_team_collaboration(client):
         steps=[
             {
                 "tool": "entity_tool",
-                "params": {"entity_type": "organization", "operation": "list"},
-                "description": "Get organization",
-                "save_to_context": "orgs",
+                "params": {
+                    "entity_type": "organization",
+                    "operation": "create",
+                    "data": DataGenerator.organization_data("Collab Org"),
+                },
+                "description": "Create organization for collaboration",
+                "save_to_context": "org",
+                "validation": lambda r, ctx: r.get("success"),
+            },
+            {
+                "tool": "workspace_tool",
+                "params": {
+                    "operation": "set_context",
+                    "context_type": "organization",
+                    "entity_id": "$context.org.data.id",
+                },
+                "description": "Set organization context",
                 "validation": lambda r, ctx: r.get("success"),
             },
             {
@@ -95,7 +119,7 @@ async def test_story_team_collaboration(client):
                 "params": {
                     "operation": "link",
                     "relationship_type": "invitation",
-                    "source": {"type": "organization", "id": "$context.orgs[0].id"},
+                    "source": {"type": "organization", "id": "$context.org.data.id"},
                     "target": {"type": "email", "id": "newuser@example.com"},
                     "metadata": {"role": "developer", "status": "pending"},
                 },
@@ -109,8 +133,12 @@ async def test_story_team_collaboration(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=9)
-async def test_story_search_and_analyze(client):
+async def test_story_search_and_analyze(client_adapter):
     """User story: Create entities → search → analyze results."""
 
     story = UserStoryPattern(
@@ -143,8 +171,12 @@ async def test_story_search_and_analyze(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=8)
-async def test_story_test_matrix_workflow(client):
+async def test_story_test_matrix_workflow(client_adapter):
     """User story: Create requirements → setup test matrix → verify coverage."""
 
     story = UserStoryPattern(
@@ -152,17 +184,57 @@ async def test_story_test_matrix_workflow(client):
         steps=[
             {
                 "tool": "entity_tool",
-                "params": {"entity_type": "project", "operation": "list"},
-                "description": "Get projects",
-                "save_to_context": "projects",
-                "validation": lambda r, ctx: r.get("success") and len(r.get("response", {}).get("projects", [])) > 0,
+                "params": {
+                    "entity_type": "organization",
+                    "operation": "create",
+                    "data": DataGenerator.organization_data("Matrix Org"),
+                },
+                "description": "Create organization for matrix workflow",
+                "save_to_context": "org",
+                "validation": lambda r, ctx: r.get("success"),
+            },
+            {
+                "tool": "entity_tool",
+                "params": {
+                    "entity_type": "project",
+                    "operation": "create",
+                    "data": DataGenerator.project_data("Matrix Project", "$context.org.data.id"),
+                },
+                "description": "Create project",
+                "save_to_context": "project",
+                "validation": lambda r, ctx: r.get("success"),
+            },
+            {
+                "tool": "entity_tool",
+                "params": {
+                    "entity_type": "document",
+                    "operation": "create",
+                    "data": DataGenerator.document_data("Matrix Requirements", "$context.project.data.id"),
+                },
+                "description": "Create document",
+                "save_to_context": "document",
+                "validation": lambda r, ctx: r.get("success"),
+            },
+            {
+                "tool": "entity_tool",
+                "params": {
+                    "entity_type": "requirement",
+                    "operation": "create",
+                    "data": {
+                        **DataGenerator.requirement_data("REQ-HIGH-1", "$context.document.data.id"),
+                        "priority": "high",
+                    },
+                },
+                "description": "Create high priority requirement",
+                "save_to_context": "requirement",
+                "validation": lambda r, ctx: r.get("success"),
             },
             {
                 "tool": "workflow_tool",
                 "params": {
                     "workflow": "setup_test_matrix",
                     "parameters": {
-                        "project_id": "$context.projects.projects[0].id",
+                        "project_id": "$context.project.data.id",
                         "matrix_name": "Comprehensive Test Matrix",
                     },
                 },
@@ -176,8 +248,12 @@ async def test_story_test_matrix_workflow(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=8)
-async def test_story_requirement_traceability(client):
+async def test_story_requirement_traceability(client_adapter):
     """User story: Create requirements → link them → verify trace links."""
 
     story = UserStoryPattern(
@@ -206,8 +282,12 @@ async def test_story_requirement_traceability(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=7)
-async def test_story_bulk_operations(client):
+async def test_story_bulk_operations(client_adapter):
     """User story: Create multiple items → bulk update → verify changes."""
 
     story = UserStoryPattern(
@@ -236,8 +316,12 @@ async def test_story_bulk_operations(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=7)
-async def test_story_rag_enhanced_search(client):
+async def test_story_rag_enhanced_search(client_adapter):
     """User story: Semantic search → keyword search → compare results."""
 
     story = UserStoryPattern(
@@ -285,8 +369,12 @@ async def test_story_rag_enhanced_search(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=7)
-async def test_story_workspace_context_switching(client):
+async def test_story_workspace_context_switching(client_adapter):
     """User story: Switch between orgs → projects → verify context."""
 
     story = UserStoryPattern(
@@ -319,8 +407,12 @@ async def test_story_workspace_context_switching(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=6)
-async def test_story_end_to_end_project_lifecycle(client):
+async def test_story_end_to_end_project_lifecycle(client_adapter):
     """User story: Complete project lifecycle from creation to completion."""
 
     story = UserStoryPattern(
@@ -358,8 +450,12 @@ async def test_story_end_to_end_project_lifecycle(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=6)
-async def test_story_requirement_testing_workflow(client):
+async def test_story_requirement_testing_workflow(client_adapter):
     """User story: Import requirements → create tests → link coverage."""
 
     story = UserStoryPattern(
@@ -390,8 +486,12 @@ async def test_story_requirement_testing_workflow(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=6)
-async def test_story_cross_entity_search(client):
+async def test_story_cross_entity_search(client_adapter):
     """User story: Search across all entities → aggregate → analyze."""
 
     story = UserStoryPattern(
@@ -424,8 +524,12 @@ async def test_story_cross_entity_search(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=5)
-async def test_story_rag_comparison_workflow(client):
+async def test_story_rag_comparison_workflow(client_adapter):
     """User story: Compare RAG modes for same query."""
 
     query = "user authentication security requirements"
@@ -475,8 +579,12 @@ async def test_story_rag_comparison_workflow(client):
     return {"success": result["success"], "story": result}
 
 
+@pytest.mark.asyncio
+
+@pytest.mark.parallel
+
 @mcp_test(tool_name="integration", category="user_story", priority=5)
-async def test_story_relationship_graph_building(client):
+async def test_story_relationship_graph_building(client_adapter):
     """User story: Build relationship graph between entities."""
 
     story = UserStoryPattern(

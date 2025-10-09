@@ -8,7 +8,7 @@ batching, caching, and concurrency management for improved test performance.
 import asyncio
 import hashlib
 import json
-import logging
+from utils.logging_setup import get_logger
 import multiprocessing
 import os
 import time
@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple, Callable
 from threading import Lock, Semaphore
 import httpx
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class OptimizationFlags:
