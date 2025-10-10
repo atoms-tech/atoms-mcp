@@ -33,11 +33,11 @@ class SchemaValidator:
     def validate_organization(data: dict[str, Any], operation: str = "create") -> list[str]:
         """
         Validate organization data against schema.
-        
+
         Args:
             data: Organization data to validate
             operation: Operation type (create, update)
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
@@ -217,15 +217,15 @@ class SchemaValidator:
     def validate_entity(entity_type: str, data: dict[str, Any], operation: str = "create") -> list[str]:
         """
         Validate entity data against schema.
-        
+
         Args:
             entity_type: Type of entity (organization, project, etc.)
             data: Entity data to validate
             operation: Operation type (create, update)
-            
+
         Returns:
             List of validation error messages (empty if valid)
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -247,12 +247,12 @@ class SchemaValidator:
     def validate_and_raise(entity_type: str, data: dict[str, Any], operation: str = "create") -> None:
         """
         Validate entity data and raise exception if invalid.
-        
+
         Args:
             entity_type: Type of entity
             data: Entity data to validate
             operation: Operation type
-            
+
         Raises:
             ValidationError: If validation fails
         """
@@ -265,10 +265,10 @@ class SchemaValidator:
 def get_valid_enum_values(enum_name: str) -> list[str]:
     """
     Get list of valid values for an enum.
-    
+
     Args:
         enum_name: Name of enum (e.g., "OrganizationType", "Priority")
-        
+
     Returns:
         List of valid string values
     """

@@ -2,7 +2,8 @@
 
 # Direct import from mcp-qa (vendored in pheno_vendor)
 try:
-    from mcp_qa.logging import LogConfig, configure_logging as _configure_logging, get_logger
+    from mcp_qa.logging import LogConfig, get_logger
+    from mcp_qa.logging import configure_logging as _configure_logging
 
     # Backward-compatible wrapper
     def setup_logging(level: str = "INFO", use_color: bool = True, use_timestamps: bool = True, **kwargs):

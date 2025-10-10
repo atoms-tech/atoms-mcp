@@ -63,7 +63,7 @@ class AuthCredentials:
 
 class AuthSessionBroker:
     """Manages authentication state across test sessions.
-    
+
     Features:
     - Session-scoped OAuth (authenticate once)
     - Persistent credential caching
@@ -89,7 +89,7 @@ class AuthSessionBroker:
         force_refresh: bool = False
     ) -> AuthCredentials:
         """Get valid authentication credentials.
-        
+
         This is the main entry point - will:
         1. Check cache for valid credentials
         2. If not found/expired, trigger OAuth flow
@@ -271,7 +271,7 @@ class AuthSessionBroker:
 
 class AuthenticatedHTTPClient:
     """HTTP client with embedded authentication for direct tool calls.
-    
+
     This replaces the MCP client for better test parallelization and control.
     """
 
@@ -298,7 +298,7 @@ class AuthenticatedHTTPClient:
 
     def _build_headers(self) -> dict[str, str]:
         """Build HTTP headers without authentication.
-        
+
         For AuthKit production, authentication is via session_token parameter, not header.
         """
         return {
@@ -312,7 +312,7 @@ class AuthenticatedHTTPClient:
         timeout: float | None = None
     ) -> dict[str, Any]:
         """Call MCP tool directly via HTTP API.
-        
+
         This bypasses the MCP client for faster, more parallelizable testing.
         Uses AuthKit session_token authentication as per WARP.md docs.
         """
@@ -381,7 +381,7 @@ async def get_authenticated_client(
     force_refresh: bool = False
 ) -> AuthenticatedHTTPClient:
     """Convenience function to get authenticated HTTP client.
-    
+
     This is the main entry point for tests.
     """
     broker = get_auth_broker()
@@ -393,7 +393,7 @@ async def get_authenticated_client(
 @asynccontextmanager
 async def authenticated_session(provider: str = "authkit"):
     """Async context manager for authenticated session.
-    
+
     Usage:
         async with authenticated_session() as client:
             result = await client.call_tool("workspace_operation", {...})

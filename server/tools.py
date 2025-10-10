@@ -27,7 +27,7 @@ def register_workspace_tool(
     rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register workspace management tool.
-    
+
     Args:
         mcp: FastMCP server instance
         workspace_operation: Workspace operation function
@@ -98,7 +98,7 @@ def register_entity_tool(
     rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register entity CRUD tool.
-    
+
     Args:
         mcp: FastMCP server instance
         entity_operation: Entity operation function
@@ -200,7 +200,7 @@ def register_relationship_tool(
     rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register relationship management tool.
-    
+
     Args:
         mcp: FastMCP server instance
         relationship_operation: Relationship operation function
@@ -277,7 +277,7 @@ def register_workflow_tool(
     rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register workflow execution tool.
-    
+
     Args:
         mcp: FastMCP server instance
         workflow_execute: Workflow execution function
@@ -328,7 +328,7 @@ def register_query_tool(
     rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register data query and analysis tool.
-    
+
     Args:
         mcp: FastMCP server instance
         data_query: Data query function

@@ -29,8 +29,9 @@ atoms-mcp.py (Unified CLI)
 
 ### Run Tests
 ```bash
-./atoms-mcp.py test                     # Run all tests on prod
-./atoms-mcp.py test --local             # Run on local server
+./atoms-mcp.py test                     # Run all tests on preview (default)
+./atoms-mcp.py test --environment production  # Run on production
+./atoms-mcp.py test --environment local       # Run on local server
 ./atoms-mcp.py test --verbose           # Verbose output
 ./atoms-mcp.py test --categories entity query  # Specific tests
 ./atoms-mcp.py test --workers 4         # Parallel execution
@@ -40,10 +41,10 @@ atoms-mcp.py (Unified CLI)
 
 ### Deploy
 ```bash
-./atoms-mcp.py deploy --local           # Deploy locally via KInfra tunnel
-./atoms-mcp.py deploy --local --port 50003  # Local on custom port
-./atoms-mcp.py deploy --preview         # Deploy to Vercel preview (devmcp.atoms.tech)
-./atoms-mcp.py deploy --production      # Deploy to Vercel production (atomcp.kooshapari.com)
+./atoms-mcp.py deploy                   # Deploy to Vercel preview (default)
+./atoms-mcp.py deploy --environment local       # Deploy locally via KInfra tunnel
+./atoms-mcp.py deploy --environment local --port 50003  # Local on custom port
+./atoms-mcp.py deploy --environment production  # Deploy to Vercel production (atomcp.kooshapari.com)
 ```
 
 ### Validate & Verify
@@ -137,8 +138,8 @@ The user mentioned another agent is building a version from scratch. Key differe
 - [x] `./atoms-mcp.py start --help` shows start options
 - [x] `./atoms-mcp.py test --help` shows test options
 - [ ] `./atoms-mcp.py start` actually starts server
-- [ ] `./atoms-mcp.py test --local` runs tests
-- [ ] `./atoms-mcp.py deploy --preview` deploys
+- [ ] `./atoms-mcp.py test --environment local` runs tests
+- [ ] `./atoms-mcp.py deploy` deploys to preview
 - [ ] `./atoms-mcp.py validate` validates config
 - [ ] `./atoms-mcp.py verify` verifies setup
 - [ ] `./atoms-mcp.py vendor setup` vendors packages

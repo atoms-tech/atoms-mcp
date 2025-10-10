@@ -140,16 +140,16 @@ def get_rate_limiter(
 ) -> TokenBucketRateLimiter:
     """
     Get configured rate limiter.
-    
+
     Uses pheno-sdk's TokenBucketRateLimiter.
-    
+
     Args:
         requests_per_minute: Sustained rate limit
         burst_size: Maximum burst size (defaults to 2x sustained rate)
-    
+
     Returns:
         Configured rate limiter
-    
+
     Examples:
         >>> from config import get_rate_limiter
         >>> limiter = get_rate_limiter(requests_per_minute=100)

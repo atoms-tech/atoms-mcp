@@ -50,7 +50,7 @@ format: ## Format code (ruff + black)
 
 type-check: ## Run type checking (mypy)
 	@echo "$(BLUE)Running type checker...$(NC)"
-	mypy .
+	mypy lib/ tools/ schemas/ server/ auth/ utils/ --explicit-package-bases --exclude '(pheno_vendor|archive|schemas/generated)'
 	@echo "$(GREEN)✓ Type checking complete$(NC)"
 
 check: lint type-check ## Run all checks (lint + type-check)

@@ -1,7 +1,8 @@
 """Pytest configuration and shared fixtures with pheno-sdk integration."""
 
 # Enable MCP Auth Plugin for automatic authentication
-pytest_plugins = ["mcp_qa.pytest_plugins.auth_plugin"]
+# NOTE: Plugin is auto-loaded by pytest.ini (mcp_auth_enable = true)
+# pytest_plugins = ["mcp_qa.pytest_plugins.auth_plugin"]
 
 import os  # noqa: E402
 import sys  # noqa: E402

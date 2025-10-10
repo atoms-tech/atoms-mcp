@@ -30,10 +30,10 @@ from .runner import AtomsTestRunner
 class AtomsMCPTestRunner(UnifiedMCPTestRunner):
     """
     Atoms MCP Test Runner integrated with pheno-sdk's UnifiedMCPTestRunner.
-    
+
     Handles OAuth, parallel execution, and session caching via pheno-sdk,
     while using Atoms-specific test infrastructure for execution and reporting.
-    
+
     Usage:
         async with AtomsMCPTestRunner(
             mcp_endpoint="https://mcp.atoms.tech/api/mcp",
@@ -57,7 +57,7 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
     ):
         """
         Initialize Atoms MCP test runner.
-        
+
         Args:
             mcp_endpoint: MCP server endpoint URL
             provider: OAuth provider (default: authkit)
@@ -88,10 +88,10 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
     async def run_all(self, categories: list[str] | None = None) -> dict[str, Any]:
         """
         Run all tests with automatic OAuth and parallel execution.
-        
+
         Args:
             categories: Optional list of test categories to run
-            
+
         Returns:
             Test summary dict with results
         """
@@ -194,7 +194,7 @@ async def run_atoms_tests(
 ) -> dict[str, Any]:
     """
     Quick helper to run Atoms MCP tests with automatic OAuth and parallel execution.
-    
+
     Args:
         mcp_endpoint: MCP server endpoint URL (default: from env ATOMS_MCP_ENDPOINT)
         provider: OAuth provider (default: authkit)
@@ -204,10 +204,10 @@ async def run_atoms_tests(
         cache: Enable test result caching (default: True)
         verbose: Verbose output
         **kwargs: Additional arguments for AtomsMCPTestRunner
-        
+
     Returns:
         Test summary dict
-        
+
     Example:
         summary = await run_atoms_tests(
             mcp_endpoint="https://mcp.atoms.tech/api/mcp",

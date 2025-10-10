@@ -19,7 +19,7 @@ Usage:
     >>> from server import create_consolidated_server, main
     >>> server = create_consolidated_server()
     >>> server.run(transport="stdio")
-    
+
     Or use the CLI:
     >>> main()
 """
@@ -62,21 +62,21 @@ logger = get_logger("atoms_fastmcp")
 
 def main() -> None:
     """CLI runner for the consolidated server.
-    
+
     This is the main entry point for running the server from the command line.
     It loads environment configuration and starts the server with the
     appropriate transport (stdio or HTTP).
-    
+
     Environment Variables:
         ATOMS_FASTMCP_TRANSPORT: Transport type (stdio or http)
         ATOMS_FASTMCP_HOST: Host for HTTP transport (default: 127.0.0.1)
         ATOMS_FASTMCP_PORT: Port for HTTP transport (default: 8000)
         ATOMS_FASTMCP_HTTP_PATH: Path for HTTP transport (default: /api/mcp)
-    
+
     Examples:
         Run with stdio transport:
         >>> ATOMS_FASTMCP_TRANSPORT=stdio python -m server
-        
+
         Run with HTTP transport:
         >>> ATOMS_FASTMCP_TRANSPORT=http ATOMS_FASTMCP_PORT=8080 python -m server
     """

@@ -11,9 +11,9 @@ Local Development → Dev/Preview → Production
 
 | Environment | How to Deploy | URL |
 |-------------|--------------|-----|
-| **Local** | `./atoms-mcp.py deploy --local` or `./atoms-mcp.py start` | https://atomcp.kooshapari.com (via tunnel) |
-| **Preview** | `./atoms-mcp.py deploy --preview` | https://devmcp.atoms.tech |
-| **Production** | `./atoms-mcp.py deploy --production` | https://atomcp.kooshapari.com |
+| **Local** | `./atoms-mcp.py deploy --environment local` or `./atoms-mcp.py start` | https://atomcp.kooshapari.com (via tunnel) |
+| **Preview** | `./atoms-mcp.py deploy` | https://devmcp.atoms.tech |
+| **Production** | `./atoms-mcp.py deploy --environment production` | https://atomcp.kooshapari.com |
 
 ---
 
@@ -53,7 +53,7 @@ python atoms-mcp.py start
 
 ```bash
 # Deploy locally with CloudFlare tunnel (HTTPS enabled)
-./atoms-mcp.py deploy --local
+./atoms-mcp.py deploy --environment local
 
 # Or use start command (equivalent)
 ./atoms-mcp.py start
@@ -71,7 +71,7 @@ python atoms-mcp.py start
 **Using the new unified CLI (recommended):**
 
 ```bash
-./atoms-mcp.py deploy --preview
+./atoms-mcp.py deploy
 ```
 
 **Manual deployment (alternative):**
@@ -85,7 +85,7 @@ git add .
 git commit -m "Add my feature"
 
 # 3. Deploy to preview
-./atoms-mcp.py deploy --preview
+./atoms-mcp.py deploy
 ```
 
 **Test the deployment:**
@@ -101,7 +101,7 @@ curl https://devmcp.atoms.tech/api/mcp
 **Using the new unified CLI (recommended):**
 
 ```bash
-./atoms-mcp.py deploy --production
+./atoms-mcp.py deploy --environment production
 ```
 
 **Manual deployment (alternative):**
@@ -112,7 +112,7 @@ git checkout main
 git merge feature/my-feature
 
 # 2. Deploy to production
-./atoms-mcp.py deploy --production
+./atoms-mcp.py deploy --environment production
 ```
 
 **Test the deployment:**
@@ -128,14 +128,14 @@ curl https://atomcp.kooshapari.com/api/mcp
 **Using the new unified CLI (recommended):**
 
 ```bash
-# Test against local server
-./atoms-mcp.py test --local --verbose
+# Default: run against preview (devmcp.atoms.tech)
+./atoms-mcp.py test --verbose
 
-# Test specific categories
-./atoms-mcp.py test --local --categories auth tools
+# Target local server
+./atoms-mcp.py test --environment local --categories auth tools
 
-# Parallel execution
-./atoms-mcp.py test --local --workers 4
+# Target production
+./atoms-mcp.py test --environment production --workers 4
 ```
 
 **Legacy commands (still work):**
@@ -170,11 +170,11 @@ pytest -m "unit and not slow" --base-url=https://atomcp.kooshapari.com
 # Start server
 ./atoms-mcp.py start --verbose
 
-# Run tests
-./atoms-mcp.py test --local --verbose
+# Run tests (preview by default)
+./atoms-mcp.py test --verbose
 
 # Deploy to preview
-./atoms-mcp.py deploy --preview
+./atoms-mcp.py deploy
 
 # Validate configuration
 ./atoms-mcp.py validate

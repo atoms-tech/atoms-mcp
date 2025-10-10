@@ -13,12 +13,6 @@ except ImportError:
     from tools.base import ToolBase
 
 # Import logging
-from schemas.validators import (
-    ValidationError,
-    validate_before_create,
-    validate_before_update,
-)
-
 from schemas.constants import (
     REQUIRED_FIELDS,
     TABLES_WITHOUT_AUDIT_FIELDS,
@@ -43,6 +37,11 @@ from schemas.rls import (
     TestPolicy,
 )
 from schemas.triggers import TriggerEmulator
+from schemas.validators import (
+    ValidationError,
+    validate_before_create,
+    validate_before_update,
+)
 from utils.logging_setup import get_logger
 
 slug_pattern = re.compile(r"[^a-z0-9]+")

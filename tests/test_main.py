@@ -14,7 +14,6 @@ import os
 import sys
 from pathlib import Path
 
-
 # Ensure shared mcp_qa library is importable before local packages
 _TESTS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _TESTS_DIR.parent.parent  # atoms_mcp-old -> kush -> 485
@@ -30,32 +29,56 @@ for _path in _SHARED_QA_PATHS:
 # Add project parent to path for local imports
 sys.path.insert(0, str(_TESTS_DIR.parent))
 
-# Import from pheno-sdk mcp_qa library (not local framework)
-from mcp_qa.testing.cache import TestCache  # noqa: E402
-from mcp_qa.testing.logging_setup import (  # noqa: E402
-    configure_test_logging,
-    suppress_deprecation_warnings,
-)
+# Import from pheno-sdk (mcp_qa)
 from mcp_qa.config.endpoints import EndpointRegistry, MCPProject  # noqa: E402
+from mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings  # noqa: E402
+from mcp_qa.testing.test_cache import TestCache  # noqa: E402
 
 # Import test modules to register tests
 # Basic tests (19 tests - tested and working)
-from tests import test_workspace, test_entity, test_query, test_relationship, test_workflow  # noqa: F401, E402
-
 # User stories (12 integration tests - working)
-from tests import test_user_stories  # noqa: F401, E402
+from tests import (  # noqa: F401, E402
+    test_entity,
+    test_query,
+    test_relationship,
+    test_user_stories,  # noqa: F401, E402
+    test_workflow,
+    test_workspace,
+)
 
 # Comprehensive tests (FIXED - parameters corrected)
 try:
-    from tests import test_workspace_comprehensive  # noqa: F401
-    from tests import test_entity_comprehensive  # noqa: F401
-    from tests import test_query_comprehensive  # noqa: F401
+    from tests import (
+        test_entity_comprehensive,  # noqa: F401
+        test_query_comprehensive,  # noqa: F401
+        test_workspace_comprehensive,  # noqa: F401
+    )
     # Relationship and workflow still need real UUIDs - skip for now
     COMPREHENSIVE_AVAILABLE = True
 except ImportError:
     COMPREHENSIVE_AVAILABLE = False
 
 TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
+
+TARGET_CHOICES = ("local", "preview", "production")
+TARGET_ENDPOINTS = {
+    "local": "http://localhost:50002/api/mcp",
+    "preview": "https://devmcp.atoms.tech/api/mcp",
+    "production": "https://mcp.atoms.tech/api/mcp",
+}
+TARGET_DISPLAY_NAMES = {
+    "local": "Local (KInfra tunnel)",
+    "preview": "Preview (devmcp.atoms.tech)",
+    "production": "Production (mcp.atoms.tech)",
+}
+TARGET_ALIASES = {
+    "local": "local",
+    "preview": "preview",
+    "dev": "preview",
+    "production": "production",
+    "prod": "production",
+}
+DEFAULT_TARGET = "preview"
 
 
 def _check_local_server_running() -> tuple[bool, str | None]:
@@ -96,27 +119,27 @@ def _check_local_server_running() -> tuple[bool, str | None]:
         return False, None
 
 
-def _check_dev_server_health() -> tuple[bool, str | None]:
-    """Check if dev server is healthy at devmcp.atoms.tech.
+def _check_preview_server_health() -> tuple[bool, str | None]:
+    """Check if preview server is healthy at devmcp.atoms.tech.
 
     Returns:
         tuple: (is_healthy, error_message)
     """
     try:
         import requests
-        # Try to reach the dev server health endpoint
+        # Try to reach the preview server health endpoint
         health_url = "https://devmcp.atoms.tech/health"
         response = requests.get(health_url, timeout=5)
         if response.status_code == 200:
             return True, None
         else:
-            return False, f"Dev server returned status {response.status_code}"
+            return False, f"Preview server returned status {response.status_code}"
     except requests.exceptions.Timeout:
-        return False, "Dev server health check timed out"
+        return False, "Preview server health check timed out"
     except requests.exceptions.ConnectionError:
-        return False, "Cannot connect to dev server"
+        return False, "Cannot connect to preview server"
     except Exception as e:
-        return False, f"Dev server health check failed: {str(e)}"
+        return False, f"Preview server health check failed: {str(e)}"
 
 
 async def main():
@@ -127,9 +150,9 @@ async def main():
         description="Run Atoms MCP comprehensive tests",
         epilog="""
 Examples:
-  python test_main.py                          # Run all tests on prod
-  python test_main.py -t local                 # Run on local server
-  python test_main.py -t dev -w 4              # Run on dev with 4 workers
+  python test_main.py                          # Run all tests on preview (default)
+  python test_main.py -t production            # Run on production
+  python test_main.py -t local -w 4            # Run on local server with 4 workers
   python test_main.py -k entity query          # Run entity and query tests
   python test_main.py -v                       # Verbose output
   python test_main.py --clear-cache            # Clear all caches
@@ -139,8 +162,13 @@ Examples:
     )
 
     # Target selection
-    parser.add_argument("--target", "-t", choices=["local", "dev", "prod"], default="prod",
-                       help="Target environment (default: prod)")
+    parser.add_argument(
+        "--target",
+        "-t",
+        choices=TARGET_CHOICES,
+        default=DEFAULT_TARGET,
+        help="Target environment (local, preview, production). Defaults to preview.",
+    )
 
     # Test execution
     parser.add_argument("--categories", "-k", nargs="+",
@@ -166,13 +194,31 @@ Examples:
 
     args = parser.parse_args()
 
-    # Set MCP endpoint based on target environment
-    EndpointRegistry.set_environment(args.target, project=MCPProject.ATOMS)
-    endpoint_source = EndpointRegistry.get_display_name(project=MCPProject.ATOMS, environment=args.target)
-    MCP_ENDPOINT = EndpointRegistry.get_endpoint(project=MCPProject.ATOMS, environment=args.target)
+    # Resolve canonical target name (allow legacy aliases)
+    canonical_target = TARGET_ALIASES.get(args.target, args.target)
+    if canonical_target not in TARGET_CHOICES:
+        print(f"Error: Unsupported target '{args.target}'. Choose from {', '.join(TARGET_CHOICES)}.")
+        return 1
+
+    # Determine endpoint using registry when available, otherwise fallback mapping
+    endpoint_source = TARGET_DISPLAY_NAMES.get(canonical_target, canonical_target.title())
+    mcp_endpoint = TARGET_ENDPOINTS[canonical_target]
+
+    if EndpointRegistry and MCPProject:
+        try:
+            EndpointRegistry.set_environment(canonical_target, project=MCPProject.ATOMS)
+            endpoint_source = EndpointRegistry.get_display_name(
+                project=MCPProject.ATOMS, environment=canonical_target
+            )
+            mcp_endpoint = EndpointRegistry.get_endpoint(
+                project=MCPProject.ATOMS, environment=canonical_target
+            )
+        except Exception as exc:  # pragma: no cover - fallback when registry is outdated
+            print(f"⚠️  Warning: Endpoint registry unavailable ({exc}). Using static mapping.")
 
     # Set environment variable so auth plugin can use it
-    os.environ["MCP_ENDPOINT"] = MCP_ENDPOINT
+    os.environ["MCP_ENDPOINT"] = mcp_endpoint
+    os.environ["ATOMS_TARGET_ENVIRONMENT"] = canonical_target
 
     # Configure logging based on verbose/quiet flags
     if args.quiet and args.verbose:
@@ -231,7 +277,7 @@ Examples:
             print("\n🧪 Running Atoms MCP Test Suite with Auth Plugin\n")
             print("Configuration:")
             print(f"  • Target: {endpoint_source}")
-            print(f"  • Endpoint: {MCP_ENDPOINT}")
+            print(f"  • Endpoint: {mcp_endpoint}")
             print()
             print("Features:")
             print("  • Auth Plugin: ✓ (automatic OAuth with progress bar)")
@@ -254,7 +300,7 @@ Examples:
         result = subprocess.run(pytest_args, cwd=Path(__file__).parent.parent)
         return result.returncode
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         print("❌ Timeout - try: python tests/test_comprehensive_new.py --clear-oauth")
         return 1
     except Exception as e:

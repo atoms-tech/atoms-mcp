@@ -7,7 +7,7 @@ All functionality is accessible through the `./atoms` command:
 ```bash
 ./atoms --help              # Show all commands
 ./atoms start               # Start local server
-./atoms deploy --preview    # Deploy to preview
+./atoms deploy              # Deploy to preview (default)
 ./atoms schema check        # Check schema drift
 ./atoms vendor setup        # Vendor pheno-sdk packages
 ```
@@ -23,15 +23,16 @@ All functionality is accessible through the `./atoms` command:
 
 ### 🧪 Testing
 ```bash
-./atoms test --local             # Run tests locally
-./atoms test --local --verbose   # Run with verbose output
+./atoms test                     # Run tests against preview (default)
+./atoms test --environment local       # Run against local server
+./atoms test --environment production  # Run against production
 ```
 
 ### 🌐 Deployment
 ```bash
-./atoms deploy --local           # Deploy locally via KInfra tunnel
-./atoms deploy --preview         # Deploy to Vercel preview
-./atoms deploy --production      # Deploy to Vercel production
+./atoms deploy                   # Deploy to Vercel preview (default)
+./atoms deploy --environment local       # Deploy locally via KInfra tunnel
+./atoms deploy --environment production  # Deploy to Vercel production
 ```
 
 **Deployment URLs:**
@@ -111,8 +112,8 @@ lib/
 # Check schema drift
 ./atoms schema check
 
-# Run tests
-./atoms test --local
+# Run tests (preview by default)
+./atoms test
 ```
 
 ### Deploying to Preview
@@ -125,7 +126,7 @@ lib/
 ./atoms schema sync
 
 # Deploy to preview
-./atoms deploy --preview
+./atoms deploy
 ```
 
 ### Deploying to Production
@@ -137,7 +138,7 @@ lib/
 ./atoms vendor verify
 
 # Deploy
-./atoms deploy --production
+./atoms deploy --environment production
 ```
 
 ### Updating Vendored Packages
@@ -171,9 +172,9 @@ git push
 | Old Command | New Command |
 |-------------|-------------|
 | `python start_server.py` | `./atoms start` |
-| `python start_server.py --deploy-dev` | `./atoms deploy --preview` |
-| `python start_server.py --deploy-prod` | `./atoms deploy --production` |
-| `python tests/test_main.py --local` | `./atoms test --local` |
+| `python start_server.py --deploy-dev` | `./atoms deploy` |
+| `python start_server.py --deploy-prod` | `./atoms deploy --environment production` |
+| `python tests/test_main.py --local` | `./atoms test --environment local` |
 | `python test_config.py` | `./atoms validate` |
 | `python verify_setup.py` | `./atoms verify` |
 | `./scripts/vendor-pheno-sdk.sh` | `./atoms vendor setup` |
@@ -340,7 +341,7 @@ chmod +x atoms-mcp.py atoms
 1. **Always use `./atoms`** - Don't call scripts directly
 2. **Vendor before deploying** - Run `./atoms vendor setup --clean`
 3. **Check schema drift** - Run `./atoms schema check` before deploying
-4. **Test locally first** - Use `./atoms test --local`
+4. **Test locally first** - Use `./atoms test --environment local`
 5. **Use libraries, not scripts** - Create reusable Python libraries in `lib/`
 
 ## Support
@@ -354,4 +355,3 @@ For issues or questions:
 ---
 
 **All functionality through `./atoms` - One command to rule them all!** 🚀
-

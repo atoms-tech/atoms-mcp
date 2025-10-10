@@ -7,7 +7,7 @@ log spam and provide a better user experience.
 
 Usage:
     from tests.framework.test_logging_setup import configure_test_logging
-    
+
     # At the start of your test suite
     configure_test_logging(verbose=False)  # Quiet mode - only errors
     configure_test_logging(verbose=True)   # Verbose mode - all logs
@@ -24,16 +24,16 @@ def configure_test_logging(
 ) -> None:
     """
     Configure logging for test suites with minimal output.
-    
+
     In quiet mode (verbose=False):
     - Only ERROR and CRITICAL logs are shown
     - Progress bars and visual indicators are used instead
     - Natural language output for test results
-    
+
     In verbose mode (verbose=True):
     - All logs (INFO, DEBUG, etc.) are shown
     - Useful for debugging test failures
-    
+
     Args:
         verbose: Enable verbose logging (default: False)
         show_progress: Show progress bars (default: True)
@@ -92,11 +92,11 @@ def configure_test_logging(
 def get_test_logger(name: str, verbose: bool = False) -> logging.Logger:
     """
     Get a logger for test modules.
-    
+
     Args:
         name: Logger name (usually __name__)
         verbose: Enable verbose logging for this logger
-        
+
     Returns:
         Logger instance
     """
@@ -109,7 +109,7 @@ def get_test_logger(name: str, verbose: bool = False) -> logging.Logger:
 def suppress_deprecation_warnings() -> None:
     """
     Suppress common deprecation warnings that clutter test output.
-    
+
     Call this at the start of your test suite to hide warnings like:
     - websockets.legacy deprecation
     - WebSocketServerProtocol deprecation
@@ -141,7 +141,7 @@ def suppress_deprecation_warnings() -> None:
 class QuietLogger:
     """
     Context manager for temporarily suppressing logs.
-    
+
     Usage:
         with QuietLogger():
             # Code that produces noisy logs
@@ -169,7 +169,7 @@ class QuietLogger:
 def print_test_header(title: str, emoji: str = "🧪") -> None:
     """
     Print a clean test header.
-    
+
     Args:
         title: Test suite title
         emoji: Emoji to display (default: 🧪)
@@ -187,7 +187,7 @@ def print_test_summary(
 ) -> None:
     """
     Print a clean test summary.
-    
+
     Args:
         total: Total number of tests
         passed: Number of passed tests
@@ -219,7 +219,7 @@ _configured = False
 def auto_configure(verbose: bool = False) -> None:
     """
     Auto-configure logging on first import.
-    
+
     Args:
         verbose: Enable verbose logging
     """

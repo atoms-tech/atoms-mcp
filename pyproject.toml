@@ -1,0 +1,102 @@
+[project]
+name = "atoms-mcp"
+version = "0.1.0"
+description = "Atoms MCP Server - Model Context Protocol server for Atoms workspace management"
+requires-python = ">=3.11"
+authors = [
+    {name = "Atoms Team"},
+]
+readme = "README.md"
+license = {text = "MIT"}
+
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0",
+    "supabase>=2.0.0",
+    "psycopg2-binary>=2.9.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["lib", "tools", "schemas", "tests"]
+package-dir = {"" = "."}
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_any_generics = false
+no_implicit_optional = false
+
+# Exclude vendored packages and generated code
+exclude = [
+    "pheno_vendor",
+    "schemas/generated",
+    "archive",
+    ".venv",
+]
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = "pheno_vendor.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow running tests",
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.ruff_cache
+  | \.venv
+  | pheno_vendor
+  | schemas/generated
+  | archive
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = ["pheno_vendor", "schemas/generated", "archive", ".venv"]

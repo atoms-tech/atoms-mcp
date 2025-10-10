@@ -1,0 +1,91 @@
+# Ruff configuration for atoms_mcp-old
+
+# Exclude patterns
+extend-exclude = [
+    "pheno_vendor",           # Vendored packages
+    "schemas/generated",      # Generated code
+    "archive",                # Archived old code
+    ".venv",
+    "__pycache__",
+    "*.pyc",
+    ".git",
+]
+
+# Line length
+line-length = 120
+
+# Python version
+target-version = "py311"
+
+[lint]
+# Enable these rule categories
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+]
+
+# Disable rules globally
+ignore = [
+    "E501",   # Line too long (many long strings/SQL in this project)
+]
+
+[lint.per-file-ignores]
+# Test files - allow assert statements
+"tests/**/*.py" = [
+    "S101",   # Allow assert statements in tests
+]
+
+# CLI utility scripts - allow print statements and subprocess
+"lib/vendor_manager.py" = [
+    "T201",    # Allow print statements (CLI tool)
+    "S603",    # Allow subprocess without shell=True validation
+    "PLR2004", # Allow magic value comparisons
+]
+
+"lib/deployment_checker.py" = [
+    "T201",    # Allow print statements (CLI tool)
+    "S603",    # subprocess call without shell=True check
+    "S607",    # Starting a process with a partial path
+    "PLR2004", # Magic value used in comparison
+]
+
+"lib/schema_sync.py" = [
+    "T201",    # Allow print statements (CLI tool)
+    "S608",    # Possible SQL injection (using psycopg2 parameterization correctly)
+    "PLR0912", # Too many branches (complex CLI logic is intentional)
+    "PLR0915", # Too many statements (CLI tool with many operations)
+    "PLR2004", # Magic value comparisons
+]
+
+# Scripts directory - CLI tools
+"scripts/*.py" = [
+    "T201",    # Allow print statements (CLI tools)
+]
+
+# Init files - allow unused imports (re-exports)
+"**/__init__.py" = [
+    "F401",    # Imported but unused (intentional re-exports)
+]
+
+# Generated schemas - ignore all
+"schemas/generated/**/*.py" = [
+    "ALL",     # Generated code
+]
+
+# Archived code - ignore all
+"archive/**/*.py" = [
+    "ALL",     # Old archived code
+]
+
+[format]
+# Use double quotes
+quote-style = "double"
+
+# Indent with 4 spaces
+indent-style = "space"
+
+# Line endings
+line-ending = "auto"

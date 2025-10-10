@@ -32,7 +32,7 @@ class EnvLoadError(Exception):
 @dataclass
 class EnvConfig:
     """Configuration for environment loading.
-    
+
     Attributes:
         base_dir: Base directory for .env files
         env_files: List of env files to load (in order of precedence)
@@ -52,13 +52,13 @@ class EnvConfig:
 
 def parse_env_file(file_path: Path) -> Iterator[tuple[str, str]]:
     """Parse environment file and yield key-value pairs.
-    
+
     Args:
         file_path: Path to .env file
-        
+
     Yields:
         Tuples of (key, value)
-        
+
     Examples:
         >>> for key, value in parse_env_file(Path(".env")):
         ...     print(f"{key}={value}")
@@ -98,20 +98,20 @@ def parse_env_file(file_path: Path) -> Iterator[tuple[str, str]]:
 
 def load_env_files(config: EnvConfig | None = None) -> dict[str, str]:
     """Load environment variables from .env files.
-    
+
     Loads variables from .env and .env.local (if available), with
     .env.local taking precedence. Does not override existing environment
     variables by default.
-    
+
     Args:
         config: Optional environment configuration
-        
+
     Returns:
         Dictionary of loaded environment variables
-        
+
     Raises:
         EnvLoadError: If required variables are missing
-        
+
     Examples:
         >>> loaded = load_env_files()
         >>> print(f"Loaded {len(loaded)} variables")
@@ -181,13 +181,13 @@ def load_env_files(config: EnvConfig | None = None) -> dict[str, str]:
 @contextmanager
 def temporary_env(**kwargs: str) -> Iterator[None]:
     """Context manager for temporary environment variable changes.
-    
+
     Args:
         **kwargs: Environment variables to set temporarily
-        
+
     Yields:
         None
-        
+
     Examples:
         >>> with temporary_env(DEBUG="true", LOG_LEVEL="debug"):
         ...     # Environment variables are set
@@ -217,18 +217,18 @@ def get_env_var(
     required: bool = False
 ) -> str | None:
     """Get environment variable with optional default and validation.
-    
+
     Args:
         key: Environment variable name
         default: Default value if not found
         required: Whether variable is required
-        
+
     Returns:
         Environment variable value or default
-        
+
     Raises:
         EnvLoadError: If required variable is missing
-        
+
     Examples:
         >>> api_key = get_env_var("API_KEY", required=True)
         >>> debug = get_env_var("DEBUG", default="false")
@@ -243,10 +243,10 @@ def get_env_var(
 
 def get_fastmcp_vars() -> dict[str, str]:
     """Get all FASTMCP-related environment variables.
-    
+
     Returns:
         Dictionary of FASTMCP environment variables
-        
+
     Examples:
         >>> vars = get_fastmcp_vars()
         >>> for key, value in vars.items():

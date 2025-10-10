@@ -409,7 +409,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
     def _process_result(self, result: Any, tool_name: str, params: dict[str, Any]) -> Any:
         """
         Process Atoms MCP result format.
-        
+
         Handles:
         - FastMCP result.content extraction
         - JSON parsing
@@ -457,7 +457,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
     def _log_error(self, error: Exception, tool_name: str, params: dict[str, Any]) -> None:
         """
         Log error with Atoms-specific formatting.
-        
+
         Provides concise output for DB permission errors,
         detailed output for other errors.
         """
@@ -492,11 +492,11 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
     async def workspace_operation(self, operation: str, params: dict[str, Any]) -> Any:
         """
         Atoms-specific workspace operation helper.
-        
+
         Args:
             operation: Operation name (create, update, delete, etc.)
             params: Operation parameters
-            
+
         Returns:
             Processed result
         """
@@ -508,12 +508,12 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
     async def entity_operation(self, entity_type: str, operation: str, data: dict[str, Any]) -> Any:
         """
         Atoms-specific entity operation helper.
-        
+
         Args:
             entity_type: Entity type name
             operation: Operation name (create, read, update, delete)
             data: Entity data
-            
+
         Returns:
             Processed result
         """

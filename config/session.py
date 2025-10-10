@@ -59,9 +59,9 @@ def get_session_manager() -> SessionManager:
 def reset_session_manager():
     """
     Reset session manager singleton.
-    
+
     Useful for testing or when configuration changes.
-    
+
     Examples:
         >>> from config.session import reset_session_manager
         >>> reset_session_manager()

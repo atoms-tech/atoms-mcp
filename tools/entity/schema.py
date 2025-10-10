@@ -21,7 +21,7 @@ from typing import Any
 @dataclass(frozen=True)
 class EntitySchema:
     """Schema definition for an entity type.
-    
+
     Attributes:
         entity_type: Type of entity (e.g., "project", "document")
         required_fields: Fields that must be provided
@@ -51,10 +51,10 @@ class EntitySchema:
 
     def validate_required_fields(self, data: dict[str, Any]) -> list[str]:
         """Validate required fields and return list of missing fields.
-        
+
         Args:
             data: Data to validate
-            
+
         Returns:
             List of missing required field names
         """
@@ -138,13 +138,13 @@ ENTITY_SCHEMAS: dict[str, EntitySchema] = {
 
 def get_entity_schema(entity_type: str) -> EntitySchema | None:
     """Get schema for entity type.
-    
+
     Args:
         entity_type: Type of entity
-        
+
     Returns:
         EntitySchema if found, None otherwise
-        
+
     Examples:
         >>> schema = get_entity_schema("project")
         >>> if schema:
@@ -156,13 +156,13 @@ def get_entity_schema(entity_type: str) -> EntitySchema | None:
 
 def validate_entity_type(entity_type: str) -> bool:
     """Check if entity type is valid.
-    
+
     Args:
         entity_type: Type to validate
-        
+
     Returns:
         True if valid, False otherwise
-        
+
     Examples:
         >>> validate_entity_type("project")
         True
@@ -174,10 +174,10 @@ def validate_entity_type(entity_type: str) -> bool:
 
 def get_all_entity_types() -> list[str]:
     """Get list of all valid entity types.
-    
+
     Returns:
         List of entity type names
-        
+
     Examples:
         >>> types = get_all_entity_types()
         >>> "project" in types
@@ -203,20 +203,20 @@ def validate_entity_data(
     operation: str = "create"
 ) -> None:
     """Validate entity data against schema.
-    
+
     Args:
         entity_type: Type of entity
         data: Data to validate
         operation: Operation type (create, update, etc.)
-        
+
     Raises:
         EntityValidationError: If validation fails
         ValueError: If entity type is invalid
-        
+
     Examples:
         >>> validate_entity_data("project", {"name": "Test", "organization_id": "123"})
         >>> # No exception = valid
-        
+
         >>> validate_entity_data("project", {"name": "Test"})
         Traceback (most recent call last):
         ...

@@ -8,7 +8,24 @@ from typing import Any
 
 from mcp_qa.core.base import BaseTestRunner
 
-from .workflow_manager import TestWorkflowManager
+try:
+    from mcp_qa.integration.workflows import WorkflowTester as TestWorkflowManager
+except ImportError:
+    # Fallback: create a simple workflow manager
+    class TestWorkflowManager:
+        def __init__(self, concurrency=4):
+            self.concurrency = concurrency
+
+        async def run_test(self, test_name, callback, metadata=None):
+            import time
+            start = time.time()
+            result = await callback()
+            duration = time.time() - start
+            return {
+                "result": result,
+                "metadata": metadata or {},
+                "duration": duration,
+            }
 
 
 class AtomsTestRunner(BaseTestRunner):

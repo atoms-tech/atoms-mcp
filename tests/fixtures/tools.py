@@ -10,10 +10,10 @@ from ..framework.auth_session import AuthenticatedHTTPClient
 
 class ToolClient:
     """Wrapper for tool-specific operations.
-    
+
     Fixed to use the correct API pattern based on working test examples:
     - Tool names: "workspace_tool" not "workspace_operation"
-    - Parameters: flat structure, not nested in "params" 
+    - Parameters: flat structure, not nested in "params"
     - Auth: handled via Authorization header only
     """
 
@@ -32,7 +32,7 @@ class ToolClient:
 
     async def call(self, operation: str, arguments: dict[str, Any] = None, **kwargs) -> dict[str, Any]:
         """Call the tool with operation and parameters.
-        
+
         Uses the same parameter structure as working tests:
         - Direct parameters (not nested in "params")
         - "operation" parameter for the specific operation
@@ -65,7 +65,7 @@ class ToolClient:
 @pytest.fixture
 async def workspace_client(authenticated_client: AuthenticatedHTTPClient) -> ToolClient:
     """Client specifically for workspace_operation tool.
-    
+
     Usage:
         async def test_list_projects(workspace_client):
             result = await workspace_client.call("list_projects")
@@ -77,7 +77,7 @@ async def workspace_client(authenticated_client: AuthenticatedHTTPClient) -> Too
 @pytest.fixture
 async def entity_client(authenticated_client: AuthenticatedHTTPClient) -> ToolClient:
     """Client specifically for entity_operation tool.
-    
+
     Usage:
         async def test_create_document(entity_client):
             result = await entity_client.call("create", {
@@ -110,7 +110,7 @@ async def query_client(authenticated_client: AuthenticatedHTTPClient) -> ToolCli
 @pytest.fixture
 def tool_client_factory(authenticated_client: AuthenticatedHTTPClient) -> Callable[[str], ToolClient]:
     """Factory for creating clients for any tool.
-    
+
     Usage:
         def test_custom_tool(tool_client_factory):
             client = tool_client_factory("my_custom_tool")
@@ -151,7 +151,7 @@ class BatchToolClient:
 
     async def call_multiple(self, operations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Call multiple tools in sequence.
-        
+
         Args:
             operations: List of {"tool": "tool_name", "operation": "op", "params": {...}}
         """
@@ -173,7 +173,7 @@ async def batch_client(authenticated_client: AuthenticatedHTTPClient) -> BatchTo
 @pytest.fixture
 async def available_tools(authenticated_client: AuthenticatedHTTPClient) -> list[str]:
     """List of available tools from the server.
-    
+
     Useful for dynamic test generation or validation.
     """
     try:

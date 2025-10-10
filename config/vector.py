@@ -35,12 +35,12 @@ _progressive_embedding_service = None
 def get_embedding_service():
     """
     Get configured embedding service.
-    
+
     Uses pheno-sdk's Vertex AI embedding service (gemini-embedding-001).
-    
+
     Returns:
         VertexAIEmbeddingService instance
-    
+
     Examples:
         >>> from config.vector import get_embedding_service
         >>> embedder = get_embedding_service()
@@ -58,15 +58,15 @@ def get_embedding_service():
 def get_vector_search_service(supabase_client=None):
     """
     Get configured vector search service.
-    
+
     Uses pheno-sdk's VectorSearchService for semantic and keyword search.
-    
+
     Args:
         supabase_client: Optional Supabase client (will auto-initialize if not provided)
-    
+
     Returns:
         VectorSearchService instance
-    
+
     Examples:
         >>> from config.vector import get_vector_search_service
         >>> search = get_vector_search_service()
@@ -89,16 +89,16 @@ def get_vector_search_service(supabase_client=None):
 def get_enhanced_vector_search_service(supabase_client=None):
     """
     Get configured enhanced vector search service.
-    
+
     Uses pheno-sdk's EnhancedVectorSearchService with automatic on-demand
     embedding generation for records without embeddings.
-    
+
     Args:
         supabase_client: Optional Supabase client (will auto-initialize if not provided)
-    
+
     Returns:
         EnhancedVectorSearchService instance
-    
+
     Examples:
         >>> from config.vector import get_enhanced_vector_search_service
         >>> search = get_enhanced_vector_search_service()
@@ -125,16 +125,16 @@ def get_enhanced_vector_search_service(supabase_client=None):
 def get_progressive_embedding_service(supabase_client=None):
     """
     Get configured progressive embedding service.
-    
+
     Uses pheno-sdk's ProgressiveEmbeddingService for on-demand embedding
     generation during search operations.
-    
+
     Args:
         supabase_client: Optional Supabase client (will auto-initialize if not provided)
-    
+
     Returns:
         ProgressiveEmbeddingService instance
-    
+
     Examples:
         >>> from config.vector import get_progressive_embedding_service
         >>> progressive = get_progressive_embedding_service()
@@ -161,9 +161,9 @@ def get_progressive_embedding_service(supabase_client=None):
 def reset_vector_services():
     """
     Reset all vector service singletons.
-    
+
     Useful for testing or when configuration changes.
-    
+
     Examples:
         >>> from config.vector import reset_vector_services
         >>> reset_vector_services()

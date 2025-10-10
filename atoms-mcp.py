@@ -19,10 +19,11 @@ Commands:
 Examples:
     atoms-mcp.py start                      # Start local server
     atoms-mcp.py start --port 50003         # Start on custom port
-    atoms-mcp.py test --local --verbose     # Run tests locally
-    atoms-mcp.py deploy --local             # Deploy locally via KInfra tunnel
-    atoms-mcp.py deploy --preview           # Deploy to Vercel preview (devmcp.atoms.tech)
-    atoms-mcp.py deploy --production        # Deploy to Vercel production (mcp.atoms.tech)
+    atoms-mcp.py test --environment local --verbose   # Run tests against local server
+    atoms-mcp.py test                                   # Run tests against preview (default)
+    atoms-mcp.py deploy                                 # Deploy to Vercel preview (default)
+    atoms-mcp.py deploy --environment local             # Deploy locally via KInfra tunnel
+    atoms-mcp.py deploy --environment production        # Deploy to Vercel production (mcp.atoms.tech)
     atoms-mcp.py vendor setup               # Vendor pheno-sdk packages
     atoms-mcp.py validate                   # Validate configuration
     atoms-mcp.py verify                     # Verify setup
@@ -36,7 +37,6 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -96,7 +96,7 @@ class EnvironmentSelectionError(ValueError):
 
 
 def resolve_environment(
-    preferred: Optional[str],
+    preferred: str | None,
     *,
     local_flag: bool = False,
     preview_flag: bool = False,
@@ -521,13 +521,13 @@ def cmd_check(args):
 
         if errors == 0 and warnings == 0:
             print("🚀 Ready to deploy:")
-            print("   ./atoms deploy --preview      # Deploy to preview")
-            print("   ./atoms deploy --production   # Deploy to production")
+            print("   ./atoms deploy                # Deploy to preview")
+            print("   ./atoms deploy --environment production   # Deploy to production")
             print()
             return 0
         if errors == 0:
             print("You can deploy, but consider addressing warnings:")
-            print("   ./atoms deploy --preview      # Deploy to preview")
+            print("   ./atoms deploy                # Deploy to preview")
             print()
             return 0
         print("Fix errors before deploying:")

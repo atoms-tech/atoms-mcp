@@ -467,21 +467,21 @@ async def workflow_execute(
     format_type: str = "detailed"
 ) -> dict[str, Any]:
     """Execute a complex workflow with multiple steps.
-    
+
     Args:
         auth_token: Authentication token
         workflow: Workflow type to execute
         parameters: Parameters for the workflow
         transaction_mode: Whether to treat as a transaction (rollback on failure)
         format_type: Result format (detailed, summary, raw)
-    
+
     Available workflows:
         - setup_project: Create project with initial structure
         - import_requirements: Import requirements from external source
         - setup_test_matrix: Set up test matrix for a project
         - bulk_status_update: Update status for multiple entities
         - organization_onboarding: Complete organization setup
-    
+
     Returns:
         Dict containing workflow execution result
     """

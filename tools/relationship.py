@@ -521,7 +521,7 @@ async def relationship_operation(
     format_type: str = "detailed"
 ) -> dict[str, Any]:
     """Manage relationships between entities.
-    
+
     Args:
         auth_token: Authentication token
         operation: Operation to perform
@@ -533,7 +533,7 @@ async def relationship_operation(
         source_context: Additional context (e.g., org_id for project members)
         soft_delete: Use soft delete for unlink operations
         format_type: Result format (detailed, summary, raw)
-    
+
     Returns:
         Dict containing operation result
     """

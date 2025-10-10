@@ -25,7 +25,7 @@ def auth_session_broker() -> AuthSessionBroker:
 @pytest.fixture(scope="session")
 async def authenticated_credentials(auth_session_broker: AuthSessionBroker) -> AuthCredentials:
     """Session-scoped auth credentials.
-    
+
     This performs OAuth ONCE per test session and provides credentials to all tests.
     """
     logger.info("🔐 Acquiring session-scoped authentication credentials...")
@@ -129,7 +129,7 @@ async def google_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerato
 @pytest.fixture
 async def fresh_authenticated_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """Function-scoped client with fresh credentials.
-    
+
     Use this when you need to test auth refresh or credential expiry.
     """
     credentials = await auth_session_broker.get_authenticated_credentials(
@@ -160,7 +160,7 @@ async def mock_authenticated_client(mock_auth_credentials: AuthCredentials) -> A
 @pytest.fixture(scope="session")
 def worker_auth_credentials(authenticated_credentials: AuthCredentials) -> AuthCredentials:
     """Worker-specific auth credentials for parallel testing.
-    
+
     pytest-xdist creates separate workers - this ensures each worker
     has access to the shared session credentials.
     """

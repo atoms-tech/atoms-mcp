@@ -34,7 +34,7 @@ _rate_limiter: RateLimiter | None = None
 @dataclass
 class ServerConfig:
     """Configuration for MCP server.
-    
+
     Attributes:
         name: Server name
         base_url: Base URL for the server
@@ -57,10 +57,10 @@ class ServerConfig:
     @classmethod
     def from_env(cls) -> ServerConfig:
         """Create configuration from environment variables.
-        
+
         Returns:
             ServerConfig instance
-            
+
         Examples:
             >>> config = ServerConfig.from_env()
             >>> print(config.base_url)
@@ -78,7 +78,7 @@ class ServerConfig:
     @staticmethod
     def _resolve_base_url() -> str | None:
         """Resolve base URL from environment variables.
-        
+
         Returns:
             Resolved base URL or None
         """
@@ -123,10 +123,10 @@ class ServerConfig:
 
 def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
     """Initialize rate limiter for API protection.
-    
+
     Args:
         config: Server configuration
-        
+
     Returns:
         RateLimiter instance or None
     """
@@ -146,13 +146,13 @@ def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
 
 def _create_auth_provider(config: ServerConfig):
     """Create authentication provider.
-    
+
     Args:
         config: Server configuration
-        
+
     Returns:
         Auth provider instance
-        
+
     Raises:
         ValueError: If AuthKit domain is not configured
     """
@@ -179,20 +179,20 @@ def _create_auth_provider(config: ServerConfig):
 
 def create_consolidated_server(config: ServerConfig | None = None) -> FastMCP:
     """Create the FastMCP server with consolidated tools.
-    
+
     This server provides 5 smart, agent-optimized tools:
     - workspace_operation: Context management
     - entity_operation: Unified CRUD for all entities
     - relationship_operation: Manage entity relationships
     - workflow_execute: Complex multi-step operations
     - data_query: Data exploration and analysis with RAG
-    
+
     Args:
         config: Optional server configuration
-        
+
     Returns:
         Configured FastMCP server instance
-        
+
     Examples:
         >>> server = create_consolidated_server()
         >>> server.run(transport="stdio")
@@ -295,7 +295,7 @@ def _register_tools(mcp: FastMCP) -> None:
 
 def _add_oauth_endpoints(mcp: FastMCP, config: ServerConfig) -> None:
     """Add OAuth discovery endpoints for MCP client compatibility.
-    
+
     Args:
         mcp: FastMCP server instance
         config: Server configuration

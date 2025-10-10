@@ -8,10 +8,11 @@ Tests based on relationship parameter matrix covering:
 - Error conditions
 """
 
-import pytest
 from unittest.mock import AsyncMock
-from atoms_mcp.lib.relationship import RelationshipService
+
+import pytest
 from atoms_mcp.lib.models import RelationshipRequest, RelationshipType
+from atoms_mcp.lib.relationship import RelationshipService
 
 
 class TestRelationshipComprehensive:

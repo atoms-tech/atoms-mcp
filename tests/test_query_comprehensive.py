@@ -1218,8 +1218,8 @@ class TestAggregateQueries:
         assert "by_priority" in req_agg
 
         # Verify grouping structure
-        assert isinstance(req_agg["by_status"], dict), f"Expected dict, got {type(req_agg["by_status"]).__name__} | Value: {req_agg["by_status"]}"
-        assert isinstance(req_agg["by_priority"], dict), f"Expected dict, got {type(req_agg["by_priority"]).__name__} | Value: {req_agg["by_priority"]}"
+        assert isinstance(req_agg["by_status"], dict), f"Expected dict, got {type(req_agg['by_status']).__name__} | Value: {req_agg['by_status']}"
+        assert isinstance(req_agg["by_priority"], dict), f"Expected dict, got {type(req_agg['by_priority']).__name__} | Value: {req_agg['by_priority']}"
 
     @pytest.mark.asyncio
     async def test_aggregate_test_entity_with_status(self, server_with_test_data):

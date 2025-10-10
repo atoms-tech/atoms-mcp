@@ -12,7 +12,7 @@ from pathlib import Path
 
 class AtomsServerManager:
     """Atoms MCP specific server manager.
-    
+
     This wraps the server startup logic with Atoms-specific configuration.
     """
 
@@ -35,9 +35,9 @@ class AtomsServerManager:
 
     def start(self) -> int:
         """Start Atoms MCP server.
-        
+
         This delegates to start_server.py which has all the KInfra integration.
-        
+
         Returns:
             Exit code (0 for success)
         """
@@ -66,15 +66,15 @@ def start_atoms_server(
     logger=None
 ) -> int:
     """Start Atoms MCP server (convenience function).
-    
+
     This is the function called by atoms-mcp.py CLI.
-    
+
     Args:
         port: Port to run on (default: 50002)
         verbose: Enable verbose logging
         no_tunnel: Disable CloudFlare tunnel
         logger: Optional logger instance
-        
+
     Returns:
         Exit code (0 for success)
     """

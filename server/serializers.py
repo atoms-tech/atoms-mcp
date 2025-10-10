@@ -20,7 +20,7 @@ from typing import Any, Protocol
 @dataclass(frozen=True)
 class SerializerConfig:
     """Configuration for Markdown serialization.
-    
+
     Attributes:
         max_string_length: Maximum length for string values before truncation
         max_list_items: Maximum number of list items to show inline
@@ -49,23 +49,23 @@ def serialize_to_markdown(
     config: SerializerConfig | None = None
 ) -> str:
     """Serialize tool responses as Markdown for better readability.
-    
+
     Converts Python objects to well-formatted Markdown:
     - Dicts → Tables or code blocks
     - Lists → Bulleted or numbered lists
     - Primitives → Inline code or plain text
-    
+
     Args:
         data: Data to serialize
         config: Optional serializer configuration
-        
+
     Returns:
         Markdown-formatted string
-        
+
     Examples:
         >>> serialize_to_markdown({"success": True, "data": [1, 2, 3]})
         '**Status**: ✅ Success\\n\\n**Results** (3 items):\\n...'
-        
+
         >>> serialize_to_markdown(None)
         '*No data*'
     """
@@ -104,12 +104,12 @@ def _dict_to_markdown(
     config: SerializerConfig | None = None
 ) -> str:
     """Convert dict to Markdown format.
-    
+
     Args:
         d: Dictionary to convert
         indent: Current indentation level
         config: Serializer configuration
-        
+
     Returns:
         Markdown-formatted string
     """
@@ -129,11 +129,11 @@ def _dict_to_markdown(
 
 def _format_result_dict(d: dict[str, Any], config: SerializerConfig) -> str:
     """Format a result dictionary with success/data structure.
-    
+
     Args:
         d: Result dictionary
         config: Serializer configuration
-        
+
     Returns:
         Markdown-formatted string
     """
@@ -171,12 +171,12 @@ def _format_regular_dict(
     config: SerializerConfig
 ) -> str:
     """Format a regular dictionary as key-value list.
-    
+
     Args:
         d: Dictionary to format
         indent: Current indentation level
         config: Serializer configuration
-        
+
     Returns:
         Markdown-formatted string
     """
@@ -209,12 +209,12 @@ def _list_to_markdown(
     config: SerializerConfig | None = None
 ) -> str:
     """Convert list to Markdown format.
-    
+
     Args:
         lst: List to convert
         indent: Current indentation level
         config: Serializer configuration
-        
+
     Returns:
         Markdown-formatted string
     """

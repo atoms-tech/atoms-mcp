@@ -53,7 +53,7 @@ class RateLimitExceeded(Exception):
 @dataclass(frozen=True)
 class BearerToken:
     """Represents a bearer token with metadata.
-    
+
     Attributes:
         token: The actual token string
         source: Where the token was extracted from
@@ -72,15 +72,15 @@ class BearerToken:
 
 def extract_bearer_token() -> BearerToken | None:
     """Extract bearer token from FastMCP's AuthKit OAuth.
-    
+
     For stateless serverless with AuthKit:
     - FastMCP's AuthKitProvider validates OAuth tokens
     - Token is available via get_access_token()
     - No SessionMiddleware needed
-    
+
     Returns:
         BearerToken if found, None otherwise
-        
+
     Examples:
         >>> token = extract_bearer_token()
         >>> if token:
@@ -125,14 +125,14 @@ async def check_rate_limit(
     rate_limiter: RateLimiter | None = None
 ) -> None:
     """Check rate limit for user and raise exception if exceeded.
-    
+
     Args:
         user_id: User identifier for rate limiting
         rate_limiter: Optional rate limiter instance
-        
+
     Raises:
         RateLimitExceeded: If rate limit exceeded
-        
+
     Examples:
         >>> await check_rate_limit("user_123", my_limiter)
     """
@@ -147,17 +147,17 @@ async def rate_limited_operation(
     rate_limiter: RateLimiter | None = None
 ) -> AsyncIterator[None]:
     """Context manager for rate-limited operations.
-    
+
     Args:
         user_id: User identifier for rate limiting
         rate_limiter: Optional rate limiter instance
-        
+
     Yields:
         None
-        
+
     Raises:
         RateLimitExceeded: If rate limit exceeded
-        
+
     Examples:
         >>> async with rate_limited_operation("user_123", limiter):
         ...     await perform_expensive_operation()
@@ -174,20 +174,20 @@ async def apply_rate_limit_if_configured(
     rate_limiter: RateLimiter | None = None
 ) -> BearerToken | None:
     """Apply rate limiting if configured and return auth token.
-    
+
     This is a convenience function that combines token extraction
     and rate limiting in one call.
-    
+
     Args:
         rate_limiter: Optional rate limiter instance
-        
+
     Returns:
         BearerToken if found, None otherwise
-        
+
     Raises:
         RateLimitExceeded: If rate limit exceeded
         RuntimeError: If auth validation fails
-        
+
     Examples:
         >>> token = await apply_rate_limit_if_configured(my_limiter)
         >>> if token:
@@ -217,15 +217,15 @@ async def apply_rate_limit_if_configured(
 
 def get_token_string(bearer_token: BearerToken | None) -> str | None:
     """Extract token string from BearerToken.
-    
+
     Convenience function for backward compatibility.
-    
+
     Args:
         bearer_token: BearerToken instance or None
-        
+
     Returns:
         Token string or None
-        
+
     Examples:
         >>> token = extract_bearer_token()
         >>> token_str = get_token_string(token)

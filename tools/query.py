@@ -611,7 +611,7 @@ async def data_query(
     exclude_id: str | None = None
 ) -> dict[str, Any]:
     """Query and analyze data across multiple entity types with RAG capabilities.
-    
+
     Args:
         auth_token: Authentication token
         query_type: Type of query to perform (search, aggregate, analyze, relationships, rag_search, similarity)
@@ -626,7 +626,7 @@ async def data_query(
         content: Content text for similarity analysis
         entity_type: Entity type for similarity analysis
         exclude_id: ID to exclude from similarity results
-    
+
     Returns:
         Dict containing query results and analysis
     """

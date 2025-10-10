@@ -41,11 +41,11 @@ class AtomsDeploymentConfig:
         project_root: Path | None = None
     ) -> DeploymentConfig:
         """Create Atoms-specific deployment configuration.
-        
+
         Args:
             environment: Deployment environment
             project_root: Project root directory (default: current directory)
-            
+
         Returns:
             DeploymentConfig configured for Atoms MCP
         """
@@ -71,7 +71,7 @@ class AtomsDeploymentConfig:
 
 class AtomsVercelDeployer:
     """Atoms MCP specific Vercel deployer.
-    
+
     This wraps the platform-agnostic VercelDeploymentProvider with
     Atoms-specific configuration and behavior.
     """
@@ -103,7 +103,7 @@ class AtomsVercelDeployer:
 
     def deploy(self) -> DeploymentResult:
         """Deploy Atoms MCP to Vercel.
-        
+
         Returns:
             DeploymentResult with deployment status
         """
@@ -169,10 +169,10 @@ class AtomsVercelDeployer:
 
     def rollback(self, deployment_id: str) -> DeploymentResult:
         """Rollback Atoms MCP deployment.
-        
+
         Args:
             deployment_id: ID of deployment to rollback to
-            
+
         Returns:
             DeploymentResult with rollback status
         """
@@ -180,10 +180,10 @@ class AtomsVercelDeployer:
 
     def get_recent_deployments(self, limit: int = 10) -> list:
         """Get recent Atoms MCP deployments.
-        
+
         Args:
             limit: Maximum number of deployments to return
-            
+
         Returns:
             List of deployment information
         """
@@ -196,14 +196,14 @@ def deploy_atoms_to_vercel(
     logger=None
 ) -> int:
     """Deploy Atoms MCP to Vercel (convenience function).
-    
+
     This is the function called by atoms-mcp.py CLI.
-    
+
     Args:
         environment: "preview" or "production"
         project_root: Project root directory
         logger: Optional logger instance
-        
+
     Returns:
         0 on success, 1 on failure
     """
