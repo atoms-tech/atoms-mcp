@@ -473,8 +473,6 @@ async def test_get_defaults_basic(authenticated_client):
 
     if defaults_data and isinstance(defaults_data, dict):
         # Should have various default settings - but empty defaults is also valid
-        common_defaults = ["organization", "project", "format", "limit",
-                          "timeout", "region", "language"]
         # Just check if it's a dict, empty is OK
         assert isinstance(defaults_data, dict), \
             f"Expected defaults_data to be a dict, got {type(defaults_data)}"

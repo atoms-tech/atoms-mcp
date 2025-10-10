@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Optional, TYPE_CHECKING
 
 try:
-    from aiohttp import web, ClientSession, ClientTimeout, ClientError
+    from aiohttp import web, ClientSession, ClientTimeout
     HAS_AIOHTTP = True
 except ImportError:
     HAS_AIOHTTP = False

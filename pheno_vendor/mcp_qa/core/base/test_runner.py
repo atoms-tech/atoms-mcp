@@ -767,7 +767,7 @@ class BaseTestRunner(ABC):
                 # Get locals from the frame where the exception occurred
                 try:
                     locals_data = {k: v for k, v in frame.f_locals.items() if not k.startswith("_") and k != "self"}
-                except:
+                except Exception:
                     pass
 
             result = {

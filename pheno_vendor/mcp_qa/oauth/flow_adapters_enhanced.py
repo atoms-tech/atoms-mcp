@@ -87,7 +87,7 @@ class MicrosoftOAuthFlow(OAuthFlowAdapter):
             await page.wait_for_selector(selector, timeout=5000)
             await page.click(selector)
             await asyncio.sleep(2)
-        except:
+        except Exception:
             # Prompt didn't appear, continue
             pass
 
@@ -292,7 +292,7 @@ class TraditionalFormFlow(OAuthFlowAdapter):
                 await page.fill(selector, self.email)
                 await asyncio.sleep(0.3)
                 return
-            except:
+            except Exception:
                 continue
 
         print("⚠️  Could not find username field")
@@ -315,7 +315,7 @@ class TraditionalFormFlow(OAuthFlowAdapter):
                 await page.fill(selector, self.password)
                 await asyncio.sleep(0.3)
                 return
-            except:
+            except Exception:
                 continue
 
         print("⚠️  Could not find password field")
@@ -341,7 +341,7 @@ class TraditionalFormFlow(OAuthFlowAdapter):
                 await page.wait_for_load_state('networkidle', timeout=10000)
                 await asyncio.sleep(2)
                 return
-            except:
+            except Exception:
                 continue
 
         print("⚠️  Could not find submit button")

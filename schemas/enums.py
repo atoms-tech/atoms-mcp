@@ -33,3 +33,41 @@ class RelationshipType(str, Enum):
     TRACE_LINK = "trace_link"
     REQUIREMENT_TEST = "requirement_test"
     INVITATION = "invitation"
+
+
+class EntityStatus(str, Enum):
+    """Entity status values (application-level)."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    ARCHIVED = "archived"
+    DELETED = "deleted"
+    DRAFT = "draft"
+    PENDING = "pending"
+    COMPLETED = "completed"
+
+
+class EntityType(str, Enum):
+    """Entity types (application-level)."""
+    WORKSPACE = "workspace"
+    ORGANIZATION = "organization"
+    PROJECT = "project"
+    REQUIREMENT = "requirement"
+    TEST = "test"
+    DOCUMENT = "document"
+    USER = "user"
+
+
+class OrganizationType(str, Enum):
+    """Organization types (application-level)."""
+    PERSONAL = "personal"
+    TEAM = "team"
+    ENTERPRISE = "enterprise"
+    BUSINESS = "business"
+
+
+class Priority(str, Enum):
+    """Priority levels (application-level)."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"

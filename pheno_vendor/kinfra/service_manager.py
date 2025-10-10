@@ -18,12 +18,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-
-try:
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler, FileSystemEvent
     WATCHDOG_AVAILABLE = True
@@ -38,17 +32,12 @@ except ImportError:
     class FileSystemEvent:
         pass
 
-from .exceptions import KInfraError, ServiceError
+from .exceptions import ServiceError
 from .kinfra import KInfra
 from .utils.process import kill_processes_on_port
 from .utils.health import check_http_health
 
 logger = logging.getLogger(__name__)
-
-
-class ServiceError(KInfraError):
-    """Raised when service management operations fail."""
-    pass
 
 
 @dataclass
@@ -237,7 +226,7 @@ class ServiceManager:
         )
         logger.info(f"Added resource dependency: {config.name}")
 
-    def add_managed_resource(self, config: "resource_manager.ResourceConfig"):
+    def add_managed_resource(self, config: Any):
         """
         Add a managed resource (Docker, systemd, etc.) that will be auto-started.
 

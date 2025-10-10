@@ -94,20 +94,6 @@ def auth_callback(auth_config, mfa_handler):
     """
     async def default_auth(page: Page):
         """Default authentication using PlaywrightOAuthAdapter."""
-        from mcp_qa.oauth.playwright_adapter import PlaywrightOAuthAdapter
-
-        # Create adapter
-        adapter = PlaywrightOAuthAdapter(
-            email=auth_config['email'],
-            password=auth_config['password'],
-            provider=auth_config['provider'],
-            mfa_provider=mfa_handler.get_totp_code if auth_config.get('mfa_secret') else None
-        )
-
-        # Navigate to auth page
-        # This assumes the page has already been navigated to the OAuth URL
-        # In practice, you'd start from the login page
-
         from mcp_qa.oauth.flow_adapters import OAuthFlowFactory
 
         flow_adapter = OAuthFlowFactory.create(

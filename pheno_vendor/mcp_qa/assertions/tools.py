@@ -77,7 +77,7 @@ def assert_tool_success(
         })
         assert_tool_success(result, expected_data={"name": "Test"})
     """
-    assert response.get("success") == True, (
+    assert response.get("success"), (
         f"Tool call failed\n"
         f"Error: {response.get('error')}\n"
         f"Response: {response}"
@@ -115,7 +115,7 @@ def assert_tool_error(
         })
         assert_tool_error(result, error_message="Invalid operation")
     """
-    assert response.get("success") == False, (
+    assert not response.get("success"), (
         f"Expected tool to fail, but it succeeded\n"
         f"Response: {response}"
     )

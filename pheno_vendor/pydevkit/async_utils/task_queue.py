@@ -3,7 +3,7 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable
+from typing import Callable, List
 
 
 @dataclass

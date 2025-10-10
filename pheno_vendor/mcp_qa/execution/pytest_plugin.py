@@ -37,7 +37,7 @@ try:
         TimeRemainingColumn,
     )
     from rich.table import Table
-    from rich.text import Text
+    from rich.text import Text  # noqa: F401 - Used in rich text formatting
     HAS_RICH = True
 except ImportError:
     HAS_RICH = False
@@ -382,7 +382,7 @@ class MCPPytestPlugin(ABC):
             from mcp_qa.testing.auth_validator import validate_auth
 
             mcp_endpoint = self._get_mcp_endpoint()
-            provider = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")
+            _ = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")  # Keep for future use
 
             # Run async auth validation
             loop = asyncio.get_event_loop()

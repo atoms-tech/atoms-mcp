@@ -588,7 +588,7 @@ async def test_create_validation(authenticated_client, entity_type):
                         "entity_id": entity_id
                     }
                 )
-            except:
+            except Exception:
                 pass
     else:
         # Expected: validation error
@@ -774,7 +774,7 @@ async def test_update_operation(authenticated_client, entity_type):
                     "entity_id": entity_id
                 }
             )
-        except:
+        except Exception:
             pass
 
 

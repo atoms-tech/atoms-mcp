@@ -32,7 +32,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import from generated schemas (now the source of truth)
-from schemas.generated.fastapi import schema_public_latest as generated_schema
+from schemas.generated.fastapi import schema_public_latest as generated_schema  # noqa: E402
 
 
 class Colors:

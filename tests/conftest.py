@@ -3,24 +3,24 @@
 # Enable MCP Auth Plugin for automatic authentication
 pytest_plugins = ["mcp_qa.pytest_plugins.auth_plugin"]
 
-import os
-import sys
-from pathlib import Path
+import os  # noqa: E402
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-import pytest
-import pytest_asyncio
+import pytest  # noqa: E402
+import pytest_asyncio  # noqa: E402
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load .env files
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv()
 load_dotenv(".env.local", override=True)
 
 # Import endpoint configuration from centralized mcp_qa library
-from mcp_qa.config.endpoints import EndpointRegistry, Environment, MCPProject
+from mcp_qa.config.endpoints import EndpointRegistry, Environment, MCPProject  # noqa: E402
 
 # Import pheno-sdk kits for testing (optional)
 try:
@@ -46,10 +46,10 @@ except ImportError:
 
 # Import TDD fixtures to make them available
 try:
-    from .fixtures.auth import *
-    from .fixtures.data import *
-    from .fixtures.providers import *
-    from .fixtures.tools import *
+    from .fixtures.auth import *  # noqa: F403
+    from .fixtures.data import *  # noqa: F403
+    from .fixtures.providers import *  # noqa: F403
+    from .fixtures.tools import *  # noqa: F403
 except ImportError:
     # TDD fixtures not available - continue with existing functionality
     pass
@@ -121,7 +121,7 @@ def check_server_running():
         response = httpx.get("http://127.0.0.1:8000/health", timeout=2.0)
         if response.status_code == 200:
             return True
-    except:
+    except Exception:
         pass
 
     pytest.skip("MCP server not running on http://127.0.0.1:8000")
@@ -182,7 +182,7 @@ def workflow_builder():
 # IMPORT AUTH FIXTURES
 # ============================================================================
 # Import fixtures from fixtures/auth.py so they're available to all tests
-from tests.fixtures.auth import authenticated_client  # noqa: F401
+from tests.fixtures.auth import authenticated_client  # noqa: F401, E402
 
 # ============================================================================
 # MCP TEST FRAMEWORK INTEGRATION
@@ -316,7 +316,7 @@ async def fast_http_client(request, local_server_config):
                 "name": "Test Entity",
                 "type": "document"
             })
-            assert result["success"] == True
+            assert result["success"]
 
     The session token is automatically included in all tool calls via the
     AuthenticatedHTTPClient wrapper, so tests don't need to manually pass it.
@@ -324,9 +324,8 @@ async def fast_http_client(request, local_server_config):
     from .fixtures.auth import authenticated_client as get_auth_client
 
     # Get cached credentials from auth plugin (if available)
-    credentials = None
     if hasattr(request.session.config, "_mcp_credentials"):
-        credentials = request.session.config._mcp_credentials
+        _credentials = request.session.config._mcp_credentials
         print("Fast HTTP client using cached credentials from auth plugin")
 
     # Override MCP endpoint if using local server
@@ -385,7 +384,7 @@ def pytest_collection_modifyitems(session, config, items):
             test_info = registered_tests[test_name]
 
             # Add category marker
-            category = test_info.get("category", "functional")
+            _category = test_info.get("category", "functional")  # noqa: F841
             item.add_marker(pytest.mark.tool)
 
             # Add priority as metadata

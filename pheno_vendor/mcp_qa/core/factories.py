@@ -48,7 +48,7 @@ class TestFactory:
         """
         pattern = ToolTestPattern(tool_name, expected_fields or [])
 
-        async def test_func(client_adapter: AtomsMCPClientAdapter):
+        async def test_func(client_adapter):
             return await pattern.execute(client_adapter, params)
 
         test_func.__name__ = test_name
@@ -93,7 +93,7 @@ class TestFactory:
         """
         pattern = UserStoryPattern(story_name, steps)
 
-        async def test_func(client_adapter: AtomsMCPClientAdapter):
+        async def test_func(client_adapter):
             return await pattern.execute(client_adapter)
 
         test_func.__name__ = f"test_story_{story_name.lower().replace(' ', '_')}"
@@ -120,7 +120,7 @@ class TestFactory:
         """
         pattern = IntegrationPattern(tools, workflow)
 
-        async def test_func(client_adapter: AtomsMCPClientAdapter):
+        async def test_func(client_adapter):
             return await pattern.execute(client_adapter)
 
         test_func.__name__ = test_name

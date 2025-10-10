@@ -187,7 +187,7 @@ class EntityHierarchyBuilder:
                         "soft_delete": soft_delete,
                     }
                 )
-            except:
+            except Exception:
                 pass
 
         for project in self.created_entities["projects"]:
@@ -201,7 +201,7 @@ class EntityHierarchyBuilder:
                         "soft_delete": soft_delete,
                     }
                 )
-            except:
+            except Exception:
                 pass
 
         for org in self.created_entities["organizations"]:
@@ -215,7 +215,7 @@ class EntityHierarchyBuilder:
                         "soft_delete": soft_delete,
                     }
                 )
-            except:
+            except Exception:
                 pass
 
 
@@ -448,7 +448,7 @@ class TestDataValidator:
 
                 if updated < created:
                     issues.append("updated_at is before created_at")
-            except:
+            except (ValueError, AttributeError, TypeError):
                 issues.append("Invalid timestamp format")
 
         return issues

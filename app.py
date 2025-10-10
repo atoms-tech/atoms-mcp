@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 from server import create_consolidated_server  # noqa: E402
 
-logger.info("Starting Atoms MCP Server", environment="vercel", emoji="🚀")
+logger.info("🚀 Starting Atoms MCP Server (environment=vercel)")
 
 # Create the FastMCP server instance
 mcp = create_consolidated_server()

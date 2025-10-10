@@ -194,14 +194,14 @@ class SmartTestRunner:
                         print("  Args:")
                         try:
                             print(f"    {json.dumps(self.call_details['args'], indent=4, default=str)}")
-                        except:
+                        except Exception:
                             print(f"    {self.call_details['args']}")
                     
                     if self.call_details.get('kwargs'):
                         print("  Kwargs:")
                         try:
                             print(f"    {json.dumps(self.call_details['kwargs'], indent=4, default=str)}")
-                        except:
+                        except Exception:
                             print(f"    {self.call_details['kwargs']}")
                     
                     if self.call_details.get('response'):
@@ -212,7 +212,7 @@ class SmartTestRunner:
                                 print(f"  {json.dumps(response_dict, indent=2, default=str)}")
                             else:
                                 print(f"  {json.dumps(self.call_details['response'], indent=2, default=str)}")
-                        except:
+                        except Exception:
                             print(f"  {self.call_details['response']}")
                     
                     if self.call_details.get('error'):

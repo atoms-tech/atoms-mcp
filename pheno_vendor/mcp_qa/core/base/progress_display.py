@@ -306,9 +306,6 @@ class ComprehensiveProgressDisplay:
         with self._lock:
             # Calculate real-time stats
             total_completed = self.current - self.cached
-            pass_rate = (
-                (self.passed / total_completed) * 100 if total_completed > 0 else 0
-            )
 
             # Build stats string
             stats_text = Text()

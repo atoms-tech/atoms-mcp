@@ -36,10 +36,13 @@ import asyncio
 import time
 import httpx
 from datetime import datetime
-from typing import Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 from dataclasses import dataclass
 
 from mcp_qa.logging import get_logger
+
+if TYPE_CHECKING:
+    from mcp_qa.oauth.credential_broker import CapturedCredentials
 
 logger = get_logger(__name__)
 
@@ -246,7 +249,7 @@ class AuthValidator:
                             duration_ms
                         )
                         return True, f"{response.status_code} {response.reason_phrase}"
-                except:
+                except Exception:
                     pass
 
                 # Try GET with /health or root

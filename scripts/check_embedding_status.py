@@ -246,7 +246,7 @@ def main():
 
     # Check status
     checker = EmbeddingStatusChecker(supabase)
-    status = checker.check_all_status(verbose=args.verbose)
+    checker.check_all_status(verbose=args.verbose)
 
     # Check recent creations
     if args.recent:

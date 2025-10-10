@@ -338,8 +338,8 @@ class EnhancedKeychainManager:
                     text=True
                 ).strip()
                 return terminal_info
-                
-        except:
+
+        except Exception:
             pass
         
         return None

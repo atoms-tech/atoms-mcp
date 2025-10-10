@@ -43,7 +43,7 @@ class AtomsPytestPlugin(MCPPytestPlugin):
             registry = get_test_registry()
             test_info = registry.get_tests().get(item.name, {})
             return test_info.get("tool_name", "unknown")
-        except:
+        except Exception:
             pass
 
         # Try to extract from test name

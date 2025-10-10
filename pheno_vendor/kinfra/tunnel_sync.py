@@ -622,7 +622,7 @@ class TunnelManager:
                     value="on"
                 )
                 logger.debug("✓ TLS 1.3 enabled")
-            except:
+            except Exception:
                 pass
 
             # Set minimum TLS version to 1.2 (compatible with most clients)
@@ -633,7 +633,7 @@ class TunnelManager:
                     value="1.2"
                 )
                 logger.debug("✓ Minimum TLS version set to 1.2")
-            except:
+            except Exception:
                 pass
 
         except Exception as e:

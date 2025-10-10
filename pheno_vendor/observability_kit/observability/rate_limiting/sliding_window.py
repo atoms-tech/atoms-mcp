@@ -11,7 +11,7 @@ from __future__ import annotations
 import time
 import asyncio
 import logging
-from typing import Dict
+from typing import Dict, Optional
 from collections import deque
 
 from .base import RateLimiterBase

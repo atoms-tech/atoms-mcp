@@ -14,7 +14,7 @@ load_dotenv(".env.local", override=True)
 # Add tests to path
 sys.path.append("tests")
 
-from tests.auth_helper import automate_oauth_login_with_retry, get_last_flow_result
+from tests.auth_helper import automate_oauth_login_with_retry, get_last_flow_result  # noqa: E402
 
 
 async def test_oauth():

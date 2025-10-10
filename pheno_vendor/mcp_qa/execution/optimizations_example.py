@@ -126,8 +126,8 @@ async def example_no_caching_for_writes():
         await client.initialize()
 
         # Read operation - will be cached
-        result1 = await client.call_tool("get_entity", {"entity_id": "123"}, use_cache=True)
-        result2 = await client.call_tool("get_entity", {"entity_id": "123"}, use_cache=True)
+        _ = await client.call_tool("get_entity", {"entity_id": "123"}, use_cache=True)
+        _ = await client.call_tool("get_entity", {"entity_id": "123"}, use_cache=True)
         # Second call will hit cache
 
         # Write operation - no caching

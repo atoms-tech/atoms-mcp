@@ -7,7 +7,10 @@ Monitors file system for changes and triggers test re-runs.
 import asyncio
 import time
 from pathlib import Path
-from typing import Callable, List, Optional, Set
+from typing import TYPE_CHECKING, Callable, List, Optional, Set
+
+if TYPE_CHECKING:
+    from mcp_qa.testing.live_runner import LiveTestRunner
 
 try:
     from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -145,7 +148,7 @@ class SmartReloadManager:
 
     def __init__(self, test_runner: "LiveTestRunner"):
         self.test_runner = test_runner
-        self.file_watcher: Optional[TestFileWatcher] = None
+        self.file_watcher: Optional["TestFileWatcher"] = None
 
     def enable_auto_reload(self, watch_paths: List[str]) -> None:
         """

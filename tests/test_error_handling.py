@@ -211,7 +211,7 @@ class TestInputValidation:
     async def test_malformed_data_types(self, mcp_client):
         """Test with incorrect data types."""
         # String where ID expected
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "entity_tool",
             {
                 "operation": "read",
@@ -347,7 +347,7 @@ class TestRelationshipErrors:
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]
+        org_id = org_result["data"]["id"]  # noqa: F841
 
         # The workflow already adds creator as admin, so trying to add again might fail
         # This tests duplicate prevention
@@ -427,7 +427,7 @@ class TestWorkflowErrors:
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]
+        org_id = org_result["data"]["id"]  # noqa: F841
 
         # Try workflow with some invalid data in initial_documents
         result = await mcp_client(
@@ -448,7 +448,7 @@ class TestWorkflowErrors:
         if result.get("data", {}).get("steps"):
             steps = result["data"]["steps"]
             # Some steps may have failed
-            failed_steps = [s for s in steps if s.get("status") == "failed"]
+            _failed_steps = [s for s in steps if s.get("status") == "failed"]  # noqa: F841
             # Workflow should have error information
 
 # ============================================================================
@@ -461,7 +461,7 @@ class TestQueryErrors:
     @pytest.mark.asyncio
     async def test_query_invalid_entity_types(self, mcp_client):
         """Test query with invalid entity types."""
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "query_tool",
             {
                 "query_type": "search",
@@ -476,7 +476,7 @@ class TestQueryErrors:
     @pytest.mark.asyncio
     async def test_query_with_invalid_conditions(self, mcp_client):
         """Test query with malformed conditions."""
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "query_tool",
             {
                 "query_type": "aggregate",
@@ -491,7 +491,7 @@ class TestQueryErrors:
     @pytest.mark.asyncio
     async def test_rag_search_without_embeddings(self, mcp_client):
         """Test RAG search when embeddings might not be available."""
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "query_tool",
             {
                 "query_type": "rag_search",
@@ -516,7 +516,7 @@ class TestEdgeCases:
         """Test with very long string inputs."""
         long_string = "A" * 10000  # 10k characters
 
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "entity_tool",
             {
                 "operation": "create",
@@ -570,7 +570,7 @@ class TestEdgeCases:
     async def test_pagination_boundary_cases(self, mcp_client):
         """Test pagination with boundary values."""
         # Zero limit
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "entity_tool",
             {
                 "operation": "list",
@@ -581,7 +581,7 @@ class TestEdgeCases:
         )
 
         # Negative offset
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "entity_tool",
             {
                 "operation": "list",
@@ -592,7 +592,7 @@ class TestEdgeCases:
         )
 
         # Very large limit
-        result = await mcp_client(
+        _result = await mcp_client(  # noqa: F841
             "entity_tool",
             {
                 "operation": "list",
@@ -623,7 +623,7 @@ class TestEdgeCases:
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]
+        org_id = org_result["data"]["id"]  # noqa: F841
 
         # Simulate concurrent updates
         import asyncio
@@ -672,10 +672,10 @@ class TestEdgeCases:
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]
+        org_id = org_result["data"]["id"]  # noqa: F841
 
         # Delete it
-        delete_result = await mcp_client(
+        _delete_result = await mcp_client(
             "entity_tool",
             {
                 "operation": "delete",

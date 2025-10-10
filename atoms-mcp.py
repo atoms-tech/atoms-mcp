@@ -33,8 +33,10 @@ Examples:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -54,7 +56,7 @@ except ImportError:
     import logging
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("atoms-mcp")
-    USE_STRUCTURED_LOGGING = False
+USE_STRUCTURED_LOGGING = False
 
 
 def log_info(message, **kwargs):
@@ -73,6 +75,83 @@ def log_error(message, **kwargs):
     else:
         extra = " ".join(f"{k}={v}" for k, v in kwargs.items())
         logger.error(f"{message} {extra}".strip())
+
+
+DEFAULT_ENVIRONMENT = "preview"
+ENVIRONMENT_CHOICES = ("local", "preview", "production")
+ENVIRONMENT_ENDPOINTS = {
+    "local": "http://localhost:50002/api/mcp",
+    "preview": "https://devmcp.atoms.tech/api/mcp",
+    "production": "https://mcp.atoms.tech/api/mcp",
+}
+ENVIRONMENT_DISPLAY_NAMES = {
+    "local": "Local (KInfra tunnel)",
+    "preview": "Preview (devmcp.atoms.tech)",
+    "production": "Production (mcp.atoms.tech)",
+}
+
+
+class EnvironmentSelectionError(ValueError):
+    """Raised when mutually exclusive environment flags conflict."""
+
+
+def resolve_environment(
+    preferred: Optional[str],
+    *,
+    local_flag: bool = False,
+    preview_flag: bool = False,
+    production_flag: bool = False,
+) -> str:
+    """Resolve environment selection across legacy flags and new option."""
+
+    selected = None
+    flag_map = {
+        "local": local_flag,
+        "preview": preview_flag,
+        "production": production_flag,
+    }
+
+    for name, is_set in flag_map.items():
+        if not is_set:
+            continue
+        if selected and selected != name:
+            raise EnvironmentSelectionError(
+                "Conflicting environment flags provided. Choose one of local, preview, or production."
+            )
+        selected = name
+
+    if preferred and selected and preferred != selected:
+        raise EnvironmentSelectionError(
+            "Conflicting environment options provided. Use a single flag or the --environment option."
+        )
+
+    environment = selected or preferred or DEFAULT_ENVIRONMENT
+
+    if environment not in ENVIRONMENT_CHOICES:
+        raise EnvironmentSelectionError(f"Unknown environment: {environment}")
+
+    return environment
+
+
+def environment_variables_for(environment: str) -> dict[str, str]:
+    """Build environment variables for the selected target."""
+
+    env_vars = {
+        "ATOMS_TARGET_ENVIRONMENT": environment,
+        "ATOMS_MCP_ENVIRONMENT": environment,
+    }
+
+    endpoint = ENVIRONMENT_ENDPOINTS.get(environment)
+    if endpoint:
+        env_vars.setdefault("MCP_ENDPOINT", endpoint)
+        env_vars.setdefault("ATOMS_MCP_ENDPOINT", endpoint)
+
+    if environment == "local":
+        env_vars["ATOMS_USE_LOCAL_SERVER"] = "true"
+    else:
+        env_vars["ATOMS_USE_LOCAL_SERVER"] = "false"
+
+    return env_vars
 
 
 def cmd_start(args):
@@ -96,50 +175,90 @@ def cmd_start(args):
 
 
 def cmd_test(args):
-    """Run test suite using mcp-QA framework."""
-    log_info("Running test suite", local=args.local, verbose=args.verbose)
+    """Run test suite using pytest."""
 
-    # Import test runner
     try:
-        from tests.test_main import main as test_main
-    except ImportError as e:
-        log_error(f"Could not import test_main: {e}")
-        print(f"\nError: Could not import test_main: {e}")
+        environment = resolve_environment(
+            getattr(args, "environment", None),
+            local_flag=getattr(args, "legacy_local", False),
+            preview_flag=getattr(args, "legacy_preview", False),
+            production_flag=getattr(args, "legacy_production", False),
+        )
+    except EnvironmentSelectionError as exc:
+        log_error(str(exc))
+        print(f"Error: {exc}")
         return 1
 
-    # Convert args to sys.argv format for test_main
-    sys.argv = ["test_main.py"]
-    if args.local:
-        sys.argv.append("--local")
-    if args.verbose:
-        sys.argv.append("--verbose")
-    if args.categories:
-        sys.argv.extend(["--categories"] + args.categories)
-    if args.workers:
-        sys.argv.extend(["--workers", str(args.workers)])
-    if args.no_oauth:
-        sys.argv.append("--no-oauth")
-    if args.headless:
-        sys.argv.append("--headless")
+    env_display = ENVIRONMENT_DISPLAY_NAMES.get(environment, environment.title())
+    log_info("Running test suite", environment=environment, verbose=args.verbose)
 
-    return test_main()
+    import subprocess
+
+    # Build pytest command
+    pytest_args = ["pytest"]
+
+    # Determine test directory
+    if args.categories:
+        # Map categories to test directories
+        for category in args.categories:
+            if category == "unit":
+                pytest_args.append("tests/unit/")
+            elif category == "integration":
+                pytest_args.append("tests/integration/")
+            elif category == "performance":
+                pytest_args.append("tests/performance/")
+            else:
+                pytest_args.append(f"tests/{category}/")
+    else:
+        # Default to unit tests
+        pytest_args.append("tests/unit/")
+
+    # Add verbosity
+    if args.verbose:
+        pytest_args.append("-vv")
+    else:
+        pytest_args.append("-v")
+
+    # Add parallel execution
+    if args.workers:
+        pytest_args.extend(["-n", str(args.workers)])
+
+    # Add other pytest options
+    pytest_args.append("--tb=short")  # Short traceback format
+
+    # Environment variables
+    env_vars = environment_variables_for(environment)
+
+    log_info(f"Running: {' '.join(pytest_args)}")
+    print(f"\n{'='*70}")
+    print("  Running Tests")
+    print(f"  Environment: {env_display}")
+    if env_vars.get("MCP_ENDPOINT"):
+        print(f"  Endpoint:    {env_vars['MCP_ENDPOINT']}")
+    print(f"{'='*70}\n")
+
+    result = subprocess.run(pytest_args, env={**os.environ, **env_vars})
+    return result.returncode
 
 
 def cmd_deploy(args):
     """Deploy to local (KInfra tunnel), preview, or production."""
-    # Map environment
-    if args.local:
-        environment = "local"
-    elif args.production:
-        environment = "production"
-    elif args.preview:
-        environment = "preview"
-    else:
-        log_error("Must specify --local, --preview, or --production")
-        print("Error: Must specify --local, --preview, or --production")
+    try:
+        environment = resolve_environment(
+            getattr(args, "environment", None),
+            local_flag=getattr(args, "legacy_local", False),
+            preview_flag=getattr(args, "legacy_preview", False),
+            production_flag=getattr(args, "legacy_production", False),
+        )
+    except EnvironmentSelectionError as exc:
+        log_error(str(exc))
+        print(f"Error: {exc}")
         return 1
 
+    env_display = ENVIRONMENT_DISPLAY_NAMES.get(environment, environment.title())
+
     log_info("Deploying", environment=environment)
+    print(f"Target environment: {env_display}")
 
     # Handle local deployment (via KInfra tunnel)
     if environment == "local":
@@ -447,7 +566,18 @@ def main():
 
     # TEST command
     test_parser = subparsers.add_parser("test", help="Run test suite")
-    test_parser.add_argument("--local", action="store_true", help="Use local server")
+    test_parser.add_argument(
+        "--environment",
+        "-e",
+        "--target",
+        dest="environment",
+        choices=ENVIRONMENT_CHOICES,
+        default=DEFAULT_ENVIRONMENT,
+        help="Target environment (local, preview, production). Defaults to preview.",
+    )
+    test_parser.add_argument("--local", dest="legacy_local", action="store_true", help=argparse.SUPPRESS)
+    test_parser.add_argument("--preview", dest="legacy_preview", action="store_true", help=argparse.SUPPRESS)
+    test_parser.add_argument("--production", dest="legacy_production", action="store_true", help=argparse.SUPPRESS)
     test_parser.add_argument("--verbose", action="store_true", help="Verbose output")
     test_parser.add_argument("--categories", nargs="+", help="Test categories to run")
     test_parser.add_argument("--workers", type=int, help="Number of parallel workers")
@@ -457,12 +587,35 @@ def main():
 
     # DEPLOY command
     deploy_parser = subparsers.add_parser("deploy", help="Deploy to local, preview, or production")
-    deploy_group = deploy_parser.add_mutually_exclusive_group(required=True)
-    deploy_group.add_argument("--local", action="store_true", help="Deploy locally via KInfra tunnel (atomcp.kooshapari.com)")
-    deploy_group.add_argument("--preview", action="store_true", help="Deploy to Vercel preview (devmcp.atoms.tech)")
-    deploy_group.add_argument("--production", action="store_true", help="Deploy to Vercel production (mcp.atoms.tech)")
+    deploy_parser.add_argument(
+        "--environment",
+        "-e",
+        "--target",
+        dest="environment",
+        choices=ENVIRONMENT_CHOICES,
+        default=DEFAULT_ENVIRONMENT,
+        help="Target environment (local, preview, production). Defaults to preview.",
+    )
+    deploy_parser.add_argument(
+        "--local",
+        dest="legacy_local",
+        action="store_true",
+        help="Shortcut for --environment local (deploy via KInfra tunnel)",
+    )
+    deploy_parser.add_argument(
+        "--preview",
+        dest="legacy_preview",
+        action="store_true",
+        help="Shortcut for --environment preview",
+    )
+    deploy_parser.add_argument(
+        "--production",
+        dest="legacy_production",
+        action="store_true",
+        help="Shortcut for --environment production",
+    )
     deploy_parser.add_argument("--verbose", action="store_true", help="Verbose logging for local deployment")
-    deploy_parser.set_defaults(func=cmd_deploy, environment=None)
+    deploy_parser.set_defaults(func=cmd_deploy)
 
     # VALIDATE command
     validate_parser = subparsers.add_parser("validate", help="Validate configuration")
@@ -523,4 +676,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

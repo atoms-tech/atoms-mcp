@@ -70,13 +70,13 @@ async def test_oauth_init():
             try:
                 exc = auth_task.exception()
                 print(f"  Auth task exception: {exc}")
-            except:
+            except Exception:
                 pass
         return False
     finally:
         try:
             await client.__aexit__(None, None, None)
-        except:
+        except Exception:
             pass
 
 

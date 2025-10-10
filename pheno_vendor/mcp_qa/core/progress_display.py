@@ -20,7 +20,7 @@ try:
         TimeRemainingColumn,
     )
     from rich.table import Table
-    from rich.text import Text
+    from rich.text import Text  # noqa: F401 - Used in type hints and rich components
 
     HAS_RICH = True
 except ImportError:

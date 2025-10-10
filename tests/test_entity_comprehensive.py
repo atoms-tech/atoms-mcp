@@ -376,7 +376,7 @@ async def test_access_deleted_organization(client_adapter):
         "operation": "read",
         "entity_id": entity_id
     })
-    assert not result["success"] or result["response"].get("deleted") == True
+    assert not result["success"] or result["response"].get("deleted")
     return {"success": True}
 
 
@@ -737,7 +737,7 @@ async def test_access_deleted_project(client_adapter):
         "operation": "read",
         "entity_id": entity_id
     })
-    assert not result["success"] or result["response"].get("deleted") == True
+    assert not result["success"] or result["response"].get("deleted")
     return {"success": True}
 
 
@@ -1112,7 +1112,7 @@ async def test_access_deleted_document(client_adapter):
         "operation": "read",
         "entity_id": entity_id
     })
-    assert not result["success"] or result["response"].get("deleted") == True
+    assert not result["success"] or result["response"].get("deleted")
     return {"success": True}
 
 
@@ -1476,7 +1476,7 @@ async def test_access_deleted_requirement(client_adapter):
         "operation": "read",
         "entity_id": entity_id
     })
-    assert not result["success"] or result["response"].get("deleted") == True
+    assert not result["success"] or result["response"].get("deleted")
     return {"success": True}
 
 
@@ -1849,5 +1849,5 @@ async def test_access_deleted_test(client_adapter):
         "operation": "read",
         "entity_id": entity_id
     })
-    assert not result["success"] or result["response"].get("deleted") == True
+    assert not result["success"] or result["response"].get("deleted")
     return {"success": True}

@@ -149,7 +149,7 @@ except ImportError:
     TestSuiteFactory = None
 
 # Import Atoms-specific helpers
-from .atoms_helpers import AtomsTestHelpers
+from .atoms_helpers import AtomsTestHelpers  # noqa: E402
 
 try:
     from .file_watcher import SmartReloadManager, TestFileWatcher

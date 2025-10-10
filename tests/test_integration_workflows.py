@@ -1094,7 +1094,7 @@ class TestContextSwitching:
             print("\n=== Step 5: Switch Context to Org 2 ===")
             step_start = time.time()
 
-            switch2 = await mcp_client("workspace_tool", {
+            _switch2 = await mcp_client("workspace_tool", {  # noqa: F841
                 "operation": "set_context",
                 "context_type": "organization",
                 "entity_id": org2_id

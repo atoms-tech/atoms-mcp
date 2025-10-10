@@ -40,7 +40,7 @@ async def get_table_columns(project_id: str, table_name: str) -> list[dict[str, 
     """Get columns for a specific table."""
     try:
         # This would execute SQL via MCP
-        sql = f"""
+        _sql = f"""
             SELECT
                 column_name,
                 data_type,
@@ -69,7 +69,7 @@ async def get_table_columns(project_id: str, table_name: str) -> list[dict[str, 
 async def get_all_enums(project_id: str) -> dict[str, list[str]]:
     """Get all enum types and their values."""
     try:
-        sql = """
+        _sql = """
             SELECT
                 t.typname as enum_name,
                 array_agg(e.enumlabel ORDER BY e.enumsortorder) as enum_values
@@ -96,7 +96,7 @@ async def get_all_enums(project_id: str) -> dict[str, list[str]]:
 async def get_table_constraints(project_id: str, table_name: str) -> list[dict[str, Any]]:
     """Get constraints for a table (foreign keys, unique, etc)."""
     try:
-        sql = f"""
+        _sql = f"""
             SELECT
                 tc.constraint_name,
                 tc.constraint_type,
@@ -124,7 +124,7 @@ async def get_table_constraints(project_id: str, table_name: str) -> list[dict[s
 async def get_table_indexes(project_id: str, table_name: str) -> list[dict[str, Any]]:
     """Get indexes for a table."""
     try:
-        sql = f"""
+        _sql = f"""
             SELECT
                 indexname,
                 indexdef

@@ -138,7 +138,7 @@ class WorkflowTestSuite:
                         "soft_delete": True
                     }
                 )
-            except:
+            except Exception:
                 pass  # Ignore cleanup errors
 
     def record_entity(self, entity_type: str, entity_id: str):

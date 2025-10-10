@@ -425,7 +425,7 @@ class PlaywrightStateManager:
                 await page.wait_for_selector(validation_selector, timeout=5000)
                 await context.close()
                 return True
-            except:
+            except Exception:
                 await context.close()
                 return False
 

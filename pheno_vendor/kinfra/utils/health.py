@@ -238,7 +238,7 @@ async def check_tunnel_health_async(hostname: str, port: int) -> Dict[str, Union
         start = time.time()
         timeout = aiohttp.ClientTimeout(total=5.0)
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.head(f"https://{hostname}") as response:
+            async with session.head(f"https://{hostname}"):
                 health["response_time_ms"] = int((time.time() - start) * 1000)
                 health["tunnel_reachable"] = True
     except Exception as e:

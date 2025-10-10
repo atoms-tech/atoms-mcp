@@ -23,6 +23,10 @@ from schemas.constants import (
 
 # Application-level enums (not in database, used by MCP tools)
 from schemas.enums import (
+    EntityStatus,
+    EntityType,
+    OrganizationType,
+    Priority,
     QueryType,
     RAGMode,
     RelationshipType,
@@ -182,6 +186,10 @@ __all__ = [
     "TraceLinkType",
 
     # Application Enums (manual)
+    "EntityStatus",
+    "EntityType",
+    "OrganizationType",
+    "Priority",
     "QueryType",
     "RAGMode",
     "RelationshipType",

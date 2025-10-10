@@ -222,7 +222,7 @@ class FieldValidator:
             from datetime import datetime
             datetime.fromisoformat(value.replace('Z', '+00:00'))
             return True
-        except:
+        except Exception:
             return False
 
     @staticmethod
@@ -235,5 +235,5 @@ class FieldValidator:
             if max_val is not None and num > max_val:
                 return False
             return True
-        except:
+        except Exception:
             return False

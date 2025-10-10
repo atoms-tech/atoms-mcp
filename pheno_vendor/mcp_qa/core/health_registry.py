@@ -408,7 +408,7 @@ class HealthChecker:
         
         # Only register checks that have their dependencies available
         try:
-            import psycopg
+            import psycopg  # noqa: F401 - Used to check availability
             registry.register_postgres(dsn=postgres_dsn, critical=False)
             registry.register_pgvector(dsn=postgres_dsn, critical=False)
         except ImportError:

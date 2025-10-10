@@ -261,7 +261,7 @@ class WorkspaceToolTester:
         workspaces_response = await self.test_operation_1_list_workspaces()
 
         # Test 2: Get current context
-        context_response = await self.test_operation_2_get_context()
+        _context_response = await self.test_operation_2_get_context()  # noqa: F841
 
         # Test 3: Create workspace (not supported - documented)
         await self.test_operation_3_create_workspace(timestamp)

@@ -13,6 +13,7 @@ Features:
 
 import platform
 import subprocess
+from pathlib import Path
 from typing import Optional
 
 from mcp_qa.logging import get_logger
@@ -99,7 +100,7 @@ security add-generic-password \
                     # Clean up
                     try:
                         Path(script_path).unlink()
-                    except:
+                    except Exception:
                         pass
             else:
                 # Standard storage without biometric

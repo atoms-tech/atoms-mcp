@@ -8,6 +8,7 @@ import shutil
 from typing import Any, Dict
 
 from .base import ResourceAdapter
+from ..utils.health import check_tcp_health, check_http_health
 
 logger = logging.getLogger(__name__)
 

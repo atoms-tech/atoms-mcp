@@ -273,7 +273,7 @@ class TestEntityToolPerformance:
             return result
 
         start_time = time.time()
-        results = await asyncio.gather(*[create_project(i) for i in range(10)])
+        _results = await asyncio.gather(*[create_project(i) for i in range(10)])  # noqa: F841
         concurrent_duration = time.time() - start_time
 
         print(f"  Concurrent (10 projects): {concurrent_duration:.3f}s ({concurrent_duration/10:.3f}s avg)")

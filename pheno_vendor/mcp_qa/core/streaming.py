@@ -100,7 +100,7 @@ class ParallelStreamCollector:
             # Add to priority queue (fastest first)
             try:
                 self.results_queue.put_nowait((result.duration_ms, result))
-            except:
+            except Exception:
                 # Queue full, add to completed list directly
                 self.completed_results.append(result)
 

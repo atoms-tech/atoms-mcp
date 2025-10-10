@@ -211,7 +211,7 @@ async def oauth_client_factory(
 
         async def perform_oauth(prov: str) -> OAuthTokens:
             """Provider-specific OAuth flow."""
-            automator = create_default_automator()
+            _ = create_default_automator()  # Keep for future use
             # Execute provider-specific authentication
             return OAuthTokens(
                 access_token=f"{prov}_token_{int(time.time())}",

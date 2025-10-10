@@ -95,7 +95,7 @@ class TestMemoryUsage:
 
         # Import vendor manager
         from lib.vendor_manager import VendorManager
-        vendor_mgr = VendorManager()
+        _vendor_mgr = VendorManager()  # noqa: F841
 
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()

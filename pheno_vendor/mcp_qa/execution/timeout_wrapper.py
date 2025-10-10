@@ -6,7 +6,7 @@ Prevents tests from hanging indefinitely and improves overall speed.
 
 import asyncio
 import functools
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 
 class TimeoutManager:

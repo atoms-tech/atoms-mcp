@@ -930,7 +930,7 @@ class TestRAGQueries:
         assert result["success"] is True
 
         # Low threshold should return more results
-        low_threshold_count = len(result["results"])
+        _low_threshold_count = len(result["results"])  # noqa: F841
 
         # All results should meet threshold
         for item in result["results"]:
@@ -1583,16 +1583,17 @@ class TestEdgeCasesAndValidation:
         """Test handling of conflicting filter conditions."""
         server = server_with_test_data
 
+        # Test conflicting filters (last value wins in Python dict)
+        filters = {"status": "active"}
+        filters["status"] = "completed"  # Overwrite
+
         result = await server.query({
             "operation": "search",
             "entity_types": ["requirement"],
-            "filters": {
-                "status": "active",
-                "status": "completed"  # Conflicting
-            }
+            "filters": filters
         })
 
-        # Should handle conflict (last value wins or error)
+        # Should handle conflict (last value wins)
         assert "results" in result or "error" in result
 
     @pytest.mark.asyncio
