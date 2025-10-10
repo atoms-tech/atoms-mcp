@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List
 
 
 class LoadTester:

@@ -1,8 +1,8 @@
 """Async utilities module."""
 
-from .event_bus import EventBus, Event
-from .task_queue import TaskQueue, Task
-from .semaphores import RateLimitSemaphore, BoundedSemaphore
+from .event_bus import Event, EventBus
+from .semaphores import BoundedSemaphore, RateLimitSemaphore
+from .task_queue import Task, TaskQueue
 
 __all__ = [
     "EventBus",

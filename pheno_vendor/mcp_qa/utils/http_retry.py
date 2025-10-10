@@ -18,7 +18,7 @@ import asyncio
 import time
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Set, TypeVar, Union
+from typing import Callable, Optional, Set, TypeVar
 from functools import wraps
 
 import httpx

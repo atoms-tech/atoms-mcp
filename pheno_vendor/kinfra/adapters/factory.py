@@ -5,7 +5,7 @@ Provides easy resource creation without needing to know adapter details.
 """
 
 import logging
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from .base import ResourceAdapter
 from .docker import DockerAdapter
@@ -63,7 +63,7 @@ class ResourceFactory:
         resource_type = config.get("type")
 
         if not resource_type:
-            raise ValueError(f"Resource config must include 'type' field")
+            raise ValueError("Resource config must include 'type' field")
 
         if resource_type == "docker":
             return DockerAdapter(name, config)

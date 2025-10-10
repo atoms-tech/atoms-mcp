@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import asyncio
 from typing import Dict, Any, List, Optional, Literal
 
@@ -12,7 +11,7 @@ except ImportError:
     from tools.base import ToolBase
 
 from schemas.enums import QueryType, RAGMode
-from schemas.constants import Tables, ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE
+from schemas.constants import Tables, TABLES_WITHOUT_SOFT_DELETE
 from schemas.rls import (
     PermissionDeniedError,
     OrganizationPolicy,

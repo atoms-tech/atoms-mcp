@@ -5,9 +5,8 @@ This module provides validation functions to ensure data matches
 the expected database schema before sending to Supabase.
 """
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List
 from schemas.enums import (
-    EntityType,
     OrganizationType,
     EntityStatus,
     Priority,
@@ -18,12 +17,7 @@ from schemas.enums import (
     InvitationStatus,
 )
 from schemas.constants import (
-    Tables,
-    Fields,
-    REQUIRED_FIELDS,
     AUTO_FIELDS,
-    TABLES_WITHOUT_SOFT_DELETE,
-    TABLES_WITHOUT_AUDIT_FIELDS,
 )
 
 

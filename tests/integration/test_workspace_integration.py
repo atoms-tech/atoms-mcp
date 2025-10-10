@@ -8,13 +8,6 @@ This demonstrates:
 """
 
 import pytest
-from tests.fixtures import (
-    authenticated_client, 
-    workspace_client, 
-    entity_client,
-    sample_workspace_data,
-    cleanup_test_data
-)
 
 
 @pytest.mark.integration

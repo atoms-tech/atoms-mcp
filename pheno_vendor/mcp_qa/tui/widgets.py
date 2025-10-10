@@ -11,19 +11,16 @@ This module contains all widgets for phases 1-5 of the test framework:
 
 from __future__ import annotations
 
-import asyncio
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from rich.console import RenderableType
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
-from rich.tree import Tree as RichTree
 
 from textual import on
 from textual.app import ComposeResult
@@ -33,13 +30,8 @@ from textual.widget import Widget
 from textual.widgets import (
     Button,
     Checkbox,
-    DataTable,
-    Footer,
-    Header,
     Input,
     Label,
-    ListItem,
-    ListView,
     OptionList,
     Static,
     Tree,

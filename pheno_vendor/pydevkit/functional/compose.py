@@ -1,7 +1,7 @@
 """Function composition utilities."""
 
-from typing import Callable, Any
 from functools import reduce
+from typing import Callable
 
 
 def compose(*functions: Callable) -> Callable:

@@ -17,7 +17,6 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Dict, Any, List
 from supabase import create_client, Client
 
 
@@ -318,7 +317,7 @@ class QueryToolTester:
                 "tests": len(self.test_data_ids["tests"])
             }
 
-            print(f"\n✅ Test data setup complete!")
+            print("\n✅ Test data setup complete!")
             print(f"   Organizations: {len(self.test_data_ids['organizations'])}")
             print(f"   Projects: {len(self.test_data_ids['projects'])}")
             print(f"   Documents: {len(self.test_data_ids['documents'])}")
@@ -789,16 +788,16 @@ class QueryToolTester:
         print(f"\nTotal Test Cases: {self.test_results['summary']['total_test_cases']}")
         print(f"Total Errors: {self.test_results['summary']['total_errors']}")
 
-        print(f"\n📁 Test Data Created:")
+        print("\n📁 Test Data Created:")
         for entity_type, count in self.test_results['test_data_created'].items():
             print(f"  - {entity_type}: {count}")
 
         if self.test_results["errors"]:
-            print(f"\n❌ Errors Encountered:")
+            print("\n❌ Errors Encountered:")
             for error in self.test_results["errors"]:
                 print(f"  - [{error['phase']}] {error['error']}")
         else:
-            print(f"\n✅ All tests completed successfully!")
+            print("\n✅ All tests completed successfully!")
 
         print(f"\n{'=' * 80}\n")
 

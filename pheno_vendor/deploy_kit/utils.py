@@ -5,9 +5,8 @@ Platform detection, build hook generation, and deployment validation.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Tuple
 from dataclasses import dataclass
-import json
 import subprocess
 
 

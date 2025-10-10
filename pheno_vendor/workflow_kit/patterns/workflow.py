@@ -130,7 +130,7 @@ class WorkflowEngine:
                 
                 return
             
-            except Exception as e:
+            except Exception:
                 if attempt == step.max_retries - 1 or not step.retry_on_failure:
                     raise
                 await asyncio.sleep(2 ** attempt)

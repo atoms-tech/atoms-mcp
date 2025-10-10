@@ -25,11 +25,11 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from entities import AggregateRoot, Entity, UUID4Identity, AuditableEntity
+from entities import AggregateRoot, Entity, UUID4Identity
 from value_objects import Money, Currency, Email, Address, Country
 from events import DomainEvent, event_handler
 from specifications import Specification
-from repositories import Repository, AsyncRepository
+from repositories import Repository
 from services import DomainService
 
 
@@ -492,20 +492,20 @@ def example_usage():
     shipping = pricing_service.calculate_shipping_cost(order, customer)
     tax = pricing_service.calculate_tax(order)
 
-    print(f"\n💰 Order totals:")
+    print("\n💰 Order totals:")
     print(f"   Subtotal: {order.total_amount()}")
     print(f"   Shipping: {shipping}")
     print(f"   Tax: {tax}")
     print(f"   Grand Total: {order.total_amount() + shipping + tax}")
 
     # Apply specifications
-    print(f"\n🔍 Business rules:")
+    print("\n🔍 Business rules:")
     print(f"   Can ship? {OrderIsShippable().is_satisfied_by(order)}")
     print(f"   Over $100? {OrderExceedsAmount(Money(Decimal('100'), Currency.USD)).is_satisfied_by(order)}")
     print(f"   Customer premium? {CustomerIsPremium().is_satisfied_by(customer)}")
 
     # Place order (will trigger event)
-    print(f"\n📋 Placing order...")
+    print("\n📋 Placing order...")
     order.place_order()
 
     # Fulfill order

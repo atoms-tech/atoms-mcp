@@ -12,7 +12,6 @@ This script:
 import shutil
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 
 class PhenoSDKMigrator:
@@ -154,7 +153,7 @@ from .platforms.atoms.http_health import HTTPHealthCheckProvider, AdvancedHealth
                 
                 print(f"   ✅ Updated {init_file}")
             else:
-                print(f"   ℹ️  Already up to date")
+                print("   ℹ️  Already up to date")
             
             return True
         except Exception as e:

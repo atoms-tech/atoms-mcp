@@ -7,7 +7,7 @@ Provides reusable alert conditions and rule definitions.
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .alerts import Alert, AlertSeverity, create_alert
 

@@ -8,7 +8,6 @@ This eliminates the need to re-authenticate on every test run.
 """
 
 import asyncio
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -111,7 +110,7 @@ class CachedOAuthClient:
             for _ in range(20):
                 await asyncio.sleep(0.5)
                 if self.oauth_url:
-                    print(f"✅ Captured OAuth URL")
+                    print("✅ Captured OAuth URL")
                     break
 
             if self.oauth_url:

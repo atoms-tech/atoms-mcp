@@ -11,7 +11,7 @@ Handles:
 
 import asyncio
 import time
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict
 
 try:
     from rich.console import Console
@@ -77,7 +77,7 @@ class ConnectionState:
 
         # Start time changed = restart
         if current_start_time != self.server_start_time:
-            print(f"🔄 Server restart detected: start time changed")
+            print("🔄 Server restart detected: start time changed")
             self.server_start_time = current_start_time
             return True
 
@@ -165,7 +165,7 @@ class ConnectionManager:
 
                     # Invalidate cache on connection loss (server may have restarted)
                     if self.cache_instance and self.state.total_disconnections > 0:
-                        print(f"🗑️  Connection lost - invalidating test cache (server may have restarted)")
+                        print("🗑️  Connection lost - invalidating test cache (server may have restarted)")
                         self.cache_instance.clear()
 
                     # Retry with backoff

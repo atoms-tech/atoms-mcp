@@ -8,7 +8,6 @@ when upstream services are unavailable.
 import asyncio
 import logging
 from typing import Dict, Optional, TYPE_CHECKING
-from urllib.parse import urlparse
 
 try:
     from aiohttp import web, ClientSession, ClientTimeout, ClientError

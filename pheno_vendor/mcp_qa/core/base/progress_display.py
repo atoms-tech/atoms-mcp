@@ -16,8 +16,8 @@ Reuses components from:
 
 import time
 import threading
-from collections import defaultdict, deque
-from typing import Any, Dict, List, Optional
+from collections import deque
+from typing import Dict, List, Optional
 
 try:
     from rich.console import Console, Group

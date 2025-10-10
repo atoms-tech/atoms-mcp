@@ -8,7 +8,6 @@ import asyncio
 import os
 import time
 from typing import Optional, Dict, Any
-from pathlib import Path
 
 # Try to import from mcp_qa modules
 try:
@@ -106,7 +105,7 @@ class SessionOAuthBroker:
             if self.authenticated_client and self._is_authenticated and not force_refresh:
                 return self.authenticated_client
             
-            print(f"\n🔐 Session OAuth Broker - Initializing Authentication")
+            print("\n🔐 Session OAuth Broker - Initializing Authentication")
             print(f"   Provider: {provider}")
             print(f"   Force refresh: {force_refresh}")
             
@@ -118,9 +117,9 @@ class SessionOAuthBroker:
             
             self._is_authenticated = True
             
-            print(f"   ✅ Session OAuth broker ready!")
-            print(f"   📊 All tests will use this authenticated client")
-            print(f"   🚀 OAuth bottleneck eliminated!\n")
+            print("   ✅ Session OAuth broker ready!")
+            print("   📊 All tests will use this authenticated client")
+            print("   🚀 OAuth bottleneck eliminated!\n")
             
             return self.authenticated_client
     
@@ -152,7 +151,7 @@ class SessionOAuthBroker:
             
             print(f"   📧 Email: {email}")
             print(f"   🌐 Endpoint: {endpoint}")
-            print(f"   🔒 Using secure OAuth automation...")
+            print("   🔒 Using secure OAuth automation...")
             
             # Set up MFA if available
             from mcp_qa.interactive_credentials import get_credential_manager
@@ -164,13 +163,13 @@ class SessionOAuthBroker:
             
             # Add MFA handler if available
             if mfa_config and mfa_config.get("type") == "totp":
-                print(f"   🔐 TOTP MFA automation enabled")
+                print("   🔐 TOTP MFA automation enabled")
                 oauth_adapter.mfa_handler = mfa_config["get_code"]
             elif mfa_config and mfa_config.get("type") == "vm_simulator":
-                print(f"   🤖 VM Simulator MFA enabled")
+                print("   🤖 VM Simulator MFA enabled")
                 # Future: Set up VM simulator MFA
             else:
-                print(f"   ⚠️ MFA will require manual entry if prompted")
+                print("   ⚠️ MFA will require manual entry if prompted")
             
             client, auth_task = oauth_adapter.create_oauth_client(endpoint)
             
@@ -182,7 +181,7 @@ class SessionOAuthBroker:
                     
                     # Use TUI progress if available
                     if HAS_TUI and OAuthProgressFlow:
-                        print(f"   🎨 Using TUI progress display...")
+                        print("   🎨 Using TUI progress display...")
                         
                         async def oauth_handler(url):
                             return await oauth_adapter.automate_login_with_retry(url)
@@ -198,14 +197,14 @@ class SessionOAuthBroker:
                             pass  # Auth might complete during automation
                     else:
                         # Fallback to basic OAuth
-                        print(f"   🔄 Running OAuth automation (no TUI)...")
+                        print("   🔄 Running OAuth automation (no TUI)...")
                         automation_task = asyncio.create_task(
                             oauth_adapter.automate_login_with_retry(oauth_url)
                         )
                         await asyncio.gather(auth_task, automation_task, return_exceptions=True)
                         
                 else:
-                    print(f"   ⚠️ No OAuth URL, waiting for auth task...")
+                    print("   ⚠️ No OAuth URL, waiting for auth task...")
                     await asyncio.wait_for(auth_task, timeout=10.0)
                 
                 # Create session tokens
@@ -218,7 +217,7 @@ class SessionOAuthBroker:
                     scope="mcp:tools mcp:resources",
                 )
                 
-                print(f"   ✅ OAuth tokens created!")
+                print("   ✅ OAuth tokens created!")
                 print(f"   ⏰ Expires: {time.ctime(tokens.expires_at)}")
                 
                 return tokens
@@ -237,7 +236,7 @@ class SessionOAuthBroker:
     async def _create_authenticated_client(self, tokens: OAuthTokens) -> MCPClientAdapter:
         """Create authenticated MCP client using session tokens."""
         
-        print(f"   🔗 Creating session MCP client...")
+        print("   🔗 Creating session MCP client...")
         print(f"   🎫 Token: {tokens.access_token[:20]}... ({tokens.provider})")
         
         email = os.getenv("ZEN_TEST_EMAIL", "kooshapari@gmail.com")
@@ -265,7 +264,7 @@ class SessionOAuthBroker:
             # Create the client adapter
             client_adapter = MCPClientAdapter(client, verbose_on_fail=True)
             
-            print(f"   ✅ Session MCP client created successfully!")
+            print("   ✅ Session MCP client created successfully!")
             
             return client_adapter
             

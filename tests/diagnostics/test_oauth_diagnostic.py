@@ -4,7 +4,6 @@ Quick diagnostic for OAuth flow timeout issue.
 """
 
 import asyncio
-import os
 
 from fastmcp import Client
 from fastmcp.client.auth import OAuth

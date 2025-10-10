@@ -5,8 +5,7 @@ Provides headless browser automation for OAuth flows that require
 interactive login.
 """
 
-from typing import Optional, Dict, Any, Callable
-import time
+from typing import Any, Callable, Dict, Optional
 
 
 class PlaywrightOAuthAdapter:

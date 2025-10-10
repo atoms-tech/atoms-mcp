@@ -64,7 +64,7 @@ class WorkerClientPool:
         try:
             return await asyncio.wait_for(self._available.get(), timeout=timeout)
         except asyncio.TimeoutError:
-            print(f"⚠️  Timeout acquiring client from pool")
+            print("⚠️  Timeout acquiring client from pool")
             return None
 
     async def release(self, client: httpx.AsyncClient):

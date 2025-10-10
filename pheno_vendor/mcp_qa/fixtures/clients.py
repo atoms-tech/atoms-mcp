@@ -10,7 +10,7 @@ Provides various client configurations:
 
 import asyncio
 import os
-from typing import Dict, Any, AsyncGenerator, Optional
+from typing import Dict, Any, AsyncGenerator
 import pytest
 from contextlib import asynccontextmanager
 

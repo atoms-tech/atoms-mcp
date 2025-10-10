@@ -8,7 +8,7 @@ Provides pre-configured clients for specific MCP tools:
 - Workflow tool client
 """
 
-from typing import Dict, Any, Callable
+from typing import Dict, Any
 import pytest
 
 from mcp_qa.auth.adapters import MCPClientAdapter

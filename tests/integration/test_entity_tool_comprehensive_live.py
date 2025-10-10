@@ -19,13 +19,12 @@ Documents every result with:
 """
 
 import os
-import sys
 import json
 import uuid
 import time
 import asyncio
 from datetime import datetime, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 import httpx
 from supabase import create_client
@@ -70,7 +69,7 @@ class TestReport:
         report.append("=" * 100)
         report.append(f"\nGenerated: {datetime.now(timezone.utc).isoformat()}")
         report.append(f"Test Duration: {(datetime.now(timezone.utc) - self.start_time).total_seconds():.2f}s")
-        report.append(f"\nSUMMARY:")
+        report.append("\nSUMMARY:")
         report.append(f"  Total Tests: {total_tests}")
         report.append(f"  Passed: {passed} ({passed/total_tests*100:.1f}%)")
         report.append(f"  Failed: {failed} ({failed/total_tests*100:.1f}%)")
@@ -473,7 +472,7 @@ async def run_comprehensive_tests():
         )
 
         # 9. VERIFY SOFT DELETE (Should not appear in list)
-        print(f"\n\n9️⃣  VERIFY Soft Delete")
+        print("\n\n9️⃣  VERIFY Soft Delete")
         print("-" * 100)
         input_params = {"limit": 20}
         result, duration = await call_entity_tool(

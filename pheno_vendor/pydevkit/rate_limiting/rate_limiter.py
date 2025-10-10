@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import time
 import asyncio
-from typing import Dict, Optional
-from collections import deque
 import logging
+import time
+from collections import deque
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +76,8 @@ class RateLimiter:
                     try:
                         monitor = get_health_monitor()
                         monitor.record_metric(
-                            "rate_limiter_acquire_success", 
-                            1.0, 
+                            "rate_limiter_acquire_success",
+                            1.0,
                             {"user_id": user_id, "tokens": str(tokens)}
                         )
                     except Exception:
@@ -90,8 +90,8 @@ class RateLimiter:
                     try:
                         monitor = get_health_monitor()
                         monitor.record_metric(
-                            "rate_limiter_acquire_rejected", 
-                            1.0, 
+                            "rate_limiter_acquire_rejected",
+                            1.0,
                             {"user_id": user_id, "tokens": str(tokens)}
                         )
                     except Exception:

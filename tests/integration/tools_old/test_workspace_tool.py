@@ -8,13 +8,6 @@ This demonstrates the new TDD-friendly testing patterns:
 """
 
 import pytest
-from tests.fixtures import (
-    authenticated_client,
-    workspace_client, 
-    sample_workspace_data, 
-    test_data_factory,
-    cleanup_test_data
-)
 
 
 class TestWorkspaceOperations:

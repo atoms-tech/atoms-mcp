@@ -631,7 +631,7 @@ def railway_service(
         ... )
     """
     return api_resource(
-        api_base_url=f"https://backboard.railway.app/graphql/v2",
+        api_base_url="https://backboard.railway.app/graphql/v2",
         auth_type="bearer",
         auth_token=api_key,
         start_endpoint="/",

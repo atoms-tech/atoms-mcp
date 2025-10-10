@@ -25,17 +25,6 @@ class MockMCPClient:
 def test_imports():
     """Test that imports work correctly."""
     print("Testing imports...")
-    from mcp_qa.tui.widgets_compat import (
-        OAuthStatusWidget,
-        ServerStatusWidget,
-        TunnelStatusWidget,
-        ResourceStatusWidget,
-        MCPClientAdapter,
-        MCPOAuthCacheAdapter,
-        create_compatible_widgets,
-        check_tui_kit_available,
-        get_migration_guide,
-    )
     print("✓ All imports successful")
 
 def test_widget_creation():

@@ -8,12 +8,9 @@ Fixes:
 - Better error handling and timeouts
 """
 
-import asyncio
 import getpass
-import sys
 import time
 from contextlib import contextmanager
-from typing import Optional
 
 try:
     from rich.console import Console
@@ -127,10 +124,10 @@ class EnhancedOAuthProgressFlow:
         is_password = 'password' in key.lower() or 'secret' in key.lower() or 'token' in key.lower()
         
         if self.console:
-            self.console.print(f"\n[cyan]🔑 OAuth Credential Required[/cyan]")
+            self.console.print("\n[cyan]🔑 OAuth Credential Required[/cyan]")
             prompt = f"Enter {hint}: "
         else:
-            print(f"\n🔑 OAuth Credential Required")
+            print("\n🔑 OAuth Credential Required")
             prompt = f"Enter {hint}: "
         
         try:

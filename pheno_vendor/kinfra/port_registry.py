@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, Optional, Set
 
-from .exceptions import ConfigurationError, PortAllocationError
+from .exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 

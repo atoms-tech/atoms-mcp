@@ -2,7 +2,6 @@
 
 import asyncio
 import time
-from typing import Optional
 
 
 class RateLimitSemaphore:
@@ -27,16 +26,16 @@ class RateLimitSemaphore:
             now = time.time()
             # Remove old calls
             self._calls = [t for t in self._calls if now - t < self.time_window]
-            
+
             # Wait if at limit
             while len(self._calls) >= self.max_calls:
                 sleep_time = self.time_window - (now - self._calls[0])
                 if sleep_time > 0:
                     await asyncio.sleep(sleep_time)
-                
+
                 now = time.time()
                 self._calls = [t for t in self._calls if now - t < self.time_window]
-            
+
             self._calls.append(now)
 
     async def __aexit__(self, *args):

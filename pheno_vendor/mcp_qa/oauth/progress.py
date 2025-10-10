@@ -7,8 +7,6 @@ Combines best features from both implementations:
 - Clean UX without progress bar interference during prompts
 """
 
-import sys
-import time
 from typing import Optional
 
 try:

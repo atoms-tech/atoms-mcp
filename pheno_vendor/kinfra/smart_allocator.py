@@ -9,10 +9,10 @@ import logging
 import os
 import socket
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
-from .exceptions import PortAllocationError, ProcessManagementError
-from .port_registry import PortRegistry, ServiceInfo
+from .exceptions import PortAllocationError
+from .port_registry import PortRegistry
 from .utils.process import is_port_free, get_port_occupant, terminate_process
 
 logger = logging.getLogger(__name__)

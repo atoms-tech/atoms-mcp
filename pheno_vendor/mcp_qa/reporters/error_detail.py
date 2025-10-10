@@ -199,7 +199,7 @@ class DetailedErrorReporter:
         self.console.print(info_table)
 
         # Error message
-        self.console.print(f"\n[bold yellow]Error:[/bold yellow]")
+        self.console.print("\n[bold yellow]Error:[/bold yellow]")
         error_text = Text(str(error), style=text_style)
         self.console.print(Panel(error_text, border_style=border_color, padding=(1, 2)))
 
@@ -292,7 +292,7 @@ class DetailedErrorReporter:
             print(f"Retries:  {result['retry_count']}")
 
         # Error message
-        print(f"\nError:")
+        print("\nError:")
         print(f"  {error}")
 
         # Request parameters (if available)

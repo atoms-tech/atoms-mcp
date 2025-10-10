@@ -1,7 +1,7 @@
 """LRU (Least Recently Used) Cache implementation."""
 
-from typing import Any, Optional, Dict
 from collections import OrderedDict
+from typing import Any, Dict
 
 
 class LRUCache:

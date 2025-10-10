@@ -17,9 +17,7 @@ Usage:
     summary = await runner.run_all()
 """
 
-import asyncio
 import os
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
@@ -144,7 +142,7 @@ class UnifiedMCPTestRunner:
             except Exception as e:
                 if self.verbose:
                     print(f"⚠️  Parallel pool failed: {e}")
-                    print(f"   Falling back to single client")
+                    print("   Falling back to single client")
                 self._client_manager = None
         else:
             self._client_manager = None

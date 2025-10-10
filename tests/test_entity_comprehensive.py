@@ -4,7 +4,6 @@ Tests all entity types with systematic coverage of operations and variations
 """
 
 import pytest
-from typing import Dict, Any, List
 from tests.framework import mcp_test, DataGenerator, validators
 from tests.framework.validators import ResponseValidator
 

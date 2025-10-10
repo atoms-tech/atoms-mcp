@@ -1371,7 +1371,7 @@ class TestDashboardApp(App):
                 if self.test_runner and hasattr(self.test_runner, "cache_instance") and self.test_runner.cache_instance:
                     for tool in affected_tools:
                         self.test_runner.cache_instance.clear_tool(tool)
-                    logs.write(f"[green]   Cache cleared for affected tools[/green]")
+                    logs.write("[green]   Cache cleared for affected tools[/green]")
 
                 # Trigger selective re-run
                 self.call_later(self._rerun_affected_tests, affected_tools)
@@ -1599,7 +1599,6 @@ class TestDashboardApp(App):
         logs.write("[yellow]🔐 Clearing OAuth cache...[/yellow]")
 
         try:
-            from .oauth_cache import CachedOAuthClient
 
             # OAuth cache clear logic would go here
             logs.write("[green]✅ OAuth cache cleared[/green]")
@@ -1814,7 +1813,7 @@ class TestDashboardApp(App):
                     output.write(f"Skipped: {'Yes' if test_result.get('skipped') else 'No'}")
 
                     if test_result.get("error"):
-                        output.write(f"\n[bold red]Error:[/bold red]")
+                        output.write("\n[bold red]Error:[/bold red]")
                         output.write(test_result["error"])
                 else:
                     output.write("[dim]No result available yet[/dim]")
@@ -1964,10 +1963,10 @@ class TestDashboardApp(App):
         """Export to Markdown format."""
         lines = [
             f"# Test Report - {data['timestamp']}",
-            f"\n## Summary",
+            "\n## Summary",
             f"- Endpoint: {data['endpoint']}",
             f"- Total Tests: {data['total_tests']}",
-            f"\n## Results\n",
+            "\n## Results\n",
             "| Test | Status | Duration | Tool |",
             "|------|--------|----------|------|",
         ]
@@ -2222,7 +2221,7 @@ class TestDashboardApp(App):
         total = summary["total"]
         duration = summary["duration_seconds"]
 
-        logs.write(f"[bold green]🎉 Suite complete![/bold green]")
+        logs.write("[bold green]🎉 Suite complete![/bold green]")
         logs.write(f"   Total: {total} | Passed: {passed} | Failed: {failed}")
         logs.write(f"   Duration: {duration:.2f}s")
 

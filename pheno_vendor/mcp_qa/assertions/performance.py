@@ -1,7 +1,5 @@
 """Performance assertions for MCP testing."""
 
-import time
-from typing import Dict, Any
 
 
 def assert_response_time(duration: float, max_seconds: float):

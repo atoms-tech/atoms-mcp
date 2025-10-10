@@ -11,13 +11,11 @@ Extends KInfra with:
 import asyncio
 import logging
 import os
-import signal
 import subprocess
-import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 
 try:
     import psutil
@@ -431,7 +429,7 @@ class ServiceManager:
                     # Process died immediately
                     stderr = await proc.stderr.read()
                     error_msg = stderr.decode('utf-8', errors='ignore')[:500]
-                    console.print(f"\n❌ Process died immediately!", style="bold red")
+                    console.print("\n❌ Process died immediately!", style="bold red")
                     console.print(f"Error: {error_msg}", style="red")
                     raise ServiceError(f"Process died immediately: {error_msg}")
                 # Step 5: Configure fallback if enabled
@@ -471,7 +469,7 @@ class ServiceManager:
                 if config.watch_paths and WATCHDOG_AVAILABLE:
                     self._setup_file_watching(name, config)
                 elif config.watch_paths and not WATCHDOG_AVAILABLE:
-                    console.print(f"  ⚠️  watchdog not installed (auto-reload disabled)", style="yellow")
+                    console.print("  ⚠️  watchdog not installed (auto-reload disabled)", style="yellow")
 
                 # Step 8: Perform initial health check
                 progress.update(task, description="[cyan]Starting health checks...", completed=8)
@@ -519,7 +517,6 @@ class ServiceManager:
     
     async def _kill_existing_tunnel(self, name: str):
         """Kill existing cloudflare tunnel and delete it from Cloudflare."""
-        import subprocess
         
         # Step 1: Kill any running cloudflared processes
         try:

@@ -1,6 +1,6 @@
 """File watching with event handling."""
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List
 from dataclasses import dataclass
 from enum import Enum
 import asyncio

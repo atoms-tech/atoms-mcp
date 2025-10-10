@@ -22,11 +22,10 @@ Usage:
 import asyncio
 import json
 import os
-import sys
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, Callable, Awaitable, Tuple
+from typing import Optional, Dict, Any, Tuple
 
 from fastmcp import Client
 from fastmcp.client.auth import OAuth
@@ -40,7 +39,6 @@ from mcp_qa.logging import get_logger
 from mcp_qa.oauth.granular_progress import (
     GranularOAuthProgress,
     OAuthSteps,
-    create_standard_oauth_progress,
 )
 
 try:

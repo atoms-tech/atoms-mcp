@@ -5,7 +5,6 @@ This module extends the generic BaseTestCache from mcp-QA with Atoms-specific
 tool dependencies and framework file mappings.
 """
 
-from pathlib import Path
 from typing import Dict, List
 from mcp_qa.testing.test_cache import BaseTestCache
 

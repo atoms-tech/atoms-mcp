@@ -5,7 +5,7 @@ System Daemon Adapter - Generic systemd/launchd management
 import asyncio
 import logging
 import shutil
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from .base import ResourceAdapter
 

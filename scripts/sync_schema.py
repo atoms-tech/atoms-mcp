@@ -20,7 +20,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 import os
 
 # Add parent directory to path to import schemas
@@ -980,7 +980,7 @@ LAST_SYNC_DIFFERENCES = {len(self.differences)}
 
             if has_drift:
                 print(f"\n{Colors.YELLOW}⚠️  Schema drift detected!{Colors.END}")
-                print(f"Run with --regenerate to regenerate from database")
+                print("Run with --regenerate to regenerate from database")
                 sys.exit(1)
             else:
                 print(f"\n{Colors.GREEN}✓ Schemas are in sync{Colors.END}")

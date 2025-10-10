@@ -9,8 +9,7 @@ Manages OAuth authentication sessions across test runs:
 """
 
 import json
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -62,7 +61,7 @@ class SharedSessionManager:
         cache_file = self._get_cache_file(endpoint)
         
         if not cache_file.exists():
-            logger.debug(f"No cached token found", endpoint=endpoint, emoji="📭")
+            logger.debug("No cached token found", endpoint=endpoint, emoji="📭")
             return None
         
         try:
@@ -73,10 +72,10 @@ class SharedSessionManager:
             if 'expires_at' in cached:
                 expires_at = datetime.fromisoformat(cached['expires_at'])
                 if datetime.now() >= expires_at:
-                    logger.warning(f"Cached token expired", endpoint=endpoint, emoji="⏰")
+                    logger.warning("Cached token expired", endpoint=endpoint, emoji="⏰")
                     return None
             
-            logger.info(f"Using cached token", endpoint=endpoint, emoji="♻️")
+            logger.info("Using cached token", endpoint=endpoint, emoji="♻️")
             return cached
             
         except Exception as e:
@@ -99,7 +98,7 @@ class SharedSessionManager:
             with open(cache_file, 'w') as f:
                 json.dump(cache_data, f, indent=2)
             
-            logger.info(f"Token cached", endpoint=endpoint, emoji="💾")
+            logger.info("Token cached", endpoint=endpoint, emoji="💾")
             
         except Exception as e:
             logger.error(f"Failed to cache token: {e}", endpoint=endpoint, emoji="❌")
@@ -121,7 +120,7 @@ class SharedSessionManager:
         """
         # Check if we already have an active session
         if mcp_endpoint in self._sessions and not force_refresh:
-            logger.debug(f"Reusing active session", endpoint=mcp_endpoint, emoji="♻️")
+            logger.debug("Reusing active session", endpoint=mcp_endpoint, emoji="♻️")
             return self._sessions[mcp_endpoint]
         
         # Try to use cached token
@@ -134,7 +133,7 @@ class SharedSessionManager:
         
         # Create new broker if needed
         if mcp_endpoint not in self._brokers:
-            logger.info(f"Creating OAuth broker", endpoint=mcp_endpoint, provider=self.provider, emoji="🔧")
+            logger.info("Creating OAuth broker", endpoint=mcp_endpoint, provider=self.provider, emoji="🔧")
             self._brokers[mcp_endpoint] = UnifiedCredentialBroker(
                 mcp_endpoint=mcp_endpoint,
                 provider=self.provider,
@@ -143,7 +142,7 @@ class SharedSessionManager:
         broker = self._brokers[mcp_endpoint]
         
         # Authenticate
-        logger.info(f"Authenticating", endpoint=mcp_endpoint, emoji="🔐")
+        logger.info("Authenticating", endpoint=mcp_endpoint, emoji="🔐")
         client, credentials = await broker.get_authenticated_client()
         
         # Cache the session
@@ -152,7 +151,7 @@ class SharedSessionManager:
         # Save token to disk cache
         self._save_token_cache(mcp_endpoint, credentials)
         
-        logger.info(f"Session established", endpoint=mcp_endpoint, user=credentials.email, emoji="✅")
+        logger.info("Session established", endpoint=mcp_endpoint, user=credentials.email, emoji="✅")
         
         return client, credentials
     
@@ -163,7 +162,7 @@ class SharedSessionManager:
         for endpoint, broker in self._brokers.items():
             try:
                 await broker.close()
-                logger.debug(f"Closed session", endpoint=endpoint, emoji="✅")
+                logger.debug("Closed session", endpoint=endpoint, emoji="✅")
             except Exception as e:
                 logger.error(f"Error closing session: {e}", endpoint=endpoint, emoji="❌")
         
@@ -181,12 +180,12 @@ class SharedSessionManager:
             cache_file = self._get_cache_file(endpoint)
             if cache_file.exists():
                 cache_file.unlink()
-                logger.info(f"Cleared cache", endpoint=endpoint, emoji="🗑️")
+                logger.info("Cleared cache", endpoint=endpoint, emoji="🗑️")
         else:
             # Clear all cache files
             for cache_file in self.cache_dir.glob("*_session.json"):
                 cache_file.unlink()
-            logger.info(f"Cleared all cache files", emoji="🗑️")
+            logger.info("Cleared all cache files", emoji="🗑️")
 
 
 # Global session manager instance

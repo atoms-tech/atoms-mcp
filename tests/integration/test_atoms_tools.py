@@ -5,7 +5,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 # Set up environment
 os.environ["ENV"] = "dev"
@@ -135,7 +135,7 @@ async def test_entity_tool() -> Dict[str, Any]:
 
     # Test 4: Update entity
     if test_entity_id:
-        print(f"\n4. Testing 'update' operation...")
+        print("\n4. Testing 'update' operation...")
         try:
             result = await entity_operation(
                 auth_token=AUTH_TOKEN,
@@ -145,7 +145,7 @@ async def test_entity_tool() -> Dict[str, Any]:
                 data={"description": "Updated test project"},
             )
             results["update"] = {"status": "✅", "data": result}
-            print(f"   ✅ Success: Updated project")
+            print("   ✅ Success: Updated project")
         except Exception as e:
             results["update"] = {"status": "❌", "error": str(e)}
             print(f"   ❌ Error: {e}")
@@ -168,7 +168,7 @@ async def test_entity_tool() -> Dict[str, Any]:
 
     # Test 6: Delete entity
     if test_entity_id:
-        print(f"\n6. Testing 'delete' operation...")
+        print("\n6. Testing 'delete' operation...")
         try:
             result = await entity_operation(
                 auth_token=AUTH_TOKEN,
@@ -178,7 +178,7 @@ async def test_entity_tool() -> Dict[str, Any]:
                 soft_delete=True,
             )
             results["delete"] = {"status": "✅", "data": result}
-            print(f"   ✅ Success: Deleted project")
+            print("   ✅ Success: Deleted project")
         except Exception as e:
             results["delete"] = {"status": "❌", "error": str(e)}
             print(f"   ❌ Error: {e}")
@@ -205,7 +205,7 @@ async def test_relationship_tool() -> Dict[str, Any]:
             limit=5,
         )
         results["list"] = {"status": "✅", "data": result}
-        print(f"   ✅ Success: Found relationships")
+        print("   ✅ Success: Found relationships")
     except Exception as e:
         results["list"] = {"status": "❌", "error": str(e)}
         print(f"   ❌ Error: {e}")
@@ -221,7 +221,7 @@ async def test_relationship_tool() -> Dict[str, Any]:
             target={"type": "user"},
         )
         results["check"] = {"status": "✅", "data": result}
-        print(f"   ✅ Success: Checked relationship")
+        print("   ✅ Success: Checked relationship")
     except Exception as e:
         results["check"] = {"status": "❌", "error": str(e)}
         print(f"   ❌ Error: {e}")
@@ -248,7 +248,7 @@ async def test_query_tool() -> Dict[str, Any]:
             limit=5,
         )
         results["search"] = {"status": "✅", "data": result}
-        print(f"   ✅ Success: Search completed")
+        print("   ✅ Success: Search completed")
     except Exception as e:
         results["search"] = {"status": "❌", "error": str(e)}
         print(f"   ❌ Error: {e}")
@@ -262,7 +262,7 @@ async def test_query_tool() -> Dict[str, Any]:
             entities=["project", "organization"],
         )
         results["aggregate"] = {"status": "✅", "data": result}
-        print(f"   ✅ Success: Aggregation completed")
+        print("   ✅ Success: Aggregation completed")
     except Exception as e:
         results["aggregate"] = {"status": "❌", "error": str(e)}
         print(f"   ❌ Error: {e}")
@@ -279,7 +279,7 @@ async def test_query_tool() -> Dict[str, Any]:
             limit=5,
         )
         results["rag_search"] = {"status": "✅", "data": result}
-        print(f"   ✅ Success: RAG search completed")
+        print("   ✅ Success: RAG search completed")
     except Exception as e:
         results["rag_search"] = {"status": "❌", "error": str(e)}
         print(f"   ❌ Error: {e}")
@@ -307,7 +307,7 @@ async def test_workflow_tool() -> Dict[str, Any]:
             },
         )
         results["setup_project"] = {"status": "✅", "data": result}
-        print(f"   ✅ Success: Project setup completed")
+        print("   ✅ Success: Project setup completed")
     except Exception as e:
         results["setup_project"] = {"status": "❌", "error": str(e)}
         print(f"   ❌ Error: {e}")

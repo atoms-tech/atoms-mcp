@@ -115,7 +115,7 @@ def snake_to_camel(text: str, capitalize_first: bool = False) -> str:
         snake_to_camel("my_variable_name", True)  # "MyVariableName"
     """
     components = text.split('_')
-    
+
     if capitalize_first:
         return ''.join(x.title() for x in components)
     else:

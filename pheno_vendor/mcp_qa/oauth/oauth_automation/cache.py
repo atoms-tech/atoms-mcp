@@ -1,12 +1,11 @@
 """OAuth token caching for session-scoped authentication."""
 
 import json
-import os
 import tempfile
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 from cryptography.fernet import Fernet
 import asyncio
 from dataclasses import dataclass, asdict

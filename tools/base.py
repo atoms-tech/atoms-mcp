@@ -13,7 +13,7 @@ try:
 except ImportError:
     from infrastructure.factory import get_adapters
     from errors import normalize_error
-    from schemas.constants import Tables, ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE
+    from schemas.constants import ENTITY_TABLE_MAP
 
 logger = get_logger(__name__)
 

@@ -1,7 +1,7 @@
 """PII (Personally Identifiable Information) scanner and redactor."""
 
 import re
-from typing import List, Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
 
 class PIIPattern:

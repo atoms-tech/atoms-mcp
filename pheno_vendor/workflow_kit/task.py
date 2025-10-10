@@ -1,6 +1,6 @@
 """Task decorator for workflow definitions."""
 from functools import wraps
-from typing import Callable, Any
+from typing import Callable
 
 def task(retries: int = 3, backoff: str = "exponential", idempotency: str = None):
     """Decorator to define a workflow task."""

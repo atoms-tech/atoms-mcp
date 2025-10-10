@@ -13,7 +13,6 @@ the provider protocols needed by the testing framework. Each adapter:
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol, Union
-from datetime import datetime
 
 # Import existing MCP components
 from fastmcp import Client

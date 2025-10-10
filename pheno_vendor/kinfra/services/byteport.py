@@ -7,7 +7,6 @@ Handles API backend (Go) and Frontend (Next.js) with proper environment manageme
 
 import os
 import shutil
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional

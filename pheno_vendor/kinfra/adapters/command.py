@@ -6,7 +6,7 @@ Handles resources managed via command-line tools or API calls.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from .base import ResourceAdapter
 from ..utils.health import check_tcp_health, check_http_health

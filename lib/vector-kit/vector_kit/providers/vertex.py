@@ -81,11 +81,11 @@ class VertexAIEmbeddingService:
                     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
                         json.dump(creds_dict, f)
                         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
-                    logger.debug(f"✅ Using Google credentials from env var (authorized_user)")
+                    logger.debug("✅ Using Google credentials from env var (authorized_user)")
                 else:
                     # Service account credentials
                     credentials = service_account.Credentials.from_service_account_info(creds_dict)
-                    logger.debug(f"✅ Using Google credentials from env var (service_account)")
+                    logger.debug("✅ Using Google credentials from env var (service_account)")
             except Exception as e:
                 logger.warning(f"Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: {e}")
 

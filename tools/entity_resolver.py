@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Optional
 from utils.logging_setup import get_logger
 from schemas.constants import TABLES_WITHOUT_SOFT_DELETE
 

@@ -55,22 +55,22 @@ class MCPWorkspaceToolTester:
         print(f"TEST #{test_number}: {operation}")
         print(f"{'='*100}")
         print(f"Status: {status}")
-        print(f"\nInput Parameters:")
+        print("\nInput Parameters:")
         print(json.dumps(input_params, indent=2))
 
         if error:
-            print(f"\nError:")
+            print("\nError:")
             print(f"  {error}")
 
         if output_response:
-            print(f"\nOutput Response:")
+            print("\nOutput Response:")
             print(json.dumps(output_response, indent=2, default=str))
 
-            print(f"\nResponse Structure:")
+            print("\nResponse Structure:")
             print(json.dumps(result['response_structure'], indent=2))
 
         if notes:
-            print(f"\nNotes:")
+            print("\nNotes:")
             print(f"  {notes}")
 
         print(f"{'='*100}\n")
@@ -202,7 +202,7 @@ async def get_auth_token():
         })
 
         if auth_response.session:
-            print(f"✓ Authentication successful!")
+            print("✓ Authentication successful!")
             print(f"  Token: {auth_response.session.access_token[:30]}...")
             return auth_response.session.access_token
 
@@ -272,7 +272,7 @@ async def run_comprehensive_tests():
             response_1,
             status,
             None if status == "SUCCESS" else response_1.get("error"),
-            f"Retrieved workspaces list"
+            "Retrieved workspaces list"
         )
 
         # Store organizations for later tests

@@ -5,7 +5,6 @@ Atoms MCP Package Entry Point
 Delegates to atoms-mcp.py unified CLI for all operations.
 """
 import sys
-import os
 from pathlib import Path
 
 if __name__ == "__main__":

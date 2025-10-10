@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp_qa.testing.unified_runner import UnifiedMCPTestRunner
-from mcp_qa.testing.auth_validator import validate_auth
 
 from .adapters import AtomsMCPClientAdapter
 from .runner import AtomsTestRunner
@@ -103,13 +102,13 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
             # Show validation results if available
             if self._validation_result:
                 print("")
-                print(f"📊 Auth Validation Summary:")
+                print("📊 Auth Validation Summary:")
                 for check_name, check_result in self._validation_result.checks.items():
                     status = "✓" if check_result['success'] else "✗"
                     print(f"   {status} {check_name}: {check_result['message']}")
                 print("")
 
-            print(f"🚀 Running Atoms MCP tests...")
+            print("🚀 Running Atoms MCP tests...")
             print(f"   Endpoint: {self.mcp_endpoint}")
             print(f"   Parallel: {self.parallel} ({self.workers} workers)")
             print(f"   Cache: {self.cache}")
@@ -175,7 +174,7 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
         if self._client_manager:
             self._test_runner.client_manager = self._client_manager
             if self.verbose:
-                print(f"✅ Using pheno-sdk parallel client manager")
+                print("✅ Using pheno-sdk parallel client manager")
         
         # Run tests
         summary = await self._test_runner.run_all(categories=categories)

@@ -7,9 +7,9 @@ Handles any Docker container with configurable options.
 import asyncio
 import logging
 import shutil
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from .base import ResourceAdapter, HealthCheckStrategy
+from .base import ResourceAdapter
 from ..utils.health import check_tcp_health, check_http_health
 
 logger = logging.getLogger(__name__)

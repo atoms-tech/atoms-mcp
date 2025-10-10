@@ -233,7 +233,7 @@ class QueryToolTester:
                             self.test_data_ids["documents"].append(doc_id)
                             print(f"  ✓ Created document: {doc_id}")
 
-                print(f"\n✓ Test data created successfully!")
+                print("\n✓ Test data created successfully!")
                 print(f"  - Organizations: {len(self.test_data_ids['organizations'])}")
                 print(f"  - Projects: {len(self.test_data_ids['projects'])}")
                 print(f"  - Documents: {len(self.test_data_ids['documents'])}")
@@ -791,7 +791,7 @@ class QueryToolTester:
                 except Exception as e:
                     print(f"✗ Error deleting organization {org_id}: {e}")
 
-            print(f"\n✓ Cleanup complete!")
+            print("\n✓ Cleanup complete!")
             print(f"  - Documents deleted: {cleanup_results['documents']}")
             print(f"  - Projects deleted: {cleanup_results['projects']}")
             print(f"  - Organizations deleted: {cleanup_results['organizations']}")

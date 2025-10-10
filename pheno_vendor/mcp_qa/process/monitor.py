@@ -5,14 +5,12 @@ Tracks running processes, collects PIDs, and provides health status.
 Integrates with the Rich TUI framework for beautiful display.
 """
 
-import asyncio
 import psutil
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, List, Set
-from pathlib import Path
+from typing import Optional, Dict, List
 
 from mcp_qa.logging import get_logger
 

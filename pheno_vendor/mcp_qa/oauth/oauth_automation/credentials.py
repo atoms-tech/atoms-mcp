@@ -124,7 +124,7 @@ class CredentialResolver:
             
             # Add new variable if not found
             if not updated:
-                lines.append(f"\n# Added by OAuth credential resolver\n")
+                lines.append("\n# Added by OAuth credential resolver\n")
                 lines.append(f"{env_var}={value}\n")
             
             # Write back to file

@@ -32,9 +32,8 @@ Example Output:
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Callable, Any
+from typing import Optional, List, Any
 
 try:
     from rich.console import Console

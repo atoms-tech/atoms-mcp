@@ -8,7 +8,6 @@ import json
 import time
 from typing import Dict, List, Set, Optional, Any, Callable
 from dataclasses import dataclass, asdict
-from datetime import datetime
 import websockets
 from websockets.server import WebSocketServerProtocol
 from websockets.client import WebSocketClientProtocol
@@ -438,20 +437,20 @@ class ResultComparator:
         """Generate a human-readable comparison report."""
         comparison = self.compare_results(results)
 
-        report = f"Test Comparison Report\n"
+        report = "Test Comparison Report\n"
         report += f"{'=' * 50}\n\n"
         report += f"Status: {comparison['status']}\n"
         report += f"Endpoints: {comparison['successful_endpoints']}/{comparison['total_endpoints']} passed\n\n"
 
         stats = comparison['statistics']
-        report += f"Performance Statistics:\n"
+        report += "Performance Statistics:\n"
         report += f"  Average Duration: {stats['avg_duration']:.3f}s\n"
         report += f"  Fastest: {stats['min_duration']:.3f}s\n"
         report += f"  Slowest: {stats['max_duration']:.3f}s\n"
         report += f"  Variance: {stats['duration_variance']:.3f}s\n\n"
 
         if comparison['discrepancies']:
-            report += f"Discrepancies Found:\n"
+            report += "Discrepancies Found:\n"
             for disc in comparison['discrepancies']:
                 report += f"  - {disc['type']}: {disc['details']}\n"
 

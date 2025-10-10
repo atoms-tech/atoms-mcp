@@ -6,7 +6,7 @@ Projects should inherit from these to create specific implementations.
 """
 
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 try:
     from textual.app import App

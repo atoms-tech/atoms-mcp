@@ -4,7 +4,6 @@ Metric aggregation for dashboard data collection.
 Provides real-time aggregation of metrics from multiple sources for dashboard display.
 """
 
-import asyncio
 import json
 import logging
 from collections import defaultdict, deque

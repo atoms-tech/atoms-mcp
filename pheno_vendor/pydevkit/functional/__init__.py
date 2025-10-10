@@ -2,7 +2,7 @@
 
 from .compose import compose, pipe
 from .curry import curry, partial
-from .memoize import memoize, lru_memoize
+from .memoize import lru_memoize, memoize
 
 __all__ = [
     "compose",

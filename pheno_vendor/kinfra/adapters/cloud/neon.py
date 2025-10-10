@@ -8,7 +8,7 @@ import asyncio
 import logging
 import os
 import shutil
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional
 
 from ..base import ResourceAdapter
 from ...utils.health import check_tcp_health
@@ -214,7 +214,7 @@ class NeonAdapter(ResourceAdapter):
             if response.status_code in (200, 201):
                 self.state.running = False
                 self.state.healthy = False
-                logger.info(f"✓ Neon endpoint suspended")
+                logger.info("✓ Neon endpoint suspended")
                 return True
             else:
                 return False
@@ -256,7 +256,7 @@ class NeonAdapter(ResourceAdapter):
 
         if proc.returncode == 0:
             self.state.running = True
-            logger.info(f"✓ Neon project started via CLI")
+            logger.info("✓ Neon project started via CLI")
             return True
         else:
             logger.error(f"CLI start failed: {stderr.decode()}")

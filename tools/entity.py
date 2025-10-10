@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import asyncio
-from typing import Dict, Any, Optional, List, Literal, Union
+from typing import Dict, Any, Optional, List, Literal
 from datetime import datetime, timezone
 
 try:
@@ -25,7 +25,6 @@ from schemas.enums import (
 from schemas.constants import (
     Tables,
     Fields,
-    ENTITY_TABLE_MAP,
     REQUIRED_FIELDS,
     TABLES_WITHOUT_SOFT_DELETE,
     TABLES_WITHOUT_AUDIT_FIELDS,
@@ -401,8 +400,8 @@ class EntityManager(ToolBase):
         user_id = self._get_user_id()
         if not user_id and table not in TABLES_WITHOUT_AUDIT_FIELDS:
             # Fallback: Get from existing record
-            print(f"⚠️ UPDATE: No user_id in context, using fallback from existing record")
-            logger.info(f"⚠️ UPDATE: No user_id in context, using fallback from existing record")
+            print("⚠️ UPDATE: No user_id in context, using fallback from existing record")
+            logger.info("⚠️ UPDATE: No user_id in context, using fallback from existing record")
             user_id = existing_record.get(Fields.CREATED_BY) or existing_record.get(Fields.UPDATED_BY)
             if user_id:
                 print(f"✅ UPDATE: Got user_id from existing record: {user_id}")

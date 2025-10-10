@@ -31,6 +31,7 @@ try:
         retry,
         skip_if,
         timeout,
+        cache_result,
         # Reporters
         ConsoleReporter,
         DetailedErrorReporter,
@@ -71,42 +72,40 @@ try:
     
 except ImportError as e:
     print(f"⚠️  Warning: Could not import from mcp-qa: {e}")
-    print(f"   Falling back to local implementations")
-    
+    print("   Falling back to local implementations")
+
     # Fallback to local imports if mcp-QA not installed
     from .cache import TestCache
     from .client_pool import WorkerClientPool
     from .connection_manager import ConnectionManager, ConnectionState, WaitStrategy
     from .data_generators import DataGenerator
     from .health_checks import HealthChecker
-    from .progress_display import ComprehensiveProgressDisplay
-    from .decorators import (
-        TestRegistry,
-        cache_result,
-        get_test_registry,
-        mcp_test,
-        require_auth,
-        retry,
-        skip_if,
-        timeout,
-    )
-    from .parallel_clients import ParallelClientManager
-    from .reporters import (
-        ConsoleReporter,
-        DetailedErrorReporter,
-        FunctionalityMatrixReporter,
-        JSONReporter,
-        MarkdownReporter,
-        TestReporter,
-    )
-    
+
+    # These have been consolidated to mcp_qa - no local fallback
+    ComprehensiveProgressDisplay = None
+    ParallelClientManager = None
+    TestRegistry = None
+    get_test_registry = None
+    mcp_test = None
+    require_auth = None
+    retry = None
+    skip_if = None
+    timeout = None
+    cache_result = None
+    ConsoleReporter = None
+    DetailedErrorReporter = None
+    FunctionalityMatrixReporter = None
+    JSONReporter = None
+    MarkdownReporter = None
+    TestReporter = None
+
     # Base patterns not available in fallback mode
     BaseClientAdapter = None
     BaseTestRunner = None
     PooledMCPClient = None
     ResponseCacheLayer = None
     OptimizationFlags = None
-    
+
     HAS_MCP_QA = False
 
 # ============================================================================
@@ -127,7 +126,7 @@ from .runner import AtomsTestRunner
 TestRunner = AtomsTestRunner
 
 # Other Atoms-specific components (core - must exist)
-from .decorators import cache_result  # Atoms-specific decorator
+# Note: cache_result decorator is now in mcp_qa.core.decorators
 from .patterns import IntegrationPattern, ToolTestPattern, UserStoryPattern
 from .validators import FieldValidator, ResponseValidator
 

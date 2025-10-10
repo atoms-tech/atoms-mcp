@@ -1,8 +1,8 @@
 """Priority queue implementation."""
 
 import heapq
-from typing import Any, List, Optional, Tuple
 from dataclasses import dataclass, field
+from typing import Any, List
 
 
 @dataclass(order=True)

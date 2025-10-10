@@ -9,11 +9,10 @@ import json
 import logging
 import time
 from typing import Any, Dict, Optional
-from uuid import uuid4
 
 from fastmcp import Client
 
-from ..logging import ToolCallContext, create_mcp_logger, Emoji
+from ..logging import ToolCallContext, create_mcp_logger
 
 
 class EnhancedMCPAdapter:
@@ -138,7 +137,7 @@ class EnhancedMCPAdapter:
                             response=parsed
                         )
                 
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     # Non-JSON response (might be valid for some tools)
                     return self._handle_success(
                         tool_name, params, call_id, duration_ms,
@@ -191,7 +190,7 @@ class EnhancedMCPAdapter:
             response=response,
         )
         
-        msg = f"Tool call succeeded"
+        msg = "Tool call succeeded"
         
         if self._buffering:
             # Success - don't print buffered logs

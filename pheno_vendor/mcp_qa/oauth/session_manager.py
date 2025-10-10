@@ -9,13 +9,12 @@ Combines best features from both implementations:
 """
 
 import json
-import os
 import tempfile
 import time
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Optional, Callable, Awaitable
+from typing import Dict, Optional, Callable, Awaitable
 from dataclasses import dataclass, asdict
 from cryptography.fernet import Fernet
 

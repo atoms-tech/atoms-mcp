@@ -1,7 +1,6 @@
 """Timezone utilities."""
 
 from datetime import datetime, timezone, tzinfo
-from typing import Optional
 
 
 def now_utc() -> datetime:

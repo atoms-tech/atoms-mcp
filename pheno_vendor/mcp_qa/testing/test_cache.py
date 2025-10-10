@@ -21,7 +21,7 @@ import json
 import time
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Set
+from typing import Dict, Any, Optional, List
 from abc import ABC, abstractmethod
 
 

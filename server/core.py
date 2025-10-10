@@ -15,14 +15,14 @@ Pythonic Patterns Applied:
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from fastmcp import FastMCP
 
 from utils.logging_setup import get_logger
 
-from .auth import RateLimiter, apply_rate_limit_if_configured, get_token_string
+from .auth import RateLimiter
 from .env import get_fastmcp_vars, load_env_files
 
 logger = get_logger("atoms_fastmcp.core")

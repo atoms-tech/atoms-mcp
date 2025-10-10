@@ -1,9 +1,9 @@
 """Async task queue."""
 
 import asyncio
-from typing import Callable, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Callable
 
 
 @dataclass
@@ -75,7 +75,7 @@ class TaskQueue:
                     self._queue.get(),
                     timeout=1.0
                 )
-                
+
                 try:
                     if asyncio.iscoroutinefunction(task.func):
                         await task.func(*task.args, **task.kwargs)
@@ -85,6 +85,6 @@ class TaskQueue:
                     pass
                 finally:
                     self._queue.task_done()
-                    
+
             except asyncio.TimeoutError:
                 continue

@@ -26,7 +26,7 @@ class CircularBuffer:
         """
         if capacity <= 0:
             raise ValueError("Capacity must be positive")
-        
+
         self.capacity = capacity
         self._buffer: List[Optional[Any]] = [None] * capacity
         self._head = 0  # Write position
@@ -41,7 +41,7 @@ class CircularBuffer:
         """
         self._buffer[self._head] = item
         self._head = (self._head + 1) % self.capacity
-        
+
         if self._size < self.capacity:
             self._size += 1
 
@@ -57,13 +57,13 @@ class CircularBuffer:
         """
         if index < 0 or index >= self._size:
             raise IndexError("Index out of range")
-        
+
         # Calculate actual position
         if self._size < self.capacity:
             actual_index = index
         else:
             actual_index = (self._head + index) % self.capacity
-        
+
         return self._buffer[actual_index]
 
     def is_full(self) -> bool:
@@ -88,7 +88,7 @@ class CircularBuffer:
         """Convert buffer to list (oldest to newest)."""
         if self._size == 0:
             return []
-        
+
         if self._size < self.capacity:
             return self._buffer[:self._size]
         else:

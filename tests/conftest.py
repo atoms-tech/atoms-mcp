@@ -7,7 +7,6 @@ import os
 import sys
 import pytest
 import pytest_asyncio
-import time
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -49,7 +48,7 @@ try:
     from .fixtures.tools import *
     from .fixtures.data import *
     from .fixtures.providers import *
-except ImportError as e:
+except ImportError:
     # TDD fixtures not available - continue with existing functionality
     pass
 

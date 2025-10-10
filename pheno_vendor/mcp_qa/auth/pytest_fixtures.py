@@ -19,10 +19,8 @@ Usage:
         # User already authenticated!
 """
 
-import asyncio
 import os
-from pathlib import Path
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 import pytest
 
@@ -32,7 +30,7 @@ try:
 except ImportError:
     HAS_PLAYWRIGHT = False
 
-from .credential_manager import CredentialManager, get_credential_manager
+from .credential_manager import get_credential_manager
 from .playwright_state_manager import PlaywrightStateManager
 from .mfa_handler import MFAHandler
 

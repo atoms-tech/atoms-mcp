@@ -8,11 +8,7 @@ Run with: pytest tests/test_end_to_end.py -v -s
 from __future__ import annotations
 
 import os
-import time
-import uuid
-from typing import Any, Dict
 
-import httpx
 import pytest
 
 MCP_BASE_URL = os.getenv("ATOMS_FASTMCP_BASE_URL", "http://127.0.0.1:8000")

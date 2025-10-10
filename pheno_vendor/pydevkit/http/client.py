@@ -1,11 +1,11 @@
 """HTTP client with connection pooling and timeout management."""
 
 import json
-import urllib.request
 import urllib.error
 import urllib.parse
-from typing import Any, Dict, Optional, Union, Generator
+import urllib.request
 from contextlib import contextmanager
+from typing import Any, Dict, Generator, Optional, Union
 
 
 class Response:

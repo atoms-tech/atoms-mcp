@@ -10,7 +10,6 @@ Provides reporters for:
 """
 
 import json
-import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -152,7 +151,7 @@ class ConsoleReporter(TestReporter):
 
         pass_rate = (passed / (total - skipped)) * 100 if (total - skipped) > 0 else 0
 
-        print(f"\n📊 SUMMARY")
+        print("\n📊 SUMMARY")
         print(f"   Total: {total} | ✅ {passed} | ❌ {failed} | ⏭️  {skipped} | 💾 {cached}")
         print(f"   Pass Rate: {pass_rate:.1f}%")
 
@@ -165,7 +164,7 @@ class ConsoleReporter(TestReporter):
             tool = result.get("tool_name", "unknown")
             by_tool.setdefault(tool, []).append(result)
 
-        print(f"\n🔧 RESULTS BY TOOL:")
+        print("\n🔧 RESULTS BY TOOL:")
         for tool, tool_results in sorted(by_tool.items()):
             print(f"\n   {tool}:")
             for r in tool_results:
@@ -713,7 +712,7 @@ class DetailedErrorReporter(TestReporter):
         self.console.print(info_table)
 
         # Error message
-        self.console.print(f"\n[bold yellow]Error:[/bold yellow]")
+        self.console.print("\n[bold yellow]Error:[/bold yellow]")
         error_text = Text(error, style=text_style)
         self.console.print(Panel(error_text, border_style=border_color, padding=(1, 2)))
 
@@ -803,7 +802,7 @@ class DetailedErrorReporter(TestReporter):
         print(f"Duration: {duration_ms:.2f}ms")
 
         # Error message
-        print(f"\nError:")
+        print("\nError:")
         print(f"  {error}")
 
         # Request parameters (if available)

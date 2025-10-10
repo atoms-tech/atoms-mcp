@@ -1,7 +1,7 @@
 """Observability and monitoring utilities with KInfra integration."""
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +15,11 @@ except ImportError:
 
 class HealthMonitor:
     """Health monitoring with optional KInfra integration."""
-    
+
     def __init__(self, service_name: str = "pydevkit"):
         self.service_name = service_name
         self._kinfra_instance = None
-        
+
         if HAS_KINFRA:
             try:
                 self._kinfra_instance = kinfra.KInfra()
@@ -27,7 +27,7 @@ class HealthMonitor:
             except Exception as e:
                 logger.warning(f"KInfra initialization failed: {e}")
                 self._kinfra_instance = None
-    
+
     def record_metric(self, name: str, value: float, tags: Optional[Dict[str, str]] = None):
         """Record a metric with optional KInfra integration."""
         if self._kinfra_instance:
@@ -43,7 +43,7 @@ class HealthMonitor:
         else:
             # Fallback to standard logging
             logger.info(f"Metric {name}={value} tags={tags}")
-    
+
     def health_check(self) -> Dict[str, Any]:
         """Perform health check with KInfra status."""
         status = {
@@ -52,7 +52,7 @@ class HealthMonitor:
             "kinfra_available": HAS_KINFRA,
             "kinfra_enabled": self._kinfra_instance is not None
         }
-        
+
         if self._kinfra_instance:
             try:
                 kinfra_status = self._kinfra_instance.health_check()
@@ -60,7 +60,7 @@ class HealthMonitor:
             except Exception as e:
                 status["kinfra_error"] = str(e)
                 status["kinfra_enabled"] = False
-        
+
         return status
 
 # Global health monitor instance

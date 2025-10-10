@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional, Any, Union
+from typing import Dict, Optional, Any
 import httpx
 import logging
 from contextlib import asynccontextmanager
@@ -187,7 +187,7 @@ class AuthSessionBroker:
                 if success:
                     flow_result = get_last_flow_result()
                     if flow_result and flow_result.session_token:
-                        logger.info(f"OAuth successful, got session token")
+                        logger.info("OAuth successful, got session token")
                         return AuthCredentials(
                             access_token=flow_result.session_token,
                             provider=provider,
@@ -212,7 +212,7 @@ class AuthSessionBroker:
             logger.warning(f"Direct AuthKit auth failed: {e}")
         
         # Final fallback: Use test session token
-        logger.error(f"All AuthKit authentication methods failed, using test token")
+        logger.error("All AuthKit authentication methods failed, using test token")
         import uuid
         access_token = f"test_session_{uuid.uuid4().hex[:16]}"
         
@@ -258,7 +258,7 @@ class AuthSessionBroker:
             demo_pass = os.getenv("FASTMCP_DEMO_PASS")
             
             if demo_user and demo_pass:
-                logger.info(f"Using demo credentials for testing")
+                logger.info("Using demo credentials for testing")
                 # Create a mock session token that indicates demo auth
                 import uuid
                 return f"demo_session_{uuid.uuid4().hex[:20]}"

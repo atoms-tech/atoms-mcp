@@ -93,7 +93,7 @@ class ConsoleReporter:
         # Results by tool
         by_tool = self._group_by_tool(results)
 
-        self.console.print(f"\n[bold cyan]Results by Tool[/bold cyan]")
+        self.console.print("\n[bold cyan]Results by Tool[/bold cyan]")
 
         for tool, tool_results in sorted(by_tool.items()):
             tool_passed = sum(1 for r in tool_results if r.get("success", False) and not r.get("skipped", False))
@@ -126,7 +126,7 @@ class ConsoleReporter:
         # Summary stats
         summary = self._calculate_summary(results)
 
-        print(f"\nSummary")
+        print("\nSummary")
         print(f"  Total: {summary['total']}")
         print(f"  Passed: ✓ {summary['passed']}")
         print(f"  Failed: ✗ {summary['failed']}")
@@ -146,7 +146,7 @@ class ConsoleReporter:
         # Results by tool
         by_tool = self._group_by_tool(results)
 
-        print(f"\nResults by Tool:")
+        print("\nResults by Tool:")
         for tool, tool_results in sorted(by_tool.items()):
             tool_passed = sum(1 for r in tool_results if r.get("success", False) and not r.get("skipped", False))
             tool_total = sum(1 for r in tool_results if not r.get("skipped", False))

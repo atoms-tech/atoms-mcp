@@ -9,7 +9,7 @@ import asyncio
 import logging
 import socket
 import time
-from typing import Dict, Optional, Union
+from typing import Dict, Union
 
 logger = logging.getLogger(__name__)
 

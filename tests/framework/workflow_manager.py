@@ -98,7 +98,7 @@ class TestWorkflowManager:
                 "duration": duration,
             }
 
-        except Exception as e:
+        except Exception:
             # Cancel warning task
             if not warning_handle.done():
                 warning_handle.cancel()

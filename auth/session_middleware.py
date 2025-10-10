@@ -52,7 +52,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         if jwt_token:
             print(f"✅ Extracted JWT token: {jwt_token[:30]}...")
         else:
-            print(f"❌ No JWT token found in request")
+            print("❌ No JWT token found in request")
 
         if jwt_token:
             # Decode JWT to get user info (AuthKit already validated it)
@@ -77,7 +77,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
                 # If still no user_id, log what we have and use role claim as fallback
                 if not user_id:
-                    print(f"⚠️  No standard user_id claim found")
+                    print("⚠️  No standard user_id claim found")
                     print(f"   Available claims: {list(decoded.keys())}")
                     print(f"   Full JWT: {decoded}")
 

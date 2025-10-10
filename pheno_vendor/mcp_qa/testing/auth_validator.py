@@ -35,8 +35,7 @@ Usage:
 import asyncio
 import time
 import httpx
-import jwt
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 from dataclasses import dataclass
 
@@ -449,10 +448,10 @@ class AuthValidator:
         if self.verbose:
             if all_passed:
                 print("")
-                print(f"✅ Auth validation complete - Ready for test execution")
+                print("✅ Auth validation complete - Ready for test execution")
             else:
                 print("")
-                print(f"❌ Auth validation failed:")
+                print("❌ Auth validation failed:")
                 for check, result in checks.items():
                     if not result['success']:
                         print(f"   ✗ {check}: {result['message']}")

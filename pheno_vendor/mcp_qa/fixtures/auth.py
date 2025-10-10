@@ -11,7 +11,7 @@ Provides session-scoped OAuth authentication with:
 import asyncio
 import os
 import time
-from typing import Dict, Optional, Callable, AsyncGenerator
+from typing import Callable, AsyncGenerator
 import pytest
 
 try:
@@ -91,7 +91,7 @@ async def oauth_tokens(
         print(f"\n🔐 Session OAuth Authentication (provider: {provider})")
         print(f"   Email: {email}")
         print(f"   Endpoint: {endpoint}")
-        print(f"   Token caching: Enabled")
+        print("   Token caching: Enabled")
         print("   Status: Authenticating once per test session...\n")
 
         oauth_adapter = PlaywrightOAuthAdapter(email, password)
@@ -119,7 +119,7 @@ async def oauth_tokens(
                 token_type="Bearer",
             )
 
-            print(f"   ✅ Session OAuth complete! Tokens cached for all tests.")
+            print("   ✅ Session OAuth complete! Tokens cached for all tests.")
             print(f"   📦 Token expires: {time.ctime(tokens.expires_at)}\n")
 
             return tokens

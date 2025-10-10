@@ -6,8 +6,7 @@ without lock contention.
 """
 
 import asyncio
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastmcp import Client
 from fastmcp.client.auth import OAuth
@@ -70,7 +69,7 @@ class ParallelClientManager:
             return
 
         print(f"\n🔌 Creating {self.num_clients} independent MCP clients...")
-        print(f"   This enables TRUE parallel execution without lock contention")
+        print("   This enables TRUE parallel execution without lock contention")
 
         # Create first client with full OAuth
         print(f"\n   Client 1/{self.num_clients}: Authenticating (may take 10-30s)...")
@@ -81,7 +80,7 @@ class ParallelClientManager:
 
         self._clients.append(first_client)
         await self._available.put(first_client)
-        print(f"   ✅ Client 1 authenticated")
+        print("   ✅ Client 1 authenticated")
 
         # Now token is cached - remaining clients are instant!
         print(f"\n   Creating clients 2-{self.num_clients} (using cached token)...")
@@ -105,7 +104,7 @@ class ParallelClientManager:
                     print(f"   Created {i}/{self.num_clients} clients...")
 
         print(f"\n✅ Client pool ready: {len(self._clients)} independent authenticated clients")
-        print(f"   Each client has its own session - NO lock contention!")
+        print("   Each client has its own session - NO lock contention!")
 
         self._initialized = True
 
@@ -154,7 +153,7 @@ class ParallelClientManager:
             client = await asyncio.wait_for(self._available.get(), timeout=timeout)
             return client
         except asyncio.TimeoutError:
-            print(f"⚠️  Timeout acquiring client (pool exhausted)")
+            print("⚠️  Timeout acquiring client (pool exhausted)")
             return None
 
     async def release(self, client: Client):
@@ -172,7 +171,7 @@ class ParallelClientManager:
                 print(f"   ⚠️  Error closing client: {e}")
 
         self._clients.clear()
-        print(f"✅ All clients closed")
+        print("✅ All clients closed")
 
     def get_stats(self) -> Dict[str, int]:
         """Get pool statistics."""

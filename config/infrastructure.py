@@ -11,7 +11,6 @@ This module provides factory functions for creating infrastructure components:
 - Rate Limiting: Token bucket rate limiter (from pheno-sdk/observability-kit)
 """
 
-import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -34,7 +33,7 @@ if _authkit_client_path.exists():
 
 # Import from pheno-sdk
 from db_kit import SupabaseAdapter, SupabaseStorageAdapter, SupabaseRealtimeAdapter
-from adapters import DatabaseAdapter, AuthAdapter, StorageAdapter, RealtimeAdapter
+from adapters import DatabaseAdapter, StorageAdapter, RealtimeAdapter
 from observability.rate_limiting import TokenBucketRateLimiter
 
 # Import Atoms-specific auth implementation (not in pheno-sdk)

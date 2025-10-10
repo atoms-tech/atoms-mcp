@@ -4,7 +4,7 @@ Dashboard Factory for Creating Test Dashboards
 Provides factory methods for easy dashboard creation.
 """
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Type
 from ..base.dashboard_base import BaseDashboard
 
 

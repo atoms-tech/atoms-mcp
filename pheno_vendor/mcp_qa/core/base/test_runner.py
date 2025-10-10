@@ -205,13 +205,13 @@ class BaseTestRunner(ABC):
             # Initialize response cache
             self.response_cache = self._cache_class(max_size=1000, default_ttl=60)
 
-            print(f"✅ Performance optimizations active")
+            print("✅ Performance optimizations active")
             print(f"   Connection pool: {self.parallel_workers}-{self.parallel_workers * 2} clients")
-            print(f"   Response cache: LRU (1000 entries, 60s TTL)")
+            print("   Response cache: LRU (1000 entries, 60s TTL)")
 
         except Exception as e:
             print(f"⚠️  Connection pool initialization failed: {e}")
-            print(f"   Falling back to single client (will be slower)")
+            print("   Falling back to single client (will be slower)")
     
     def _extract_base_url(self) -> str:
         """Extract base URL from client (overridable by projects)."""
@@ -424,8 +424,8 @@ class BaseTestRunner(ABC):
 
                             # Check if it's a lock error or connection issue
                             if "not holding this lock" in error_msg or "RuntimeError" in str(type(result)) or "530" in error_msg or "502" in error_msg:
-                                print(f"\n⚠️  Connection/lock issue detected in worker")
-                                print(f"   Treating as connection loss - cache invalidated")
+                                print("\n⚠️  Connection/lock issue detected in worker")
+                                print("   Treating as connection loss - cache invalidated")
 
                                 # Clear cache
                                 if self.cache_instance:

@@ -221,7 +221,7 @@ def kill_processes_on_port(port: int, timeout: float = 5.0) -> bool:
                         logger.error(f"Could not kill process {conn.pid}: {e}")
     except psutil.AccessDenied:
         # Can't get connections without sudo on some systems - try alternative
-        logger.debug(f"Access denied checking connections, trying lsof")
+        logger.debug("Access denied checking connections, trying lsof")
         killed = _kill_via_lsof(port)
     except Exception as e:
         logger.error(f"Error checking port {port}: {e}")

@@ -4,7 +4,7 @@ Main CLIBuilder class for building CLI applications.
 Provides a unified interface for creating CLIs that can target multiple backends.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from cli_builder.core.command import Command, Argument, Option, ArgumentType
 
 

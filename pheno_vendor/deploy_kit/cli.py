@@ -14,7 +14,6 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from deploy_kit.vendor import PhenoVendor
-from deploy_kit.config import DeployConfig
 from deploy_kit.utils import PlatformDetector, BuildHookGenerator
 from deploy_kit.checks import check_freshness
 from deploy_kit.startup import check_vendor_on_startup

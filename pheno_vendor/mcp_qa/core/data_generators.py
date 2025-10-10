@@ -44,7 +44,7 @@ class DataGenerator:
         return {
             "name": name or f"Test Org {unique_slug}",
             "slug": unique_slug,  # Just the unique slug, must match ^[a-z][a-z0-9-]*$
-            "description": f"Automated test organization",
+            "description": "Automated test organization",
             "type": "team",
         }
 
@@ -65,7 +65,7 @@ class DataGenerator:
         data = {
             "name": name or f"Test Project {unique_slug}",
             "slug": f"testproject-{unique_slug}",
-            "description": f"Automated test project",
+            "description": "Automated test project",
         }
         # Only include organization_id if provided (let caller handle it)
         if organization_id:
@@ -89,7 +89,7 @@ class DataGenerator:
         data = {
             "name": name or f"Test Document {unique_slug}",
             "slug": f"testdocument-{unique_slug}",
-            "description": f"Automated test document",
+            "description": "Automated test document",
         }
         # Only include project_id if provided (let caller handle it)
         if project_id:

@@ -50,7 +50,7 @@ class ConfigManager:
             raise FileNotFoundError(f"Config file not found: {file_path}")
 
         if path.suffix == '.json':
-            with open(path, 'r') as f:
+            with open(path) as f:
                 data = json.load(f)
         elif path.suffix in {'.yaml', '.yml'}:
             data = self._load_yaml(path)
@@ -64,11 +64,11 @@ class ConfigManager:
         """Load YAML file (fallback to JSON-style if PyYAML not available)."""
         try:
             import yaml
-            with open(path, 'r') as f:
+            with open(path) as f:
                 return yaml.safe_load(f) or {}
         except ImportError:
             # Fallback: try to load as JSON
-            with open(path, 'r') as f:
+            with open(path) as f:
                 return json.load(f)
 
     def load_from_env(self, prefix: str = '', separator: str = '__') -> 'ConfigManager':

@@ -1,7 +1,7 @@
 """Tool-specific fixtures for granular testing of individual MCP tools."""
 
 import pytest
-from typing import Dict, Any, Callable, AsyncGenerator
+from typing import Dict, Any, Callable
 from ..framework.auth_session import AuthenticatedHTTPClient
 
 

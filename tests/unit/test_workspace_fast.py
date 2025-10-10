@@ -8,7 +8,6 @@ RLS policies, and schema constraints.
 Run with: pytest tests/unit/test_workspace_fast.py -v
 """
 
-from datetime import datetime
 import pytest
 
 
@@ -433,7 +432,7 @@ async def test_set_context_invalid_type(authenticated_client):
 
     # This should fail
     assert not result["success"], \
-        f"Expected set_context to fail with invalid type 'invalid_type', but it succeeded"
+        "Expected set_context to fail with invalid type 'invalid_type', but it succeeded"
 
     # Check for appropriate error message
     error = result.get("error", result.get("message", ""))

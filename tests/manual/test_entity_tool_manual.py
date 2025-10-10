@@ -6,13 +6,12 @@ Run with: python test_entity_tool_manual.py
 """
 
 import os
-import sys
 import json
 import uuid
 import asyncio
 import httpx
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 # Configuration
 MCP_BASE_URL = os.getenv("ATOMS_FASTMCP_BASE_URL", "http://127.0.0.1:8000")
@@ -50,7 +49,7 @@ class EntityToolTester:
             raise ValueError("Could not obtain Supabase JWT")
 
         self.auth_token = session.access_token
-        print(f"✅ Authenticated successfully")
+        print("✅ Authenticated successfully")
 
     async def call_entity_tool(self, operation: str, entity_type: str, **kwargs) -> Dict[str, Any]:
         """Call entity_tool via MCP HTTP interface."""
@@ -150,7 +149,7 @@ class EntityToolTester:
 
         self.record_result("create", "test_entity", success, response, notes)
 
-        print(f"\nResponse Structure:")
+        print("\nResponse Structure:")
         print(json.dumps(response, indent=2, default=str))
 
         return response
@@ -174,7 +173,7 @@ class EntityToolTester:
 
         self.record_result("read", "test_entity", success, response, notes)
 
-        print(f"\nResponse Structure:")
+        print("\nResponse Structure:")
         print(json.dumps(response, indent=2, default=str))
 
         # Test with relations
@@ -212,7 +211,7 @@ class EntityToolTester:
 
         self.record_result("list", "test_entity", success, response, notes)
 
-        print(f"\nResponse Structure:")
+        print("\nResponse Structure:")
         print(f"Count: {count}")
         if count > 0:
             print(f"Sample entity keys: {list(response['data'][0].keys())}")
@@ -287,7 +286,7 @@ class EntityToolTester:
 
         self.record_result("update", "test_entity", success, response, notes)
 
-        print(f"\nResponse Structure:")
+        print("\nResponse Structure:")
         print(json.dumps(response, indent=2, default=str))
 
         return response
@@ -311,7 +310,7 @@ class EntityToolTester:
 
         self.record_result("delete_soft", "test_entity", success, response, notes)
 
-        print(f"\nResponse Structure:")
+        print("\nResponse Structure:")
         print(json.dumps(response, indent=2, default=str))
 
         return response
@@ -367,13 +366,13 @@ class EntityToolTester:
         passed = sum(1 for r in self.results if r["success"])
         failed = total - passed
 
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  Total Tests: {total}")
         print(f"  Passed: {passed} ✅")
         print(f"  Failed: {failed} ❌")
         print(f"  Pass Rate: {(passed/total*100) if total > 0 else 0:.1f}%")
 
-        print(f"\n\nDetailed Results:")
+        print("\n\nDetailed Results:")
         print("-" * 80)
 
         for result in self.results:

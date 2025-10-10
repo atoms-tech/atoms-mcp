@@ -4,11 +4,11 @@ Token caching and encrypted storage.
 Provides secure token storage with optional encryption.
 """
 
-from typing import Optional, Dict, Any
 import json
 import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -308,14 +308,14 @@ class EncryptedTokenStorage:
             return {}
 
         try:
-            with open(self.storage_path, 'r') as f:
+            with open(self.storage_path) as f:
                 data = f.read()
 
             # Decrypt if needed
             data = self._decrypt(data)
 
             return json.loads(data)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {}
 
     def _save_all(self, tokens: Dict[str, Dict[str, Any]]) -> None:

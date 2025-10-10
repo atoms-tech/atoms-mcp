@@ -8,7 +8,6 @@ for all tests with the same progress bars and interactive dashboard.
 import asyncio
 import os
 import sys
-from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 # Your existing TUI imports
@@ -70,11 +69,11 @@ class TDDTestRunner:
         
         This maintains your existing TUI experience while using session OAuth.
         """
-        print(f"\n🚀 TDD Test Runner Starting")
+        print("\n🚀 TDD Test Runner Starting")
         print(f"   Endpoint: {self.endpoint}")
         print(f"   Provider: {self.provider}")
         print(f"   TUI Mode: {'Enabled' if self.use_tui else 'Disabled'}")
-        print(f"   Session OAuth: Enabled (50× faster!)\n")
+        print("   Session OAuth: Enabled (50× faster!)\n")
         
         # Initialize session OAuth broker
         broker = get_session_oauth_broker()
@@ -138,7 +137,7 @@ class TDDTestRunner:
                     print(f"   ❌ Failed to load: {module_name} - {e}")
         
         # Run tests
-        print(f"🧪 Running tests...")
+        print("🧪 Running tests...")
         if selected_tests:
             print(f"   🎯 Selected tests: {selected_tests}")
         if categories:
@@ -146,7 +145,7 @@ class TDDTestRunner:
         
         result = await runner.run_all(categories=categories)
         
-        print(f"\n📈 Test Results Summary:")
+        print("\n📈 Test Results Summary:")
         print(f"   Total: {result.get('total', 0)}")
         print(f"   Passed: {result.get('passed', 0)}")
         print(f"   Failed: {result.get('failed', 0)}")
@@ -166,7 +165,6 @@ class TDDTestRunner:
         print("🔧 Using pytest with session OAuth fixtures...")
         
         import subprocess
-        import json
         
         # Build pytest command
         cmd = ["python", "-m", "pytest"]
@@ -219,7 +217,7 @@ class TDDTestRunner:
             print("❌ TUI not available. Install with: pip install textual rich")
             return
         
-        print(f"🎨 Starting TUI Dashboard with Session OAuth...")
+        print("🎨 Starting TUI Dashboard with Session OAuth...")
         
         # Get OAuth broker for TUI integration
         broker = get_session_oauth_broker()
@@ -304,14 +302,14 @@ Usage:
     try:
         if use_tui:
             # Run TUI dashboard with smart defaults
-            print(f"🎨 Starting TUI Dashboard...")
+            print("🎨 Starting TUI Dashboard...")
             runner.run_tui_dashboard(
                 test_modules=None,  # Auto-detect from test directory
                 enable_live_reload=True,
             )
         else:
             # Run tests programmatically with smart defaults
-            print(f"🔧 Running tests in console mode...")
+            print("🔧 Running tests in console mode...")
             result = asyncio.run(runner.run_with_session_oauth(
                 test_modules=None,     # Auto-detect
                 selected_tests=selected_tests,

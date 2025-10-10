@@ -45,10 +45,10 @@ def run_sql_file(client, sql_file: str) -> None:
         if 'check' in sql_file:
             try:
                 result = client.table('mcp_sessions').select('*').limit(1).execute()
-                print(f"✅ mcp_sessions table exists (found via query)")
+                print("✅ mcp_sessions table exists (found via query)")
                 return
             except:
-                print(f"⚠️  mcp_sessions table does not exist yet")
+                print("⚠️  mcp_sessions table does not exist yet")
                 return
 
         print(f"❌ Error executing {sql_file}: {e}")

@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from utils.logging_setup import get_logger
-from typing import Dict, List, Optional, Any, NamedTuple
-from datetime import datetime
+from typing import Dict, List, Optional, Any
 
 from supabase import Client
 
 from .embedding_factory import get_embedding_service
 from .progressive_embedding import ProgressiveEmbeddingService
-from .vector_search import SearchResult, SearchResponse
+from .vector_search import SearchResponse
 
 logger = get_logger(__name__)
 

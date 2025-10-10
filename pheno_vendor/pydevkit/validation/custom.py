@@ -1,7 +1,7 @@
 """Custom validator framework."""
 
-from typing import Any, Callable, List, Optional
 from dataclasses import dataclass
+from typing import Any, Callable, List
 
 
 @dataclass

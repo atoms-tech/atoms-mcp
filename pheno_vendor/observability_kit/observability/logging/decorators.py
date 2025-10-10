@@ -6,7 +6,6 @@ automatic performance tracking and error logging.
 
 import asyncio
 import functools
-import logging
 import time
 from typing import Any, Callable, Optional, TypeVar, cast
 

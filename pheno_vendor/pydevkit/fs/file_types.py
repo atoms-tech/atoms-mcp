@@ -6,7 +6,6 @@ and token estimation for various file types.
 
 from pathlib import Path
 
-
 # Programming language file extensions - core code files
 PROGRAMMING_LANGUAGES = {
     ".py",  # Python

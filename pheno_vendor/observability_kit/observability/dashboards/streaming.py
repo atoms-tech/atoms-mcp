@@ -8,7 +8,7 @@ Requires websockets package (optional dependency).
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 try:
     import websockets

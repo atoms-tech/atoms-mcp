@@ -5,9 +5,7 @@ Following FastMCP documentation: https://docs.fastmcp.com/deployment/self-hosted
 """
 
 from __future__ import annotations
-import os
 import anyio
-from contextlib import asynccontextmanager
 from starlette.responses import JSONResponse
 
 # Setup structured logging before other imports
@@ -67,7 +65,6 @@ app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 byt
 
 # Patch the StreamableHTTPSessionManager directly
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
-import inspect
 
 # Store the original handle_request method
 _original_handle_request = StreamableHTTPSessionManager.handle_request

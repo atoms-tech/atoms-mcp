@@ -1,9 +1,9 @@
 """JWT utilities (zero-dependency implementation)."""
 
-import json
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
+import json
 import time
 from typing import Any, Dict, Optional
 

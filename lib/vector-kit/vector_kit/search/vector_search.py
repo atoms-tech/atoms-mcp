@@ -282,7 +282,6 @@ class VectorSearchService:
                     all_results.append(result)
 
             except Exception as e:
-                import logging
                 logger = get_logger(__name__)
                 logger.error(f"❌ Keyword search failed for {entity_type}: {e}")
                 print(f"❌ Keyword search error [{entity_type}]: {e}")

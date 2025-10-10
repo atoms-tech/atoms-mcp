@@ -10,7 +10,6 @@ Based on test_relationship_comprehensive.py but optimized for FastHTTPClient.
 Run with: pytest tests/unit/test_relationship_fast.py -v
 """
 
-from datetime import datetime
 import pytest
 
 

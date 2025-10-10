@@ -1,6 +1,6 @@
 """Date/time formatting utilities."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
 

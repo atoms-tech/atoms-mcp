@@ -136,7 +136,7 @@ class DataGenerator:
         unique = DataGenerator.unique_id()
         data = {
             "name": name or f"REQ-TEST-{unique}",
-            "description": f"Automated test requirement",
+            "description": "Automated test requirement",
             "priority": "medium",
             "status": "active",
         }

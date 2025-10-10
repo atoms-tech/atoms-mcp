@@ -14,9 +14,9 @@ Usage:
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Mapping, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, Mapping, Optional, Type, TypeVar, Union
 
 from mcp_qa.utils.logging_utils import get_logger
 

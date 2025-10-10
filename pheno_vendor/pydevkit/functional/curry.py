@@ -1,7 +1,8 @@
 """Currying and partial application."""
 
-from typing import Callable, Any
-from functools import partial as _partial, wraps
+from functools import partial as _partial
+from functools import wraps
+from typing import Callable
 
 
 def curry(func: Callable, arity: int = None) -> Callable:

@@ -23,7 +23,6 @@ Usage:
     context = await state_mgr.get_worker_context(browser, worker_id)
 """
 
-import asyncio
 import json
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta

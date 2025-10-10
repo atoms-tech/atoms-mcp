@@ -6,10 +6,9 @@ Replaces scripts/vendor-pheno-sdk.sh with a proper Python library.
 """
 
 import shutil
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional, Tuple
 
 # Package configuration
 PACKAGES = [
@@ -53,7 +52,7 @@ class VendorManager:
         """Check if pheno-sdk exists."""
         if not self.pheno_sdk_root.exists():
             print(f"❌ Pheno-SDK not found at: {self.pheno_sdk_root}")
-            print(f"   Set PHENO_SDK_ROOT environment variable or ensure pheno-sdk is in expected location")
+            print("   Set PHENO_SDK_ROOT environment variable or ensure pheno-sdk is in expected location")
             return False
         print(f"✅ Pheno-SDK found at: {self.pheno_sdk_root}")
         return True
@@ -61,13 +60,13 @@ class VendorManager:
     def clean_vendor(self) -> None:
         """Remove existing vendor directory."""
         if self.vendor_dir.exists():
-            print(f"🧹 Cleaning existing vendor directory...")
+            print("🧹 Cleaning existing vendor directory...")
             shutil.rmtree(self.vendor_dir)
-            print(f"✅ Vendor directory cleaned")
+            print("✅ Vendor directory cleaned")
 
     def create_vendor_structure(self) -> None:
         """Create vendor directory with __init__.py."""
-        print(f"📁 Creating vendor directory structure...")
+        print("📁 Creating vendor directory structure...")
         self.vendor_dir.mkdir(parents=True, exist_ok=True)
 
         init_file = self.vendor_dir / "__init__.py"
@@ -80,7 +79,7 @@ dependency on relative paths in production environments.
 
 __version__ = "1.0.0"
 ''')
-        print(f"✅ Vendor structure created")
+        print("✅ Vendor structure created")
 
     def copy_package(self, pkg_dir: str) -> bool:
         """Copy a single package to vendor directory."""
@@ -149,10 +148,10 @@ __version__ = "1.0.0"
             kinfra_source = real_kinfra / "libraries" / "python"
 
         if not kinfra_source.exists():
-            print(f"⚠️  KInfra not found (skipping)")
+            print("⚠️  KInfra not found (skipping)")
             return False
 
-        print(f"📦 Vendoring KInfra...")
+        print("📦 Vendoring KInfra...")
 
         kinfra_dest.mkdir(parents=True, exist_ok=True)
 
@@ -174,7 +173,7 @@ __version__ = "1.0.0"
 
         self._cleanup_package(kinfra_dest)
 
-        print(f"✅ Vendored KInfra")
+        print("✅ Vendored KInfra")
         return True
 
     def _cleanup_package(self, package_path: Path) -> None:
@@ -200,13 +199,13 @@ __version__ = "1.0.0"
 
     def create_requirements_prod(self) -> None:
         """Generate requirements-prod.txt without editable installs."""
-        print(f"📝 Creating requirements-prod.txt...")
+        print("📝 Creating requirements-prod.txt...")
 
         req_file = self.project_root / "requirements-prod.txt"
         dev_req = self.project_root / "requirements.txt"
 
         if not dev_req.exists():
-            print(f"❌ requirements.txt not found")
+            print("❌ requirements.txt not found")
             return
 
         header = """# ============================================================================
@@ -230,11 +229,11 @@ __version__ = "1.0.0"
             f.write(header)
             f.writelines(lines)
 
-        print(f"✅ Created requirements-prod.txt")
+        print("✅ Created requirements-prod.txt")
 
     def create_sitecustomize(self) -> None:
         """Create sitecustomize.py to add vendor path."""
-        print(f"📝 Creating sitecustomize.py...")
+        print("📝 Creating sitecustomize.py...")
 
         sitecustomize = self.project_root / "sitecustomize.py"
         sitecustomize.write_text('''"""
@@ -249,11 +248,11 @@ if vendor_path.exists() and str(vendor_path) not in sys.path:
     sys.path.insert(0, str(vendor_path))
 ''')
 
-        print(f"✅ Created sitecustomize.py")
+        print("✅ Created sitecustomize.py")
 
     def verify_vendored_packages(self) -> Tuple[int, int]:
         """Verify vendored packages have Python files."""
-        print(f"🔍 Verifying vendored packages...")
+        print("🔍 Verifying vendored packages...")
 
         success_count = 0
         error_count = 0
@@ -279,7 +278,7 @@ if vendor_path.exists() and str(vendor_path) not in sys.path:
         if kinfra_path.exists():
             py_files = list(kinfra_path.rglob("*.py"))
             if not py_files:
-                print(f"❌ No Python files found in kinfra")
+                print("❌ No Python files found in kinfra")
                 error_count += 1
             else:
                 print(f"✅ Verified kinfra ({len(py_files)} Python files)")
@@ -289,11 +288,11 @@ if vendor_path.exists() and str(vendor_path) not in sys.path:
 
     def generate_manifest(self) -> None:
         """Generate manifest file with package info."""
-        print(f"📋 Generating VENDOR_MANIFEST.txt...")
+        print("📋 Generating VENDOR_MANIFEST.txt...")
 
         manifest = self.vendor_dir / "VENDOR_MANIFEST.txt"
         lines = [
-            f"Pheno-SDK Vendored Packages Manifest (Atoms MCP)",
+            "Pheno-SDK Vendored Packages Manifest (Atoms MCP)",
             f"Generated: {datetime.now()}",
             f"Source: {self.pheno_sdk_root}",
             "",
@@ -323,7 +322,7 @@ if vendor_path.exists() and str(vendor_path) not in sys.path:
         lines.append(f"Total size: {total_mb:.2f} MB")
 
         manifest.write_text("\n".join(lines))
-        print(f"✅ Generated manifest")
+        print("✅ Generated manifest")
 
     def vendor_all(self, clean: bool = False) -> bool:
         """Vendor all packages."""

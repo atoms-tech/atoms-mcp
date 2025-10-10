@@ -273,7 +273,7 @@ class TyperBackend(BaseBackend):
                 code += ")"
             else:
                 # Regular option
-                code += f'typer.Option('
+                code += 'typer.Option('
                 if opt.default is not None:
                     code += repr(opt.default)
                 else:
@@ -301,7 +301,7 @@ class TyperBackend(BaseBackend):
         else:
             # This is an argument
             arg = param  # type: ignore
-            code += f'typer.Argument('
+            code += 'typer.Argument('
 
             if not arg.required and arg.default is not None:
                 code += repr(arg.default)

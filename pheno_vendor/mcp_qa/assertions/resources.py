@@ -1,6 +1,6 @@
 """Resource-specific assertions for MCP testing."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 
 def assert_resource_available(resource_uri: str, mcp_client):
@@ -28,4 +28,4 @@ def assert_resource_schema(resource: Dict[str, Any], schema: Dict[str, type]):
 def assert_resource_content(resource: Dict[str, Any], expected_content: str):
     """Assert resource content matches expected."""
     content = resource.get("content", "")
-    assert expected_content in content, f"Expected content not found"
+    assert expected_content in content, "Expected content not found"

@@ -20,7 +20,6 @@ import uuid
 import asyncio
 import statistics
 from typing import Any, Dict, List, Tuple
-from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -423,7 +422,7 @@ class TestLoadPerformance:
         durations = await asyncio.gather(*[read_org() for _ in range(50)])
         total_duration = time.time() - start_time
 
-        print(f"  50 concurrent reads:")
+        print("  50 concurrent reads:")
         print(f"    Total time:   {total_duration:.3f}s")
         print(f"    Avg per read: {statistics.mean(durations):.3f}s")
         print(f"    Min:          {min(durations):.3f}s")
@@ -466,7 +465,7 @@ class TestLoadPerformance:
         durations = [r[0] for r in results]
         successes = sum(1 for r in results if r[1])
 
-        print(f"  20 concurrent creates:")
+        print("  20 concurrent creates:")
         print(f"    Total time:    {total_duration:.3f}s")
         print(f"    Successes:     {successes}/20")
         print(f"    Avg per create: {statistics.mean(durations):.3f}s")

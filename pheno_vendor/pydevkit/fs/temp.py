@@ -1,10 +1,9 @@
 """Temporary file utilities."""
 
-import tempfile
 import os
-from pathlib import Path
-from typing import Optional, Generator, Any
+import tempfile
 from contextlib import contextmanager
+from typing import Any, Generator, Optional
 
 
 class TempFile:

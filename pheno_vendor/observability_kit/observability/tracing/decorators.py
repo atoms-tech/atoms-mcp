@@ -104,7 +104,7 @@ def trace_function(
 
                     return result
 
-                except Exception as e:
+                except Exception:
                     # Exception is automatically recorded by span manager
                     raise
 
@@ -179,7 +179,7 @@ def trace_async(
 
                     return result
 
-                except Exception as e:
+                except Exception:
                     # Exception is automatically recorded by span manager
                     raise
 

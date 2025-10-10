@@ -13,7 +13,6 @@ This plugin extends the generic MCPPytestPlugin base class with
 Atoms-specific tool name extraction logic.
 """
 
-import pytest
 
 try:
     from mcp_qa.execution.pytest_plugin import MCPPytestPlugin, create_pytest_addoption

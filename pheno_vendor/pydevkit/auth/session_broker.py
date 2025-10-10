@@ -4,11 +4,9 @@ OAuth session broker for managing authentication flows.
 Provides a simple OAuth token management system without external dependencies.
 """
 
-from typing import Optional, Dict, Any, Callable
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
 import time
-import json
+from dataclasses import asdict, dataclass
+from typing import Any, Callable, Dict, Optional
 
 
 @dataclass

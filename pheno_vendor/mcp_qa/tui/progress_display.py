@@ -4,7 +4,7 @@ Enhanced Progress Display with Rich Metrics
 Single comprehensive progress bar with detailed line-item metrics.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 try:
     from rich.console import Console, Group

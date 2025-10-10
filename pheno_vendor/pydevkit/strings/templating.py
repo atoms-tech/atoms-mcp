@@ -1,7 +1,7 @@
 """Simple string templating."""
 
 import re
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 class Template:

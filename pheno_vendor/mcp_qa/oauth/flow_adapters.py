@@ -16,7 +16,7 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Dict, Any, Callable, Awaitable
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 from mcp_qa.logging import get_logger
@@ -24,7 +24,7 @@ from mcp_qa.logging import get_logger
 # Import for type hints only (avoid circular import)
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from mcp_qa.oauth.granular_progress import GranularOAuthProgress, OAuthSteps
+    from mcp_qa.oauth.granular_progress import GranularOAuthProgress
 
 
 class InvalidCredentialsError(Exception):

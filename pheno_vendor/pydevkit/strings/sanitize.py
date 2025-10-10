@@ -1,7 +1,7 @@
 """String sanitization utilities."""
 
-import re
 import html as html_module
+import re
 from typing import Set
 
 

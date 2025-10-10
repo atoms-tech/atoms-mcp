@@ -2,8 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, TypeVar, Union
-
+from typing import Dict, Optional, TypeVar, Union
 
 T = TypeVar('T')
 
@@ -203,7 +202,7 @@ def load_env_file(file_path: Union[str, Path], override: bool = True) -> Dict[st
 
     loaded = {}
 
-    with open(path, 'r') as f:
+    with open(path) as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
 

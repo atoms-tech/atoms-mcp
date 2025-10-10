@@ -4,10 +4,8 @@ Vector search and embedding configuration for Atoms MCP.
 Creates and configures vector search components using pheno-sdk/vector-kit.
 """
 
-import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Add pheno-sdk to path
 _repo_root = Path(__file__).resolve().parents[2]
@@ -18,7 +16,6 @@ if _vector_kit_path.exists():
 
 # Import from pheno-sdk/vector-kit
 from vector_kit.providers.factory import get_embedding_service as _get_embedding_service
-from vector_kit.providers.vertex import VertexAIEmbeddingService
 from vector_kit.search.vector_search import VectorSearchService
 from vector_kit.search.enhanced import EnhancedVectorSearchService
 from vector_kit.pipelines.progressive import ProgressiveEmbeddingService

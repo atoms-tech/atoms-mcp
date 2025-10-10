@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from ..framework.auth_session import AuthenticatedHTTPClient
 
 # Use pheno-sdk authkit-client (required)
-from authkit_client import AuthKitClient, OAuthFlow, OAuthConfig, Session
+from authkit_client import AuthKitClient, OAuthFlow, OAuthConfig
 
 
 @pytest.fixture(params=["authkit", "github", "google"])

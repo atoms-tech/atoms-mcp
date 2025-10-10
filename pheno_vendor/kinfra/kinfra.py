@@ -9,10 +9,9 @@ import atexit
 import logging
 import os
 import signal
-import time
 from typing import Any, Dict, Iterable, Optional
 
-from .exceptions import KInfraError, PortAllocationError, TunnelError
+from .exceptions import PortAllocationError, TunnelError
 from .port_registry import PortRegistry, ServiceInfo
 from .smart_allocator import SmartPortAllocator
 from .tunnel_sync import TunnelInfo, TunnelManager

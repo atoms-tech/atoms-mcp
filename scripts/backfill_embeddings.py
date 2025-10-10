@@ -26,12 +26,9 @@ import os
 import sys
 import argparse
 import warnings
-from utils.logging_setup import get_logger
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from datetime import datetime
 from tqdm.asyncio import tqdm
-from concurrent.futures import ThreadPoolExecutor
 
 # Suppress warnings
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -331,7 +328,7 @@ class EmbeddingBackfiller:
 
         # Show error details if any failures occurred
         if stats['failed'] > 0 and stats.get('errors'):
-            print(f"\n⚠️  Error Details:")
+            print("\n⚠️  Error Details:")
             for i, error in enumerate(stats['errors'][:5], 1):  # Show first 5 errors
                 print(f"  {i}. {error['name'][:40]}: {error['error'][:60]}")
             if len(stats['errors']) > 5:

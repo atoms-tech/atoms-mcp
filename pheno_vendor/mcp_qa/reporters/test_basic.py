@@ -213,7 +213,6 @@ def test_multi_reporter():
     print("\nTesting MultiReporter...")
     try:
         from mcp_qa.reporters import MultiReporter, ConsoleReporter
-        import tempfile
 
         # Use console reporter only to avoid file creation
         reporter = MultiReporter([

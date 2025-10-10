@@ -12,7 +12,7 @@ Usage:
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime, timedelta
 
 # Add parent directory to path
@@ -69,9 +69,9 @@ class EmbeddingStatusChecker:
 
         if total_missing > 0:
             print(f"\n⚠️  {total_missing:,} entities need embeddings")
-            print(f"\nRun backfill: python scripts/backfill_embeddings.py")
+            print("\nRun backfill: python scripts/backfill_embeddings.py")
         else:
-            print(f"\n✅ All entities have embeddings!")
+            print("\n✅ All entities have embeddings!")
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -125,7 +125,7 @@ class EmbeddingStatusChecker:
                     .execute()
 
                 if recent_missing.data:
-                    print(f"\nRecent entities without embeddings:")
+                    print("\nRecent entities without embeddings:")
                     for entity in recent_missing.data:
                         name = entity.get('name', 'N/A')
                         created = entity.get('created_at', 'N/A')

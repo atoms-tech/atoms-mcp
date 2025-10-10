@@ -5,22 +5,19 @@ Provides intelligent tunnel lifecycle management with automatic configuration
 updates, health monitoring, and seamless port changes.
 """
 
-import asyncio
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import yaml
 
 from .exceptions import ConfigurationError, TunnelError
-from .port_registry import PortRegistry, ServiceInfo
+from .port_registry import PortRegistry
 from .utils.dns import dns_safe_slug
 from .utils.health import check_tunnel_health
 
@@ -727,7 +724,7 @@ class TunnelManager:
             for verify_record in verify_records.result:
                 if verify_record.name == hostname and verify_record.content == cname_target:
                     verified = True
-                    logger.info(f"✓ DNS record verified in Cloudflare")
+                    logger.info("✓ DNS record verified in Cloudflare")
                     break
 
             if not verified:
@@ -957,7 +954,7 @@ credentials-file: {creds_file}
 ingress:
 """
         for rule in ingress_rules:
-            config_content += f"  - "
+            config_content += "  - "
             if 'hostname' in rule:
                 config_content += f"hostname: {rule['hostname']}\n"
                 if 'path' in rule:

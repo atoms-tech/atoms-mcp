@@ -226,7 +226,7 @@ def cache_result(cache_instance: Optional["TestCache"] = None):  # type: ignore 
                     cache_instance.record(test_name, tool_name, status, duration)
 
                 return result
-            except Exception as e:
+            except Exception:
                 duration = time.time() - start
                 if cache_instance:
                     cache_instance.record(test_name, tool_name, "error", duration)

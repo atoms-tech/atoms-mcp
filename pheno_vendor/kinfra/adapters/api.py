@@ -6,10 +6,9 @@ Handles remote/cloud resources managed via HTTP APIs (RDS, Cloud SQL, SaaS, etc.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from .base import ResourceAdapter
-from ..utils.health import check_http_health
 
 try:
     import aiohttp

@@ -1,8 +1,8 @@
 """Hashing utilities for passwords and data."""
 
 import hashlib
-import secrets
 import hmac
+import secrets
 from typing import Optional
 
 

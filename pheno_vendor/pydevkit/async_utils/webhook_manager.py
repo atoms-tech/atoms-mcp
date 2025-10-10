@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional
 from uuid import uuid4
 
 try:
@@ -28,7 +28,7 @@ class WebhookStatus(Enum):
 @dataclass
 class WebhookDelivery:
     """Webhook delivery record."""
-    
+
     id: str = field(default_factory=lambda: str(uuid4()))
     url: str = ""
     payload: Dict[str, Any] = field(default_factory=dict)
@@ -40,7 +40,7 @@ class WebhookDelivery:
     last_error: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     delivered_at: Optional[datetime] = None
-    
+
     def should_retry(self) -> bool:
         """Check if should retry delivery."""
         return (
@@ -52,10 +52,10 @@ class WebhookDelivery:
 
 class WebhookSigner:
     """HMAC signature generator for webhooks."""
-    
+
     def __init__(self, secret: str):
         self.secret = secret.encode()
-    
+
     def sign(self, payload: str) -> str:
         """Generate HMAC signature for payload."""
         signature = hmac.new(
@@ -64,7 +64,7 @@ class WebhookSigner:
             hashlib.sha256
         ).hexdigest()
         return f"sha256={signature}"
-    
+
     @staticmethod
     def verify(payload: str, signature: str, secret: str) -> bool:
         """Verify HMAC signature."""
@@ -75,7 +75,7 @@ class WebhookSigner:
 
 class RetryPolicy:
     """Retry policy for webhook delivery."""
-    
+
     def __init__(
         self,
         max_attempts: int = 3,
@@ -87,7 +87,7 @@ class RetryPolicy:
         self.initial_delay = initial_delay
         self.multiplier = multiplier
         self.max_delay = max_delay
-    
+
     def next_retry_time(self, attempt: int) -> datetime:
         """Calculate next retry time using exponential backoff."""
         delay = min(
@@ -130,7 +130,7 @@ class WebhookManager:
         # Process pending deliveries
         await manager.process_pending()
     """
-    
+
     def __init__(
         self,
         secret: Optional[str] = None,
@@ -139,39 +139,39 @@ class WebhookManager:
     ):
         if not HAS_HTTPX:
             raise ImportError("httpx is required for WebhookManager. Install with: pip install httpx")
-        
+
         self.secret = secret
         self.signer = WebhookSigner(secret) if secret else None
         self.retry_policy = retry_policy or RetryPolicy()
         self.timeout = timeout
-        
+
         self._deliveries: Dict[str, WebhookDelivery] = {}
         self._success_callbacks: List[Callable] = []
         self._failure_callbacks: List[Callable] = []
         self._http_client: Optional[httpx.AsyncClient] = None
-    
+
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._http_client is None:
             self._http_client = httpx.AsyncClient(timeout=self.timeout)
         return self._http_client
-    
+
     async def close(self):
         """Close HTTP client."""
         if self._http_client:
             await self._http_client.aclose()
             self._http_client = None
-    
+
     def on_success(self, callback: Callable[[WebhookDelivery], Any]):
         """Register success callback."""
         self._success_callbacks.append(callback)
         return callback
-    
+
     def on_failure(self, callback: Callable[[WebhookDelivery], Any]):
         """Register failure callback."""
         self._failure_callbacks.append(callback)
         return callback
-    
+
     async def deliver(
         self,
         url: str,
@@ -197,14 +197,14 @@ class WebhookManager:
             event_type=event_type,
             max_attempts=max_attempts or self.retry_policy.max_attempts,
         )
-        
+
         self._deliveries[delivery.id] = delivery
-        
+
         # Attempt immediate delivery
         await self._attempt_delivery(delivery)
-        
+
         return delivery.id
-    
+
     async def _attempt_delivery(self, delivery: WebhookDelivery) -> bool:
         """
         Attempt webhook delivery.
@@ -214,11 +214,11 @@ class WebhookManager:
         """
         delivery.attempts += 1
         delivery.status = WebhookStatus.RETRYING
-        
+
         try:
             # Prepare payload
             payload_str = json.dumps(delivery.payload)
-            
+
             # Prepare headers
             headers = {
                 "Content-Type": "application/json",
@@ -226,11 +226,11 @@ class WebhookManager:
                 "X-Webhook-ID": delivery.id,
                 "X-Webhook-Attempt": str(delivery.attempts),
             }
-            
+
             # Add signature if secret configured
             if self.signer:
                 headers["X-Webhook-Signature"] = self.signer.sign(payload_str)
-            
+
             # Send request
             client = await self._get_client()
             response = await client.post(
@@ -238,71 +238,71 @@ class WebhookManager:
                 content=payload_str,
                 headers=headers,
             )
-            
+
             # Check response
             if 200 <= response.status_code < 300:
                 delivery.status = WebhookStatus.DELIVERED
                 delivery.delivered_at = datetime.utcnow()
                 delivery.last_error = None
-                
+
                 # Trigger success callbacks
                 for callback in self._success_callbacks:
                     if asyncio.iscoroutinefunction(callback):
                         await callback(delivery)
                     else:
                         callback(delivery)
-                
+
                 return True
             else:
                 raise Exception(f"HTTP {response.status_code}: {response.text}")
-        
+
         except Exception as e:
             delivery.last_error = str(e)
-            
+
             # Schedule retry or mark as failed
             if delivery.attempts < delivery.max_attempts:
                 delivery.status = WebhookStatus.RETRYING
                 delivery.next_retry = self.retry_policy.next_retry_time(delivery.attempts)
             else:
                 delivery.status = WebhookStatus.FAILED
-                
+
                 # Trigger failure callbacks
                 for callback in self._failure_callbacks:
                     if asyncio.iscoroutinefunction(callback):
                         await callback(delivery)
                     else:
                         callback(delivery)
-            
+
             return False
-    
+
     async def process_pending(self):
         """Process all pending webhook deliveries."""
         pending = [
             d for d in self._deliveries.values()
             if d.should_retry()
         ]
-        
+
         tasks = [self._attempt_delivery(d) for d in pending]
         await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     def get_delivery(self, delivery_id: str) -> Optional[WebhookDelivery]:
         """Get delivery record by ID."""
         return self._deliveries.get(delivery_id)
-    
+
     def get_pending(self) -> List[WebhookDelivery]:
         """Get all pending deliveries."""
         return [
             d for d in self._deliveries.values()
             if d.status in (WebhookStatus.PENDING, WebhookStatus.RETRYING)
         ]
-    
+
     def get_failed(self) -> List[WebhookDelivery]:
         """Get all failed deliveries."""
         return [
             d for d in self._deliveries.values()
             if d.status == WebhookStatus.FAILED
         ]
-    
+
     def get_stats(self) -> Dict[str, int]:
         """Get delivery statistics."""
         return {
@@ -335,10 +335,10 @@ class WebhookReceiver:
             
             return {"status": "ok"}
     """
-    
+
     def __init__(self, secret: str):
         self.signer = WebhookSigner(secret)
-    
+
     def verify(self, payload: str, signature: str) -> bool:
         """Verify webhook signature."""
         return WebhookSigner.verify(payload, signature, self.signer.secret.decode())

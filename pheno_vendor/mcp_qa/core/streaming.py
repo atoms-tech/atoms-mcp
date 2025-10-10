@@ -10,13 +10,12 @@ Provides instant gratification with:
 - Separate display thread for instant feedback
 """
 
-import asyncio
 import threading
 import time
 from collections import deque
 from datetime import datetime
 from queue import Empty, PriorityQueue, Queue
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 try:
     from rich.console import Console, Group

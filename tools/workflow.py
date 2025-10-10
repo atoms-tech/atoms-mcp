@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 import asyncio
 from utils.logging_setup import get_logger
 

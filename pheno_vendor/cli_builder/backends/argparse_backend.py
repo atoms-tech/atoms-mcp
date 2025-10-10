@@ -113,7 +113,7 @@ class ArgparseBackend(BaseBackend):
     ) -> str:
         """Generate main function with argument parser."""
         code = "def main():\n"
-        code += f'    parser = argparse.ArgumentParser(\n'
+        code += '    parser = argparse.ArgumentParser(\n'
         code += f'        prog="{cli_name}",\n'
         code += f'        description="{help}",\n'
 
@@ -123,9 +123,9 @@ class ArgparseBackend(BaseBackend):
         code += '    )\n\n'
 
         # Add version
-        code += f'    parser.add_argument(\n'
-        code += f'        "--version",\n'
-        code += f'        action="version",\n'
+        code += '    parser.add_argument(\n'
+        code += '        "--version",\n'
+        code += '        action="version",\n'
         code += f'        version=f"{{parser.prog}} {version}"\n'
         code += '    )\n\n'
 

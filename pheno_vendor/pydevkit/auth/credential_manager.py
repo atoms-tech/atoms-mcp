@@ -4,11 +4,11 @@ Interactive credential management for OAuth flows.
 Provides utilities for prompting and securely storing OAuth credentials.
 """
 
-from typing import Optional, Dict, Any, Callable
-import os
-import json
 import getpass
+import json
+import os
 from pathlib import Path
+from typing import Callable, Dict, Optional
 
 
 class InteractiveCredentialManager:
@@ -133,9 +133,9 @@ class InteractiveCredentialManager:
             return {}
 
         try:
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file) as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return {}
 
     def save_credentials(self, credentials: Dict[str, str]) -> None:

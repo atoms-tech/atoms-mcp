@@ -15,7 +15,6 @@ from deploy_kit.base import (
 )
 from deploy_kit.platforms import (
     VercelDeploymentProvider,
-    VercelConfigProvider,
     HTTPHealthCheckProvider,
 )
 

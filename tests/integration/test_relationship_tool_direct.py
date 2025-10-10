@@ -13,7 +13,7 @@ import uuid
 import asyncio
 from typing import Any, Dict, Optional
 from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, patch
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -100,7 +100,7 @@ async def main():
         "offset": 0,
     }
 
-    print(f"Operation: list")
+    print("Operation: list")
     print(f"Parameters: {json.dumps({k: v for k, v in list_params.items() if k != 'auth_token'}, indent=2)}")
 
     # Mock the database calls
@@ -115,7 +115,7 @@ async def main():
             result = await relationship_operation(**list_params)
 
             if result.get("success"):
-                print(f"✅ List operation successful (empty state)")
+                print("✅ List operation successful (empty state)")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(
                     TestResult("list_empty", list_params, True, result)
@@ -149,7 +149,7 @@ async def main():
         },
     }
 
-    print(f"Operation: link")
+    print("Operation: link")
     print(f"Parameters: {json.dumps({k: v for k, v in link_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -173,7 +173,7 @@ async def main():
             result = await relationship_operation(**link_params)
 
             if result.get("success"):
-                print(f"✅ Link operation successful")
+                print("✅ Link operation successful")
                 print(f"Relationship ID: {result.get('data', {}).get('id')}")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(TestResult("link_create", link_params, True, result))
@@ -199,7 +199,7 @@ async def main():
         "target": {"type": "test", "id": test_test_id},
     }
 
-    print(f"Operation: check")
+    print("Operation: check")
     print(f"Parameters: {json.dumps({k: v for k, v in check_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -223,11 +223,11 @@ async def main():
             result = await relationship_operation(**check_params)
 
             if result.get("exists"):
-                print(f"✅ Check operation successful - relationship exists")
+                print("✅ Check operation successful - relationship exists")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(TestResult("check_exists", check_params, True, result))
             else:
-                print(f"❌ Check operation failed or relationship not found")
+                print("❌ Check operation failed or relationship not found")
                 test_results.append(
                     TestResult("check_exists", check_params, False, result, "Relationship not found")
                 )
@@ -253,7 +253,7 @@ async def main():
         },
     }
 
-    print(f"Operation: update")
+    print("Operation: update")
     print(f"Parameters: {json.dumps({k: v for k, v in update_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -277,7 +277,7 @@ async def main():
             result = await relationship_operation(**update_params)
 
             if result.get("success"):
-                print(f"✅ Update operation successful")
+                print("✅ Update operation successful")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(TestResult("update_relationship", update_params, True, result))
             else:
@@ -303,7 +303,7 @@ async def main():
         "limit": 10,
     }
 
-    print(f"Operation: list (with filters)")
+    print("Operation: list (with filters)")
     print(f"Parameters: {json.dumps({k: v for k, v in query_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -328,7 +328,7 @@ async def main():
             result = await relationship_operation(**query_params)
 
             if result.get("success"):
-                print(f"✅ Query with filters successful")
+                print("✅ Query with filters successful")
                 print(f"Found {len(result.get('data', []))} relationship(s)")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(TestResult("query_with_filters", query_params, True, result))
@@ -355,7 +355,7 @@ async def main():
         "soft_delete": True,
     }
 
-    print(f"Operation: unlink (soft delete)")
+    print("Operation: unlink (soft delete)")
     print(f"Parameters: {json.dumps({k: v for k, v in unlink_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -374,7 +374,7 @@ async def main():
             result = await relationship_operation(**unlink_params)
 
             if result.get("success"):
-                print(f"✅ Unlink operation successful")
+                print("✅ Unlink operation successful")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(TestResult("unlink_soft_delete", unlink_params, True, result))
             else:
@@ -400,7 +400,7 @@ async def main():
         "metadata": {"role": "admin", "status": "active"},
     }
 
-    print(f"Operation: link (member relationship)")
+    print("Operation: link (member relationship)")
     print(f"Parameters: {json.dumps({k: v for k, v in member_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -421,7 +421,7 @@ async def main():
             result = await relationship_operation(**member_params)
 
             if result.get("success"):
-                print(f"✅ Member link operation successful")
+                print("✅ Member link operation successful")
                 print(f"Response: {json.dumps(result, indent=2)}")
                 test_results.append(TestResult("link_member", member_params, True, result))
             else:
@@ -446,7 +446,7 @@ async def main():
         # Missing target
     }
 
-    print(f"Operation: link (missing target - should fail)")
+    print("Operation: link (missing target - should fail)")
     print(f"Parameters: {json.dumps({k: v for k, v in error_params.items() if k != 'auth_token'}, indent=2)}")
 
     with patch("tools.relationship.RelationshipManager._validate_auth", new_callable=AsyncMock) as mock_auth, \
@@ -458,11 +458,11 @@ async def main():
             result = await relationship_operation(**error_params)
 
             if not result.get("success"):
-                print(f"✅ Error handling successful - correctly rejected missing target")
+                print("✅ Error handling successful - correctly rejected missing target")
                 print(f"Error: {result.get('error')}")
                 test_results.append(TestResult("error_missing_target", error_params, True, result))
             else:
-                print(f"❌ Error handling failed - should have rejected missing target")
+                print("❌ Error handling failed - should have rejected missing target")
                 test_results.append(
                     TestResult("error_missing_target", error_params, False, result, "Should have failed")
                 )

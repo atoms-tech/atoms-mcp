@@ -1,8 +1,8 @@
 """HTTP header management utilities."""
 
-from typing import Dict, Optional, Any
 import platform
 import sys
+from typing import Any, Dict, Optional
 
 
 class HeaderManager:

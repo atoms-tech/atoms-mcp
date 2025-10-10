@@ -9,19 +9,19 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 # Optional Rich dependency
 try:  # pragma: no cover - optional dependency
     from rich.console import Console
+    from rich.panel import Panel
     from rich.progress import (
+        BarColumn,
         Progress,
         SpinnerColumn,
-        TextColumn,
-        BarColumn,
         TaskProgressColumn,
+        TextColumn,
     )
-    from rich.panel import Panel
     from rich.text import Text
 
     HAS_RICH = True

@@ -14,10 +14,10 @@ import json
 import logging
 import signal
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 from .service_manager import ServiceManager, ServiceConfig, ServiceStatus
 from .kinfra import KInfra

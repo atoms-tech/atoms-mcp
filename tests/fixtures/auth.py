@@ -1,8 +1,7 @@
 """Authentication fixtures for session-scoped OAuth and multi-provider testing."""
 
 import pytest
-import asyncio
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator
 from utils.logging_setup import get_logger
 
 from ..framework.auth_session import (
@@ -10,7 +9,6 @@ from ..framework.auth_session import (
     AuthCredentials,
     AuthenticatedHTTPClient,
     get_auth_broker,
-    get_authenticated_client,
 )
 
 logger = get_logger(__name__)

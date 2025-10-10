@@ -9,7 +9,6 @@ with comprehensive status monitoring widgets including:
 - Resource monitoring (DB, Redis, API limits, memory)
 """
 
-from pathlib import Path
 
 from .oauth_cache import CachedOAuthClient
 from .tui import run_tui_dashboard

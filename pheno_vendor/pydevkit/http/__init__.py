@@ -1,9 +1,9 @@
 """HTTP utilities module for PyDevKit."""
 
+from .auth import APIKeyAuth, BasicAuth, BearerAuth
 from .client import HTTPClient, Response
+from .headers import HeaderManager, add_user_agent, normalize_headers
 from .retries import RetryStrategy, exponential_backoff, with_retries
-from .headers import HeaderManager, normalize_headers, add_user_agent
-from .auth import BearerAuth, BasicAuth, APIKeyAuth
 
 __all__ = [
     "HTTPClient",

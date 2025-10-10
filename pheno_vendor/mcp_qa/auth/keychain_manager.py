@@ -13,7 +13,6 @@ Features:
 
 import platform
 import subprocess
-import sys
 from typing import Optional
 
 from mcp_qa.logging import get_logger

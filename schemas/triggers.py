@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 # OrganizationType is missing from generated (bug in sb-pydantic)
 # UserRoleType comes from generated
 from schemas.generated.fastapi.schema_public_latest import (

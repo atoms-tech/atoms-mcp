@@ -15,7 +15,6 @@ import asyncio
 import logging
 import threading
 import time
-import weakref
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field

@@ -1,6 +1,6 @@
 """Configuration validation utilities."""
 
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, Optional, Set, Type, Union
 
 
 class ValidationError(Exception):
@@ -183,7 +183,7 @@ class ConfigSchema:
             errors.append(f"Unknown fields: {', '.join(unknown)}")
 
         if errors:
-            raise ValidationError(f"Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+            raise ValidationError("Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
         return validated
 
@@ -215,7 +215,7 @@ class ConfigSchema:
                 errors.append(str(e))
 
         if errors:
-            raise ValidationError(f"Validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+            raise ValidationError("Validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
         return validated
 

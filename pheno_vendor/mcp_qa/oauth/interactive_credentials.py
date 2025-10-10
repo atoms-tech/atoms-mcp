@@ -6,12 +6,10 @@ Includes stubs for future MFA/VM simulator integration.
 """
 
 import os
-import sys
 import getpass
 import asyncio
 from pathlib import Path
 from typing import Dict, Optional, Any, List
-import re
 
 # For future MFA integration
 try:
@@ -135,7 +133,7 @@ class InteractiveCredentialManager:
         """Interactively prompt user for missing credentials."""
         
         print(f"\n🤔 I need to collect some credentials for {provider} OAuth.")
-        print(f"   This will be saved to your .env file for future use.")
+        print("   This will be saved to your .env file for future use.")
         
         # Ask for user consent
         consent = input(f"\n   Would you like to set up {provider} credentials now? (y/n): ").lower().strip()
@@ -169,33 +167,33 @@ class InteractiveCredentialManager:
         """Special handling for MFA/TOTP secrets with future VM integration."""
         
         print(f"\n🔐 MFA/TOTP Setup for {provider}")
-        print(f"   This is optional but recommended for automated testing.")
+        print("   This is optional but recommended for automated testing.")
         
         if not HAS_TOTP:
-            print(f"   ⚠️ pyotp not available. Install with: pip install pyotp")
+            print("   ⚠️ pyotp not available. Install with: pip install pyotp")
             return None
         
         # Future: Integrate with VM simulators for automated MFA
         if self.vm_simulators.get("sms_receiver"):
-            print(f"   🤖 SMS Receiver VM detected - can automate SMS-based MFA")
+            print("   🤖 SMS Receiver VM detected - can automate SMS-based MFA")
         
         if self.vm_simulators.get("phone_simulator"):
-            print(f"   📱 Phone Simulator detected - can handle phone-based auth")
+            print("   📱 Phone Simulator detected - can handle phone-based auth")
         
-        setup_type = input(f"\n   MFA Setup Type:\n" +
-                          f"   1) TOTP Secret (recommended)\n" +
-                          f"   2) Skip MFA (manual entry during tests)\n" +
-                          f"   3) Future: SMS Simulator (not implemented)\n" +
-                          f"   Choose (1-3): ").strip()
+        setup_type = input("\n   MFA Setup Type:\n" +
+                          "   1) TOTP Secret (recommended)\n" +
+                          "   2) Skip MFA (manual entry during tests)\n" +
+                          "   3) Future: SMS Simulator (not implemented)\n" +
+                          "   Choose (1-3): ").strip()
         
         if setup_type == "1":
-            print(f"\n   📱 TOTP Secret Setup:")
+            print("\n   📱 TOTP Secret Setup:")
             print(f"   • Go to {provider} security settings")
-            print(f"   • Enable 2FA/TOTP")
-            print(f"   • Scan QR code with authenticator app")
-            print(f"   • Enter the secret key shown (not the 6-digit code)")
+            print("   • Enable 2FA/TOTP")
+            print("   • Scan QR code with authenticator app")
+            print("   • Enter the secret key shown (not the 6-digit code)")
             
-            secret = getpass.getpass(f"\n   Enter TOTP secret key: ").strip()
+            secret = getpass.getpass("\n   Enter TOTP secret key: ").strip()
             
             if secret:
                 # Validate TOTP secret
@@ -204,12 +202,12 @@ class InteractiveCredentialManager:
                     current_code = totp.now()
                     print(f"   🔍 Current TOTP code: {current_code}")
                     
-                    verify = input(f"   Does this match your authenticator app? (y/n): ").lower().strip()
+                    verify = input("   Does this match your authenticator app? (y/n): ").lower().strip()
                     if verify in ['y', 'yes']:
-                        print(f"   ✅ TOTP secret validated")
+                        print("   ✅ TOTP secret validated")
                         return secret
                     else:
-                        print(f"   ❌ TOTP secret validation failed")
+                        print("   ❌ TOTP secret validation failed")
                         return None
                 except Exception as e:
                     print(f"   ❌ Invalid TOTP secret: {e}")
@@ -217,20 +215,20 @@ class InteractiveCredentialManager:
         
         elif setup_type == "3":
             # Future: SMS Simulator integration
-            print(f"   🚧 SMS Simulator not yet implemented")
-            print(f"   📋 Future features:")
-            print(f"   • Virtual phone numbers for SMS MFA")
-            print(f"   • Automated SMS code extraction")
-            print(f"   • Integration with testing VMs")
+            print("   🚧 SMS Simulator not yet implemented")
+            print("   📋 Future features:")
+            print("   • Virtual phone numbers for SMS MFA")
+            print("   • Automated SMS code extraction")
+            print("   • Integration with testing VMs")
             return None
         
-        print(f"   ⚠️ Skipping MFA setup - will require manual entry during tests")
+        print("   ⚠️ Skipping MFA setup - will require manual entry during tests")
         return None
     
     async def _update_env_file(self, provider: str, credentials: Dict[str, str]):
         """Update .env file with new credentials."""
         
-        print(f"   📝 Updating .env file...")
+        print("   📝 Updating .env file...")
         
         # Create backup
         if self.env_file.exists():
@@ -261,7 +259,7 @@ class InteractiveCredentialManager:
         
         # Write updated .env file
         self.env_file.write_text("\n".join(env_content) + "\n")
-        print(f"   ✅ .env file updated")
+        print("   ✅ .env file updated")
         
         # Reload environment variables
         self._reload_env()
@@ -290,7 +288,7 @@ class InteractiveCredentialManager:
         totp_secret = self._get_credential(provider, "mfa_secret")
         
         if totp_secret and HAS_TOTP:
-            print(f"   ✅ TOTP secret found - automated MFA available")
+            print("   ✅ TOTP secret found - automated MFA available")
             
             def get_totp_code():
                 totp = pyotp.TOTP(totp_secret)
@@ -307,23 +305,23 @@ class InteractiveCredentialManager:
         
         # SMS Receiver VM (future)
         if self.vm_simulators.get("sms_receiver"):
-            print(f"   📱 SMS Receiver VM available for automated SMS MFA")
+            print("   📱 SMS Receiver VM available for automated SMS MFA")
             mfa_config["sms_automation"] = True
         
         # Phone Simulator (future)
         if self.vm_simulators.get("phone_simulator"):
-            print(f"   ☎️ Phone Simulator available for call-based MFA")
+            print("   ☎️ Phone Simulator available for call-based MFA")
             mfa_config["phone_automation"] = True
         
         # Biometric Simulator (future)
         if self.vm_simulators.get("biometric_simulator"):
-            print(f"   👆 Biometric Simulator available for fingerprint/face auth")
+            print("   👆 Biometric Simulator available for fingerprint/face auth")
             mfa_config["biometric_automation"] = True
         
         if mfa_config:
             return {"type": "vm_simulator", "config": mfa_config}
         
-        print(f"   ⚠️ No MFA automation available - will require manual entry")
+        print("   ⚠️ No MFA automation available - will require manual entry")
         return None
     
     def get_debug_info(self) -> Dict[str, Any]:
@@ -374,7 +372,7 @@ def interactive_credential_setup():
     manager = get_credential_manager()
     debug_info = manager.get_debug_info()
     
-    print(f"\nEnvironment:")
+    print("\nEnvironment:")
     print(f"• .env file: {debug_info['env_file']}")
     print(f"• Exists: {debug_info['env_exists']}")
     print(f"• TOTP support: {debug_info['has_totp']}")
@@ -384,7 +382,7 @@ def interactive_credential_setup():
     # Future: Show VM simulator status
     vm_status = debug_info['vm_simulators']
     if any(vm_status.values()):
-        print(f"\nVM Simulators:")
+        print("\nVM Simulators:")
         for name, available in vm_status.items():
             status = "✅ Available" if available else "❌ Not configured"
             print(f"• {name}: {status}")
@@ -411,7 +409,7 @@ def interactive_credential_setup():
     asyncio.run(manager.ensure_credentials(provider, required))
     
     print(f"\n✅ Credential setup complete for {provider}")
-    print(f"💡 You can now run tests with this provider")
+    print("💡 You can now run tests with this provider")
 
 
 if __name__ == "__main__":

@@ -236,7 +236,6 @@ class FallbackServer:
 
     async def _handle_logs(self, request: "web.Request") -> "web.Response":
         """Handle logs view for a service."""
-        import json
 
         service_name = request.match_info.get("service")
         service_data = self.service_status.get(service_name, {})

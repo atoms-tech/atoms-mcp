@@ -6,7 +6,6 @@ Base classes and decorators for defining workflows.
 
 import asyncio
 import inspect
-import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -106,7 +105,7 @@ class Workflow:
             self.status = WorkflowStatus.COMPLETED
             return result
             
-        except Exception as e:
+        except Exception:
             self.status = WorkflowStatus.FAILED
             raise
     
@@ -130,7 +129,7 @@ class Workflow:
                     ctx.state[step.name] = result
                     break
                     
-                except Exception as e:
+                except Exception:
                     if attempt < step.retry_count - 1:
                         # Retry with exponential backoff
                         await asyncio.sleep(2 ** attempt)

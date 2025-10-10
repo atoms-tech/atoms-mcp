@@ -40,15 +40,15 @@ class Trie:
             value: Optional value to associate with word
         """
         node = self.root
-        
+
         for char in word:
             if char not in node.children:
                 node.children[char] = TrieNode()
             node = node.children[char]
-        
+
         if not node.is_end:
             self._size += 1
-        
+
         node.is_end = True
         node.value = value
 
@@ -105,7 +105,7 @@ class Trie:
         node = self._find_node(prefix)
         if not node:
             return []
-        
+
         results = []
         self._collect_words(node, prefix, results)
         return results
@@ -113,19 +113,19 @@ class Trie:
     def _find_node(self, prefix: str) -> Optional[TrieNode]:
         """Find node for given prefix."""
         node = self.root
-        
+
         for char in prefix:
             if char not in node.children:
                 return None
             node = node.children[char]
-        
+
         return node
 
     def _collect_words(self, node: TrieNode, prefix: str, results: List[str]) -> None:
         """Recursively collect all words from node."""
         if node.is_end:
             results.append(prefix)
-        
+
         for char, child_node in node.children.items():
             self._collect_words(child_node, prefix + char, results)
 
@@ -145,20 +145,20 @@ class Trie:
                     return False
                 node.is_end = False
                 return len(node.children) == 0
-            
+
             char = word[index]
             if char not in node.children:
                 return False
-            
+
             child = node.children[char]
             should_delete = _delete_helper(child, word, index + 1)
-            
+
             if should_delete:
                 del node.children[char]
                 return not node.is_end and len(node.children) == 0
-            
+
             return False
-        
+
         if self.search(word):
             _delete_helper(self.root, word, 0)
             self._size -= 1

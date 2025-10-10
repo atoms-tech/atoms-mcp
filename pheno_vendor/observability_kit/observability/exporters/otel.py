@@ -9,7 +9,6 @@ Based on 2025 Python best practices:
 
 from typing import Any, Dict, List, Optional
 
-from observability.tracing.tracer import DistributedTracer, Span
 
 
 class OTelExporter:

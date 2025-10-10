@@ -1,8 +1,8 @@
 """Date/time parsing utilities."""
 
-from datetime import datetime, date, time, timedelta
-from typing import Optional, Union
 import re
+from datetime import date, datetime, time, timedelta
+from typing import Optional, Union
 
 
 def parse_datetime(

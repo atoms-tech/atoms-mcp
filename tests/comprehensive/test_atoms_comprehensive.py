@@ -5,8 +5,6 @@ Tests all tools and operations without authentication (shows API structure)
 """
 
 import json
-import asyncio
-from typing import Dict, Any, List
 from datetime import datetime
 
 # Tool definitions from server.py
@@ -357,13 +355,13 @@ def print_functionality_matrix():
         print(f"🔧 {tool_name.upper().replace('_', ' ')}")
         print(f"{'='*100}")
 
-        print(f"\n📝 Description:")
+        print("\n📝 Description:")
         print(f"   {tool_info['description']}")
 
         print(f"\n🔐 Authentication: {'Required ✅' if tool_info.get('auth_required') else 'Optional ❌'}")
 
         if 'operations' in tool_info:
-            print(f"\n⚙️  Operations:")
+            print("\n⚙️  Operations:")
             for op in tool_info['operations']:
                 print(f"\n   • {op['name'].upper()}")
                 print(f"     └─ {op['description']}")
@@ -373,7 +371,7 @@ def print_functionality_matrix():
                 print(f"     └─ Example params: {params_display}")
 
         if 'workflows' in tool_info:
-            print(f"\n🔄 Workflows:")
+            print("\n🔄 Workflows:")
             for wf in tool_info['workflows']:
                 print(f"\n   • {wf['name'].upper()}")
                 print(f"     └─ {wf['description']}")
@@ -382,7 +380,7 @@ def print_functionality_matrix():
                 print(f"     └─ Example params: {params_display}")
 
         if 'query_types' in tool_info:
-            print(f"\n🔍 Query Types:")
+            print("\n🔍 Query Types:")
             for qt in tool_info['query_types']:
                 print(f"\n   • {qt['name'].upper()}")
                 print(f"     └─ {qt['description']}")
@@ -391,26 +389,26 @@ def print_functionality_matrix():
                 print(f"     └─ Example params: {params_display}")
 
         if 'entity_types' in tool_info:
-            print(f"\n📦 Supported Entity Types:")
+            print("\n📦 Supported Entity Types:")
             for et in tool_info['entity_types']:
                 print(f"   • {et}")
 
         if 'relationship_types' in tool_info:
-            print(f"\n🔗 Supported Relationship Types:")
+            print("\n🔗 Supported Relationship Types:")
             for rt in tool_info['relationship_types']:
                 print(f"   • {rt}")
 
         if 'rag_modes' in tool_info:
-            print(f"\n🤖 RAG Search Modes:")
+            print("\n🤖 RAG Search Modes:")
             for mode in tool_info['rag_modes']:
                 print(f"   • {mode}")
 
         if 'features' in tool_info:
-            print(f"\n✨ Features:")
+            print("\n✨ Features:")
             for feat in tool_info['features']:
                 print(f"   • {feat}")
 
-        print(f"\n📋 Parameters:")
+        print("\n📋 Parameters:")
         for param in tool_info['parameters']:
             print(f"   • {param}")
 

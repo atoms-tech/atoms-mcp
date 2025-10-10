@@ -14,7 +14,7 @@ This is a drop-in replacement for AtomsMCPClientAdapter that:
 import json
 import asyncio
 import httpx
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from datetime import datetime
 try:
     from utils.logging_setup import get_logger
@@ -201,9 +201,9 @@ class FastHTTPClient:
                                     # Also check for result without id field (some servers omit it)
                                     elif "result" in msg and not rpc_response:
                                         rpc_response = msg
-                                        logger.debug(f"← [SSE] Found result message (no id check)")
+                                        logger.debug("← [SSE] Found result message (no id check)")
                                         break
-                                except json.JSONDecodeError as e:
+                                except json.JSONDecodeError:
                                     logger.debug(f"← [SSE] Skipping non-JSON line: {data_str[:100]}")
                                     continue
 
@@ -212,7 +212,7 @@ class FastHTTPClient:
 
                 else:
                     # Regular JSON response
-                    logger.debug(f"← [JSON] Response is regular JSON")
+                    logger.debug("← [JSON] Response is regular JSON")
                     response_text = await response.aread()
                     rpc_response = json.loads(response_text)
 
@@ -262,11 +262,11 @@ class FastHTTPClient:
         except HTTPRetryError as e:
             # Check if the underlying error was 401 (token expired)
             if isinstance(e.last_error, httpx.HTTPStatusError) and e.last_error.response.status_code == 401:
-                logger.warning(f"⚠️  401 Unauthorized - token may have expired")
+                logger.warning("⚠️  401 Unauthorized - token may have expired")
 
                 # Try to re-authenticate if callback provided
                 if self._reauthenticate_callback:
-                    logger.info(f"🔄 Attempting re-authentication")
+                    logger.info("🔄 Attempting re-authentication")
                     try:
                         new_token = await self._reauthenticate_callback()
                         if new_token:

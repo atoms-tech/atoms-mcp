@@ -163,7 +163,7 @@ class ClickBackend(BaseBackend):
         # Main CLI group function
         global_params = [opt.name for opt in global_options]
         code += f"def cli({', '.join(global_params)}):\n"
-        code += f'    """Main CLI entry point."""\n'
+        code += '    """Main CLI entry point."""\n'
         code += "    pass\n\n\n"
 
         # Generate commands
@@ -239,7 +239,7 @@ class ClickBackend(BaseBackend):
 
     def _generate_argument_decorator(self, arg: Argument) -> str:
         """Generate @click.argument decorator."""
-        code = f'@click.argument(\n'
+        code = '@click.argument(\n'
         code += f'    "{arg.name}",\n'
 
         if arg.type != ArgumentType.STRING:
@@ -271,14 +271,14 @@ class ClickBackend(BaseBackend):
         opt_strings = opt.option_strings
         opt_str = ", ".join(f'"{s}"' for s in opt_strings)
 
-        code = f'@click.option(\n'
+        code = '@click.option(\n'
         code += f'    {opt_str},\n'
 
         if opt.help:
             code += f'    help="{opt.help}",\n'
 
         if opt.is_flag:
-            code += f'    is_flag=True,\n'
+            code += '    is_flag=True,\n'
             if opt.default is not None:
                 code += f'    default={opt.default},\n'
         else:

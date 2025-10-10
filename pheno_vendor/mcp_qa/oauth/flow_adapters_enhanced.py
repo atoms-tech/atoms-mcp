@@ -15,10 +15,8 @@ fallback to user prompts when automation isn't possible.
 """
 
 import asyncio
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Any, Callable, Awaitable
-from datetime import datetime
+from typing import Optional, Callable, Awaitable
 
 # Import base classes from existing module
 import sys

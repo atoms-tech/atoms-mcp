@@ -1,10 +1,9 @@
 """Retry strategies for HTTP requests."""
 
-import time
 import random
-from typing import Callable, Optional, Set, TypeVar, Union
+import time
 from functools import wraps
-
+from typing import Callable, Optional, Set, TypeVar
 
 T = TypeVar('T')
 

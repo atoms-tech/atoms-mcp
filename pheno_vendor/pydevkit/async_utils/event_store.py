@@ -1,17 +1,17 @@
 """Persistent event store for event sourcing and audit logging."""
 
 import json
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol
-from dataclasses import dataclass, asdict, field
 from uuid import uuid4
 
 
 @dataclass
 class StoredEvent:
     """Event stored in the event store."""
-    
+
     event_id: str = field(default_factory=lambda: str(uuid4()))
     event_type: str = ""
     aggregate_id: str = ""
@@ -20,11 +20,11 @@ class StoredEvent:
     metadata: Dict[str, Any] = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     version: int = 1
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StoredEvent":
         """Create from dictionary."""
@@ -33,11 +33,11 @@ class StoredEvent:
 
 class EventStoreBackend(Protocol):
     """Protocol for event store backends."""
-    
+
     async def append(self, event: StoredEvent) -> None:
         """Append event to store."""
         ...
-    
+
     async def get_events(
         self,
         aggregate_id: Optional[str] = None,
@@ -46,7 +46,7 @@ class EventStoreBackend(Protocol):
     ) -> List[StoredEvent]:
         """Get events from store."""
         ...
-    
+
     async def get_stream(self, aggregate_id: str) -> List[StoredEvent]:
         """Get all events for an aggregate."""
         ...
@@ -54,14 +54,14 @@ class EventStoreBackend(Protocol):
 
 class InMemoryEventStore:
     """In-memory event store for testing and development."""
-    
+
     def __init__(self):
         self._events: List[StoredEvent] = []
-    
+
     async def append(self, event: StoredEvent) -> None:
         """Append event to store."""
         self._events.append(event)
-    
+
     async def get_events(
         self,
         aggregate_id: Optional[str] = None,
@@ -70,18 +70,18 @@ class InMemoryEventStore:
     ) -> List[StoredEvent]:
         """Get events from store with filtering."""
         events = self._events
-        
+
         if aggregate_id:
             events = [e for e in events if e.aggregate_id == aggregate_id]
-        
+
         if event_type:
             events = [e for e in events if e.event_type == event_type]
-        
+
         if from_version is not None:
             events = [e for e in events if e.version >= from_version]
-        
+
         return events
-    
+
     async def get_stream(self, aggregate_id: str) -> List[StoredEvent]:
         """Get all events for an aggregate in order."""
         return [e for e in self._events if e.aggregate_id == aggregate_id]
@@ -89,22 +89,22 @@ class InMemoryEventStore:
 
 class FileEventStore:
     """File-based event store for persistence."""
-    
+
     def __init__(self, storage_path: Path):
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
-    
+
     def _get_stream_file(self, aggregate_id: str) -> Path:
         """Get file path for aggregate stream."""
         return self.storage_path / f"{aggregate_id}.jsonl"
-    
+
     async def append(self, event: StoredEvent) -> None:
         """Append event to file."""
         stream_file = self._get_stream_file(event.aggregate_id)
-        
+
         with stream_file.open("a") as f:
             f.write(json.dumps(event.to_dict()) + "\n")
-    
+
     async def get_events(
         self,
         aggregate_id: Optional[str] = None,
@@ -113,7 +113,7 @@ class FileEventStore:
     ) -> List[StoredEvent]:
         """Get events from files with filtering."""
         events = []
-        
+
         # If aggregate_id specified, only read that file
         if aggregate_id:
             stream_file = self._get_stream_file(aggregate_id)
@@ -123,35 +123,35 @@ class FileEventStore:
             # Read all stream files
             for stream_file in self.storage_path.glob("*.jsonl"):
                 events.extend(await self._read_stream_file(stream_file))
-        
+
         # Apply filters
         if event_type:
             events = [e for e in events if e.event_type == event_type]
-        
+
         if from_version is not None:
             events = [e for e in events if e.version >= from_version]
-        
+
         return sorted(events, key=lambda e: e.timestamp)
-    
+
     async def get_stream(self, aggregate_id: str) -> List[StoredEvent]:
         """Get all events for an aggregate."""
         stream_file = self._get_stream_file(aggregate_id)
-        
+
         if not stream_file.exists():
             return []
-        
+
         return await self._read_stream_file(stream_file)
-    
+
     async def _read_stream_file(self, file_path: Path) -> List[StoredEvent]:
         """Read events from a stream file."""
         events = []
-        
+
         with file_path.open("r") as f:
             for line in f:
                 if line.strip():
                     event_data = json.loads(line)
                     events.append(StoredEvent.from_dict(event_data))
-        
+
         return events
 
 
@@ -189,10 +189,10 @@ class EventStore:
         file_store = EventStore(backend=FileEventStore(Path(".events")))
         await file_store.append(event)
     """
-    
+
     def __init__(self, backend: Optional[EventStoreBackend] = None):
         self.backend = backend or InMemoryEventStore()
-    
+
     async def append(
         self,
         event_type: str,
@@ -224,10 +224,10 @@ class EventStore:
             metadata=metadata or {},
             version=version,
         )
-        
+
         await self.backend.append(event)
         return event
-    
+
     async def get_events(
         self,
         aggregate_id: Optional[str] = None,
@@ -246,7 +246,7 @@ class EventStore:
             List of matching events
         """
         return await self.backend.get_events(aggregate_id, event_type, from_version)
-    
+
     async def get_stream(self, aggregate_id: str) -> List[StoredEvent]:
         """
         Get all events for an aggregate in order.
@@ -258,7 +258,7 @@ class EventStore:
             List of events for the aggregate
         """
         return await self.backend.get_stream(aggregate_id)
-    
+
     async def replay(self, aggregate_id: str, reducer: Any) -> Any:
         """
         Replay events to rebuild aggregate state.
@@ -272,8 +272,8 @@ class EventStore:
         """
         events = await self.get_stream(aggregate_id)
         state = None
-        
+
         for event in events:
             state = reducer(state, event)
-        
+
         return state

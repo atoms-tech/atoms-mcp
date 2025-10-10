@@ -6,11 +6,9 @@ preventing redundant OAuth flows and improving test execution speed.
 """
 
 import os
-import sys
 import asyncio
 import pytest
-from typing import Optional, Dict, Any
-from pathlib import Path
+from typing import Dict, Any
 
 
 def pytest_addoption(parser):
@@ -151,7 +149,7 @@ async def ensure_auth_before_tests(
         if not tokens:
             raise RuntimeError("OAuth completed but no tokens were returned")
 
-        print(f"   ✅ OAuth successful")
+        print("   ✅ OAuth successful")
         print(f"   📝 Token: {tokens.access_token[:20]}...")
 
     except Exception as e:
@@ -207,7 +205,7 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # Check if test requires authentication
         if "requires_auth" in [marker.name for marker in item.iter_markers()]:
-            if not credentials and not "skip_pre_auth" in [marker.name for marker in item.iter_markers()]:
+            if not credentials and "skip_pre_auth" not in [marker.name for marker in item.iter_markers()]:
                 item.add_marker(
                     pytest.mark.skip(reason="Pre-test authentication not available")
                 )

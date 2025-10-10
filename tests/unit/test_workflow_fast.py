@@ -302,7 +302,7 @@ async def test_setup_project_invalid_organization_id(authenticated_client):
     )
 
     assert result.get("success") is False, \
-        f"Should fail with invalid org ID, but got success"
+        "Should fail with invalid org ID, but got success"
     assert "error" in result, \
         f"Expected 'error' in result, got keys: {list(result.keys())}"
 
@@ -481,7 +481,7 @@ async def test_import_requirements_invalid_document_id(authenticated_client):
     )
 
     assert result.get("success") is False, \
-        f"Should fail with invalid document ID, but got success"
+        "Should fail with invalid document ID, but got success"
     assert "error" in result, \
         f"Expected 'error' in result, got keys: {list(result.keys())}"
 
@@ -503,7 +503,7 @@ async def test_import_requirements_empty_list(authenticated_client):
     )
 
     assert result.get("success") is False, \
-        f"Should fail with empty requirements list, but got success"
+        "Should fail with empty requirements list, but got success"
     error = result.get("error", "").lower()
     assert "empty" in error or "non-empty" in error, \
         f"Expected 'empty' error message, got: {result.get('error')}"
@@ -993,7 +993,7 @@ async def test_organization_onboarding_missing_name(authenticated_client):
     )
 
     assert result.get("success") is False, \
-        f"Should fail with missing name, but got success"
+        "Should fail with missing name, but got success"
     assert "error" in result, \
         f"Expected 'error' in result, got keys: {list(result.keys())}"
     error = result.get("error", "").lower()

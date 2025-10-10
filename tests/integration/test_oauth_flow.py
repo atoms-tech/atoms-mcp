@@ -38,7 +38,7 @@ async def test_oauth():
     }
     oauth_url = f"{authkit_domain}/oauth/authorize?" + urllib.parse.urlencode(params)
     
-    print(f"🔐 Starting OAuth flow with AuthKit...")
+    print("🔐 Starting OAuth flow with AuthKit...")
     print(f"OAuth URL: {oauth_url}")
     print(f"Client ID: {client_id}")
     
@@ -52,7 +52,7 @@ async def test_oauth():
         if success:
             flow_result = get_last_flow_result()
             if flow_result:
-                print(f"✅ OAuth successful!")
+                print("✅ OAuth successful!")
                 print(f"Session token: {getattr(flow_result, 'session_token', 'Not available')}")
                 print(f"Flow result: {flow_result}")
                 return True

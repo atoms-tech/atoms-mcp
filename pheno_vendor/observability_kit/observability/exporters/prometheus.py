@@ -8,7 +8,7 @@ Based on 2025 Python best practices:
 - Support for FastAPI, Flask, and standalone HTTP server
 """
 
-from typing import Callable, Optional
+from typing import Callable
 
 from observability.metrics.collector import MetricsCollector
 

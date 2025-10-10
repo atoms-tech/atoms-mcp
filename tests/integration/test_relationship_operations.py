@@ -7,7 +7,6 @@ Run with: python test_relationship_operations.py
 """
 
 import os
-import sys
 import json
 import uuid
 import asyncio
@@ -141,7 +140,7 @@ async def main():
         }
     }
 
-    print(f"Creating requirement...")
+    print("Creating requirement...")
     print(f"Parameters: {json.dumps(req_params, indent=2)}")
 
     req_result = await call_mcp("entity_tool", req_params, jwt_token)
@@ -178,7 +177,7 @@ async def main():
         }
     }
 
-    print(f"Creating test case...")
+    print("Creating test case...")
     print(f"Parameters: {json.dumps(test_params, indent=2)}")
 
     test_result = await call_mcp("entity_tool", test_params, jwt_token)
@@ -229,14 +228,14 @@ async def main():
             }
         }
 
-        print(f"Linking requirement to test...")
+        print("Linking requirement to test...")
         print(f"Parameters: {json.dumps(link_params, indent=2)}")
 
         link_result = await call_mcp("relationship_tool", link_params, jwt_token)
 
         if link_result.get("success"):
             relationship_id = link_result["data"].get("id")
-            print(f"✅ Relationship created successfully")
+            print("✅ Relationship created successfully")
             print(f"Relationship ID: {relationship_id}")
             print(f"Response data: {json.dumps(link_result['data'], indent=2)}")
             test_results.append(TestResult(
@@ -279,13 +278,13 @@ async def main():
             }
         }
 
-        print(f"Checking if relationship exists...")
+        print("Checking if relationship exists...")
         print(f"Parameters: {json.dumps(check_params, indent=2)}")
 
         check_result = await call_mcp("relationship_tool", check_params, jwt_token)
 
         if check_result.get("exists"):
-            print(f"✅ Relationship exists")
+            print("✅ Relationship exists")
             print(f"Relationship data: {json.dumps(check_result.get('relationship'), indent=2)}")
             test_results.append(TestResult(
                 "check_relationship",
@@ -325,7 +324,7 @@ async def main():
             "offset": 0
         }
 
-        print(f"Listing relationships...")
+        print("Listing relationships...")
         print(f"Parameters: {json.dumps(list_params, indent=2)}")
 
         list_result = await call_mcp("relationship_tool", list_params, jwt_token)
@@ -376,7 +375,7 @@ async def main():
             "limit": 10
         }
 
-        print(f"Querying with filters...")
+        print("Querying with filters...")
         print(f"Parameters: {json.dumps(filter_params, indent=2)}")
 
         filter_result = await call_mcp("relationship_tool", filter_params, jwt_token)
@@ -431,13 +430,13 @@ async def main():
             }
         }
 
-        print(f"Updating relationship metadata...")
+        print("Updating relationship metadata...")
         print(f"Parameters: {json.dumps(update_params, indent=2)}")
 
         update_result = await call_mcp("relationship_tool", update_params, jwt_token)
 
         if update_result.get("success"):
-            print(f"✅ Relationship updated successfully")
+            print("✅ Relationship updated successfully")
             print(f"Updated data: {json.dumps(update_result['data'], indent=2)}")
             test_results.append(TestResult(
                 "update_relationship",
@@ -480,13 +479,13 @@ async def main():
             "soft_delete": True
         }
 
-        print(f"Deleting relationship (soft delete)...")
+        print("Deleting relationship (soft delete)...")
         print(f"Parameters: {json.dumps(delete_params, indent=2)}")
 
         delete_result = await call_mcp("relationship_tool", delete_params, jwt_token)
 
         if delete_result.get("success"):
-            print(f"✅ Relationship deleted successfully")
+            print("✅ Relationship deleted successfully")
             print(f"Response: {json.dumps(delete_result, indent=2)}")
             test_results.append(TestResult(
                 "delete_relationship",

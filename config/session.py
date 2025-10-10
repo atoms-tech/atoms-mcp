@@ -4,7 +4,6 @@ Session management configuration for Atoms MCP.
 Creates and configures session manager using pheno-sdk authkit-client.
 """
 
-import os
 import sys
 from pathlib import Path
 from typing import Optional

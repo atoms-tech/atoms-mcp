@@ -73,14 +73,14 @@ async def test_http_adapter_single(broker, access_token):
             {"operation": "get_context", "format_type": "summary"}
         )
 
-        print(f"✅ HTTP call succeeded")
+        print("✅ HTTP call succeeded")
         print(f"   Success: {result.get('success')}")
         print(f"   Has response: {result.get('response') is not None}")
 
         if result.get('success'):
             print("✅ TEST 2 PASSED")
         else:
-            print(f"⚠️  TEST 2 WARNING: Call succeeded but returned success=False")
+            print("⚠️  TEST 2 WARNING: Call succeeded but returned success=False")
             print(f"   Error: {result.get('error')}")
 
     except Exception as e:
@@ -174,13 +174,13 @@ async def test_fallback_to_mcp(broker):
             {"operation": "get_context", "format_type": "summary"}
         )
 
-        print(f"✅ MCP call succeeded")
+        print("✅ MCP call succeeded")
         print(f"   Success: {result.get('success')}")
 
         if result.get('success'):
             print("✅ TEST 4 PASSED")
         else:
-            print(f"⚠️  TEST 4 WARNING: Call succeeded but returned success=False")
+            print("⚠️  TEST 4 WARNING: Call succeeded but returned success=False")
 
     except Exception as e:
         print(f"❌ TEST 4 FAILED: {e}")

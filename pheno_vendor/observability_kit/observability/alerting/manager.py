@@ -4,10 +4,8 @@ Alert management system.
 Provides alert lifecycle management, notification routing, and alert history.
 """
 
-import asyncio
 import logging
-from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 
 try:
     import httpx

@@ -13,7 +13,6 @@ these utilities from `mcp_qa.oauth.retry`.
 from __future__ import annotations
 
 import asyncio
-import logging
 from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 

@@ -35,13 +35,13 @@ class BloomFilter:
     def _hashes(self, item: str) -> list[int]:
         """Generate multiple hash values for item."""
         hashes = []
-        
+
         for i in range(self.num_hashes):
             # Use different hash functions
             h = hashlib.md5(f"{item}{i}".encode()).hexdigest()
             hash_val = int(h, 16) % self.size
             hashes.append(hash_val)
-        
+
         return hashes
 
     def add(self, item: Any) -> None:
@@ -52,10 +52,10 @@ class BloomFilter:
             item: Item to add
         """
         item_str = str(item)
-        
+
         for hash_val in self._hashes(item_str):
             self._bits[hash_val] = True
-        
+
         self._count += 1
 
     def __contains__(self, item: Any) -> bool:
@@ -69,11 +69,11 @@ class BloomFilter:
             True if item might be present, False if definitely not present
         """
         item_str = str(item)
-        
+
         for hash_val in self._hashes(item_str):
             if not self._bits[hash_val]:
                 return False
-        
+
         return True
 
     def estimated_fp_rate(self) -> float:
@@ -85,7 +85,7 @@ class BloomFilter:
         """
         if self._count == 0:
             return 0.0
-        
+
         # (1 - e^(-k*n/m))^k
         # k = num_hashes, n = count, m = size
         import math

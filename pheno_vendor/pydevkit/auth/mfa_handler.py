@@ -4,12 +4,12 @@ Multi-factor authentication (MFA) handlers.
 Provides utilities for handling TOTP and other MFA methods.
 """
 
-from typing import Optional, Callable
-import time
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
 import struct
+import time
+from typing import Callable, Optional
 
 
 class TOTPHandler:

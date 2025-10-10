@@ -92,7 +92,6 @@ class ResponseValidator:
         Returns:
             entity_id if create succeeded, None if failed (caller should skip/return)
         """
-        from mcp_qa.data_generators import DataGenerator
 
         # Auto-resolve parent IDs for nested entity types
         if entity_type == "project" and "organization_id" not in data_kwargs:

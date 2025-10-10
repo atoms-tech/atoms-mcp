@@ -14,9 +14,7 @@ Features:
 import platform
 import subprocess
 import sys
-import tempfile
 from typing import Optional
-from pathlib import Path
 
 from mcp_qa.logging import get_logger
 

@@ -19,7 +19,6 @@ Each test includes comprehensive assertions to validate:
 import pytest
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import uuid
 
@@ -27,8 +26,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.atoms_mcp.mcp_server import AtomsServer
-from src.atoms_mcp.models.base import Organization, Project, Document, Requirement, Test, TestRun
-from src.atoms_mcp.models.knowledge import SemanticSearchResult
+from src.atoms_mcp.models.base import Organization, Project, Document, Requirement, Test
 from src.atoms_mcp.models.enums import EntityStatus, RequirementPriority, TestStatus, RAGMode
 
 

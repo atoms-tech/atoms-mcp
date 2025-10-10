@@ -80,7 +80,6 @@ class TestMemoryUsage:
         tracemalloc.start()
         
         # Import and initialize server
-        from server import app
         
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()

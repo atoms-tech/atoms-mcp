@@ -6,7 +6,7 @@ to ensure they correctly replicate database RLS behavior.
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from schemas.rls import (
     PolicyValidator,
@@ -14,16 +14,11 @@ from schemas.rls import (
     OrganizationPolicy,
     ProjectPolicy,
     DocumentPolicy,
-    RequirementPolicy,
-    TestPolicy,
     ProfilePolicy,
-    OrganizationMemberPolicy,
-    ProjectMemberPolicy,
     user_can_access_project,
     is_project_owner_or_admin,
     is_super_admin,
     get_user_organization_ids,
-    is_organization_owner_or_admin,
 )
 # Import from generated schemas
 from schemas import UserRoleType, ProjectRole, Visibility

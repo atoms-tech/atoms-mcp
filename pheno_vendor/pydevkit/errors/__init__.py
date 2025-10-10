@@ -1,23 +1,31 @@
 """Structured error handling utilities for PyDevKit."""
 
-from .errors import ApiError, create_api_error_internal, normalize_error
-from .handler import (
-    ZenMCPError,
-    NetworkError,
-    AuthenticationError,
-    ValidationError,
-    ConfigurationError,
-    ErrorCategory as BasicErrorCategory,
-    ErrorContext as BasicErrorContext,
-)
 from .enhanced import (
-    StructuredError,
+    CircuitBreaker,
+    ErrorHandler,
     ErrorSeverity,
     RetryConfig,
-    ErrorHandler,
-    CircuitBreaker,
+    StructuredError,
+)
+from .enhanced import (
     ErrorCategory as EnhancedErrorCategory,
+)
+from .enhanced import (
     ErrorContext as EnhancedErrorContext,
+)
+from .errors import ApiError, create_api_error_internal, normalize_error
+from .handler import (
+    AuthenticationError,
+    ConfigurationError,
+    NetworkError,
+    ValidationError,
+    ZenMCPError,
+)
+from .handler import (
+    ErrorCategory as BasicErrorCategory,
+)
+from .handler import (
+    ErrorContext as BasicErrorContext,
 )
 
 # Backwards-compatible aliases

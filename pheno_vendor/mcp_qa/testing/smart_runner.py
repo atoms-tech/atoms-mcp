@@ -9,10 +9,7 @@ Features:
 - Progress tracking
 """
 
-import asyncio
 import logging
-import os
-import pickle
 import json
 import traceback
 from pathlib import Path
@@ -185,30 +182,30 @@ class SmartTestRunner:
                 print(f"{'='*70}")
                 
                 # Show error
-                print(f"\n📛 Error:")
+                print("\n📛 Error:")
                 print(f"  {exc_type.__name__}: {exc_val}")
                 
                 # Show call details if available
                 if self.call_details:
-                    print(f"\n📞 Last API Call:")
+                    print("\n📞 Last API Call:")
                     print(f"  Method: {self.call_details.get('method', 'N/A')}")
                     
                     if self.call_details.get('args'):
-                        print(f"  Args:")
+                        print("  Args:")
                         try:
                             print(f"    {json.dumps(self.call_details['args'], indent=4, default=str)}")
                         except:
                             print(f"    {self.call_details['args']}")
                     
                     if self.call_details.get('kwargs'):
-                        print(f"  Kwargs:")
+                        print("  Kwargs:")
                         try:
                             print(f"    {json.dumps(self.call_details['kwargs'], indent=4, default=str)}")
                         except:
                             print(f"    {self.call_details['kwargs']}")
                     
                     if self.call_details.get('response'):
-                        print(f"\n📥 Response:")
+                        print("\n📥 Response:")
                         try:
                             if hasattr(self.call_details['response'], '__dict__'):
                                 response_dict = vars(self.call_details['response'])
@@ -219,12 +216,12 @@ class SmartTestRunner:
                             print(f"  {self.call_details['response']}")
                     
                     if self.call_details.get('error'):
-                        print(f"\n❌ API Error:")
+                        print("\n❌ API Error:")
                         print(f"  {self.call_details['error']}")
                 
                 # Show traceback
                 if exc_tb:
-                    print(f"\n📍 Traceback:")
+                    print("\n📍 Traceback:")
                     tb_lines = traceback.format_tb(exc_tb)
                     for line in tb_lines[-3:]:  # Show last 3 frames
                         for subline in line.strip().split('\n'):
@@ -232,7 +229,7 @@ class SmartTestRunner:
                 
                 # Show captured output
                 if self.runner._captured_output:
-                    print(f"\n📝 Captured Output:")
+                    print("\n📝 Captured Output:")
                     for line in self.runner._captured_output:
                         print(f"  {line}")
                 
@@ -272,7 +269,7 @@ class SmartTestRunner:
                 if not result["success"]:
                     print(f"  • {result['name']}: {result['error']}")
         else:
-            print(f"\n✅ All tests passed!")
+            print("\n✅ All tests passed!")
         
         print("=" * 70)
 

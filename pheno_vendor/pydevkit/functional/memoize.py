@@ -1,7 +1,8 @@
 """Memoization utilities."""
 
-from typing import Callable, Any, Dict, Tuple
-from functools import wraps, lru_cache as _lru_cache
+from functools import lru_cache as _lru_cache
+from functools import wraps
+from typing import Any, Callable, Dict, Tuple
 
 
 def memoize(func: Callable) -> Callable:

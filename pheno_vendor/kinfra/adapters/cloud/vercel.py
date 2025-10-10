@@ -256,7 +256,7 @@ class VercelAdapter(ResourceAdapter):
                     break
 
             self.state.running = True
-            logger.info(f"✓ Vercel deployed via CLI")
+            logger.info("✓ Vercel deployed via CLI")
             return True
         else:
             logger.error(f"CLI deploy failed: {stderr.decode()}")

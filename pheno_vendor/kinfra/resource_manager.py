@@ -9,8 +9,7 @@ import asyncio
 import logging
 from typing import Dict, Optional, Any
 
-from .adapters import ResourceAdapter, ResourceFactory, resource_from_dict
-from .exceptions import KInfraError
+from .adapters import ResourceAdapter, resource_from_dict
 
 logger = logging.getLogger(__name__)
 

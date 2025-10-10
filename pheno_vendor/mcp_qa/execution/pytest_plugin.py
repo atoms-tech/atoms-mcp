@@ -213,7 +213,7 @@ class MCPReporterManager:
                 self.reporters.append(FunctionalityMatrixReporter(str(output_dir / "functionality_matrix.md")))
 
             self.has_reporters = True
-        except (ImportError, AttributeError) as e:
+        except (ImportError, AttributeError):
             self.has_reporters = False
             self.reporters = []
 
@@ -398,7 +398,7 @@ class MCPPytestPlugin(ABC):
             self.auth_validated = result.success
 
             if result.success:
-                print(f"\n✓ Auth validation passed\n")
+                print("\n✓ Auth validation passed\n")
             else:
                 print(f"\n✗ Auth validation failed: {result.message}\n")
                 if not session.config.getoption("--continue-on-auth-fail", False):

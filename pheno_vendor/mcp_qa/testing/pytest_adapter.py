@@ -12,15 +12,11 @@ Features:
 - Simple, maintainable code
 """
 
-import asyncio
 import json
 from typing import Any, Dict, Optional
 
 import httpx
 import pytest
-from mcp import ClientSession
-from mcp.client.session import ClientSession as MCPSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.shared.exceptions import McpError
 
 

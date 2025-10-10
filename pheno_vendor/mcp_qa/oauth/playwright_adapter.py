@@ -149,7 +149,7 @@ class PlaywrightOAuthAdapter:
                     )
                     await asyncio.sleep(wait_time)
                     
-            except InvalidCredentialsError as e:
+            except InvalidCredentialsError:
                 invalid_creds_count += 1
                 self._invalid_credentials_detected = True
                 

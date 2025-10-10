@@ -12,9 +12,8 @@ Usage in project conftest.py:
 
 import asyncio
 import os
-import sys
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator
 
 import pytest
 

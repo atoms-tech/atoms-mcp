@@ -14,7 +14,7 @@ Pythonic Patterns Applied:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Protocol, Union
+from typing import Any, Dict, List, Protocol
 
 
 @dataclass(frozen=True)
