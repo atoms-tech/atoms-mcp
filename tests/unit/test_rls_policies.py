@@ -25,7 +25,8 @@ from schemas.rls import (
     get_user_organization_ids,
     is_organization_owner_or_admin,
 )
-from schemas.enums import UserRoleType, ProjectRole, Visibility
+# Import from generated schemas
+from schemas import UserRoleType, ProjectRole, Visibility
 from schemas.constants import Tables
 
 

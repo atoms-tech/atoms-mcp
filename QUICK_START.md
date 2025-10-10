@@ -1,5 +1,7 @@
 # Atoms MCP - Quick Start Guide
 
+> **NEW:** Use the unified `atoms-mcp.py` CLI for all operations! See [ATOMS_MCP_CLI.md](ATOMS_MCP_CLI.md) for details.
+
 ## 3-Tier Deployment Overview
 
 ```
@@ -9,18 +11,25 @@ Local Development → Dev/Preview → Production
 
 | Environment | How to Deploy | URL |
 |-------------|--------------|-----|
-| **Local** | `python start_server.py` | https://atomcp.kooshapari.com (via tunnel) |
-| **Dev** | `git push origin feature-branch` | https://devmcp.atoms.tech |
-| **Production** | `git push origin main` | https://atomcp.kooshapari.com |
+| **Local** | `./atoms-mcp.py deploy --local` or `./atoms-mcp.py start` | https://atomcp.kooshapari.com (via tunnel) |
+| **Preview** | `./atoms-mcp.py deploy --preview` | https://devmcp.atoms.tech |
+| **Production** | `./atoms-mcp.py deploy --production` | https://atomcp.kooshapari.com |
 
 ---
 
 ## Start Local Server
 
-**Default behavior includes CloudFlare tunnel (required for OAuth):**
+**Using the new unified CLI (recommended):**
 
 ```bash
-python start_server.py
+./atoms-mcp.py start
+```
+
+**Unified CLI:**
+```bash
+./atoms-mcp.py start
+# or
+python atoms-mcp.py start
 ```
 
 **What you get:**
@@ -29,16 +38,43 @@ python start_server.py
 - MCP Endpoint: `https://atomcp.kooshapari.com/api/mcp`
 - OAuth works (HTTPS required)
 
-**Disable tunnel (OAuth won't work):**
+**Options:**
 ```bash
-python start_server.py --no-tunnel
+./atoms-mcp.py start --port 50003    # Custom port
+./atoms-mcp.py start --verbose       # Verbose logging
+./atoms-mcp.py start --no-tunnel     # Disable tunnel (OAuth won't work)
 ```
 
 ---
 
-## Deploy to Dev Environment
+## Deploy to Local (via KInfra Tunnel)
 
-Deploy to dev/preview environment at `https://devmcp.atoms.tech`:
+**Using the new unified CLI (recommended):**
+
+```bash
+# Deploy locally with CloudFlare tunnel (HTTPS enabled)
+./atoms-mcp.py deploy --local
+
+# Or use start command (equivalent)
+./atoms-mcp.py start
+```
+
+**What you get:**
+- Local server with CloudFlare tunnel
+- HTTPS access at https://atomcp.kooshapari.com
+- OAuth works (requires HTTPS)
+
+---
+
+## Deploy to Preview Environment
+
+**Using the new unified CLI (recommended):**
+
+```bash
+./atoms-mcp.py deploy --preview
+```
+
+**Manual deployment (alternative):**
 
 ```bash
 # 1. Create feature branch
@@ -48,10 +84,8 @@ git checkout -b feature/my-feature
 git add .
 git commit -m "Add my feature"
 
-# 3. Push to trigger automatic deployment
-git push origin feature/my-feature
-
-# → Vercel automatically deploys to devmcp.atoms.tech
+# 3. Deploy to preview
+./atoms-mcp.py deploy --preview
 ```
 
 **Test the deployment:**
@@ -64,17 +98,21 @@ curl https://devmcp.atoms.tech/api/mcp
 
 ## Deploy to Production
 
-Deploy to production at `https://atomcp.kooshapari.com`:
+**Using the new unified CLI (recommended):**
+
+```bash
+./atoms-mcp.py deploy --production
+```
+
+**Manual deployment (alternative):**
 
 ```bash
 # 1. Merge to main branch
 git checkout main
 git merge feature/my-feature
 
-# 2. Push to trigger automatic deployment
-git push origin main
-
-# → Vercel automatically deploys to atomcp.kooshapari.com
+# 2. Deploy to production
+./atoms-mcp.py deploy --production
 ```
 
 **Test the deployment:**
@@ -86,6 +124,21 @@ curl https://atomcp.kooshapari.com/api/mcp
 ---
 
 ## Run Tests
+
+**Using the new unified CLI (recommended):**
+
+```bash
+# Test against local server
+./atoms-mcp.py test --local --verbose
+
+# Test specific categories
+./atoms-mcp.py test --local --categories auth tools
+
+# Parallel execution
+./atoms-mcp.py test --local --workers 4
+```
+
+**Legacy commands (still work):**
 
 ### Test Against Local Server
 ```bash
@@ -111,6 +164,35 @@ pytest -m "unit and not slow" --base-url=https://atomcp.kooshapari.com
 
 ## Common Commands
 
+### Unified CLI Commands
+
+```bash
+# Start server
+./atoms-mcp.py start --verbose
+
+# Run tests
+./atoms-mcp.py test --local --verbose
+
+# Deploy to preview
+./atoms-mcp.py deploy --preview
+
+# Validate configuration
+./atoms-mcp.py validate
+
+# Verify setup
+./atoms-mcp.py verify
+
+# Vendor pheno-sdk packages
+./atoms-mcp.py vendor setup
+
+# Show configuration
+./atoms-mcp.py config show
+
+# Get help
+./atoms-mcp.py --help
+./atoms-mcp.py start --help
+```
+
 ### Check if Server is Running
 ```bash
 curl http://localhost:50002/health
@@ -119,11 +201,6 @@ curl http://localhost:50002/health
 ### Kill Port 50002
 ```bash
 lsof -i :50002 | grep LISTEN | awk '{print $2}' | xargs kill -9
-```
-
-### View Server Logs
-```bash
-python start_server.py --verbose
 ```
 
 ## WorkOS OAuth Setup
@@ -160,7 +237,7 @@ See `WORKOS_SETUP.md` for detailed instructions.
 lsof -i :50002 | grep LISTEN | awk '{print $2}' | xargs kill -9
 
 # Try again
-python start_server.py
+./atoms-mcp.py start
 ```
 
 ### Tests Can't Find Server
@@ -194,7 +271,7 @@ python -c "from auth import SessionMiddleware; print('✓ OK')"
 
 ```bash
 # 1. Start local server
-python start_server.py
+./atoms-mcp.py start
 
 # 2. In another terminal, run tests
 pytest -m integration

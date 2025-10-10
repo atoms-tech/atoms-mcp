@@ -1,0 +1,18 @@
+Pheno-SDK Vendored Packages Manifest
+Generated: Thu Oct  9 20:30:26 MST 2025
+Source: /Users/kooshapari/temp-PRODVERCEL/485/kush/pheno-sdk
+
+Packages:
+  - adapter_kit (25 .py files, 0.08 MB)
+  - cli_builder (9 .py files, 0.06 MB)
+  - db_kit (31 .py files, 0.09 MB)
+  - deploy_kit (23 .py files, 0.14 MB)
+  - event_kit (10 .py files, 0.02 MB)
+  - filewatch_kit (3 .py files, 0.01 MB)
+  - kinfra (34 .py files, 0.44 MB)
+  - mcp_qa (186 .py files, 1.60 MB)
+  - observability_kit (52 .py files, 0.41 MB)
+  - pydevkit (79 .py files, 0.39 MB)
+  - workflow_kit (18 .py files, 0.06 MB)
+
+Total size: 3.30 MB

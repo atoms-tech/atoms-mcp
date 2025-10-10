@@ -27,6 +27,14 @@ import time
 from pathlib import Path
 from typing import Optional
 
+# Check vendoring on production startup
+if os.getenv("PRODUCTION", "").lower() in ("1", "true", "yes"):
+    try:
+        from deploy_kit.startup import check_vendor_on_startup
+        check_vendor_on_startup()
+    except ImportError:
+        pass  # deploy-kit not installed, skip check
+
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -365,6 +373,16 @@ Examples:
         else:
             logger.error("Failed to start CloudFlare tunnel")
             print("\nFailed to start tunnel. Server will only be accessible via localhost.")
+
+    # Check vendored packages before starting (production only)
+    vendor_check_script = Path(__file__).parent / "scripts" / "check_vendor_startup.py"
+    if vendor_check_script.exists():
+        logger.info("Checking vendored packages...")
+        import subprocess
+        result = subprocess.run([sys.executable, str(vendor_check_script)])
+        if result.returncode != 0:
+            logger.warning("Vendor check failed, server may not work correctly")
+            # Don't exit - let server start anyway
 
     # Display server information
     print("\n" + "-"*70)

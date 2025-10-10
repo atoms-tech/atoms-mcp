@@ -1,25 +1,29 @@
+#!/usr/bin/env python3
+"""
+Atoms MCP Package Entry Point
+
+Delegates to atoms-mcp.py unified CLI for all operations.
+"""
 import sys
 import os
-import subprocess
-
-from .server import main
+from pathlib import Path
 
 if __name__ == "__main__":
-    # Check for --local flag
-    if "--local" in sys.argv:
-        # Get the directory of this script
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        start_script = os.path.join(script_dir, "start_local.sh")
+    # Get the directory of this package
+    package_dir = Path(__file__).parent
 
-        # Execute the start_local.sh script
-        try:
-            subprocess.run([start_script], check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Error starting local services: {e}")
-            sys.exit(1)
-        except FileNotFoundError:
-            print(f"Error: start_local.sh not found at {start_script}")
-            sys.exit(1)
+    # Import and run the unified CLI
+    atoms_mcp_cli = package_dir / "atoms-mcp.py"
+
+    if atoms_mcp_cli.exists():
+        # Import and run atoms-mcp.py
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("atoms_mcp_cli", atoms_mcp_cli)
+        cli_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli_module)
+        sys.exit(cli_module.main())
     else:
+        # Fallback to old behavior if atoms-mcp.py not found
+        from .server import main
         main()
 

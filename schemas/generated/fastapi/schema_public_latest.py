@@ -215,6 +215,59 @@ class PublicTraceLinkTypeEnum(str, Enum):
     CHILD_OF = "child_of"
 
 
+class PublicActionTypeEnum(str, Enum):
+    CREATE = "create"
+    READ = "read"
+    UPDATE = "update"
+    DELETE = "delete"
+    MANAGE = "manage"
+    ASSIGN = "assign"
+    INVITE = "invite"
+    APPROVE = "approve"
+    REJECT = "reject"
+    EXPORT = "export"
+    IMPORT = "import"
+    SHARE = "share"
+    ARCHIVE = "archive"
+    RESTORE = "restore"
+    AUDIT = "audit"
+    MONITOR = "monitor"
+    CONFIGURE = "configure"
+    ADMIN = "admin"
+
+
+class PublicNotificationTypeEnum(str, Enum):
+    INVITATION = "invitation"
+    MENTION = "mention"
+    SYSTEM = "system"
+
+
+class PublicOrganizationTypeEnum(str, Enum):
+    PERSONAL = "personal"
+    TEAM = "team"
+    ENTERPRISE = "enterprise"
+
+
+class PublicPropertyTypeEnum(str, Enum):
+    TEXT = "text"
+    NUMBER = "number"
+    BOOLEAN = "boolean"
+    DATE = "date"
+    URL = "url"
+    ARRAY = "array"
+    ENUM = "enum"
+    ENTITY_REFERENCE = "entity_reference"
+    SELECT = "select"
+    MULTI_SELECT = "multi_select"
+    FILE = "file"
+
+
+class PublicRequirementFormatEnum(str, Enum):
+    INCOSE = "incose"
+    EARS = "ears"
+    OTHER = "other"
+
+
 # CUSTOM CLASSES
 # Note: These are custom model classes for defining common features among
 # Pydantic Base Schema.
@@ -524,7 +577,7 @@ class NotificationBaseSchema(CustomModel):
 
     # Columns
     created_at: datetime.datetime | None = Field(default=None)
-    field_type: Any = Field(alias="type")
+    field_type: PublicNotificationTypeEnum = Field(alias="type")
     message: str | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
     read_at: datetime.datetime | None = Field(default=None)
@@ -662,7 +715,7 @@ class OrganizationBaseSchema(CustomModel):
     deleted_by: UUID4 | None = Field(default=None)
     description: str | None = Field(default=None)
     embedding: Any | None = Field(default=None)
-    field_type: Any = Field(alias="type")
+    field_type: PublicOrganizationTypeEnum = Field(alias="type")
     fts_vector: str | None = Field(
         default=None,
         description="Full-text search vector: name(A) + description(B) + slug(C)",
@@ -911,7 +964,7 @@ class RequirementBaseSchema(CustomModel):
     embedding: Any | None = Field(default=None)
     enchanced_requirement: str | None = Field(default=None)
     external_id: str | None = Field(default=None)
-    field_format: Any = Field(alias="format")
+    field_format: PublicRequirementFormatEnum = Field(alias="format")
     field_type: str | None = Field(default=None, alias="type")
     fts_vector: str | None = Field(
         default=None,
@@ -1563,7 +1616,7 @@ class NotificationInsert(CustomModelInsert):
     # unread: nullable, has default value
 
     # Required fields
-    field_type: Any = Field(alias="type")
+    field_type: PublicNotificationTypeEnum = Field(alias="type")
     title: str
     user_id: UUID4
 
@@ -1794,7 +1847,7 @@ class OrganizationInsert(CustomModelInsert):
     deleted_by: UUID4 | None = Field(default=None)
     description: str | None = Field(default=None)
     embedding: Any | None = Field(default=None)
-    field_type: Any | None = Field(default=None, alias="type")
+    field_type: PublicOrganizationTypeEnum | None = Field(default=None, alias="type")
     fts_vector: str | None = Field(
         default=None,
         description="Full-text search vector: name(A) + description(B) + slug(C)",
@@ -2201,7 +2254,7 @@ class RequirementInsert(CustomModelInsert):
     embedding: Any | None = Field(default=None)
     enchanced_requirement: str | None = Field(default=None)
     external_id: str | None = Field(default=None)
-    field_format: Any | None = Field(default=None, alias="format")
+    field_format: PublicRequirementFormatEnum | None = Field(default=None, alias="format")
     field_type: str | None = Field(default=None, alias="type")
     fts_vector: str | None = Field(
         default=None,
@@ -2940,7 +2993,7 @@ class NotificationUpdate(CustomModelUpdate):
 
     # Optional fields
     created_at: datetime.datetime | None = Field(default=None)
-    field_type: Any | None = Field(default=None, alias="type")
+    field_type: PublicNotificationTypeEnum | None = Field(default=None, alias="type")
     message: str | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
     read_at: datetime.datetime | None = Field(default=None)
@@ -3151,7 +3204,7 @@ class OrganizationUpdate(CustomModelUpdate):
     deleted_by: UUID4 | None = Field(default=None)
     description: str | None = Field(default=None)
     embedding: Any | None = Field(default=None)
-    field_type: Any | None = Field(default=None, alias="type")
+    field_type: PublicOrganizationTypeEnum | None = Field(default=None, alias="type")
     fts_vector: str | None = Field(
         default=None,
         description="Full-text search vector: name(A) + description(B) + slug(C)",
@@ -3544,7 +3597,7 @@ class RequirementUpdate(CustomModelUpdate):
     embedding: Any | None = Field(default=None)
     enchanced_requirement: str | None = Field(default=None)
     external_id: str | None = Field(default=None)
-    field_format: Any | None = Field(default=None, alias="format")
+    field_format: PublicRequirementFormatEnum | None = Field(default=None, alias="format")
     field_type: str | None = Field(default=None, alias="type")
     fts_vector: str | None = Field(
         default=None,

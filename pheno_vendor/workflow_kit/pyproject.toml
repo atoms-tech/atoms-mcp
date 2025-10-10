@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "workflow-kit"
+version = "0.1.0"
+description = "Workflow orchestration and saga pattern for Python"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+redis = ["redis>=5.0"]
+postgres = ["asyncpg>=0.29"]
+temporal = ["temporalio>=1.0"]
+nats = ["nats-py>=2.0"]
+
+scheduler = [
+    "apscheduler>=3.10.0",
+]
+
+tui = [
+    "rich>=13.0.0",
+    "textual>=0.47",
+]
+
+full = [
+    "workflow-kit[redis]",
+    "workflow-kit[postgres]",
+    "workflow-kit[temporal]",
+    "workflow-kit[nats]",
+    "workflow-kit[scheduler]",
+    "workflow-kit[tui]",
+]
+
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["workflow_kit"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

@@ -20,13 +20,15 @@ from fastmcp.client.auth import OAuth
 
 # Ensure shared mcp_qa library is importable before local packages
 _TESTS_DIR = Path(__file__).resolve().parent
-_REPO_ROOT = _TESTS_DIR.parents[2]
+_REPO_ROOT = _TESTS_DIR.parent.parent  # atoms_mcp-old -> kush -> 485
 _SHARED_QA_PATHS = [
-    _REPO_ROOT / "clean" / "mcp-QA",
+    _REPO_ROOT / "pheno-sdk" / "mcp-QA",  # Primary location
+    _REPO_ROOT / "clean" / "mcp-QA",      # Fallback location
 ]
 for _path in _SHARED_QA_PATHS:
     if _path.exists():
         sys.path.insert(0, str(_path))
+        break
 
 # Add project parent to path for local imports
 sys.path.insert(0, str(_TESTS_DIR.parent))
@@ -58,11 +60,12 @@ try:
 except ImportError:
     COMPREHENSIVE_AVAILABLE = False
 
-# Configuration
-DEFAULT_PRODUCTION_ENDPOINT = "https://atomcp.kooshapari.com/api/mcp"
-DEFAULT_DEV_ENDPOINT = "https://devmcp.atoms.tech/api/mcp"
-DEFAULT_LOCAL_ENDPOINT = "http://localhost:50002/api/mcp"
-MCP_ENDPOINT = os.getenv("MCP_ENDPOINT", DEFAULT_PRODUCTION_ENDPOINT)
+# Add parent to path for imports
+sys.path.insert(0, str(_TESTS_DIR.parent))
+
+# Import endpoint configuration from centralized mcp_qa library
+from mcp_qa.config.endpoints import EndpointRegistry, MCPProject, Environment
+
 TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
 
 
@@ -174,42 +177,13 @@ Examples:
 
     args = parser.parse_args()
 
-    # Determine target endpoint
-    global MCP_ENDPOINT
+    # Set MCP endpoint based on target environment
+    EndpointRegistry.set_environment(args.target, project=MCPProject.ATOMS)
+    endpoint_source = EndpointRegistry.get_display_name(project=MCPProject.ATOMS, environment=args.target)
+    MCP_ENDPOINT = EndpointRegistry.get_endpoint(project=MCPProject.ATOMS, environment=args.target)
 
-    if args.target == "dev":
-        # Target dev server - check health first
-        print("Checking dev server health at https://devmcp.atoms.tech...")
-        is_healthy, error_msg = _check_dev_server_health()
-        if not is_healthy:
-            print(f"Error: Dev server health check failed: {error_msg}")
-            print("Please ensure the dev server is deployed and accessible.")
-            return 1
-        print("Dev server is healthy")
-        MCP_ENDPOINT = DEFAULT_DEV_ENDPOINT
-        endpoint_source = "development (https://devmcp.atoms.tech)"
-        # Unset local server env var if it exists
-        os.environ.pop("ATOMS_USE_LOCAL_SERVER", None)
-    elif args.target == "local":
-        # Target local server - check if running
-        is_running, local_endpoint = _check_local_server_running()
-        if not is_running:
-            print("Error: Local server is not running on http://localhost:50002")
-            print("Start it with:")
-            print("  python start_local_server.py")
-            return 1
-        MCP_ENDPOINT = local_endpoint or DEFAULT_LOCAL_ENDPOINT
-        endpoint_source = "local (http://localhost:50002)"
-
-        # Set environment variable for backward compatibility
-        os.environ["ATOMS_USE_LOCAL_SERVER"] = "true"
-    else:  # prod
-        # Default: use production server
-        MCP_ENDPOINT = os.getenv("MCP_ENDPOINT", DEFAULT_PRODUCTION_ENDPOINT)
-        endpoint_source = "production (https://atomcp.kooshapari.com)"
-
-        # Unset local server env var if it exists
-        os.environ.pop("ATOMS_USE_LOCAL_SERVER", None)
+    # Set environment variable so auth plugin can use it
+    os.environ["MCP_ENDPOINT"] = MCP_ENDPOINT
 
     # Configure logging based on verbose/quiet flags
     if args.quiet and args.verbose:
@@ -235,9 +209,9 @@ Examples:
         print("✅ All caches cleared (test + OAuth)")
 
     try:
-        # Use pytest to run the fast unit tests instead of the custom runner
-        # This uses FastHTTPClient with session-scoped OAuth (much faster)
-        # Now with AtomsMCPTestRunner features via plugin integration
+        # Use pytest with pheno-sdk auth plugin for automatic authentication
+        # The plugin handles OAuth before test collection with progress bar
+        # Tests get cached credentials via request.session.config._mcp_credentials
         import subprocess
         import sys
 
@@ -264,34 +238,31 @@ Examples:
         # Add maxfail for faster feedback
         pytest_args.extend(["--maxfail=10"])
 
-        # Reports and progress (enabled by default)
-        if not args.no_reports:
-            pytest_args.append("--enable-reports")
-
-        if not args.no_progress and not args.no_reports:
-            pytest_args.append("--enable-rich-progress")
-
         # Skip banner in quiet mode
         if not args.quiet:
-            print(f"\n🧪 Running Atoms MCP Hybrid Test Runner\n")
+            print(f"\n🧪 Running Atoms MCP Test Suite with Auth Plugin\n")
             print("Configuration:")
             print(f"  • Target: {endpoint_source}")
             print(f"  • Endpoint: {MCP_ENDPOINT}")
             print()
             print("Features:")
+            print(f"  • Auth Plugin: ✓ (automatic OAuth with progress bar)")
+            print(f"  • Cached Credentials: ✓ (auth runs once before collection)")
             print(f"  • Fast execution: ✓ (pytest + FastHTTPClient)")
-            print(f"  • Session OAuth: ✓ (authenticate once, use for all tests)")
-            print(f"  • Rich progress: {'✓' if not args.no_progress and not args.no_reports else '○'}")
-            print(f"  • Reports: {'✓' if not args.no_reports else '○'}")
             print(f"  • Output mode: {'verbose' if args.verbose else 'quiet' if args.quiet else 'normal'}")
-            print(f"  • Retry + re-auth: ✓ (3 attempts, auto token refresh)")
             print(f"  • Parallel workers: {args.workers if args.workers else '1 (sequential)'}")
             if args.categories:
                 print(f"  • Test filter: {', '.join(args.categories)}")
             print()
+            print("Auth Plugin will:")
+            print("  1. Run OAuth flow before test collection")
+            print("  2. Show progress bar during authentication")
+            print("  3. Display completion message with credential info")
+            print("  4. Cache credentials for all tests to use")
+            print()
             print(f"Command: {' '.join(pytest_args)}\n")
 
-        # Run pytest with plugin
+        # Run pytest - auth plugin handles authentication automatically
         result = subprocess.run(pytest_args, cwd=Path(__file__).parent.parent)
         return result.returncode
 

@@ -1,11 +1,20 @@
 {
   "version": 2,
+  "buildCommand": "bash build.sh",
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
   ],
+  "functions": {
+    "app.py": {
+      "maxDuration": 60
+    }
+  },
   "routes": [
     {
       "src": "/health",
@@ -40,10 +49,12 @@
   ],
   "env": {
     "ATOMS_FASTMCP_TRANSPORT": "http",
-    "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp"
+    "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp",
+    "PYTHONPATH": "pheno_vendor",
+    "PRODUCTION": "true"
   },
   "github": {
     "silent": true
   },
-  "alias": ["atomcp.kooshapari.com", "devmcp.atoms.tech"]
+  "alias": ["mcp.atoms.tech", "devmcp.atoms.tech"]
 }

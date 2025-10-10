@@ -1,0 +1,722 @@
+"""
+Resource Manager - Automatic system resource lifecycle management
+
+Manages system resources like Docker containers, databases, message queues, etc.
+with automatic startup, health monitoring, and cleanup.
+
+Supports:
+- Docker containers (PostgreSQL, Redis, NATS, etc.)
+- System services (via systemd, launchd, etc.)
+- Custom daemon processes
+- Health monitoring and auto-recovery
+- Dependency management
+"""
+
+import asyncio
+import json
+import logging
+import shutil
+import subprocess
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+
+from .exceptions import KInfraError
+from .utils.health import check_tcp_health, check_http_health
+
+logger = logging.getLogger(__name__)
+
+
+class ResourceType(Enum):
+    """Type of managed resource."""
+    DOCKER = "docker"
+    SYSTEMD = "systemd"
+    LAUNCHD = "launchd"
+    PROCESS = "process"
+
+
+class ResourceStatus(Enum):
+    """Resource status."""
+    UNKNOWN = "unknown"
+    STARTING = "starting"
+    RUNNING = "running"
+    STOPPING = "stopping"
+    STOPPED = "stopped"
+    ERROR = "error"
+
+
+@dataclass
+class ResourceConfig:
+    """Configuration for a managed resource."""
+    name: str
+    type: ResourceType
+
+    # Docker-specific
+    image: Optional[str] = None
+    container_name: Optional[str] = None
+    ports: Optional[Dict[int, int]] = None  # host_port: container_port
+    environment: Optional[Dict[str, str]] = None
+    volumes: Optional[Dict[str, str]] = None  # host_path: container_path
+    command: Optional[List[str]] = None
+    network: Optional[str] = None
+
+    # Process/daemon-specific
+    start_command: Optional[List[str]] = None
+    stop_command: Optional[List[str]] = None
+    status_command: Optional[List[str]] = None
+
+    # Health check configuration
+    health_check_type: str = "tcp"  # "tcp", "http", "docker", "command"
+    health_check_host: str = "localhost"
+    health_check_port: Optional[int] = None
+    health_check_path: Optional[str] = None  # For HTTP health checks
+    health_check_command: Optional[List[str]] = None  # For command-based checks
+    health_check_interval: float = 5.0
+    health_check_timeout: float = 30.0
+
+    # Resource management
+    auto_start: bool = True
+    auto_restart: bool = True
+    cleanup_on_exit: bool = True
+    required: bool = True  # If true, services won't start without this resource
+
+
+class ManagedResource:
+    """Represents a managed resource with status tracking."""
+
+    def __init__(self, config: ResourceConfig):
+        self.config = config
+        self.status = ResourceStatus.STOPPED
+        self.container_id: Optional[str] = None
+        self.process_pid: Optional[int] = None
+        self.started_at: Optional[datetime] = None
+        self.last_health_check: Optional[datetime] = None
+        self.health_status: bool = False
+        self.error_message: Optional[str] = None
+
+
+class ResourceManager:
+    """
+    Manages system resources with automatic lifecycle management.
+
+    Features:
+    - Docker container management
+    - System service management (systemd/launchd)
+    - Health monitoring with auto-recovery
+    - Dependency resolution
+    - Automatic cleanup
+    """
+
+    def __init__(self):
+        """Initialize resource manager."""
+        self.resources: Dict[str, ManagedResource] = {}
+        self._health_monitor_tasks: Dict[str, asyncio.Task] = {}
+        self._shutdown = False
+
+        # Check available resource managers
+        self.has_docker = shutil.which("docker") is not None
+        self.has_systemctl = shutil.which("systemctl") is not None
+        self.has_launchctl = shutil.which("launchctl") is not None
+
+        logger.info(f"ResourceManager initialized (Docker: {self.has_docker}, systemd: {self.has_systemctl}, launchd: {self.has_launchctl})")
+
+    def add_resource(self, config: ResourceConfig):
+        """Add a resource to be managed."""
+        resource = ManagedResource(config)
+        self.resources[config.name] = resource
+        logger.info(f"Added resource: {config.name} ({config.type.value})")
+
+    async def start_resource(self, name: str) -> bool:
+        """
+        Start a managed resource.
+
+        Args:
+            name: Resource name
+
+        Returns:
+            True if started successfully
+        """
+        resource = self.resources.get(name)
+        if not resource:
+            logger.error(f"Resource {name} not found")
+            return False
+
+        config = resource.config
+        resource.status = ResourceStatus.STARTING
+
+        logger.info(f"Starting resource: {name} ({config.type.value})")
+
+        try:
+            if config.type == ResourceType.DOCKER:
+                success = await self._start_docker_resource(resource)
+            elif config.type == ResourceType.SYSTEMD:
+                success = await self._start_systemd_resource(resource)
+            elif config.type == ResourceType.LAUNCHD:
+                success = await self._start_launchd_resource(resource)
+            elif config.type == ResourceType.PROCESS:
+                success = await self._start_process_resource(resource)
+            else:
+                logger.error(f"Unsupported resource type: {config.type}")
+                return False
+
+            if success:
+                resource.status = ResourceStatus.RUNNING
+                resource.started_at = datetime.now()
+
+                # Start health monitoring
+                if config.health_check_port or config.health_check_command:
+                    task = asyncio.create_task(self._monitor_resource_health(name))
+                    self._health_monitor_tasks[name] = task
+
+                logger.info(f"✓ Resource {name} started successfully")
+                return True
+            else:
+                resource.status = ResourceStatus.ERROR
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to start resource {name}: {e}")
+            resource.status = ResourceStatus.ERROR
+            resource.error_message = str(e)
+            return False
+
+    async def _start_docker_resource(self, resource: ManagedResource) -> bool:
+        """Start a Docker container."""
+        if not self.has_docker:
+            logger.error("Docker not available")
+            return False
+
+        config = resource.config
+
+        # Check if container already exists
+        try:
+            result = await asyncio.create_subprocess_exec(
+                "docker", "ps", "-a", "--filter", f"name={config.container_name}", "--format", "{{.ID}}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, _ = await result.communicate()
+
+            if stdout.strip():
+                # Container exists, check if running
+                result = await asyncio.create_subprocess_exec(
+                    "docker", "ps", "--filter", f"name={config.container_name}", "--format", "{{.ID}}",
+                    stdout=asyncio.subprocess.PIPE
+                )
+                stdout, _ = await result.communicate()
+
+                if stdout.strip():
+                    logger.info(f"Container {config.container_name} already running")
+                    resource.container_id = stdout.decode().strip()
+                    return True
+                else:
+                    # Container exists but not running, start it
+                    logger.info(f"Starting existing container {config.container_name}")
+                    result = await asyncio.create_subprocess_exec(
+                        "docker", "start", config.container_name,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    await result.communicate()
+
+                    if result.returncode == 0:
+                        resource.container_id = config.container_name
+                        return True
+                    else:
+                        # Failed to start, remove and recreate
+                        await asyncio.create_subprocess_exec("docker", "rm", config.container_name)
+        except Exception as e:
+            logger.debug(f"Error checking existing container: {e}")
+
+        # Create new container
+        cmd = ["docker", "run", "-d", "--name", config.container_name]
+
+        # Add port mappings
+        if config.ports:
+            for host_port, container_port in config.ports.items():
+                cmd.extend(["-p", f"{host_port}:{container_port}"])
+
+        # Add environment variables
+        if config.environment:
+            for key, value in config.environment.items():
+                cmd.extend(["-e", f"{key}={value}"])
+
+        # Add volumes
+        if config.volumes:
+            for host_path, container_path in config.volumes.items():
+                cmd.extend(["-v", f"{host_path}:{container_path}"])
+
+        # Add network
+        if config.network:
+            cmd.extend(["--network", config.network])
+
+        # Add image
+        cmd.append(config.image)
+
+        # Add command if specified
+        if config.command:
+            cmd.extend(config.command)
+
+        logger.info(f"Running: {' '.join(cmd)}")
+
+        result = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await result.communicate()
+
+        if result.returncode == 0:
+            resource.container_id = stdout.decode().strip()
+            logger.info(f"Container {config.container_name} created: {resource.container_id[:12]}")
+
+            # Wait for health check
+            if config.health_check_port:
+                logger.info(f"Waiting for {config.name} to be healthy...")
+                await self._wait_for_health(resource)
+
+            return True
+        else:
+            logger.error(f"Failed to create container: {stderr.decode()}")
+            return False
+
+    async def _start_systemd_resource(self, resource: ManagedResource) -> bool:
+        """Start a systemd service."""
+        if not self.has_systemctl:
+            logger.error("systemctl not available")
+            return False
+
+        config = resource.config
+
+        result = await asyncio.create_subprocess_exec(
+            "sudo", "systemctl", "start", config.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await result.communicate()
+
+        return result.returncode == 0
+
+    async def _start_launchd_resource(self, resource: ManagedResource) -> bool:
+        """Start a launchd service."""
+        if not self.has_launchctl:
+            logger.error("launchctl not available")
+            return False
+
+        config = resource.config
+
+        result = await asyncio.create_subprocess_exec(
+            "launchctl", "start", config.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await result.communicate()
+
+        return result.returncode == 0
+
+    async def _start_process_resource(self, resource: ManagedResource) -> bool:
+        """Start a custom process."""
+        config = resource.config
+
+        if not config.start_command:
+            logger.error(f"No start command for process resource {config.name}")
+            return False
+
+        result = await asyncio.create_subprocess_exec(
+            *config.start_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        # Don't wait for process to complete, it's a daemon
+        resource.process_pid = result.pid
+
+        return True
+
+    async def stop_resource(self, name: str) -> bool:
+        """
+        Stop a managed resource.
+
+        Args:
+            name: Resource name
+
+        Returns:
+            True if stopped successfully
+        """
+        resource = self.resources.get(name)
+        if not resource:
+            return False
+
+        config = resource.config
+        resource.status = ResourceStatus.STOPPING
+
+        logger.info(f"Stopping resource: {name}")
+
+        # Stop health monitoring
+        if name in self._health_monitor_tasks:
+            self._health_monitor_tasks[name].cancel()
+            del self._health_monitor_tasks[name]
+
+        try:
+            if config.type == ResourceType.DOCKER:
+                success = await self._stop_docker_resource(resource)
+            elif config.type == ResourceType.SYSTEMD:
+                success = await self._stop_systemd_resource(resource)
+            elif config.type == ResourceType.LAUNCHD:
+                success = await self._stop_launchd_resource(resource)
+            elif config.type == ResourceType.PROCESS:
+                success = await self._stop_process_resource(resource)
+            else:
+                return False
+
+            if success:
+                resource.status = ResourceStatus.STOPPED
+                logger.info(f"✓ Resource {name} stopped")
+                return True
+            else:
+                resource.status = ResourceStatus.ERROR
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to stop resource {name}: {e}")
+            resource.status = ResourceStatus.ERROR
+            return False
+
+    async def _stop_docker_resource(self, resource: ManagedResource) -> bool:
+        """Stop a Docker container."""
+        config = resource.config
+
+        if config.cleanup_on_exit:
+            # Stop and remove container
+            result = await asyncio.create_subprocess_exec(
+                "docker", "rm", "-f", config.container_name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await result.communicate()
+        else:
+            # Just stop container
+            result = await asyncio.create_subprocess_exec(
+                "docker", "stop", config.container_name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await result.communicate()
+
+        return result.returncode == 0
+
+    async def _stop_systemd_resource(self, resource: ManagedResource) -> bool:
+        """Stop a systemd service."""
+        config = resource.config
+
+        result = await asyncio.create_subprocess_exec(
+            "sudo", "systemctl", "stop", config.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await result.communicate()
+
+        return result.returncode == 0
+
+    async def _stop_launchd_resource(self, resource: ManagedResource) -> bool:
+        """Stop a launchd service."""
+        config = resource.config
+
+        result = await asyncio.create_subprocess_exec(
+            "launchctl", "stop", config.name,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await result.communicate()
+
+        return result.returncode == 0
+
+    async def _stop_process_resource(self, resource: ManagedResource) -> bool:
+        """Stop a custom process."""
+        config = resource.config
+
+        if config.stop_command:
+            result = await asyncio.create_subprocess_exec(
+                *config.stop_command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await result.communicate()
+            return result.returncode == 0
+        elif resource.process_pid:
+            # Try to kill by PID
+            import signal
+            try:
+                import os
+                os.kill(resource.process_pid, signal.SIGTERM)
+                return True
+            except:
+                return False
+
+        return False
+
+    async def _wait_for_health(self, resource: ManagedResource) -> bool:
+        """Wait for resource to become healthy."""
+        config = resource.config
+        start_time = asyncio.get_event_loop().time()
+
+        while asyncio.get_event_loop().time() - start_time < config.health_check_timeout:
+            healthy = await self._check_health(resource)
+
+            if healthy:
+                logger.info(f"✓ Resource {config.name} is healthy")
+                return True
+
+            await asyncio.sleep(1.0)
+
+        logger.warning(f"Resource {config.name} health check timed out")
+        return False
+
+    async def _check_health(self, resource: ManagedResource) -> bool:
+        """Check resource health."""
+        config = resource.config
+
+        try:
+            if config.health_check_type == "tcp":
+                if not config.health_check_port:
+                    return False
+
+                healthy = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    check_tcp_health,
+                    config.health_check_host,
+                    config.health_check_port,
+                    2.0
+                )
+                return healthy
+
+            elif config.health_check_type == "http":
+                if not config.health_check_port:
+                    return False
+
+                url = f"http://{config.health_check_host}:{config.health_check_port}"
+                if config.health_check_path:
+                    url += config.health_check_path
+
+                healthy = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    check_http_health,
+                    url,
+                    2.0
+                )
+                return healthy
+
+            elif config.health_check_type == "docker":
+                # Use docker health check
+                result = await asyncio.create_subprocess_exec(
+                    "docker", "inspect", "--format", "{{.State.Health.Status}}", config.container_name,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, _ = await result.communicate()
+
+                if result.returncode == 0:
+                    status = stdout.decode().strip()
+                    return status == "healthy"
+                return False
+
+            elif config.health_check_type == "command":
+                if not config.health_check_command:
+                    return False
+
+                result = await asyncio.create_subprocess_exec(
+                    *config.health_check_command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                await result.communicate()
+
+                return result.returncode == 0
+
+            else:
+                logger.warning(f"Unknown health check type: {config.health_check_type}")
+                return False
+
+        except Exception as e:
+            logger.debug(f"Health check failed for {config.name}: {e}")
+            return False
+
+    async def _monitor_resource_health(self, name: str):
+        """Monitor resource health continuously."""
+        resource = self.resources.get(name)
+        if not resource:
+            return
+
+        config = resource.config
+
+        try:
+            while not self._shutdown:
+                healthy = await self._check_health(resource)
+                resource.health_status = healthy
+                resource.last_health_check = datetime.now()
+
+                if not healthy and config.auto_restart:
+                    logger.warning(f"Resource {name} unhealthy, attempting restart...")
+                    await self.stop_resource(name)
+                    await asyncio.sleep(2.0)
+                    await self.start_resource(name)
+
+                await asyncio.sleep(config.health_check_interval)
+
+        except asyncio.CancelledError:
+            logger.debug(f"Health monitoring stopped for {name}")
+
+    async def start_all(self) -> Dict[str, bool]:
+        """Start all configured resources."""
+        results = {}
+
+        for name in self.resources:
+            success = await self.start_resource(name)
+            results[name] = success
+
+        return results
+
+    async def stop_all(self):
+        """Stop all managed resources."""
+        logger.info("Stopping all managed resources...")
+
+        for name in list(self.resources.keys()):
+            await self.stop_resource(name)
+
+        logger.info("All resources stopped")
+
+    def get_status(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get status of a resource."""
+        resource = self.resources.get(name)
+        if not resource:
+            return None
+
+        return {
+            "name": resource.config.name,
+            "type": resource.config.type.value,
+            "status": resource.status.value,
+            "healthy": resource.health_status,
+            "container_id": resource.container_id,
+            "process_pid": resource.process_pid,
+            "started_at": resource.started_at.isoformat() if resource.started_at else None,
+            "last_health_check": resource.last_health_check.isoformat() if resource.last_health_check else None,
+            "error": resource.error_message
+        }
+
+    def get_all_status(self) -> Dict[str, Dict[str, Any]]:
+        """Get status of all resources."""
+        return {
+            name: self.get_status(name)
+            for name in self.resources
+        }
+
+
+# Pre-configured resource definitions for common services
+def get_postgres_resource(
+    name: str = "postgres",
+    port: int = 5432,
+    password: str = "postgres",
+    database: str = "postgres",
+    data_dir: Optional[Path] = None
+) -> ResourceConfig:
+    """Get PostgreSQL Docker resource configuration."""
+    volumes = {}
+    if data_dir:
+        volumes[str(data_dir)] = "/var/lib/postgresql/data"
+
+    return ResourceConfig(
+        name=name,
+        type=ResourceType.DOCKER,
+        image="postgres:16-alpine",
+        container_name=f"kinfra-{name}",
+        ports={port: 5432},
+        environment={
+            "POSTGRES_PASSWORD": password,
+            "POSTGRES_DB": database
+        },
+        volumes=volumes,
+        health_check_type="tcp",
+        health_check_port=port,
+        health_check_timeout=30.0,
+        auto_start=True,
+        cleanup_on_exit=True
+    )
+
+
+def get_nats_resource(
+    name: str = "nats",
+    port: int = 4222,
+    data_dir: Optional[Path] = None
+) -> ResourceConfig:
+    """Get NATS Docker resource configuration."""
+    volumes = {}
+    if data_dir:
+        volumes[str(data_dir)] = "/data"
+
+    return ResourceConfig(
+        name=name,
+        type=ResourceType.DOCKER,
+        image="nats:latest",
+        container_name=f"kinfra-{name}",
+        ports={port: 4222},
+        command=["-js", "-sd", "/data"],  # Enable JetStream with data persistence
+        volumes=volumes,
+        health_check_type="tcp",
+        health_check_port=port,
+        health_check_timeout=15.0,
+        auto_start=True,
+        cleanup_on_exit=True
+    )
+
+
+def get_redis_resource(
+    name: str = "redis",
+    port: int = 6379,
+    data_dir: Optional[Path] = None
+) -> ResourceConfig:
+    """Get Redis Docker resource configuration."""
+    volumes = {}
+    if data_dir:
+        volumes[str(data_dir)] = "/data"
+
+    return ResourceConfig(
+        name=name,
+        type=ResourceType.DOCKER,
+        image="redis:7-alpine",
+        container_name=f"kinfra-{name}",
+        ports={port: 6379},
+        command=["redis-server", "--appendonly", "yes"],
+        volumes=volumes,
+        health_check_type="tcp",
+        health_check_port=port,
+        health_check_timeout=10.0,
+        auto_start=True,
+        cleanup_on_exit=True
+    )
+
+
+def get_mongodb_resource(
+    name: str = "mongodb",
+    port: int = 27017,
+    data_dir: Optional[Path] = None
+) -> ResourceConfig:
+    """Get MongoDB Docker resource configuration."""
+    volumes = {}
+    if data_dir:
+        volumes[str(data_dir)] = "/data/db"
+
+    return ResourceConfig(
+        name=name,
+        type=ResourceType.DOCKER,
+        image="mongo:7",
+        container_name=f"kinfra-{name}",
+        ports={port: 27017},
+        volumes=volumes,
+        health_check_type="tcp",
+        health_check_port=port,
+        health_check_timeout=30.0,
+        auto_start=True,
+        cleanup_on_exit=True
+    )

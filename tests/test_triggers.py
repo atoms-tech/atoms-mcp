@@ -26,7 +26,9 @@ from schemas.triggers import (
     check_requirement_cycle,
     TriggerEmulator,
 )
-from schemas.enums import OrganizationType, UserRoleType
+# Import from generated schemas and triggers (OrganizationType defined in triggers.py)
+from schemas import UserRoleType
+from schemas.triggers import OrganizationType
 from schemas.constants import Tables, Fields
 
 

@@ -1,5 +1,8 @@
 """Pytest configuration and shared fixtures with pheno-sdk integration."""
 
+# Enable MCP Auth Plugin for automatic authentication
+pytest_plugins = ["mcp_qa.pytest_plugins.auth_plugin"]
+
 import os
 import sys
 import pytest
@@ -14,6 +17,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 load_dotenv(".env.local", override=True)
+
+# Import endpoint configuration from centralized mcp_qa library
+from mcp_qa.config.endpoints import EndpointRegistry, MCPProject, Environment
 
 # Import pheno-sdk kits for testing (optional)
 try:
@@ -36,9 +42,6 @@ except ImportError:
     WorkflowStep = None
     Worker = None
     task = None
-
-# Configure pytest-asyncio mode
-pytest_plugins = ["pytest_asyncio"]  # Disable atoms_pytest_plugin for now (conflicts with parallel execution)
 
 # Import TDD fixtures to make them available
 try:
@@ -248,11 +251,14 @@ def local_server_config():
 
 
 @pytest_asyncio.fixture(scope="session")
-async def mcp_client(local_server_config):
-    """Provide authenticated MCP client using UnifiedCredentialBroker.
+async def mcp_client(request, local_server_config):
+    """Provide authenticated MCP client using credentials from auth plugin.
+
+    The auth plugin handles OAuth automatically before test collection.
+    This fixture just retrieves the cached credentials from the session config.
 
     Automatically uses local server if available (ATOMS_USE_LOCAL_SERVER=true),
-    otherwise falls back to production server at atomcp.kooshapari.com.
+    otherwise falls back to production server at mcp.atoms.tech.
     """
     from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
@@ -261,12 +267,25 @@ async def mcp_client(local_server_config):
         mcp_endpoint = local_server_config["mcp_endpoint"]
         print(f"Using local MCP server: {mcp_endpoint}")
     else:
-        mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://atomcp.kooshapari.com/api/mcp")
-        print(f"Using production MCP server: {mcp_endpoint}")
+        # Get endpoint from environment (set by test_main.py or default to prod)
+        mcp_endpoint = os.getenv("MCP_ENDPOINT")
+        if not mcp_endpoint:
+            mcp_endpoint = EndpointRegistry.get_endpoint(project=MCPProject.ATOMS, environment=Environment.PRODUCTION)
+        print(f"Using MCP server: {mcp_endpoint}")
+
+    # Get cached credentials from auth plugin (if available)
+    credentials = None
+    if hasattr(request.session.config, '_mcp_credentials'):
+        credentials = request.session.config._mcp_credentials
+        print("Using cached credentials from auth plugin")
 
     provider = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")
 
-    broker = UnifiedCredentialBroker(mcp_endpoint=mcp_endpoint, provider=provider)
+    broker = UnifiedCredentialBroker(
+        mcp_endpoint=mcp_endpoint,
+        provider=provider,
+        cached_credentials=credentials  # Use plugin's cached credentials
+    )
 
     try:
         client, credentials = await broker.get_authenticated_client()
@@ -280,13 +299,12 @@ async def mcp_client(local_server_config):
 # ============================================================================
 
 @pytest_asyncio.fixture(scope="session")
-async def fast_http_client(local_server_config):
+async def fast_http_client(request, local_server_config):
     """Provide session-scoped authenticated HTTP client for fast testing.
 
     This fixture:
-    - Authenticates ONCE per test session (not per test)
+    - Uses credentials from the auth plugin (no manual OAuth)
     - Provides direct HTTP access to MCP tools (no MCP client overhead)
-    - Caches credentials to ~/.atoms_mcp_test_cache/
     - Supports parallel test execution
     - Returns AuthenticatedHTTPClient with session token
     - Automatically uses local server if available (ATOMS_USE_LOCAL_SERVER=true)
@@ -305,6 +323,12 @@ async def fast_http_client(local_server_config):
     """
     from .fixtures.auth import authenticated_client as get_auth_client
 
+    # Get cached credentials from auth plugin (if available)
+    credentials = None
+    if hasattr(request.session.config, '_mcp_credentials'):
+        credentials = request.session.config._mcp_credentials
+        print("Fast HTTP client using cached credentials from auth plugin")
+
     # Override MCP endpoint if using local server
     if local_server_config:
         original_endpoint = os.getenv("MCP_ENDPOINT")
@@ -313,7 +337,7 @@ async def fast_http_client(local_server_config):
 
     try:
         # Get session-scoped authenticated client
-        # This performs OAuth once and caches credentials
+        # The auth plugin has already handled OAuth, so this reuses cached credentials
         async for client in get_auth_client():
             # Verify client is working before yielding to tests
             health_ok = await client.health_check()
@@ -412,28 +436,23 @@ def atoms_test_cache():
 
 
 @pytest.fixture(scope="session")
-def atoms_auth_validation():
-    """Perform auth validation once per session."""
-    import asyncio
-    import os
+def atoms_auth_validation(request):
+    """Get auth validation results from auth plugin.
 
-    try:
-        from mcp_qa.testing.auth_validator import validate_auth
+    The auth plugin performs validation automatically before test collection.
+    This fixture just retrieves the results from session config.
+    """
+    if hasattr(request.session.config, '_mcp_auth_valid'):
+        is_valid = request.session.config._mcp_auth_valid
+        credentials = getattr(request.session.config, '_mcp_credentials', None)
 
-        mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://atomcp.kooshapari.com/api/mcp")
-        provider = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")
+        if is_valid:
+            print("Auth validation: PASSED (from plugin)")
+            return {"valid": True, "credentials": credentials}
+        else:
+            print("Auth validation: FAILED (from plugin)")
+            return {"valid": False, "credentials": None}
 
-        # Run async validation
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        result = loop.run_until_complete(
-            validate_auth(mcp_endpoint=mcp_endpoint, provider=provider)
-        )
-
-        return result
-    except Exception as e:
-        print(f"⚠ Auth validation failed: {e}")
-        return None
+    # Fallback: no auth plugin results available
+    print("Auth validation: NOT PERFORMED (plugin not active)")
+    return None

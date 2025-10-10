@@ -35,12 +35,12 @@ async def authenticated_credentials(auth_session_broker: AuthSessionBroker) -> A
 
 
 @pytest.fixture(scope="session")
-async def authenticated_client():
+async def authenticated_client(request):
     """Session-scoped authenticated FastHTTPClient.
 
-    This performs OAuth once per session and provides FastHTTPClient to all tests.
-    Uses JSON-RPC over HTTP POST for fast execution.
-    Automatically re-authenticates when token expires (401 errors).
+    Uses credentials from auth plugin (if available) or performs OAuth.
+    The auth plugin handles OAuth before test collection, so this typically
+    just retrieves cached credentials.
 
     Usage:
         async def test_entity_tool(authenticated_client):
@@ -54,17 +54,24 @@ async def authenticated_client():
     from mcp_qa.adapters.fast_http_client import FastHTTPClient
     import os
 
-    mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://atomcp.kooshapari.com/api/mcp")
+    mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
 
-    # Use UnifiedCredentialBroker for proper OAuth with Playwright
+    # Try to get cached credentials from auth plugin
+    cached_credentials = None
+    if hasattr(request.session.config, '_mcp_credentials'):
+        cached_credentials = request.session.config._mcp_credentials
+        logger.info("Using cached credentials from auth plugin")
+
+    # Use UnifiedCredentialBroker for OAuth (will use cache if available)
     broker = UnifiedCredentialBroker(
         mcp_endpoint=mcp_endpoint,
-        provider="authkit"
+        provider="authkit",
+        cached_credentials=cached_credentials
     )
 
     client = None
     try:
-        # This triggers the full OAuth flow with Playwright
+        # Get authenticated client (uses cache if plugin provided credentials)
         mcp_client, credentials = await broker.get_authenticated_client()
 
         # Extract the access token
