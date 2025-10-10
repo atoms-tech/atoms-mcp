@@ -1,0 +1,64 @@
+# Prospector Configuration
+# https://prospector.landscape.io/
+
+strictness: medium
+test-warnings: false
+doc-warnings: true
+member-warnings: false
+
+ignore-paths:
+  - pheno_vendor
+  - lib-sdks
+  - archive
+  - tests
+  - .venv
+  - build
+  - dist
+  - migrations
+
+ignore-patterns:
+  - (^|/)\..+
+  - ^__pycache__
+
+output-format: grouped
+
+pylint:
+  run: true
+  disable:
+    - too-many-arguments
+    - too-many-locals
+    - too-many-branches
+    - too-many-statements
+    - too-few-public-methods
+    - missing-module-docstring
+    - missing-class-docstring
+    - missing-function-docstring
+
+pyflakes:
+  run: true
+
+mccabe:
+  run: true
+  max-complexity: 10
+
+pep8:
+  run: true
+  max-line-length: 100
+
+pep257:
+  run: false  # Disabled, using interrogate instead
+
+pyroma:
+  run: true
+
+bandit:
+  run: true
+
+dodgy:
+  run: true
+
+mypy:
+  run: true
+  options:
+    ignore-missing-imports: true
+
