@@ -34,9 +34,43 @@ except ImportError:
                 self.token_type = token_type
                 self.scope = scope
         
+        from contextlib import asynccontextmanager
+
         class SessionTokenManager:
-            pass
-        
+            """Fallback SessionTokenManager when imports fail."""
+
+            def __init__(self):
+                self._tokens = {}
+
+            async def get_tokens(self, provider: str):
+                """Get tokens for provider."""
+                return self._tokens.get(provider)
+
+            async def store_tokens(self, provider: str, tokens):
+                """Store tokens for provider."""
+                self._tokens[provider] = tokens
+
+            async def get_lock(self, provider: str):
+                """Get lock for provider."""
+                import asyncio
+                return asyncio.Lock()
+
+            @asynccontextmanager
+            async def ensure_tokens(self, provider: str, oauth_callback):
+                """Context manager that ensures valid tokens exist."""
+                tokens = await self.get_tokens(provider)
+                if tokens:
+                    yield tokens
+                    return
+
+                # Need to authenticate
+                new_tokens = await oauth_callback(provider)
+                if new_tokens:
+                    await self.store_tokens(provider, new_tokens)
+                    yield new_tokens
+                else:
+                    raise RuntimeError(f"OAuth failed for provider: {provider}")
+
         def get_session_manager():
             return SessionTokenManager()
 
