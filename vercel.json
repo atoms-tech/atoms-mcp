@@ -49,6 +49,5 @@
   },
   "github": {
     "silent": true
-  },
-  "alias": ["mcp.atoms.tech", "devmcp.atoms.tech"]
+  }
 }
