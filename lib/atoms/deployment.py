@@ -1,20 +1,20 @@
 """
 Atoms MCP Specific Deployment Implementation
 
-This is the Atoms-specific layer that uses the platform-agnostic base classes.
-This file stays in atoms_mcp-old, while base classes move to pheno-sdk.
+This is the Atoms-specific layer that uses the platform-agnostic base classes from pheno-sdk.
 """
 
 from pathlib import Path
 from typing import Optional
 
-from ..base.deployment import (
+# Import from pheno-sdk/deploy-kit
+from deploy_kit.base.deployment import (
     DeploymentConfig,
     DeploymentEnvironment,
     DeploymentResult,
 )
-from ..platforms.vercel import VercelDeploymentProvider, VercelConfigProvider
-from ..platforms.http_health import HTTPHealthCheckProvider
+from deploy_kit.platforms.atoms.vercel import VercelDeploymentProvider, VercelConfigProvider
+from deploy_kit.platforms.atoms.http_health import HTTPHealthCheckProvider
 
 
 class AtomsDeploymentConfig:

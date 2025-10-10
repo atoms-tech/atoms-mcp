@@ -4,16 +4,16 @@ Atoms MCP Library
 Modular, framework-agnostic deployment and server management.
 
 Architecture:
-- lib/base/         → Abstract interfaces (move to pheno-sdk/deploy-kit/base/)
-- lib/platforms/    → Platform implementations (move to pheno-sdk/deploy-kit/platforms/)
-- lib/atoms/        → Atoms-specific implementations (stays in atoms_mcp-old)
+- pheno-sdk/deploy-kit/base/         → Abstract interfaces (migrated to pheno-sdk)
+- pheno-sdk/deploy-kit/platforms/    → Platform implementations (migrated to pheno-sdk)
+- lib/atoms/                         → Atoms-specific implementations (stays in atoms_mcp-old)
 
-This design allows easy extraction to pheno-sdk while keeping
-Atoms-specific logic in the atoms_mcp-old repository.
+Base and platform layers have been migrated to pheno-sdk/deploy-kit.
+Atoms-specific logic remains in the atoms_mcp-old repository.
 """
 
-# Base abstractions (pheno-sdk/deploy-kit/base/)
-from .base import (
+# Base abstractions (from pheno-sdk/deploy-kit/base/)
+from deploy_kit.base.deployment import (
     DeploymentEnvironment,
     DeploymentStatus,
     DeploymentConfig,
@@ -25,10 +25,12 @@ from .base import (
     ConfigurationProvider,
 )
 
-# Platform implementations (pheno-sdk/deploy-kit/platforms/)
-from .platforms import (
+# Platform implementations (from pheno-sdk/deploy-kit/platforms/)
+from deploy_kit.platforms.atoms.vercel import (
     VercelDeploymentProvider,
     VercelConfigProvider,
+)
+from deploy_kit.platforms.atoms.http_health import (
     HTTPHealthCheckProvider,
     AdvancedHealthChecker,
 )
