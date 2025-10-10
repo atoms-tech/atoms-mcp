@@ -26,8 +26,8 @@ import os
 # Add parent directory to path to import schemas
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from schemas import enums
-from schemas.database import entities, relationships
+# Import from generated schemas (now the source of truth)
+from schemas.generated.fastapi import schema_public_latest as generated_schema
 
 
 class Colors:
@@ -54,12 +54,17 @@ class SchemaSync:
         self.differences = []
 
     def get_supabase_schema(self) -> Dict[str, Any]:
-        """Query Supabase for current database schema using MCP tools."""
+        """Query Supabase for current database schema via direct psycopg2."""
         try:
-            # Try to import supabase client
-            from supabase_client import get_supabase_admin
+            import psycopg2
 
-            supabase = get_supabase_admin()
+            # Get database credentials from environment
+            db_password = os.getenv('SUPABASE_DB_PASSWORD', '1VBBSWga9P5L4f1C')
+            db_url = f"postgresql://postgres.ydogoylwenufckscqijp:{db_password}@aws-0-us-west-1.pooler.supabase.com:6543/postgres"
+
+            # Connect to database
+            conn = psycopg2.connect(db_url)
+            cur = conn.cursor()
 
             # Get all tables from information_schema
             tables_query = """
@@ -72,13 +77,14 @@ class SchemaSync:
                 ORDER BY table_name;
             """
 
-            tables_result = supabase.rpc('execute_sql', {'sql': tables_query}).execute()
+            cur.execute(tables_query)
+            tables = cur.fetchall()
 
             schema = {'tables': {}, 'enums': {}}
 
             # For each table, get columns
-            for table in tables_result.data:
-                table_name = table['table_name']
+            for table_row in tables:
+                table_name = table_row[0]
 
                 columns_query = f"""
                     SELECT
@@ -93,10 +99,20 @@ class SchemaSync:
                     ORDER BY ordinal_position;
                 """
 
-                cols_result = supabase.rpc('execute_sql', {'sql': columns_query}).execute()
+                cur.execute(columns_query)
+                columns = cur.fetchall()
 
                 schema['tables'][table_name] = {
-                    'columns': cols_result.data
+                    'columns': [
+                        {
+                            'column_name': col[0],
+                            'data_type': col[1],
+                            'is_nullable': col[2],
+                            'column_default': col[3],
+                            'udt_name': col[4]
+                        }
+                        for col in columns
+                    ]
                 }
 
             # Get all enums
@@ -111,10 +127,14 @@ class SchemaSync:
                 ORDER BY t.typname;
             """
 
-            enums_result = supabase.rpc('execute_sql', {'sql': enums_query}).execute()
+            cur.execute(enums_query)
+            enum_rows = cur.fetchall()
 
-            for enum_row in enums_result.data:
-                schema['enums'][enum_row['enum_name']] = enum_row['enum_values']
+            for enum_row in enum_rows:
+                schema['enums'][enum_row[0]] = enum_row[1]
+
+            cur.close()
+            conn.close()
 
             return schema
 
@@ -150,35 +170,103 @@ class SchemaSync:
             }
         }
 
+    def regenerate_schemas(self) -> bool:
+        """Regenerate schemas from database using supabase-pydantic."""
+        import subprocess
+
+        db_password = os.getenv('SUPABASE_DB_PASSWORD', '1VBBSWga9P5L4f1C')
+        db_url = f"postgresql://postgres.ydogoylwenufckscqijp:{db_password}@aws-0-us-west-1.pooler.supabase.com:6543/postgres"
+
+        print(f"{Colors.CYAN}Regenerating schemas from Supabase...{Colors.END}")
+
+        cmd = [
+            'sb-pydantic', 'gen',
+            '--type', 'pydantic',
+            '--framework', 'fastapi',
+            '--db-url', db_url,
+            '--db-type', 'postgres',
+            '--dir', str(self.schemas_dir / 'generated'),
+            '--singular-names',
+            '--schema', 'public'
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print(f"{Colors.GREEN}✅ Schemas regenerated successfully!{Colors.END}")
+            print(f"{Colors.BLUE}📁 Updated: schemas/generated/fastapi/schema_public_latest.py{Colors.END}")
+
+            # Update version file
+            self._update_version_file()
+            return True
+        else:
+            print(f"{Colors.RED}❌ Schema generation failed{Colors.END}")
+            print(result.stderr)
+            return False
+
+    def _update_version_file(self):
+        """Update schema version tracking file."""
+        version_content = f'''"""
+Schema Version Tracking
+
+This file is auto-updated when schemas are regenerated.
+"""
+
+SCHEMA_VERSION = "{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+LAST_REGENERATED = "{datetime.now(timezone.utc).isoformat()}"
+SOURCE = "supabase-pydantic generated from database"
+'''
+
+        version_file = self.schemas_dir / 'schema_version.py'
+        version_file.write_text(version_content)
+        print(f"{Colors.GREEN}✅ Version file updated{Colors.END}")
+
     def get_local_schema(self) -> Dict[str, Any]:
-        """Extract schema from local Python files."""
+        """Extract schema from generated Python file."""
         local = {'tables': {}, 'enums': {}}
 
-        # Extract enums from enums.py
-        enum_classes = []
-        for name in dir(enums):
-            obj = getattr(enums, name)
-            if isinstance(obj, type) and issubclass(obj, enums.Enum) and obj != enums.Enum:
-                if not name.startswith('_'):
-                    enum_classes.append(obj)
+        # Extract enums from generated schema
+        for name in dir(generated_schema):
+            if name.startswith('Public') and name.endswith('Enum'):
+                obj = getattr(generated_schema, name)
+                if hasattr(obj, '__members__'):
+                    # Convert PublicUserRoleTypeEnum -> user_role_type
+                    enum_name = name.replace('Public', '').replace('Enum', '')
+                    # Convert CamelCase to snake_case
+                    import re
+                    enum_name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', enum_name)
+                    enum_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', enum_name).lower()
 
-        for enum_class in enum_classes:
-            enum_name = self._convert_class_to_enum_name(enum_class.__name__)
-            values = [e.value for e in enum_class]
-            local['enums'][enum_name] = values
+                    values = [e.value for e in obj]
+                    local['enums'][enum_name] = values
 
-        # Extract tables from entities.py
-        for name in dir(entities):
-            if name.endswith('Row'):
-                obj = getattr(entities, name)
-                if hasattr(obj, '__annotations__'):
-                    table_name = self._convert_class_to_table_name(name)
+        # Extract tables from generated schema (BaseSchema classes)
+        for name in dir(generated_schema):
+            if name.endswith('BaseSchema'):
+                obj = getattr(generated_schema, name)
+                if hasattr(obj, 'model_fields'):
+                    # Convert OrganizationBaseSchema -> organizations
+                    table_name = name.replace('BaseSchema', '')
+                    # Convert CamelCase to snake_case
+                    import re
+                    table_name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', table_name)
+                    table_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', table_name).lower()
+
+                    # Pluralize
+                    if not table_name.endswith('s'):
+                        if table_name.endswith('y'):
+                            table_name = table_name[:-1] + 'ies'
+                        else:
+                            table_name = table_name + 's'
+
+                    # Special cases
+                    table_name = table_name.replace('test_reqs', 'test_req')
+
                     columns = []
-
-                    for field_name, field_type in obj.__annotations__.items():
+                    for field_name, field_info in obj.model_fields.items():
                         columns.append({
                             'column_name': field_name,
-                            'python_type': str(field_type),
+                            'python_type': str(field_info.annotation),
                         })
 
                     local['tables'][table_name] = {'columns': columns}
@@ -614,13 +702,17 @@ LAST_SYNC_DIFFERENCES = {len(self.differences)}
         """Run the schema sync tool in specified mode."""
         print(f"{Colors.BOLD}Atoms MCP Schema Synchronization{Colors.END}\n")
 
-        if mode == 'check':
+        if mode == 'regenerate':
+            success = self.regenerate_schemas()
+            sys.exit(0 if success else 1)
+
+        elif mode == 'check':
             has_drift = self.check_drift()
             self.print_diff()
 
             if has_drift:
                 print(f"\n{Colors.YELLOW}⚠️  Schema drift detected!{Colors.END}")
-                print(f"Run with --diff for details or --update to sync")
+                print(f"Run with --regenerate to regenerate from database")
                 sys.exit(1)
             else:
                 print(f"\n{Colors.GREEN}✓ Schemas are in sync{Colors.END}")
@@ -631,11 +723,9 @@ LAST_SYNC_DIFFERENCES = {len(self.differences)}
             self.print_diff()
 
         elif mode == 'update':
-            self.check_drift()
-            if not self.differences:
-                print(f"{Colors.GREEN}✓ No updates needed{Colors.END}")
-            else:
-                self.update_schema_files()
+            # Update is now an alias for regenerate
+            success = self.regenerate_schemas()
+            sys.exit(0 if success else 1)
 
         elif mode == 'report':
             self.check_drift()
@@ -644,7 +734,7 @@ LAST_SYNC_DIFFERENCES = {len(self.differences)}
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Synchronize Python schemas with Supabase database'
+        description='Synchronize Python schemas with Supabase database using supabase-pydantic'
     )
     parser.add_argument(
         '--check',
@@ -657,9 +747,14 @@ def main():
         help='Show detailed differences'
     )
     parser.add_argument(
+        '--regenerate',
+        action='store_true',
+        help='Regenerate schemas from database using supabase-pydantic'
+    )
+    parser.add_argument(
         '--update',
         action='store_true',
-        help='Update local schema files'
+        help='Update local schema files (alias for --regenerate)'
     )
     parser.add_argument(
         '--report',
@@ -675,7 +770,9 @@ def main():
     args = parser.parse_args()
 
     # Determine mode
-    if args.check:
+    if args.regenerate:
+        mode = 'regenerate'
+    elif args.check:
         mode = 'check'
     elif args.diff:
         mode = 'diff'
