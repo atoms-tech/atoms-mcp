@@ -8,10 +8,12 @@ Provides factories for:
 - Data generation for test cases
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING
 
-from .adapters import AtomsMCPClientAdapter
 from .patterns import IntegrationPattern, ToolTestPattern, UserStoryPattern
+
+if TYPE_CHECKING:
+    pass
 
 
 class TestFactory:

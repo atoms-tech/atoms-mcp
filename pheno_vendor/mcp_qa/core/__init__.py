@@ -21,6 +21,9 @@ from .test_registry import (
     retry,
 )
 
+# Decorators
+from .decorators import cache_result
+
 # Adapters
 from .adapters import MCPClientAdapter
 from .enhanced_adapter import EnhancedMCPAdapter, create_enhanced_adapter
@@ -78,6 +81,7 @@ __all__ = [
     "skip_if",
     "timeout",
     "retry",
+    "cache_result",
     # Adapters
     "MCPClientAdapter",
     "EnhancedMCPAdapter",

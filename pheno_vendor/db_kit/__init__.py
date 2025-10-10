@@ -44,6 +44,10 @@ __all__ = [
     "RealtimeAdapter",
     "SupabaseRealtimeAdapter",
 
+    # Supabase client
+    "get_supabase",
+    "MissingSupabaseConfig",
+
     # Connection pooling
     "AsyncConnectionPool",
     "SyncConnectionPool",

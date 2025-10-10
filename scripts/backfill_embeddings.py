@@ -45,8 +45,8 @@ os.environ["GRPC_TRACE"] = ""
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from dotenv import load_dotenv
-from supabase import Client, create_client
+from dotenv import load_dotenv  # noqa: E402
+from supabase import Client, create_client  # noqa: E402
 
 # Load environment variables
 # Load .env first (has correct Supabase URL), then .env.production for other vars

@@ -309,13 +309,9 @@ class EntityManager(ToolBase):
         Errors are logged but don't fail the entity creation operation.
         """
         try:
-            from config.vector import (
-                get_embedding_service,
-                get_progressive_embedding_service,
-            )
+            from config.vector import get_progressive_embedding_service
 
             # Initialize services
-            embedding_service = get_embedding_service()
             progressive_service = get_progressive_embedding_service(self.supabase)
 
             # Get table name for this entity type

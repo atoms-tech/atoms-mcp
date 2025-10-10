@@ -32,8 +32,8 @@ class OrganizationType(str, Enum):
     PERSONAL = "personal"
     TEAM = "team"
     ENTERPRISE = "enterprise"
-from schemas.constants import TABLES_WITHOUT_SOFT_DELETE, Fields, Tables
-from utils.logging_setup import get_logger
+from schemas.constants import TABLES_WITHOUT_SOFT_DELETE, Fields, Tables  # noqa: E402
+from utils.logging_setup import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 

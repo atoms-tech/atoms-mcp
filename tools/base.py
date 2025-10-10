@@ -10,7 +10,7 @@ from utils.logging_setup import get_logger
 try:
     from ..errors import normalize_error
     from ..infrastructure.factory import get_adapters
-    from ..schemas.constants import ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE, Tables
+    from ..schemas.constants import ENTITY_TABLE_MAP
 except ImportError:
     from errors import normalize_error
     from infrastructure.factory import get_adapters

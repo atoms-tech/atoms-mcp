@@ -43,28 +43,28 @@ def test_widget_creation():
     warnings.filterwarnings('ignore', category=DeprecationWarning)
 
     # Test OAuth widget
-    oauth_widget = OAuthStatusWidget(
+    OAuthStatusWidget(
         oauth_cache_client=MockOAuthClient(),
         _skip_deprecation_warning=True
     )
     print("✓ OAuthStatusWidget created")
 
     # Test Server widget
-    server_widget = ServerStatusWidget(
+    ServerStatusWidget(
         client_adapter=MockMCPClient(),
         _skip_deprecation_warning=True
     )
     print("✓ ServerStatusWidget created")
 
     # Test Tunnel widget
-    tunnel_widget = TunnelStatusWidget(
+    TunnelStatusWidget(
         tunnel_config={"type": "ngrok", "port": 4040},
         _skip_deprecation_warning=True
     )
     print("✓ TunnelStatusWidget created")
 
     # Test Resource widget
-    resource_widget = ResourceStatusWidget(
+    ResourceStatusWidget(
         resource_config={"check_system": True},
         _skip_deprecation_warning=True
     )

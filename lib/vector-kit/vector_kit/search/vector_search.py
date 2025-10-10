@@ -21,11 +21,12 @@ from supabase import Client
 from .embedding_factory import get_embedding_service
 
 # Import logger for error handling
+import logging
+
 try:
     from utils.logging_setup import get_logger
 except ImportError:
     # Fallback for standalone use
-    import logging
     def get_logger(name):
         return logging.getLogger(name)
 

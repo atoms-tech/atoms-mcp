@@ -76,12 +76,15 @@ except ImportError as e:
 
     # Fallback to local imports if mcp-QA not installed
     from .cache import TestCache
-    from .client_pool import WorkerClientPool
-    from .connection_manager import ConnectionManager, ConnectionState, WaitStrategy
-    from .data_generators import DataGenerator
-    from .health_checks import HealthChecker
 
-    # These have been consolidated to mcp_qa - no local fallback
+    # These have been consolidated to mcp_qa - no local fallback available
+    # (deleted in Phase 1 & 2 consolidation)
+    WorkerClientPool = None
+    ConnectionManager = None
+    ConnectionState = None
+    WaitStrategy = None
+    DataGenerator = None
+    HealthChecker = None
     ComprehensiveProgressDisplay = None
     ParallelClientManager = None
     TestRegistry = None

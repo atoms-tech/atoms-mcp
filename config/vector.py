@@ -16,7 +16,7 @@ if _vector_kit_path.exists():
 
 # Import from pheno-sdk/vector-kit
 from vector_kit.pipelines.progressive import ProgressiveEmbeddingService  # noqa: E402
-from vector_kit.providers.factory import (
+from vector_kit.providers.factory import (  # noqa: E402
     get_embedding_service as _get_embedding_service,
 )
 from vector_kit.search.enhanced import EnhancedVectorSearchService  # noqa: E402

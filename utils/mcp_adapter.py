@@ -16,7 +16,7 @@ _mcp_qa_path = _repo_root / "pheno-sdk" / "mcp-QA"
 if _mcp_qa_path.exists():
     sys.path.insert(0, str(_mcp_qa_path))
 
-from mcp_qa.core import create_enhanced_adapter
+from mcp_qa.core import create_enhanced_adapter  # noqa: E402
 
 
 def create_atoms_adapter(
