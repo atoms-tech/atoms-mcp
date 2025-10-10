@@ -1,18 +1,10 @@
 {
   "version": 2,
   "buildCommand": "bash build.sh",
-  "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
   "functions": {
     "app.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 3008
     }
   },
   "routes": [

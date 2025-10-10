@@ -12,8 +12,8 @@ Base and platform layers have been migrated to pheno-sdk/deploy-kit.
 Atoms-specific logic remains in the atoms_mcp-old repository.
 """
 
-# Base abstractions (from pheno-sdk/deploy-kit/base/)
-from deploy_kit.base.deployment import (
+# Base abstractions (from pheno-sdk/deploy-kit)
+from deploy_kit.base import (
     DeploymentEnvironment,
     DeploymentStatus,
     DeploymentConfig,
@@ -25,12 +25,10 @@ from deploy_kit.base.deployment import (
     ConfigurationProvider,
 )
 
-# Platform implementations (from pheno-sdk/deploy-kit/platforms/)
-from deploy_kit.platforms.atoms.vercel import (
+# Platform implementations (from pheno-sdk/deploy-kit)
+from deploy_kit.platforms import (
     VercelDeploymentProvider,
     VercelConfigProvider,
-)
-from deploy_kit.platforms.atoms.http_health import (
     HTTPHealthCheckProvider,
     AdvancedHealthChecker,
 )

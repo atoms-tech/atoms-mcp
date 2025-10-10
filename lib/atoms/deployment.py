@@ -8,13 +8,16 @@ from pathlib import Path
 from typing import Optional
 
 # Import from pheno-sdk/deploy-kit
-from deploy_kit.base.deployment import (
+from deploy_kit.base import (
     DeploymentConfig,
     DeploymentEnvironment,
     DeploymentResult,
 )
-from deploy_kit.platforms.atoms.vercel import VercelDeploymentProvider, VercelConfigProvider
-from deploy_kit.platforms.atoms.http_health import HTTPHealthCheckProvider
+from deploy_kit.platforms import (
+    VercelDeploymentProvider,
+    VercelConfigProvider,
+    HTTPHealthCheckProvider,
+)
 
 
 class AtomsDeploymentConfig:
