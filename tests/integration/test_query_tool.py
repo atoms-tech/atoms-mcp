@@ -25,7 +25,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -39,12 +39,12 @@ class TestReport:
     """Structured test report with detailed results."""
 
     def __init__(self):
-        self.tests: List[Dict[str, Any]] = []
+        self.tests: list[dict[str, Any]] = []
         self.start_time = datetime.now()
 
-    def add_test(self, operation: str, params: Dict[str, Any],
-                 success: bool, response: Dict[str, Any],
-                 error: Optional[str] = None):
+    def add_test(self, operation: str, params: dict[str, Any],
+                 success: bool, response: dict[str, Any],
+                 error: str | None = None):
         """Add a test result to the report."""
         result_count = 0
         if success and "data" in response:
@@ -87,12 +87,11 @@ class TestReport:
         if isinstance(obj, dict):
             return {k: self._get_structure(v, max_depth, current_depth + 1)
                     for k, v in list(obj.items())[:10]}  # Limit to first 10 keys
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             if len(obj) > 0:
                 return [self._get_structure(obj[0], max_depth, current_depth + 1)]
             return []
-        else:
-            return type(obj).__name__
+        return type(obj).__name__
 
     def print_report(self):
         """Print a formatted test report."""
@@ -113,16 +112,16 @@ class TestReport:
             print(f"Results Returned: {test['result_count']}")
 
             print("\nParameters:")
-            for key, value in test['parameters'].items():
+            for key, value in test["parameters"].items():
                 if isinstance(value, (dict, list)):
                     print(f"  - {key}: {json.dumps(value, indent=4)}")
                 else:
                     print(f"  - {key}: {value}")
 
             print("\nResponse Structure:")
-            print(json.dumps(test['response_structure'], indent=2))
+            print(json.dumps(test["response_structure"], indent=2))
 
-            if test['error']:
+            if test["error"]:
                 print(f"\nError: {test['error']}")
 
         print("\n" + "=" * 80)
@@ -135,7 +134,7 @@ class QueryToolTester:
 
     def __init__(self):
         self.report = TestReport()
-        self.test_data_ids: Dict[str, List[str]] = {
+        self.test_data_ids: dict[str, list[str]] = {
             "organizations": [],
             "projects": [],
             "documents": [],

@@ -15,7 +15,6 @@ Usage:
 
 import logging
 import sys
-from typing import Optional
 
 
 def configure_test_logging(
@@ -43,11 +42,11 @@ def configure_test_logging(
     # Determine log level
     if verbose:
         level = logging.DEBUG
-        format_str = '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
+        format_str = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     else:
         level = logging.ERROR  # Only show errors in quiet mode
-        format_str = '%(levelname)s | %(message)s'
-    
+        format_str = "%(levelname)s | %(message)s"
+
     # Configure root logger
     logging.basicConfig(
         level=level,
@@ -55,7 +54,7 @@ def configure_test_logging(
         stream=sys.stderr,
         force=True  # Override any existing configuration
     )
-    
+
     # Suppress noisy third-party libraries unless verbose
     if not verbose:
         # MCP-related loggers
@@ -63,26 +62,26 @@ def configure_test_logging(
         logging.getLogger("fastmcp").setLevel(logging.ERROR)
         logging.getLogger("mcp.client").setLevel(logging.ERROR)
         logging.getLogger("mcp.server").setLevel(logging.ERROR)
-        
+
         # HTTP clients
         logging.getLogger("httpx").setLevel(logging.ERROR)
         logging.getLogger("httpcore").setLevel(logging.ERROR)
         logging.getLogger("urllib3").setLevel(logging.ERROR)
-        
+
         # OAuth and auth
         logging.getLogger("mcp_qa.oauth").setLevel(logging.ERROR)
         logging.getLogger("mcp_qa.auth").setLevel(logging.ERROR)
-        
+
         # Playwright (very noisy)
         logging.getLogger("playwright").setLevel(logging.ERROR)
-        
+
         # Websockets
         logging.getLogger("websockets").setLevel(logging.ERROR)
         logging.getLogger("uvicorn").setLevel(logging.ERROR)
-        
+
         # Asyncio
         logging.getLogger("asyncio").setLevel(logging.ERROR)
-    
+
     # Capture warnings if requested
     if capture_warnings:
         logging.captureWarnings(True)
@@ -116,21 +115,21 @@ def suppress_deprecation_warnings() -> None:
     - WebSocketServerProtocol deprecation
     """
     import warnings
-    
+
     # Suppress websockets deprecation warnings
     warnings.filterwarnings(
         "ignore",
         category=DeprecationWarning,
         module="websockets.*"
     )
-    
+
     # Suppress uvicorn websockets deprecation
     warnings.filterwarnings(
         "ignore",
         category=DeprecationWarning,
         message=".*WebSocketServerProtocol.*"
     )
-    
+
     # Suppress other common test-related warnings
     warnings.filterwarnings(
         "ignore",
@@ -148,11 +147,11 @@ class QuietLogger:
             # Code that produces noisy logs
             await oauth_flow()
     """
-    
+
     def __init__(self, level: int = logging.ERROR):
         self.level = level
         self.previous_levels = {}
-    
+
     def __enter__(self):
         # Save current levels and set to ERROR
         for logger_name in ["mcp", "httpx", "playwright", "websockets", "uvicorn"]:
@@ -160,7 +159,7 @@ class QuietLogger:
             self.previous_levels[logger_name] = logger.level
             logger.setLevel(self.level)
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Restore previous levels
         for logger_name, previous_level in self.previous_levels.items():
@@ -184,7 +183,7 @@ def print_test_summary(
     passed: int,
     failed: int,
     skipped: int = 0,
-    duration_seconds: Optional[float] = None
+    duration_seconds: float | None = None
 ) -> None:
     """
     Print a clean test summary.
@@ -204,11 +203,11 @@ def print_test_summary(
     print(f"❌ Failed:  {failed}")
     if skipped > 0:
         print(f"⏭️  Skipped: {skipped}")
-    
+
     if total > 0:
         pass_rate = (passed / total) * 100
         print(f"Pass Rate: {pass_rate:.1f}%")
-    
+
     if duration_seconds is not None:
         print(f"Duration:  {duration_seconds:.2f}s")
     print("=" * 80 + "\n")

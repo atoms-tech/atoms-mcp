@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, List, Literal
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 try:
     from .base import ToolBase
@@ -11,9 +11,9 @@ except ImportError:
     from tools.base import ToolBase
 
 from schemas import (
-    RelationshipType,
-    InvitationStatus,
     EntityStatus,
+    InvitationStatus,
+    RelationshipType,
     Tables,
 )
 from schemas.rls import (
@@ -26,11 +26,11 @@ from schemas.rls import (
 
 class RelationshipManager(ToolBase):
     """Manages relationships between entities."""
-    
+
     def __init__(self):
         super().__init__()
-    
-    def _get_relationship_config(self, relationship_type: str) -> Dict[str, Any]:
+
+    def _get_relationship_config(self, relationship_type: str) -> dict[str, Any]:
         """Get configuration for relationship type."""
         configs = {
             RelationshipType.MEMBER: {
@@ -79,15 +79,15 @@ class RelationshipManager(ToolBase):
             }
         }
         return configs.get(relationship_type.lower(), {})
-    
+
     async def link_entities(
         self,
         relationship_type: str,
-        source: Dict[str, str],
-        target: Dict[str, str],
-        metadata: Optional[Dict[str, Any]] = None,
-        source_context: Optional[str] = None
-    ) -> Dict[str, Any]:
+        source: dict[str, str],
+        target: dict[str, str],
+        metadata: dict[str, Any] | None = None,
+        source_context: str | None = None
+    ) -> dict[str, Any]:
         """Create a link between two entities."""
         config = self._get_relationship_config(relationship_type)
         if not config:
@@ -179,28 +179,28 @@ class RelationshipManager(ToolBase):
             if source.get("type") in ["organization", "project"]:
                 table_config = config[source["type"]]
                 table = table_config["table"]
-                
+
                 link_data = {
                     table_config["source_field"]: source["id"],
                     table_config["target_field"]: target["id"]
                 }
-                
+
                 # Apply defaults
                 link_data.update(table_config["defaults"])
-                
+
                 # Add metadata
                 if metadata:
                     for field in table_config["metadata_fields"]:
                         if field in metadata:
                             link_data[field] = metadata[field]
-                
+
                 # Add context-specific fields
                 if source["type"] == "project" and source_context:
                     link_data["org_id"] = source_context
-                
+
             else:
                 raise ValueError(f"Invalid source type for member relationship: {source.get('type')}")
-        
+
         else:
             # General relationship handling
             table = config["table"]
@@ -208,23 +208,23 @@ class RelationshipManager(ToolBase):
                 config["source_field"]: source["id"],
                 config["target_field"]: target["id"]
             }
-            
+
             # Apply defaults
             link_data.update(config["defaults"])
-            
+
             # Add metadata
             if metadata:
                 for field in config["metadata_fields"]:
                     if field in metadata:
                         link_data[field] = metadata[field]
-            
+
             # Add required type fields for certain relationships
             if relationship_type == RelationshipType.TRACE_LINK:
                 link_data["source_type"] = source.get("type", "unknown")
                 link_data["target_type"] = target.get("type", "unknown")
             elif relationship_type == RelationshipType.ASSIGNMENT:
                 link_data["entity_type"] = source.get("type", "unknown")
-        
+
         # Add audit fields (only for tables that have created_by column)
         # Note: organization_members and project_members don't have created_by
         user_id = self._get_user_id()
@@ -234,12 +234,12 @@ class RelationshipManager(ToolBase):
         # Create the link
         result = await self._db_insert(table, link_data, returning="*")
         return result
-    
+
     async def unlink_entities(
         self,
         relationship_type: str,
-        source: Dict[str, str],
-        target: Dict[str, str],
+        source: dict[str, str],
+        target: dict[str, str],
         soft_delete: bool = True
     ) -> bool:
         """Remove a link between two entities."""
@@ -277,7 +277,7 @@ class RelationshipManager(ToolBase):
             if source.get("type") in ["organization", "project"]:
                 table_config = config[source["type"]]
                 table = table_config["table"]
-                
+
                 filters = {
                     table_config["source_field"]: source["id"],
                     table_config["target_field"]: target["id"]
@@ -290,44 +290,43 @@ class RelationshipManager(ToolBase):
                 config["source_field"]: source["id"],
                 config["target_field"]: target["id"]
             }
-        
+
         if soft_delete and "is_deleted" in config.get("defaults", {}):
             # Soft delete
             update_data = {
                 "is_deleted": True,
-                "deleted_at": datetime.now(timezone.utc).isoformat()
+                "deleted_at": datetime.now(UTC).isoformat()
             }
             if self._get_user_id():
                 update_data["deleted_by"] = self._get_user_id()
-            
+
             result = await self._db_update(table, update_data, filters)
             return bool(result)
-        else:
-            # Hard delete
-            count = await self._db_delete(table, filters)
-            return count > 0
-    
+        # Hard delete
+        count = await self._db_delete(table, filters)
+        return count > 0
+
     async def list_relationships(
         self,
         relationship_type: str,
-        source: Optional[Dict[str, str]] = None,
-        target: Optional[Dict[str, str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = 100,
-        offset: Optional[int] = 0
-    ) -> List[Dict[str, Any]]:
+        source: dict[str, str] | None = None,
+        target: dict[str, str] | None = None,
+        filters: dict[str, Any] | None = None,
+        limit: int | None = 100,
+        offset: int | None = 0
+    ) -> list[dict[str, Any]]:
         """List relationships of a given type."""
         config = self._get_relationship_config(relationship_type)
         if not config:
             raise ValueError(f"Unknown relationship type: {relationship_type}")
-        
+
         # Handle special cases for member relationships
         if relationship_type == RelationshipType.MEMBER:
             if source and source.get("type") in ["organization", "project"]:
                 table_config = config[source["type"]]
                 table = table_config["table"]
                 query_filters = {}
-                
+
                 if source:
                     query_filters[table_config["source_field"]] = source["id"]
                 if target:
@@ -338,7 +337,7 @@ class RelationshipManager(ToolBase):
                 table_config = config["organization"]
                 table = table_config["table"]
                 query_filters = {}
-                
+
                 if source:
                     query_filters[table_config["source_field"]] = source["id"]
                 if target:
@@ -346,20 +345,20 @@ class RelationshipManager(ToolBase):
         else:
             table = config["table"]
             query_filters = {}
-            
+
             if source:
                 query_filters[config["source_field"]] = source["id"]
             if target:
                 query_filters[config["target_field"]] = target["id"]
-        
+
         # Add additional filters
         if filters:
             query_filters.update(filters)
-        
+
         # Add default filters
         if "is_deleted" not in query_filters and "is_deleted" in config.get("defaults", {}):
             query_filters["is_deleted"] = False
-        
+
         # Query the relationship table with pagination
         relationships = await self._db_query(
             table,
@@ -425,26 +424,26 @@ class RelationshipManager(ToolBase):
                         rel["profiles"] = profile_map[user_id]
 
         return relationships
-    
+
     async def check_relationship(
         self,
         relationship_type: str,
-        source: Dict[str, str],
-        target: Dict[str, str]
-    ) -> Optional[Dict[str, Any]]:
+        source: dict[str, str],
+        target: dict[str, str]
+    ) -> dict[str, Any] | None:
         """Check if a relationship exists."""
         relationships = await self.list_relationships(
             relationship_type, source, target
         )
         return relationships[0] if relationships else None
-    
+
     async def update_relationship(
         self,
         relationship_type: str,
-        source: Dict[str, str],
-        target: Dict[str, str],
-        metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        source: dict[str, str],
+        target: dict[str, str],
+        metadata: dict[str, Any]
+    ) -> dict[str, Any]:
         """Update relationship metadata."""
         config = self._get_relationship_config(relationship_type)
         if not config:
@@ -492,13 +491,13 @@ class RelationshipManager(ToolBase):
                 config["source_field"]: source["id"],
                 config["target_field"]: target["id"]
             }
-        
+
         # Update the relationship
         update_data = metadata.copy()
-        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        update_data["updated_at"] = datetime.now(UTC).isoformat()
         if self._get_user_id():
             update_data["updated_by"] = self._get_user_id()
-        
+
         result = await self._db_update(table, update_data, filters, returning="*")
         return result
 
@@ -511,16 +510,16 @@ async def relationship_operation(
     auth_token: str,
     operation: Literal["link", "unlink", "list", "check", "update"],
     relationship_type: str,
-    source: Dict[str, str],
-    target: Optional[Dict[str, str]] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    filters: Optional[Dict[str, Any]] = None,
-    source_context: Optional[str] = None,
+    source: dict[str, str],
+    target: dict[str, str] | None = None,
+    metadata: dict[str, Any] | None = None,
+    filters: dict[str, Any] | None = None,
+    source_context: str | None = None,
     soft_delete: bool = True,
-    limit: Optional[int] = 100,
-    offset: Optional[int] = 0,
+    limit: int | None = 100,
+    offset: int | None = 0,
     format_type: str = "detailed"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Manage relationships between entities.
     
     Args:
@@ -541,20 +540,20 @@ async def relationship_operation(
     try:
         # Validate authentication
         await _relationship_manager._validate_auth(auth_token)
-        
+
         if operation == "link":
             if not target:
                 raise ValueError("target is required for link operation")
-            
+
             result = await _relationship_manager.link_entities(
                 relationship_type, source, target, metadata, source_context
             )
             return _relationship_manager._format_result(result, format_type)
-        
-        elif operation == "unlink":
+
+        if operation == "unlink":
             if not target:
                 raise ValueError("target is required for unlink operation")
-            
+
             success = await _relationship_manager.unlink_entities(
                 relationship_type, source, target, soft_delete
             )
@@ -564,17 +563,17 @@ async def relationship_operation(
                 "source": source,
                 "target": target
             }
-        
-        elif operation == "list":
+
+        if operation == "list":
             result = await _relationship_manager.list_relationships(
                 relationship_type, source, target, filters, limit, offset
             )
             return _relationship_manager._format_result(result, format_type)
-        
-        elif operation == "check":
+
+        if operation == "check":
             if not target:
                 raise ValueError("target is required for check operation")
-            
+
             result = await _relationship_manager.check_relationship(
                 relationship_type, source, target
             )
@@ -583,19 +582,18 @@ async def relationship_operation(
                 "relationship": result,
                 "relationship_type": relationship_type
             }
-        
-        elif operation == "update":
+
+        if operation == "update":
             if not target or not metadata:
                 raise ValueError("target and metadata are required for update operation")
-            
+
             result = await _relationship_manager.update_relationship(
                 relationship_type, source, target, metadata
             )
             return _relationship_manager._format_result(result, format_type)
-        
-        else:
-            raise ValueError(f"Unknown operation: {operation}")
-    
+
+        raise ValueError(f"Unknown operation: {operation}")
+
     except Exception as e:
         return {
             "success": False,

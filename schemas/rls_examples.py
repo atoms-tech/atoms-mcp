@@ -5,17 +5,17 @@ This file demonstrates how to use the RLS policy validators in different scenari
 """
 
 import asyncio
-from schemas.rls import (
-    PolicyValidator,
-    PermissionDeniedError,
-    OrganizationPolicy,
-    ProjectPolicy,
-    DocumentPolicy,
-    user_can_access_project,
-    is_super_admin,
-)
-from infrastructure.factory import get_adapters
 
+from infrastructure.factory import get_adapters
+from schemas.rls import (
+    DocumentPolicy,
+    OrganizationPolicy,
+    PermissionDeniedError,
+    PolicyValidator,
+    ProjectPolicy,
+    is_super_admin,
+    user_can_access_project,
+)
 
 # =============================================================================
 # EXAMPLE 1: Basic Permission Checking

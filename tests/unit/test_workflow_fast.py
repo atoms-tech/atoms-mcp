@@ -12,12 +12,12 @@ Run with: pytest tests/unit/test_workflow_fast.py -v
 
 from __future__ import annotations
 
-import pytest
-import uuid
-from typing import Dict, Any, List
-from datetime import datetime
 import time
+import uuid
+from datetime import datetime
+from typing import Any
 
+import pytest
 
 # ============================================================================
 # Helper Functions
@@ -29,7 +29,7 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def generate_requirements(count: int, **kwargs) -> List[Dict[str, Any]]:
+def generate_requirements(count: int, **kwargs) -> list[dict[str, Any]]:
     """Generate a list of requirement data.
 
     Args:
@@ -54,7 +54,7 @@ def generate_requirements(count: int, **kwargs) -> List[Dict[str, Any]]:
     return requirements
 
 
-def generate_document_names(count: int) -> List[str]:
+def generate_document_names(count: int) -> list[str]:
     """Generate a list of document names.
 
     Args:
@@ -516,7 +516,7 @@ async def test_import_requirements_empty_list(authenticated_client):
 
 async def setup_project_with_requirements(
     authenticated_client, requirement_count: int = 5
-) -> tuple[str, str, List[str]]:
+) -> tuple[str, str, list[str]]:
     """Create project with requirements for testing.
 
     Returns:
@@ -718,7 +718,7 @@ async def test_setup_test_matrix_empty_project(authenticated_client):
 
 async def create_test_entities(
     authenticated_client, entity_type: str, count: int
-) -> List[str]:
+) -> list[str]:
     """Create test entities for bulk update testing.
 
     Returns:

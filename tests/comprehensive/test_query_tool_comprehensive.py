@@ -17,7 +17,8 @@ import json
 import os
 import time
 from datetime import datetime
-from supabase import create_client, Client
+
+from supabase import Client, create_client
 
 
 class QueryToolTester:
@@ -325,7 +326,7 @@ class QueryToolTester:
             print(f"   Tests: {len(self.test_data_ids['tests'])}")
 
         except Exception as e:
-            error_msg = f"Failed to setup test data: {str(e)}"
+            error_msg = f"Failed to setup test data: {e!s}"
             print(f"\n❌ {error_msg}")
             self.test_results["errors"].append({
                 "phase": "setup",
@@ -393,7 +394,7 @@ class QueryToolTester:
                     "error": str(e)
                 }
                 results.append(error_result)
-                print(f"    ❌ Failed: {str(e)}")
+                print(f"    ❌ Failed: {e!s}")
 
         self.test_results["test_results"][test_name] = results
         return results
@@ -451,7 +452,7 @@ class QueryToolTester:
                     "error": str(e)
                 }
                 results.append(error_result)
-                print(f"    ❌ Failed: {str(e)}")
+                print(f"    ❌ Failed: {e!s}")
 
         self.test_results["test_results"][test_name] = results
         return results
@@ -507,7 +508,7 @@ class QueryToolTester:
                     "error": str(e)
                 }
                 results.append(error_result)
-                print(f"    ❌ Failed: {str(e)}")
+                print(f"    ❌ Failed: {e!s}")
 
         self.test_results["test_results"][test_name] = results
         return results
@@ -557,7 +558,7 @@ class QueryToolTester:
                     "error": str(e)
                 }
                 results.append(error_result)
-                print(f"    ❌ Failed: {str(e)}")
+                print(f"    ❌ Failed: {e!s}")
 
         self.test_results["test_results"][test_name] = results
         return results
@@ -615,7 +616,7 @@ class QueryToolTester:
                     "mode": mode
                 }
                 results.append(error_result)
-                print(f"    ❌ Failed: {str(e)}")
+                print(f"    ❌ Failed: {e!s}")
 
         self.test_results["test_results"][test_name] = results
         return results
@@ -673,7 +674,7 @@ class QueryToolTester:
                     "error": str(e)
                 }
                 results.append(error_result)
-                print(f"    ❌ Failed: {str(e)}")
+                print(f"    ❌ Failed: {e!s}")
 
         self.test_results["test_results"][test_name] = results
         return results
@@ -727,7 +728,7 @@ class QueryToolTester:
             print("\n✅ Cleanup complete!")
 
         except Exception as e:
-            error_msg = f"Failed to cleanup test data: {str(e)}"
+            error_msg = f"Failed to cleanup test data: {e!s}"
             print(f"\n❌ {error_msg}")
             self.test_results["errors"].append({
                 "phase": "cleanup",
@@ -776,7 +777,7 @@ class QueryToolTester:
         """Save test results to JSON file."""
         output_file = "query_tool_test_results.json"
 
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(self.test_results, f, indent=2)
 
         print(f"\n📊 Test results saved to: {output_file}")
@@ -789,7 +790,7 @@ class QueryToolTester:
         print(f"Total Errors: {self.test_results['summary']['total_errors']}")
 
         print("\n📁 Test Data Created:")
-        for entity_type, count in self.test_results['test_data_created'].items():
+        for entity_type, count in self.test_results["test_data_created"].items():
             print(f"  - {entity_type}: {count}")
 
         if self.test_results["errors"]:

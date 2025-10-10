@@ -23,53 +23,53 @@ Shared Components (from mcp-QA):
 try:
     # Core shared components
     from mcp_qa.core import (
+        # Progress
+        ComprehensiveProgressDisplay,
+        ConnectionManager,
+        ConnectionState,
+        # Reporters
+        ConsoleReporter,
+        # Data & Validators
+        DataGenerator,
+        DetailedErrorReporter,
+        FunctionalityMatrixReporter,
+        # Health
+        HealthChecker,
+        JSONReporter,
+        MarkdownReporter,
+        ParallelClientManager,
+        # Cache
+        TestCache,
         # Decorators & Registry
         TestRegistry,
+        TestReporter,
+        WaitStrategy,
+        # Parallel Execution
+        WorkerClientPool,
+        cache_result,
         get_test_registry,
         mcp_test,
         require_auth,
         retry,
         skip_if,
         timeout,
-        cache_result,
-        # Reporters
-        ConsoleReporter,
-        DetailedErrorReporter,
-        FunctionalityMatrixReporter,
-        JSONReporter,
-        MarkdownReporter,
-        TestReporter,
-        # Cache
-        TestCache,
-        # Data & Validators
-        DataGenerator,
-        # Progress
-        ComprehensiveProgressDisplay,
-        # Parallel Execution
-        WorkerClientPool,
-        ParallelClientManager,
-        ConnectionManager,
-        ConnectionState,
-        WaitStrategy,
-        # Health
-        HealthChecker,
     )
-    
+
     # Base patterns (NEW!)
     from mcp_qa.core.base import (
         BaseClientAdapter,
         BaseTestRunner,
     )
-    
+
     # Optimizations (NEW - with fixed PooledMCPClient!)
     from mcp_qa.core.optimizations import (
+        OptimizationFlags,
         PooledMCPClient,
         ResponseCacheLayer,
-        OptimizationFlags,
     )
-    
+
     HAS_MCP_QA = True
-    
+
 except ImportError as e:
     print(f"⚠️  Warning: Could not import from mcp-qa: {e}")
     print("   Falling back to local implementations")
@@ -127,16 +127,26 @@ TestRunner = AtomsTestRunner
 
 # Other Atoms-specific components (core - must exist)
 # Note: cache_result decorator is now in mcp_qa.core.decorators
-from .patterns import IntegrationPattern, ToolTestPattern, UserStoryPattern
-from .validators import FieldValidator, ResponseValidator
 
-# Optional components (may not exist in all installations)
+# Import patterns, validators, and factories from mcp_qa
 try:
-    from .factories import ParameterPermutationFactory, TestFactory, TestSuiteFactory
+    from mcp_qa.core.factories import ParameterPermutationFactory, TestFactory, TestSuiteFactory
+    from mcp_qa.core.patterns import IntegrationPattern, ToolTestPattern, UserStoryPattern
+    from mcp_qa.core.validators import FieldValidator, ResponseValidator
 except ImportError:
+    # Fallback to archived versions if mcp_qa not available
+    print("⚠️  Warning: mcp_qa.core not available, some features may be limited")
+    IntegrationPattern = None
+    ToolTestPattern = None
+    UserStoryPattern = None
+    FieldValidator = None
+    ResponseValidator = None
     ParameterPermutationFactory = None
     TestFactory = None
     TestSuiteFactory = None
+
+# Import Atoms-specific helpers
+from .atoms_helpers import AtomsTestHelpers
 
 try:
     from .file_watcher import SmartReloadManager, TestFileWatcher
@@ -159,6 +169,8 @@ try:
         CollaborationBroadcaster,
         CollaborationFactory,
         CollaborationSubscriber,
+    )
+    from .collaboration import (
         TestEvent as CollaborationEvent,
     )
 except ImportError:
@@ -215,12 +227,12 @@ __all__ = [
     # ========== pheno-sdk Base Classes (NEW!) ==========
     "BaseClientAdapter",
     "BaseTestRunner",
-    
+
     # ========== pheno-sdk Optimizations (NEW!) ==========
     "PooledMCPClient",
     "ResponseCacheLayer",
     "OptimizationFlags",
-    
+
     # ========== Decorators ==========
     "mcp_test",
     "require_auth",
@@ -230,7 +242,7 @@ __all__ = [
     "cache_result",
     "TestRegistry",
     "get_test_registry",
-    
+
     # ========== Reporters ==========
     "TestReporter",
     "ConsoleReporter",
@@ -238,10 +250,10 @@ __all__ = [
     "MarkdownReporter",
     "FunctionalityMatrixReporter",
     "DetailedErrorReporter",
-    
+
     # ========== Cache ==========
     "TestCache",
-    
+
     # ========== OAuth ==========
     "CachedOAuthClient",
     "create_cached_client",
@@ -253,49 +265,50 @@ __all__ = [
     "FlowResult",
     "flow_config_from_dict",
     "load_flow_config_from_yaml",
-    
+
     # ========== Adapters (Atoms-specific) ==========
     "AtomsMCPClientAdapter",
-    
+
     # ========== Runners (Atoms-specific + Unified) ==========
     "AtomsTestRunner",  # NEW: Extends BaseTestRunner
     "TestRunner",       # Alias for backward compatibility
     "LiveTestRunner",
     "AtomsMCPTestRunner",  # Unified runner
     "run_atoms_tests",
-    
+
     # ========== Patterns ==========
     "ToolTestPattern",
     "UserStoryPattern",
     "IntegrationPattern",
-    
+
     # ========== Factories ==========
     "TestFactory",
     "TestSuiteFactory",
     "ParameterPermutationFactory",
-    
+
     # ========== Validators ==========
     "ResponseValidator",
     "FieldValidator",
-    
+    "AtomsTestHelpers",  # Atoms-specific helpers
+
     # ========== Data Generators ==========
     "DataGenerator",
-    
+
     # ========== Health Checks ==========
     "HealthChecker",
-    
+
     # ========== Connection Management ==========
     "ConnectionManager",
     "ConnectionState",
     "WaitStrategy",
-    
+
     # ========== Client Pool ==========
     "WorkerClientPool",
     "ParallelClientManager",
-    
+
     # ========== Progress Display ==========
     "ComprehensiveProgressDisplay",
-    
+
     # ========== File Watching ==========
     "TestFileWatcher",
     "SmartReloadManager",

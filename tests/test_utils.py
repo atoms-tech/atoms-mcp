@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 
 class EntityFactory:
@@ -12,10 +13,10 @@ class EntityFactory:
 
     @staticmethod
     def organization(
-        name: Optional[str] = None,
-        slug: Optional[str] = None,
+        name: str | None = None,
+        slug: str | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create organization test data."""
         uid = uuid.uuid4().hex[:8]
         return {
@@ -29,9 +30,9 @@ class EntityFactory:
     @staticmethod
     def project(
         organization_id: str,
-        name: Optional[str] = None,
+        name: str | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create project test data."""
         uid = uuid.uuid4().hex[:8]
         return {
@@ -44,9 +45,9 @@ class EntityFactory:
     @staticmethod
     def document(
         project_id: str,
-        name: Optional[str] = None,
+        name: str | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create document test data."""
         uid = uuid.uuid4().hex[:8]
         return {
@@ -60,9 +61,9 @@ class EntityFactory:
     def requirement(
         document_id: str,
         block_id: str,
-        name: Optional[str] = None,
+        name: str | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create requirement test data."""
         uid = uuid.uuid4().hex[:8]
         return {
@@ -79,9 +80,9 @@ class EntityFactory:
     @staticmethod
     def test_entity(
         project_id: str,
-        title: Optional[str] = None,
+        title: str | None = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create test entity test data."""
         uid = uuid.uuid4().hex[:8]
         return {
@@ -113,7 +114,7 @@ class EntityHierarchyBuilder:
         org_count: int = 1,
         projects_per_org: int = 2,
         docs_per_project: int = 2
-    ) -> Dict[str, List[Dict[str, Any]]]:
+    ) -> dict[str, list[dict[str, Any]]]:
         """Build a complete entity hierarchy for testing.
 
         Args:
@@ -239,15 +240,15 @@ class PerformanceAnalyzer:
             "duration_ms": duration_ms,
             "entity_count": entity_count,
             "per_entity_ms": duration_ms / entity_count if entity_count > 0 else duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             **kwargs
         })
 
     def get_stats(
         self,
-        operation: Optional[str] = None,
-        entity_type: Optional[str] = None
-    ) -> Dict[str, Any]:
+        operation: str | None = None,
+        entity_type: str | None = None
+    ) -> dict[str, Any]:
         """Get performance statistics."""
         filtered = self.metrics
 
@@ -273,7 +274,7 @@ class PerformanceAnalyzer:
             "percentile_99_ms": self._percentile(durations, 99),
         }
 
-    def _percentile(self, data: List[float], percentile: int) -> float:
+    def _percentile(self, data: list[float], percentile: int) -> float:
         """Calculate percentile value."""
         if not data:
             return 0.0
@@ -326,7 +327,7 @@ class AssertionHelpers:
     """Helper methods for common assertions in entity tests."""
 
     @staticmethod
-    def assert_entity_created(result: Dict[str, Any], entity_type: str):
+    def assert_entity_created(result: dict[str, Any], entity_type: str):
         """Assert that an entity was successfully created."""
         assert result.get("success") is True, f"Create failed: {result.get('error')}"
         assert "data" in result, "No data in create response"
@@ -349,14 +350,14 @@ class AssertionHelpers:
             assert "external_id" in result["data"], "No external_id in requirement"
 
     @staticmethod
-    def assert_entity_read(result: Dict[str, Any], entity_id: str):
+    def assert_entity_read(result: dict[str, Any], entity_id: str):
         """Assert that an entity was successfully read."""
         assert result.get("success") is True, f"Read failed: {result.get('error')}"
         assert "data" in result, "No data in read response"
         assert result["data"]["id"] == entity_id, "Wrong entity returned"
 
     @staticmethod
-    def assert_entity_updated(result: Dict[str, Any], expected_values: Dict[str, Any]):
+    def assert_entity_updated(result: dict[str, Any], expected_values: dict[str, Any]):
         """Assert that an entity was successfully updated."""
         assert result.get("success") is True, f"Update failed: {result.get('error')}"
         assert "data" in result, "No data in update response"
@@ -370,7 +371,7 @@ class AssertionHelpers:
         assert "updated_at" in result["data"], "No updated_at timestamp"
 
     @staticmethod
-    def assert_entity_deleted(delete_result: Dict[str, Any], read_result: Dict[str, Any]):
+    def assert_entity_deleted(delete_result: dict[str, Any], read_result: dict[str, Any]):
         """Assert that an entity was successfully deleted."""
         assert delete_result.get("success") is True, \
             f"Delete failed: {delete_result.get('error')}"
@@ -380,9 +381,9 @@ class AssertionHelpers:
 
     @staticmethod
     def assert_search_results(
-        result: Dict[str, Any],
+        result: dict[str, Any],
         min_count: int = 0,
-        max_count: Optional[int] = None
+        max_count: int | None = None
     ):
         """Assert that search results are valid."""
         assert result.get("success") is True, f"Search failed: {result.get('error')}"
@@ -397,9 +398,9 @@ class AssertionHelpers:
 
     @staticmethod
     def assert_list_results(
-        result: Dict[str, Any],
-        parent_id: Optional[str] = None,
-        parent_key: Optional[str] = None
+        result: dict[str, Any],
+        parent_id: str | None = None,
+        parent_key: str | None = None
     ):
         """Assert that list results are valid."""
         assert result.get("success") is True, f"List failed: {result.get('error')}"
@@ -413,7 +414,7 @@ class AssertionHelpers:
                     f"Item has wrong {parent_key}: {item.get(parent_key)}"
 
     @staticmethod
-    def assert_batch_results(result: Dict[str, Any], expected_count: int):
+    def assert_batch_results(result: dict[str, Any], expected_count: int):
         """Assert that batch operation results are valid."""
         assert result.get("success") is True, f"Batch failed: {result.get('error')}"
         assert "data" in result, "No data in batch response"
@@ -430,7 +431,7 @@ class TestDataValidator:
     """Validate test data integrity and consistency."""
 
     @staticmethod
-    def validate_timestamps(entity: Dict[str, Any]) -> List[str]:
+    def validate_timestamps(entity: dict[str, Any]) -> list[str]:
         """Validate entity timestamps."""
         issues = []
 
@@ -454,9 +455,9 @@ class TestDataValidator:
 
     @staticmethod
     def validate_foreign_keys(
-        entity: Dict[str, Any],
+        entity: dict[str, Any],
         entity_type: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Validate foreign key relationships."""
         issues = []
 
@@ -476,9 +477,9 @@ class TestDataValidator:
 
     @staticmethod
     def validate_required_fields(
-        entity: Dict[str, Any],
+        entity: dict[str, Any],
         entity_type: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Validate required fields."""
         issues = []
 
@@ -500,9 +501,9 @@ class TestDataValidator:
 
 # Export all utilities
 __all__ = [
+    "AssertionHelpers",
     "EntityFactory",
     "EntityHierarchyBuilder",
     "PerformanceAnalyzer",
-    "AssertionHelpers",
     "TestDataValidator",
 ]

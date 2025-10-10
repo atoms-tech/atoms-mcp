@@ -13,7 +13,6 @@ This module provides factory functions for creating infrastructure components:
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Add pheno-sdk to path
 _repo_root = Path(__file__).resolve().parents[2]
@@ -32,20 +31,19 @@ if _authkit_client_path.exists():
     sys.path.insert(0, str(_authkit_client_path))
 
 # Import from pheno-sdk
-from db_kit import SupabaseAdapter, SupabaseStorageAdapter, SupabaseRealtimeAdapter
-from adapters import DatabaseAdapter, StorageAdapter, RealtimeAdapter
-from observability.rate_limiting import TokenBucketRateLimiter
+from adapters import DatabaseAdapter, RealtimeAdapter, StorageAdapter  # noqa: E402
 
 # Import Atoms-specific auth implementation (not in pheno-sdk)
-from authkit_client import SupabaseAuthAdapter
-
+from authkit_client import SupabaseAuthAdapter  # noqa: E402
+from db_kit import SupabaseAdapter, SupabaseRealtimeAdapter, SupabaseStorageAdapter  # noqa: E402
+from observability.rate_limiting import TokenBucketRateLimiter  # noqa: E402
 
 # Singleton instances
-_database_adapter: Optional[DatabaseAdapter] = None
-_auth_adapter: Optional[SupabaseAuthAdapter] = None
-_storage_adapter: Optional[StorageAdapter] = None
-_realtime_adapter: Optional[RealtimeAdapter] = None
-_rate_limiter: Optional[TokenBucketRateLimiter] = None
+_database_adapter: DatabaseAdapter | None = None
+_auth_adapter: SupabaseAuthAdapter | None = None
+_storage_adapter: StorageAdapter | None = None
+_realtime_adapter: RealtimeAdapter | None = None
+_rate_limiter: TokenBucketRateLimiter | None = None
 
 
 def get_database_adapter() -> DatabaseAdapter:
@@ -138,7 +136,7 @@ def get_realtime_adapter() -> RealtimeAdapter:
 
 def get_rate_limiter(
     requests_per_minute: int = 60,
-    burst_size: Optional[int] = None
+    burst_size: int | None = None
 ) -> TokenBucketRateLimiter:
     """
     Get configured rate limiter.
@@ -160,13 +158,13 @@ def get_rate_limiter(
         ...     pass
     """
     global _rate_limiter
-    
+
     if _rate_limiter is None:
         _rate_limiter = TokenBucketRateLimiter(
             requests_per_minute=requests_per_minute,
             burst_size=burst_size
         )
-    
+
     return _rate_limiter
 
 

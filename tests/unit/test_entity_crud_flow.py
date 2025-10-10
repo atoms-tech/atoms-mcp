@@ -18,18 +18,18 @@ Run with:
     pytest tests/unit/test_entity_crud_flow.py -v --tb=short
 """
 
-import pytest
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any
 
+import pytest
 
 # ============================================================================
 # Test Data Factory - Generate Unique Test Data for Each Entity Type
 # ============================================================================
 
-def generate_entity_data(entity_type: str, organization_id: Optional[str] = None,
-                        project_id: Optional[str] = None, document_id: Optional[str] = None) -> Dict[str, Any]:
+def generate_entity_data(entity_type: str, organization_id: str | None = None,
+                        project_id: str | None = None, document_id: str | None = None) -> dict[str, Any]:
     """
     Generate unique test data for entity creation.
 
@@ -87,7 +87,7 @@ def generate_entity_data(entity_type: str, organization_id: Optional[str] = None
     return entity_data.get(entity_type, {})
 
 
-def generate_update_data(entity_type: str) -> Dict[str, Any]:
+def generate_update_data(entity_type: str) -> dict[str, Any]:
     """
     Generate update data for entity modification.
 
@@ -153,10 +153,10 @@ async def test_full_crud_flow(authenticated_client, entity_type):
     if entity_type == "test":
         pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
 
-    created_entity_id: Optional[str] = None
-    created_org_id: Optional[str] = None
-    created_project_id: Optional[str] = None
-    created_document_id: Optional[str] = None
+    created_entity_id: str | None = None
+    created_org_id: str | None = None
+    created_project_id: str | None = None
+    created_document_id: str | None = None
 
     try:
         # -------------------------------------------------------------------------
@@ -419,7 +419,7 @@ async def test_full_crud_flow(authenticated_client, entity_type):
 
     except Exception as e:
         # Log the error but still try to clean up
-        print(f"\n❌ [{entity_type}] CRUD flow failed: {str(e)}\n")
+        print(f"\n❌ [{entity_type}] CRUD flow failed: {e!s}\n")
         raise
 
     finally:

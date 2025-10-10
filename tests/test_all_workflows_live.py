@@ -12,14 +12,14 @@ Available Workflows:
 Run with: python tests/test_all_workflows_live.py
 """
 
+import asyncio
+import json
 import os
 import sys
-import json
 import time
 import uuid
-import asyncio
-from typing import Any, Dict, List
 from datetime import datetime
+from typing import Any
 
 import httpx
 
@@ -29,8 +29,8 @@ MCP_PATH = os.getenv("ATOMS_FASTMCP_HTTP_PATH", "/api/mcp")
 TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
 TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 
-SUPABASE_URL = os.getenv("
-SUPABASE_KEY = os.getenv("
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 
 class WorkflowTestRunner:
     """Comprehensive workflow testing with real MCP calls."""
@@ -57,7 +57,7 @@ class WorkflowTestRunner:
             "test_matrices": [],
         }
 
-    async def call_tool(self, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def call_tool(self, tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
         """Call an MCP tool and return the result."""
         payload = {
             "jsonrpc": "2.0",
@@ -93,7 +93,7 @@ class WorkflowTestRunner:
                     "tool": tool_name
                 }
 
-    async def test_organization_onboarding(self) -> Dict[str, Any]:
+    async def test_organization_onboarding(self) -> dict[str, Any]:
         """Test 1: Organization Onboarding Workflow"""
         print("\n" + "="*80)
         print("TEST 1: organization_onboarding")
@@ -180,7 +180,7 @@ class WorkflowTestRunner:
 
         return test_result
 
-    async def test_setup_project(self) -> Dict[str, Any]:
+    async def test_setup_project(self) -> dict[str, Any]:
         """Test 2: Setup Project Workflow"""
         print("\n" + "="*80)
         print("TEST 2: setup_project")
@@ -298,7 +298,7 @@ class WorkflowTestRunner:
 
         return test_result
 
-    async def test_import_requirements(self) -> Dict[str, Any]:
+    async def test_import_requirements(self) -> dict[str, Any]:
         """Test 3: Import Requirements Workflow"""
         print("\n" + "="*80)
         print("TEST 3: import_requirements")
@@ -394,7 +394,7 @@ class WorkflowTestRunner:
 
         return test_result
 
-    async def test_setup_test_matrix(self) -> Dict[str, Any]:
+    async def test_setup_test_matrix(self) -> dict[str, Any]:
         """Test 4: Setup Test Matrix Workflow"""
         print("\n" + "="*80)
         print("TEST 4: setup_test_matrix")
@@ -462,7 +462,7 @@ class WorkflowTestRunner:
 
         return test_result
 
-    async def test_bulk_status_update(self) -> Dict[str, Any]:
+    async def test_bulk_status_update(self) -> dict[str, Any]:
         """Test 5: Bulk Status Update Workflow"""
         print("\n" + "="*80)
         print("TEST 5: bulk_status_update")
@@ -574,7 +574,7 @@ class WorkflowTestRunner:
 
         return test_result
 
-    async def run_all_tests(self) -> Dict[str, Any]:
+    async def run_all_tests(self) -> dict[str, Any]:
         """Run all workflow tests and generate comprehensive report."""
         print("\n" + "="*80)
         print("COMPREHENSIVE WORKFLOW TESTING - ALL WORKFLOWS")
@@ -636,8 +636,9 @@ async def main():
     # Authenticate
     print("\n[Auth] Authenticating with Supabase...")
     try:
-        client = 
-        auth_response = client
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        auth_response = client.auth.sign_in_with_password({
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
@@ -647,7 +648,7 @@ async def main():
             sys.exit(1)
 
         auth_token = auth_response.session.access_token
-        print(f"✓ Authenticated successfully")
+        print("✓ Authenticated successfully")
     except Exception as e:
         print(f"✗ Authentication failed: {e}")
         sys.exit(1)
@@ -664,7 +665,7 @@ async def main():
 
     # Save full report
     report_file = "/Users/kooshapari/temp-PRODVERCEL/485/clean/atoms_mcp-old/tests/workflow_live_test_report.json"
-    with open(report_file, 'w') as f:
+    with open(report_file, "w") as f:
         json.dump(results, f, indent=2)
 
     print(f"\n✓ Full report saved to: {report_file}")

@@ -36,15 +36,15 @@ def run_sql_file(client, sql_file: str) -> None:
 
     try:
         # Execute via Supabase SQL editor endpoint
-        response = client.rpc('exec_sql', {'query': sql})
+        response = client.rpc("exec_sql", {"query": sql})
         print(f"✅ {sql_file} executed successfully")
         if response.data:
             print(f"Result: {response.data}")
     except Exception as e:
         # Try direct table query for check script
-        if 'check' in sql_file:
+        if "check" in sql_file:
             try:
-                result = client.table('mcp_sessions').select('*').limit(1).execute()
+                result = client.table("mcp_sessions").select("*").limit(1).execute()
                 print("✅ mcp_sessions table exists (found via query)")
                 return
             except:

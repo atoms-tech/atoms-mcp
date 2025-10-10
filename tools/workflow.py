@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any
 import asyncio
+from typing import Any
+
 from utils.logging_setup import get_logger
 
 try:
@@ -16,11 +17,11 @@ logger = get_logger(__name__)
 
 class WorkflowExecutor(ToolBase):
     """Executes complex workflows with multiple steps."""
-    
+
     def __init__(self):
         super().__init__()
-    
-    async def _setup_project_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _setup_project_workflow(self, params: dict[str, Any]) -> dict[str, Any]:
         """Setup a new project with initial structure."""
         try:
             from .entity import _entity_manager
@@ -146,8 +147,8 @@ class WorkflowExecutor(ToolBase):
             "steps_successful": len([r for r in results if r.get("status") == "success"]),
             "results": results
         }
-    
-    async def _import_requirements_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _import_requirements_workflow(self, params: dict[str, Any]) -> dict[str, Any]:
         """Import requirements from external source."""
         try:
             from .entity import _entity_manager
@@ -208,15 +209,15 @@ class WorkflowExecutor(ToolBase):
             "failed_count": len(requirements_data) - len(created_requirements),
             "results": results
         }
-    
-    async def _setup_test_matrix_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _setup_test_matrix_workflow(self, params: dict[str, Any]) -> dict[str, Any]:
         """Set up test matrix for a project."""
         from .entity import _entity_manager
         from .relationship import _relationship_manager
-        
+
         results = []
         project_id = params["project_id"]
-        
+
         # Step 1: Get all requirements for the project (via documents)
         # First get all documents for the project
         documents = await _entity_manager.search_entities(
@@ -244,7 +245,7 @@ class WorkflowExecutor(ToolBase):
             requirements = []
 
         results.append({"step": "fetch_requirements", "count": len(requirements)})
-        
+
         # Step 2: Create test matrix view
         matrix_view_data = {
             "name": params.get("matrix_name", "Default Test Matrix"),
@@ -256,12 +257,12 @@ class WorkflowExecutor(ToolBase):
                 "filter_status": ["active"]
             }
         }
-        
+
         matrix_view = await _entity_manager.create_entity(
             "test_matrix_view", matrix_view_data
         )
         results.append({"step": "create_matrix_view", "result": matrix_view})
-        
+
         # Step 3: Create basic test cases for high priority requirements
         test_cases_created = 0
         for req in requirements:
@@ -274,9 +275,9 @@ class WorkflowExecutor(ToolBase):
                     "priority": "high",
                     "status": "pending"
                 }
-                
+
                 test = await _entity_manager.create_entity("test", test_data)
-                
+
                 # Link test to requirement
                 await _relationship_manager.link_entities(
                     "requirement_test",
@@ -284,10 +285,10 @@ class WorkflowExecutor(ToolBase):
                     {"type": "test", "id": test["id"]},
                     {"relationship_type": "tests", "coverage_level": "full"}
                 )
-                
+
                 test_cases_created += 1
                 results.append({"step": f"create_test_for_req_{req['id']}", "result": test})
-        
+
         return {
             "workflow": "setup_test_matrix",
             "project_id": project_id,
@@ -296,16 +297,16 @@ class WorkflowExecutor(ToolBase):
             "test_cases_created": test_cases_created,
             "results": results
         }
-    
-    async def _bulk_status_update_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _bulk_status_update_workflow(self, params: dict[str, Any]) -> dict[str, Any]:
         """Update status for multiple entities."""
         from .entity import _entity_manager
-        
+
         results = []
         entity_type = params["entity_type"]
         entity_ids = params["entity_ids"]
         new_status = params["new_status"]
-        
+
         # Update entities in parallel
         update_tasks = []
         for entity_id in entity_ids:
@@ -315,24 +316,24 @@ class WorkflowExecutor(ToolBase):
                 {"status": new_status}
             )
             update_tasks.append(task)
-        
+
         # Wait for all updates to complete
         update_results = await asyncio.gather(*update_tasks, return_exceptions=True)
-        
+
         success_count = 0
         for i, result in enumerate(update_results):
             if isinstance(result, Exception):
                 results.append({
-                    "step": f"update_{entity_ids[i]}", 
+                    "step": f"update_{entity_ids[i]}",
                     "error": str(result)
                 })
             else:
                 results.append({
-                    "step": f"update_{entity_ids[i]}", 
+                    "step": f"update_{entity_ids[i]}",
                     "result": result
                 })
                 success_count += 1
-        
+
         return {
             "workflow": "bulk_status_update",
             "entity_type": entity_type,
@@ -341,8 +342,8 @@ class WorkflowExecutor(ToolBase):
             "new_status": new_status,
             "results": results
         }
-    
-    async def _organization_onboarding_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _organization_onboarding_workflow(self, params: dict[str, Any]) -> dict[str, Any]:
         """Complete organization onboarding process."""
         try:
             from .entity import _entity_manager
@@ -461,10 +462,10 @@ _workflow_executor = WorkflowExecutor()
 async def workflow_execute(
     auth_token: str,
     workflow: str,
-    parameters: Dict[str, Any],
+    parameters: dict[str, Any],
     transaction_mode: bool = True,
     format_type: str = "detailed"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Execute a complex workflow with multiple steps.
     
     Args:
@@ -487,7 +488,7 @@ async def workflow_execute(
     try:
         # Validate authentication
         await _workflow_executor._validate_auth(auth_token)
-        
+
         # Execute workflow based on type
         if workflow == "setup_project":
             result = await _workflow_executor._setup_project_workflow(parameters)
@@ -501,9 +502,9 @@ async def workflow_execute(
             result = await _workflow_executor._organization_onboarding_workflow(parameters)
         else:
             raise ValueError(f"Unknown workflow: {workflow}")
-        
+
         return _workflow_executor._format_result(result, format_type)
-    
+
     except Exception as e:
         return {
             "success": False,

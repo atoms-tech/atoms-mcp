@@ -21,35 +21,37 @@ Examples:
     python scripts/backfill_embeddings.py --limit 10
 """
 
+import argparse
 import asyncio
+import logging
 import os
 import sys
-import argparse
 import warnings
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any
+
 from tqdm.asyncio import tqdm
 
 # Suppress warnings
-warnings.filterwarnings('ignore', category=UserWarning)
-warnings.filterwarnings('ignore', message='.*ALTS.*')
-warnings.filterwarnings('ignore', message='.*deprecated.*')
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*ALTS.*")
+warnings.filterwarnings("ignore", message=".*deprecated.*")
 
 # Suppress gRPC/ALTS logging
-logging.getLogger('grpc').setLevel(logging.ERROR)
-os.environ['GRPC_VERBOSITY'] = 'ERROR'
-os.environ['GRPC_TRACE'] = ''
+logging.getLogger("grpc").setLevel(logging.ERROR)
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GRPC_TRACE"] = ""
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
-from supabase import create_client, Client
+from supabase import Client, create_client
 
 # Load environment variables
 # Load .env first (has correct Supabase URL), then .env.production for other vars
-load_dotenv('.env', override=True)  # Load .env first
-load_dotenv('.env.production', override=False)  # Add production vars that aren't already set
+load_dotenv(".env", override=True)  # Load .env first
+load_dotenv(".env.production", override=False)  # Add production vars that aren't already set
 
 
 class EmbeddingBackfiller:
@@ -81,9 +83,9 @@ class EmbeddingBackfiller:
         self._pbar_lock = None
         # Timing statistics
         self._timing_stats = {
-            'embedding': [],
-            'db_update': [],
-            'total': []
+            "embedding": [],
+            "db_update": [],
+            "total": []
         }
 
     def _init_services(self):
@@ -104,8 +106,8 @@ class EmbeddingBackfiller:
 
     async def count_missing_embeddings(
         self,
-        entity_types: Optional[List[str]] = None
-    ) -> Dict[str, int]:
+        entity_types: list[str] | None = None
+    ) -> dict[str, int]:
         """Count entities without embeddings by type."""
         entity_types = entity_types or self.ENTITY_TYPES
         counts = {}
@@ -130,8 +132,8 @@ class EmbeddingBackfiller:
     async def get_entities_without_embeddings(
         self,
         entity_type: str,
-        limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """Get entities that don't have embeddings."""
         table = self.TABLE_MAP[entity_type]
 
@@ -177,8 +179,8 @@ class EmbeddingBackfiller:
     async def _process_single_entity(
         self,
         table: str,
-        entity: Dict[str, Any],
-        stats: Dict[str, Any],
+        entity: dict[str, Any],
+        stats: dict[str, Any],
         pbar: tqdm = None
     ):
         """Process a single entity with semaphore concurrency control."""
@@ -187,7 +189,7 @@ class EmbeddingBackfiller:
 
         async with self._semaphore:
             entity_id = entity["id"]
-            name = entity.get('name') or entity.get('title') or entity_id[:8]
+            name = entity.get("name") or entity.get("title") or entity_id[:8]
 
             try:
                 result = await self._progressive_service.generate_embedding_on_demand(
@@ -203,14 +205,14 @@ class EmbeddingBackfiller:
                     stats["succeeded"] += 1
 
                     # Collect timing stats
-                    timings = result.get('timings', {})
-                    self._timing_stats['embedding'].append(timings.get('embedding', 0))
-                    self._timing_stats['db_update'].append(timings.get('db_update', 0))
-                    self._timing_stats['total'].append(elapsed)
+                    timings = result.get("timings", {})
+                    self._timing_stats["embedding"].append(timings.get("embedding", 0))
+                    self._timing_stats["db_update"].append(timings.get("db_update", 0))
+                    self._timing_stats["total"].append(elapsed)
 
                     # Calculate averages
-                    avg_embed = sum(self._timing_stats['embedding']) / len(self._timing_stats['embedding'])
-                    avg_db = sum(self._timing_stats['db_update']) / len(self._timing_stats['db_update'])
+                    avg_embed = sum(self._timing_stats["embedding"]) / len(self._timing_stats["embedding"])
+                    avg_db = sum(self._timing_stats["db_update"]) / len(self._timing_stats["db_update"])
 
                     status = f"✅ {name[:20]} | emb:{timings.get('embedding', 0):.2f}s db:{timings.get('db_update', 0):.2f}s | avg: {avg_embed:.2f}s/{avg_db:.2f}s"
                 else:
@@ -244,8 +246,8 @@ class EmbeddingBackfiller:
     async def backfill_entity_type(
         self,
         entity_type: str,
-        limit: Optional[int] = None
-    ) -> Dict[str, Any]:
+        limit: int | None = None
+    ) -> dict[str, Any]:
         """Backfill embeddings for a specific entity type with concurrency."""
         self._init_services()
 
@@ -272,7 +274,7 @@ class EmbeddingBackfiller:
         if self.dry_run:
             print(f"🔍 DRY RUN - Would process {len(entities)} entities:")
             for i, entity in enumerate(entities[:5], 1):  # Show first 5
-                name = entity.get('name') or entity.get('title') or entity.get('id')
+                name = entity.get("name") or entity.get("title") or entity.get("id")
                 print(f"  {i}. {name}")
             if len(entities) > 5:
                 print(f"  ... and {len(entities) - 5} more")
@@ -327,20 +329,20 @@ class EmbeddingBackfiller:
         print(f"  ❌ Failed: {stats['failed']}")
 
         # Show error details if any failures occurred
-        if stats['failed'] > 0 and stats.get('errors'):
+        if stats["failed"] > 0 and stats.get("errors"):
             print("\n⚠️  Error Details:")
-            for i, error in enumerate(stats['errors'][:5], 1):  # Show first 5 errors
+            for i, error in enumerate(stats["errors"][:5], 1):  # Show first 5 errors
                 print(f"  {i}. {error['name'][:40]}: {error['error'][:60]}")
-            if len(stats['errors']) > 5:
+            if len(stats["errors"]) > 5:
                 print(f"  ... and {len(stats['errors']) - 5} more errors")
 
         return stats
 
     async def backfill_all(
         self,
-        entity_types: Optional[List[str]] = None,
-        limit: Optional[int] = None
-    ) -> Dict[str, Any]:
+        entity_types: list[str] | None = None,
+        limit: int | None = None
+    ) -> dict[str, Any]:
         """Backfill embeddings for all entity types."""
         entity_types = entity_types or self.ENTITY_TYPES
 
@@ -444,9 +446,9 @@ async def main():
 
     # Strip quotes and whitespace (common in .env files)
     if url:
-        url = url.strip().strip('"').strip("'").rstrip('/').rstrip('\n')
+        url = url.strip().strip('"').strip("'").rstrip("/").rstrip("\n")
     if key:
-        key = key.strip().strip('"').strip("'").rstrip('\n')
+        key = key.strip().strip('"').strip("'").rstrip("\n")
 
     if not url or not key:
         print("❌ Error: Missing Supabase credentials")
@@ -529,8 +531,8 @@ if __name__ == "__main__":
     fcntl.fcntl(read_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
     # Start a thread to filter stderr
-    import threading
     import select
+    import threading
 
     def filter_stderr():
         """Filter stderr output to suppress ALTS warnings."""
@@ -544,15 +546,15 @@ if __name__ == "__main__":
                         break
 
                     # Decode and filter
-                    text = data.decode('utf-8', errors='replace')
-                    lines = text.split('\n')
+                    text = data.decode("utf-8", errors="replace")
+                    lines = text.split("\n")
 
                     for line in lines:
                         # Skip ALTS and deprecation warnings
-                        if 'ALTS creds ignored' in line or 'deprecated as of' in line or 'UserWarning' in line:
+                        if "ALTS creds ignored" in line or "deprecated as of" in line or "UserWarning" in line:
                             continue
                         if line.strip():
-                            os.write(original_stderr, (line + '\n').encode('utf-8'))
+                            os.write(original_stderr, (line + "\n").encode("utf-8"))
             except (OSError, ValueError):
                 break
 

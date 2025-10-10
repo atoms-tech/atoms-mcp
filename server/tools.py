@@ -13,7 +13,8 @@ Pythonic Patterns Applied:
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 from fastmcp import FastMCP
 
@@ -23,7 +24,7 @@ from .auth import RateLimiter, apply_rate_limit_if_configured, get_token_string
 def register_workspace_tool(
     mcp: FastMCP,
     workspace_operation: Callable,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register workspace management tool.
     
@@ -35,16 +36,16 @@ def register_workspace_tool(
     @mcp.tool(tags={"workspace", "context"})
     async def workspace_tool(
         operation: str,
-        context_type: Optional[str] = None,
-        entity_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
+        context_type: str | None = None,
+        entity_id: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
         format_type: str = "detailed",
-        organization_id: Optional[str] = None,
-        project_id: Optional[str] = None,
-        type: Optional[str] = None,
-        id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        organization_id: str | None = None,
+        project_id: str | None = None,
+        type: str | None = None,
+        id: str | None = None,
+    ) -> dict[str, Any]:
         """Manage workspace context and get smart defaults.
 
         Operations:
@@ -94,7 +95,7 @@ def register_workspace_tool(
 def register_entity_tool(
     mcp: FastMCP,
     entity_operation: Callable,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register entity CRUD tool.
     
@@ -106,21 +107,21 @@ def register_entity_tool(
     @mcp.tool(tags={"entity", "crud"})
     async def entity_tool(
         entity_type: str,
-        operation: Optional[str] = None,
-        data: Optional[Dict[str, Any]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        entity_id: Optional[str] = None,
+        operation: str | None = None,
+        data: dict[str, Any] | None = None,
+        filters: dict[str, Any] | None = None,
+        entity_id: str | None = None,
         include_relations: bool = False,
-        batch: Optional[list] = None,
-        search_term: Optional[str] = None,
-        parent_type: Optional[str] = None,
-        parent_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        order_by: Optional[str] = None,
+        batch: list | None = None,
+        search_term: str | None = None,
+        parent_type: str | None = None,
+        parent_id: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        order_by: str | None = None,
         soft_delete: bool = True,
         format_type: str = "detailed",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Unified CRUD operations with smart parameter inference and fuzzy matching.
 
         Operations (optional - auto-inferred from parameters):
@@ -146,7 +147,7 @@ def register_entity_tool(
         try:
             bearer_token = await apply_rate_limit_if_configured(rate_limiter)
             auth_token = get_token_string(bearer_token)
-            
+
             # Smart operation inference
             if not operation:
                 if data and not entity_id:
@@ -161,11 +162,11 @@ def register_entity_tool(
                     operation = "list"
                 else:
                     operation = "list"
-            
+
             # Apply default limit to prevent oversized responses
             if operation == "list" and limit is None:
                 limit = 100
-            
+
             return await entity_operation(
                 auth_token=auth_token,
                 operation=operation,
@@ -196,7 +197,7 @@ def register_entity_tool(
 def register_relationship_tool(
     mcp: FastMCP,
     relationship_operation: Callable,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register relationship management tool.
     
@@ -209,16 +210,16 @@ def register_relationship_tool(
     async def relationship_tool(
         operation: str,
         relationship_type: str,
-        source: Dict[str, Any],
-        target: Optional[Dict[str, Any]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        source_context: Optional[str] = None,
+        source: dict[str, Any],
+        target: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+        filters: dict[str, Any] | None = None,
+        source_context: str | None = None,
         soft_delete: bool = True,
-        limit: Optional[int] = 100,
-        offset: Optional[int] = 0,
+        limit: int | None = 100,
+        offset: int | None = 0,
         format_type: str = "detailed",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Manage relationships between entities.
 
         Operations:
@@ -246,7 +247,7 @@ def register_relationship_tool(
         try:
             bearer_token = await apply_rate_limit_if_configured(rate_limiter)
             auth_token = get_token_string(bearer_token)
-            
+
             return await relationship_operation(
                 auth_token=auth_token,
                 operation=operation,
@@ -273,7 +274,7 @@ def register_relationship_tool(
 def register_workflow_tool(
     mcp: FastMCP,
     workflow_execute: Callable,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register workflow execution tool.
     
@@ -285,10 +286,10 @@ def register_workflow_tool(
     @mcp.tool(tags={"workflow", "automation"})
     async def workflow_tool(
         workflow: str,
-        parameters: Dict[str, Any],
+        parameters: dict[str, Any],
         transaction_mode: bool = True,
         format_type: str = "detailed",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute complex multi-step workflows.
 
         Available workflows:
@@ -309,7 +310,7 @@ def register_workflow_tool(
         try:
             bearer_token = await apply_rate_limit_if_configured(rate_limiter)
             auth_token = get_token_string(bearer_token)
-            
+
             return await workflow_execute(
                 auth_token=auth_token,
                 workflow=workflow,
@@ -324,7 +325,7 @@ def register_workflow_tool(
 def register_query_tool(
     mcp: FastMCP,
     data_query: Callable,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> None:
     """Register data query and analysis tool.
     
@@ -337,18 +338,18 @@ def register_query_tool(
     async def query_tool(
         query_type: str,
         entities: list,
-        conditions: Optional[Dict[str, Any]] = None,
-        projections: Optional[list] = None,
-        search_term: Optional[str] = None,
-        limit: Optional[int] = None,
+        conditions: dict[str, Any] | None = None,
+        projections: list | None = None,
+        search_term: str | None = None,
+        limit: int | None = None,
         format_type: str = "detailed",
         # RAG-specific parameters
         rag_mode: str = "auto",
         similarity_threshold: float = 0.7,
-        content: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        exclude_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        content: str | None = None,
+        entity_type: str | None = None,
+        exclude_id: str | None = None,
+    ) -> dict[str, Any]:
         """Query and analyze data across multiple entity types with RAG capabilities.
 
         Query types:
@@ -377,7 +378,7 @@ def register_query_tool(
         try:
             bearer_token = await apply_rate_limit_if_configured(rate_limiter)
             auth_token = get_token_string(bearer_token)
-            
+
             return await data_query(
                 auth_token=auth_token,
                 query_type=query_type,
@@ -398,10 +399,10 @@ def register_query_tool(
 
 
 __all__ = [
-    "register_workspace_tool",
     "register_entity_tool",
+    "register_query_tool",
     "register_relationship_tool",
     "register_workflow_tool",
-    "register_query_tool",
+    "register_workspace_tool",
 ]
 

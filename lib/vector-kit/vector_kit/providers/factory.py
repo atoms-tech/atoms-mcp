@@ -44,8 +44,12 @@ def get_embedding_service():
 
 def _check_vertex_ai_available() -> bool:
     """Check if Vertex AI is available and properly configured."""
+    import importlib.util
+    
     try:
-        import vertexai
+        # Check if vertexai module is available
+        if importlib.util.find_spec("vertexai") is None:
+            return False
         
         # Check for required environment variables
         project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")
@@ -61,7 +65,7 @@ def _check_vertex_ai_available() -> bool:
             return False
 
         return True
-    except ImportError:
+    except (ImportError, ValueError):
         logger.debug("Vertex AI: vertexai package not installed")
         return False
 

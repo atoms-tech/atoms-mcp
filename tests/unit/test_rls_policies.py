@@ -5,25 +5,25 @@ Tests the Python implementations of Row-Level Security policies
 to ensure they correctly replicate database RLS behavior.
 """
 
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
+
+# Import from generated schemas
+from schemas import ProjectRole, UserRoleType, Visibility
+from schemas.constants import Tables
 from schemas.rls import (
-    PolicyValidator,
-    PermissionDeniedError,
-    OrganizationPolicy,
-    ProjectPolicy,
     DocumentPolicy,
+    OrganizationPolicy,
+    PermissionDeniedError,
+    PolicyValidator,
     ProfilePolicy,
-    user_can_access_project,
+    ProjectPolicy,
+    get_user_organization_ids,
     is_project_owner_or_admin,
     is_super_admin,
-    get_user_organization_ids,
+    user_can_access_project,
 )
-# Import from generated schemas
-from schemas import UserRoleType, ProjectRole, Visibility
-from schemas.constants import Tables
-
 
 # =============================================================================
 # FIXTURES

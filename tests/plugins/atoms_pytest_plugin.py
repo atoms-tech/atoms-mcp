@@ -50,13 +50,13 @@ class AtomsPytestPlugin(MCPPytestPlugin):
         test_name = item.name.lower()
         if "workspace" in test_name:
             return "workspace_tool"
-        elif "entity" in test_name:
+        if "entity" in test_name:
             return "entity_tool"
-        elif "query" in test_name:
+        if "query" in test_name:
             return "query_tool"
-        elif "relationship" in test_name:
+        if "relationship" in test_name:
             return "relationship_tool"
-        elif "workflow" in test_name:
+        if "workflow" in test_name:
             return "workflow_tool"
 
         return "unknown"

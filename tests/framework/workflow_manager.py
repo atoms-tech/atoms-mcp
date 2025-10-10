@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any, Awaitable, Callable, Dict, Optional
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from workflow_kit.task import Worker, task
 
@@ -24,8 +25,8 @@ class TestWorkflowManager:
         *,
         test_name: str,
         callback: Callable[[], Awaitable[Any]],
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Execute a callback via the workflow worker."""
         await self._ensure_started()
         context = dict(metadata or {})
@@ -41,8 +42,8 @@ class TestWorkflowManager:
     async def _execute_test_task(
         self,
         callback: Callable[[], Awaitable[Any]],
-        metadata: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
         start = time.time()
         test_name = metadata.get("test_name", "unknown")
         warning_printed = False
@@ -77,7 +78,7 @@ class TestWorkflowManager:
                 "duration": duration,
             }
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Cancel warning task
             if not warning_handle.done():
                 warning_handle.cancel()

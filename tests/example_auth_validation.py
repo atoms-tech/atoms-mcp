@@ -107,15 +107,14 @@ async def example_with_manual_validation():
         if result.valid:
             print("✅ Auth validated - Ready to run tests")
             return 0
-        else:
-            print("❌ Auth validation failed")
-            print(f"   Error: {result.error}")
-            print("")
-            print("Checks:")
-            for check_name, check_result in result.checks.items():
-                status = "✓" if check_result['success'] else "✗"
-                print(f"   {status} {check_name}: {check_result['message']}")
-            return 1
+        print("❌ Auth validation failed")
+        print(f"   Error: {result.error}")
+        print("")
+        print("Checks:")
+        for check_name, check_result in result.checks.items():
+            status = "✓" if check_result["success"] else "✗"
+            print(f"   {status} {check_name}: {check_result['message']}")
+        return 1
 
     finally:
         await broker.close()

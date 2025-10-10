@@ -9,14 +9,14 @@ from locust import HttpUser, between, task
 
 class AtomsUser(HttpUser):
     """Simulated user for load testing."""
-    
+
     wait_time = between(1, 3)  # Wait 1-3 seconds between tasks
-    
+
     @task(10)
     def health_check(self):
         """Health check endpoint (most common)."""
         self.client.get("/health")
-    
+
     @task(5)
     def list_tools(self):
         """List available tools."""
@@ -25,7 +25,7 @@ class AtomsUser(HttpUser):
             json={},
             headers={"Content-Type": "application/json"}
         )
-    
+
     @task(3)
     def call_tool(self):
         """Call a tool."""
@@ -37,7 +37,7 @@ class AtomsUser(HttpUser):
             },
             headers={"Content-Type": "application/json"}
         )
-    
+
     @task(1)
     def list_resources(self):
         """List resources."""
@@ -46,23 +46,21 @@ class AtomsUser(HttpUser):
             json={},
             headers={"Content-Type": "application/json"}
         )
-    
+
     def on_start(self):
         """Called when a simulated user starts."""
         # Optional: Perform login or setup
-        pass
-    
+
     def on_stop(self):
         """Called when a simulated user stops."""
         # Optional: Perform cleanup
-        pass
 
 
 class AdminUser(HttpUser):
     """Admin user with different behavior."""
-    
+
     wait_time = between(5, 10)
-    
+
     @task
     def admin_health_check(self):
         """Admin health check."""

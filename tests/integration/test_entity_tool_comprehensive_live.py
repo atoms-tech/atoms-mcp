@@ -18,13 +18,13 @@ Documents every result with:
 - Any errors encountered
 """
 
-import os
-import json
-import uuid
-import time
 import asyncio
-from datetime import datetime, timezone
-from typing import Dict, Any
+import json
+import os
+import time
+import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 from supabase import create_client
@@ -41,9 +41,9 @@ class TestReport:
 
     def __init__(self):
         self.tests = []
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
 
-    def add_test(self, operation: str, entity_type: str, input_params: Dict[str, Any],
+    def add_test(self, operation: str, entity_type: str, input_params: dict[str, Any],
                  output: Any, success: bool, duration_ms: float, error: str = None):
         """Add a test result."""
         self.tests.append({
@@ -54,7 +54,7 @@ class TestReport:
             "success": success,
             "duration_ms": duration_ms,
             "error": error,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         })
 
     def generate_report(self) -> str:
@@ -67,8 +67,8 @@ class TestReport:
         report.append("=" * 100)
         report.append("COMPREHENSIVE ENTITY TOOL TEST REPORT")
         report.append("=" * 100)
-        report.append(f"\nGenerated: {datetime.now(timezone.utc).isoformat()}")
-        report.append(f"Test Duration: {(datetime.now(timezone.utc) - self.start_time).total_seconds():.2f}s")
+        report.append(f"\nGenerated: {datetime.now(UTC).isoformat()}")
+        report.append(f"Test Duration: {(datetime.now(UTC) - self.start_time).total_seconds():.2f}s")
         report.append("\nSUMMARY:")
         report.append(f"  Total Tests: {total_tests}")
         report.append(f"  Passed: {passed} ({passed/total_tests*100:.1f}%)")
@@ -84,20 +84,20 @@ class TestReport:
             report.append(f"Timestamp: {test['timestamp']}")
 
             report.append("\nInput Parameters:")
-            report.append(json.dumps(test['input_params'], indent=2))
+            report.append(json.dumps(test["input_params"], indent=2))
 
-            if test['error']:
+            if test["error"]:
                 report.append(f"\nError: {test['error']}")
 
             report.append("\nOutput/Response:")
-            if isinstance(test['output'], (dict, list)):
+            if isinstance(test["output"], (dict, list)):
                 # Truncate large outputs
-                output_str = json.dumps(test['output'], indent=2)
+                output_str = json.dumps(test["output"], indent=2)
                 if len(output_str) > 2000:
                     output_str = output_str[:2000] + "\n... (truncated)"
                 report.append(output_str)
             else:
-                report.append(str(test['output']))
+                report.append(str(test["output"]))
 
         report.append("\n\n" + "=" * 100)
         report.append("END OF REPORT")
@@ -107,14 +107,14 @@ class TestReport:
 
     def save_json_report(self, filepath: str):
         """Save test results as JSON."""
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump({
                 "summary": {
                     "total": len(self.tests),
                     "passed": sum(1 for t in self.tests if t["success"]),
                     "failed": sum(1 for t in self.tests if not t["success"]),
                     "start_time": self.start_time.isoformat(),
-                    "end_time": datetime.now(timezone.utc).isoformat()
+                    "end_time": datetime.now(UTC).isoformat()
                 },
                 "tests": self.tests
             }, f, indent=2)
@@ -142,7 +142,7 @@ async def get_auth_token() -> str:
 
 
 async def call_entity_tool(auth_token: str, operation: str, entity_type: str,
-                          **kwargs) -> tuple[Dict[str, Any], float]:
+                          **kwargs) -> tuple[dict[str, Any], float]:
     """Call the entity_tool via MCP HTTP API."""
     base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
     headers = {
@@ -208,7 +208,7 @@ async def run_comprehensive_tests():
         print("✅ Authentication successful")
     except Exception as e:
         print(f"❌ Authentication failed: {e}")
-        return
+        return None
 
     # Test entity types
     entity_types = ["organization", "project", "document"]
@@ -355,7 +355,7 @@ async def run_comprehensive_tests():
         print(f"   Success: {result.get('success')}")
 
         if result.get("success"):
-            data = result['data']
+            data = result["data"]
             print(f"   Name: {data.get('name')}")
             # Check for relation-specific fields
             if entity_type == "organization":
@@ -379,7 +379,7 @@ async def run_comprehensive_tests():
         print(f"\n\n5️⃣  UPDATE {entity_type}")
         print("-" * 100)
         update_data = {
-            "description": f"Updated by comprehensive test at {datetime.now(timezone.utc).isoformat()}"
+            "description": f"Updated by comprehensive test at {datetime.now(UTC).isoformat()}"
         }
         input_params = {"entity_id": created_entity_id, "data": update_data}
         result, duration = await call_entity_tool(
@@ -516,10 +516,10 @@ async def run_comprehensive_tests():
     print(report_text)
 
     # Save reports
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     text_report_path = f"/Users/kooshapari/temp-PRODVERCEL/485/clean/atoms_mcp-old/entity_tool_comprehensive_report_{timestamp}.txt"
-    with open(text_report_path, 'w') as f:
+    with open(text_report_path, "w") as f:
         f.write(report_text)
     print(f"\n📄 Text report saved to: {text_report_path}")
 

@@ -23,10 +23,9 @@ try:
     from rich.panel import Panel
     from rich.syntax import Syntax
     from rich.table import Table
-    from rich.text import Text
     from textual import on, work
     from textual.app import App, ComposeResult
-    from textual.containers import Container, Horizontal, ScrollableContainer, Vertical
+    from textual.containers import Container, Horizontal, ScrollableContainer
     from textual.reactive import reactive
     from textual.screen import ModalScreen
     from textual.widgets import (
@@ -37,13 +36,10 @@ try:
         Header,
         Input,
         Label,
-        ProgressBar,
         RichLog,
         Select,
         Static,
-        Tree,
     )
-    from textual.widgets.tree import TreeNode
 
     HAS_TEXTUAL = True
 except ImportError:
@@ -231,7 +227,7 @@ class ServerStatusWidget(Static):
 
             try:
                 # Try to list tools as health check
-                tools = await self.client_adapter.list_tools()
+                await self.client_adapter.list_tools()
                 duration = (time.perf_counter() - start) * 1000
 
                 self.connected = True
@@ -2051,9 +2047,7 @@ class TestDashboardApp(App):
         self.is_running = True
 
         logs = self.query_one("#logs", RichLog)
-        test_table = self.query_one("#test-tree", DataTable)
         summary = self.query_one("#summary", TestSummaryWidget)
-        progress = self.query_one("#progress", TestProgressWidget)
 
         summary.running = True
 

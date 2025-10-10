@@ -24,9 +24,8 @@ from __future__ import annotations
 import os
 import time
 import uuid
-import asyncio
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 import pytest
@@ -46,8 +45,8 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 @pytest.fixture(scope="session")
 def supabase_env():
     """Ensure Supabase environment variables are present."""
-    url = os.getenv("
-    key = os.getenv("
+    url = os.getenv("SUPABASE_URL", "")
+    key = os.getenv("SUPABASE_ANON_KEY", "")
 
     if not url or not key:
         return {"success": True, "skipped": True, "skip_reason": "Supabase credentials not configured"}
@@ -57,10 +56,11 @@ def supabase_env():
 @pytest.fixture(scope="session")
 def auth_token(supabase_env):
     """Get Supabase JWT for authentication."""
-    client = 
+    from supabase import create_client
+    client = create_client(supabase_env["url"], supabase_env["key"])
 
     try:
-        auth_response = client
+        auth_response = client.auth.sign_in_with_password({
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD
         })
@@ -81,7 +81,7 @@ def mcp_client(check_server_running, auth_token):
         "Content-Type": "application/json",
     }
 
-    async def call_tool(tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def call_tool(tool_name: str, params: dict[str, Any]) -> dict[str, Any]:
         """Call an MCP tool and return the result."""
         payload = {
             "jsonrpc": "2.0",
@@ -123,7 +123,7 @@ class IntegrationTestReport:
     """Collect and format integration test results."""
 
     def __init__(self):
-        self.scenarios: List[Dict[str, Any]] = []
+        self.scenarios: list[dict[str, Any]] = []
         self.start_time = time.time()
         self.total_tool_calls = 0
         self.failed_tool_calls = 0
@@ -133,11 +133,11 @@ class IntegrationTestReport:
         self,
         name: str,
         description: str,
-        tools_used: List[str],
+        tools_used: list[str],
         passed: bool,
-        steps: List[Dict[str, Any]],
+        steps: list[dict[str, Any]],
         duration: float,
-        notes: Optional[str] = None
+        notes: str | None = None
     ):
         """Add a test scenario result."""
         self.scenarios.append({
@@ -148,7 +148,7 @@ class IntegrationTestReport:
             "steps": steps,
             "duration": duration,
             "notes": notes,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         })
 
     def add_consistency_check(
@@ -162,10 +162,10 @@ class IntegrationTestReport:
             "type": check_type,
             "passed": passed,
             "details": details,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         })
 
-    def generate_report(self) -> Dict[str, Any]:
+    def generate_report(self) -> dict[str, Any]:
         """Generate comprehensive integration test report."""
         total_scenarios = len(self.scenarios)
         passed_scenarios = sum(1 for s in self.scenarios if s["passed"])
@@ -188,7 +188,7 @@ class IntegrationTestReport:
             },
             "performance": {
                 "avg_scenario_duration": f"{sum(s['duration'] for s in self.scenarios)/len(self.scenarios):.2f}s" if self.scenarios else "N/A",
-                "slowest_scenario": max(self.scenarios, key=lambda s: s['duration'])['name'] if self.scenarios else None
+                "slowest_scenario": max(self.scenarios, key=lambda s: s["duration"])["name"] if self.scenarios else None
             }
         }
 
@@ -539,7 +539,7 @@ class TestCompleteProjectLifecycle:
                 passed=False,
                 steps=steps,
                 duration=time.time() - scenario_start,
-                notes=f"Failed with error: {str(e)}"
+                notes=f"Failed with error: {e!s}"
             )
 
             raise
@@ -752,7 +752,7 @@ class TestRequirementsManagement:
                 "tool": "query_tool",
                 "status": "passed" if aggregate_result.get("success") else "failed",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Aggregated data for requirements"
+                "result": "Aggregated data for requirements"
             })
 
             # Data Consistency Check
@@ -801,7 +801,7 @@ class TestRequirementsManagement:
                 passed=False,
                 steps=steps,
                 duration=time.time() - scenario_start,
-                notes=f"Failed with error: {str(e)}"
+                notes=f"Failed with error: {e!s}"
             )
             raise
 
@@ -952,7 +952,7 @@ class TestTeamCollaboration:
                 passed=False,
                 steps=steps,
                 duration=time.time() - scenario_start,
-                notes=f"Failed with error: {str(e)}"
+                notes=f"Failed with error: {e!s}"
             )
             raise
 
@@ -995,7 +995,7 @@ class TestContextSwitching:
                 "tool": "workspace_tool",
                 "status": "passed" if initial_context.get("success") else "failed",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Initial context retrieved"
+                "result": "Initial context retrieved"
             })
 
             # Step 2: Create Multiple Organizations
@@ -1036,7 +1036,7 @@ class TestContextSwitching:
                 "tool": "entity_tool",
                 "status": "passed",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Created 2 organizations"
+                "result": "Created 2 organizations"
             })
 
             # Step 3: Switch Context to Org 1
@@ -1173,7 +1173,7 @@ class TestContextSwitching:
                 passed=False,
                 steps=steps,
                 duration=time.time() - scenario_start,
-                notes=f"Failed with error: {str(e)}"
+                notes=f"Failed with error: {e!s}"
             )
             raise
 
@@ -1214,7 +1214,7 @@ class TestReportGeneration:
             print(f"   Description: {scenario['description']}")
             print(f"   Tools Used: {', '.join(scenario['tools_used'])}")
             print(f"   Duration: {scenario['duration']:.2f}s")
-            print(f"   Steps:")
+            print("   Steps:")
             for step in scenario["steps"]:
                 step_icon = "✓" if step["status"] == "passed" else "✗" if step["status"] == "failed" else "○"
                 print(f"      {step_icon} Step {step['step']}: {step['action']} ({step['tool']}) - {step['status']}")

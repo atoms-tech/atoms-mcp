@@ -12,18 +12,18 @@ This module provides factory functions for all infrastructure components:
 """
 
 from .infrastructure import (
-    get_database_adapter,
     get_auth_adapter,
-    get_storage_adapter,
-    get_realtime_adapter,
+    get_database_adapter,
     get_rate_limiter,
+    get_realtime_adapter,
+    get_storage_adapter,
 )
 from .session import get_session_manager
 from .vector import (
     get_embedding_service,
-    get_vector_search_service,
     get_enhanced_vector_search_service,
     get_progressive_embedding_service,
+    get_vector_search_service,
 )
 
 __all__ = [

@@ -5,7 +5,6 @@ This is the Atoms-specific layer that uses the platform-agnostic base classes fr
 """
 
 from pathlib import Path
-from typing import Optional
 
 # Import from pheno-sdk/deploy-kit
 from deploy_kit.base import (
@@ -14,32 +13,32 @@ from deploy_kit.base import (
     DeploymentResult,
 )
 from deploy_kit.platforms import (
-    VercelDeploymentProvider,
     HTTPHealthCheckProvider,
+    VercelDeploymentProvider,
 )
 
 
 class AtomsDeploymentConfig:
     """Atoms MCP specific deployment configuration."""
-    
+
     # Atoms-specific domain mappings
     ENVIRONMENT_DOMAINS = {
         DeploymentEnvironment.LOCAL: "atomcp.kooshapari.com",
         DeploymentEnvironment.PREVIEW: "devmcp.atoms.tech",
         DeploymentEnvironment.PRODUCTION: "atomcp.kooshapari.com",
     }
-    
+
     # Atoms-specific environment files
     ENVIRONMENT_FILES = {
         DeploymentEnvironment.PREVIEW: ".env.preview",
         DeploymentEnvironment.PRODUCTION: ".env.production",
     }
-    
+
     @classmethod
     def create_config(
         cls,
         environment: DeploymentEnvironment,
-        project_root: Optional[Path] = None
+        project_root: Path | None = None
     ) -> DeploymentConfig:
         """Create Atoms-specific deployment configuration.
         
@@ -52,14 +51,14 @@ class AtomsDeploymentConfig:
         """
         if project_root is None:
             project_root = Path.cwd()
-        
+
         # Get Atoms-specific domain
         domain = cls.ENVIRONMENT_DOMAINS.get(environment)
-        
+
         # Get Atoms-specific env file
         env_file_name = cls.ENVIRONMENT_FILES.get(environment)
         env_file = project_root / env_file_name if env_file_name else None
-        
+
         return DeploymentConfig(
             environment=environment,
             project_root=project_root,
@@ -76,32 +75,32 @@ class AtomsVercelDeployer:
     This wraps the platform-agnostic VercelDeploymentProvider with
     Atoms-specific configuration and behavior.
     """
-    
+
     def __init__(
         self,
         environment: DeploymentEnvironment,
-        project_root: Optional[Path] = None,
+        project_root: Path | None = None,
         logger=None
     ):
         self.environment = environment
         self.project_root = project_root or Path.cwd()
         self.logger = logger
-        
+
         # Create Atoms-specific config
         self.config = AtomsDeploymentConfig.create_config(
             environment=environment,
             project_root=self.project_root
         )
-        
+
         # Create platform provider
         self.provider = VercelDeploymentProvider(
             config=self.config,
             logger=logger
         )
-        
+
         # Create health checker
         self.health_checker = HTTPHealthCheckProvider(logger=logger)
-    
+
     def deploy(self) -> DeploymentResult:
         """Deploy Atoms MCP to Vercel.
         
@@ -110,39 +109,39 @@ class AtomsVercelDeployer:
         """
         # Execute deployment
         result = self.provider.deploy()
-        
+
         if not result.success:
             return result
-        
+
         # Wait for deployment to propagate
         import time
         print("\nWaiting for deployment to propagate...")
         time.sleep(3)
-        
+
         # Perform health check
         deployment_url = result.url or f"https://{self.config.domain}"
         health_url = f"{deployment_url}/health"
-        
+
         print(f"\nChecking deployment health at {self.config.domain}...")
-        
+
         healthy = self.health_checker.check_with_retries(
             url=health_url,
             max_retries=5,
             retry_delay=2,
             timeout=10
         )
-        
+
         if healthy:
             print("✅ Health check passed!")
         else:
             print("⚠️  Warning: Could not verify deployment health")
             print("The deployment may still be propagating or there may be an issue")
-        
+
         # Display Atoms-specific deployment info
         self._display_deployment_info(result)
-        
+
         return result
-    
+
     def _display_deployment_info(self, result: DeploymentResult):
         """Display Atoms-specific deployment information."""
         print("\n" + "-"*70)
@@ -154,20 +153,20 @@ class AtomsVercelDeployer:
         print(f"  MCP Endpoint:  https://{self.config.domain}/api/mcp")
         print(f"  Health Check:  https://{self.config.domain}/health")
         print("-"*70)
-        
+
         print("\nDeployment completed successfully!")
         print("\nNext steps:")
         print("1. Verify the deployment at the URL above")
         print("2. Test the MCP endpoint with your client")
         print("3. Monitor logs in Vercel dashboard")
-        
+
         if self.environment == DeploymentEnvironment.PRODUCTION:
             print("\n⚠️  Note: This is a PRODUCTION deployment")
             print("All users will see this version immediately")
         else:
             print("\n📝 Note: This is a PREVIEW deployment")
             print("Use for testing before promoting to production")
-    
+
     def rollback(self, deployment_id: str) -> DeploymentResult:
         """Rollback Atoms MCP deployment.
         
@@ -178,7 +177,7 @@ class AtomsVercelDeployer:
             DeploymentResult with rollback status
         """
         return self.provider.rollback(deployment_id)
-    
+
     def get_recent_deployments(self, limit: int = 10) -> list:
         """Get recent Atoms MCP deployments.
         
@@ -193,7 +192,7 @@ class AtomsVercelDeployer:
 
 def deploy_atoms_to_vercel(
     environment: str,
-    project_root: Optional[Path] = None,
+    project_root: Path | None = None,
     logger=None
 ) -> int:
     """Deploy Atoms MCP to Vercel (convenience function).
@@ -213,23 +212,23 @@ def deploy_atoms_to_vercel(
         "preview": DeploymentEnvironment.PREVIEW,
         "production": DeploymentEnvironment.PRODUCTION,
     }
-    
+
     env = env_map.get(environment)
     if not env:
         if logger:
             logger.error(f"Invalid environment: {environment}")
         print(f"Error: Invalid environment: {environment}")
         return 1
-    
+
     # Create deployer
     deployer = AtomsVercelDeployer(
         environment=env,
         project_root=project_root,
         logger=logger
     )
-    
+
     # Execute deployment
     result = deployer.deploy()
-    
+
     return 0 if result.success else 1
 

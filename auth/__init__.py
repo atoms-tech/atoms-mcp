@@ -18,8 +18,8 @@ except ImportError:
     create_session_manager = None
 
 __all__ = [
-    "SessionMiddleware",
     "SessionManager",
+    "SessionMiddleware",
     "create_session_manager",
     "get_session_context",
     "get_session_token",

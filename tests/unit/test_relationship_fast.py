@@ -12,7 +12,6 @@ Run with: pytest tests/unit/test_relationship_fast.py -v
 
 import pytest
 
-
 # ============================================================================
 # MEMBER RELATIONSHIP TESTS
 # ============================================================================

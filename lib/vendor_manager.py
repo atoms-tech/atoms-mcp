@@ -8,7 +8,6 @@ Replaces scripts/vendor-pheno-sdk.sh with a proper Python library.
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
 
 # Package configuration
 PACKAGES = [
@@ -43,7 +42,7 @@ PACKAGE_NAMES = {
 class VendorManager:
     """Manages vendoring of pheno-sdk packages."""
 
-    def __init__(self, project_root: Optional[Path] = None, pheno_sdk_root: Optional[Path] = None):
+    def __init__(self, project_root: Path | None = None, pheno_sdk_root: Path | None = None):
         self.project_root = project_root or Path(__file__).parent.parent
         self.pheno_sdk_root = pheno_sdk_root or self.project_root.parent / "pheno-sdk"
         self.vendor_dir = self.project_root / "pheno_vendor"
@@ -250,7 +249,7 @@ if vendor_path.exists() and str(vendor_path) not in sys.path:
 
         print("✅ Created sitecustomize.py")
 
-    def verify_vendored_packages(self) -> Tuple[int, int]:
+    def verify_vendored_packages(self) -> tuple[int, int]:
         """Verify vendored packages have Python files."""
         print("🔍 Verifying vendored packages...")
 

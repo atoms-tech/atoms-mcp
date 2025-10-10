@@ -5,24 +5,26 @@ pytest_plugins = ["mcp_qa.pytest_plugins.auth_plugin"]
 
 import os
 import sys
+from pathlib import Path
+
 import pytest
 import pytest_asyncio
-from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Load .env files
 from dotenv import load_dotenv
+
 load_dotenv()
 load_dotenv(".env.local", override=True)
 
 # Import endpoint configuration from centralized mcp_qa library
-from mcp_qa.config.endpoints import EndpointRegistry, MCPProject, Environment
+from mcp_qa.config.endpoints import EndpointRegistry, Environment, MCPProject
 
 # Import pheno-sdk kits for testing (optional)
 try:
-    from event_kit import EventBus, Event
+    from event_kit import Event, EventBus
     HAS_EVENT_KIT = True
 except ImportError:
     HAS_EVENT_KIT = False
@@ -31,7 +33,7 @@ except ImportError:
 
 # Import workflow_kit - now properly installed from pheno-sdk
 try:
-    from workflow_kit import WorkflowEngine, Workflow, WorkflowStep
+    from workflow_kit import Workflow, WorkflowEngine, WorkflowStep
     from workflow_kit.task import Worker, task
     HAS_WORKFLOW_KIT = True
 except ImportError:
@@ -45,9 +47,9 @@ except ImportError:
 # Import TDD fixtures to make them available
 try:
     from .fixtures.auth import *
-    from .fixtures.tools import *
     from .fixtures.data import *
     from .fixtures.providers import *
+    from .fixtures.tools import *
 except ImportError:
     # TDD fixtures not available - continue with existing functionality
     pass
@@ -62,7 +64,7 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "http: marks tests that call MCP via HTTP"
     )
-    
+
     # New TDD markers
     config.addinivalue_line(
         "markers", "unit: marks tests as unit tests (fast, no external dependencies)"
@@ -148,15 +150,15 @@ def workflow_engine():
 async def test_event_tracker(event_bus):
     """Track events during tests using event-kit."""
     events_captured = []
-    
+
     async def capture_event(event):
         events_captured.append(event)
-    
+
     # Subscribe to all test events
     event_bus.subscribe("test.*", capture_event)
-    
+
     yield events_captured
-    
+
     # Cleanup
     event_bus.unsubscribe("test.*", capture_event)
 
@@ -166,7 +168,7 @@ def workflow_builder():
     """Helper to build test workflows using workflow-kit."""
     if not HAS_WORKFLOW_KIT:
         pytest.skip("workflow_kit not installed")
-    
+
     def build(name: str, steps: list):
         workflow_steps = [
             WorkflowStep(name=step["name"], handler=step["handler"])
@@ -236,8 +238,7 @@ def local_server_config():
                         "mcp_endpoint": f"http://localhost:{port}/api/mcp",
                         "tunnel_url": config.get("tunnel_url"),
                     }
-                else:
-                    print(f"Warning: Local server not healthy: {reason}")
+                print(f"Warning: Local server not healthy: {reason}")
             else:
                 print("Warning: Local server not running. Start with: python start_server.py")
         except Exception as e:
@@ -274,7 +275,7 @@ async def mcp_client(request, local_server_config):
 
     # Get cached credentials from auth plugin (if available)
     credentials = None
-    if hasattr(request.session.config, '_mcp_credentials'):
+    if hasattr(request.session.config, "_mcp_credentials"):
         credentials = request.session.config._mcp_credentials
         print("Using cached credentials from auth plugin")
 
@@ -324,7 +325,7 @@ async def fast_http_client(request, local_server_config):
 
     # Get cached credentials from auth plugin (if available)
     credentials = None
-    if hasattr(request.session.config, '_mcp_credentials'):
+    if hasattr(request.session.config, "_mcp_credentials"):
         credentials = request.session.config._mcp_credentials
         print("Fast HTTP client using cached credentials from auth plugin")
 
@@ -371,30 +372,30 @@ def test_cache():
 def pytest_collection_modifyitems(session, config, items):
     """Convert @mcp_test decorated functions to pytest tests."""
     from tests.framework.decorators import get_test_registry
-    
+
     registry = get_test_registry()
     registered_tests = registry.get_tests()
-    
+
     # Add pytest markers to registered tests
     for item in items:
         test_name = item.name
-        
+
         # Check if this test is registered in our framework
         if test_name in registered_tests:
             test_info = registered_tests[test_name]
-            
+
             # Add category marker
             category = test_info.get("category", "functional")
             item.add_marker(pytest.mark.tool)
-            
+
             # Add priority as metadata
             priority = test_info.get("priority", 5)
             item.user_properties.append(("priority", priority))
-            
+
             # Add auth marker if needed
             if test_info.get("requires_auth", False):
                 item.add_marker(pytest.mark.auth)
-            
+
             # Mark as parallel-safe by default (MCP HTTP calls are isolated)
             item.add_marker(pytest.mark.parallel)
 
@@ -441,16 +442,15 @@ def atoms_auth_validation(request):
     The auth plugin performs validation automatically before test collection.
     This fixture just retrieves the results from session config.
     """
-    if hasattr(request.session.config, '_mcp_auth_valid'):
+    if hasattr(request.session.config, "_mcp_auth_valid"):
         is_valid = request.session.config._mcp_auth_valid
-        credentials = getattr(request.session.config, '_mcp_credentials', None)
+        credentials = getattr(request.session.config, "_mcp_credentials", None)
 
         if is_valid:
             print("Auth validation: PASSED (from plugin)")
             return {"valid": True, "credentials": credentials}
-        else:
-            print("Auth validation: FAILED (from plugin)")
-            return {"valid": False, "credentials": None}
+        print("Auth validation: FAILED (from plugin)")
+        return {"valid": False, "credentials": None}
 
     # Fallback: no auth plugin results available
     print("Auth validation: NOT PERFORMED (plugin not active)")

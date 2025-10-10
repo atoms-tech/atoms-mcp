@@ -20,6 +20,15 @@ from supabase import Client
 
 from .embedding_factory import get_embedding_service
 
+# Import logger for error handling
+try:
+    from utils.logging_setup import get_logger
+except ImportError:
+    # Fallback for standalone use
+    import logging
+    def get_logger(name):
+        return logging.getLogger(name)
+
 
 class SearchResult(NamedTuple):
     """Single search result with similarity score."""

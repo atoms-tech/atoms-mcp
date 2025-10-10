@@ -6,7 +6,6 @@ Creates and configures session manager using pheno-sdk authkit-client.
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Add pheno-sdk to path
 _repo_root = Path(__file__).resolve().parents[2]
@@ -16,17 +15,17 @@ if _authkit_path.exists():
     sys.path.insert(0, str(_authkit_path))
 
 # Import from pheno-sdk
-from authkit_client.session import SessionManager, DatabaseSessionStore
+from authkit_client.session import DatabaseSessionStore, SessionManager  # noqa: E402
 
 # Import Atoms-specific components
-from supabase_client import get_supabase
-from utils.logging_setup import get_logger
+from supabase_client import get_supabase  # noqa: E402
+from utils.logging_setup import get_logger  # noqa: E402
 
 logger = get_logger(__name__)
 
 
 # Singleton instance
-_session_manager: Optional[SessionManager] = None
+_session_manager: SessionManager | None = None
 
 
 def get_session_manager() -> SessionManager:

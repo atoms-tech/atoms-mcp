@@ -1,14 +1,16 @@
-"""Data fixtures for test data generation and management."""
+"""Atoms-specific data fixtures for test data generation and management."""
+
+import uuid
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
 
 import pytest
-import uuid
-from typing import Dict, Any, List, Callable
-from datetime import datetime
 
 
 @pytest.fixture
-def sample_workspace_data() -> Dict[str, Any]:
-    """Sample workspace data for testing."""
+def sample_workspace_data() -> dict[str, Any]:
+    """Sample Atoms workspace data for testing."""
     return {
         "name": f"Test Workspace {uuid.uuid4().hex[:8]}",
         "description": "Test workspace created by automated tests",
@@ -20,8 +22,8 @@ def sample_workspace_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_entity_data() -> Dict[str, Any]:
-    """Sample entity data for testing."""
+def sample_entity_data() -> dict[str, Any]:
+    """Sample Atoms entity data for testing."""
     return {
         "title": f"Test Entity {uuid.uuid4().hex[:8]}",
         "content": "This is test content for automated testing",
@@ -35,8 +37,8 @@ def sample_entity_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_user_data() -> Dict[str, Any]:
-    """Sample user data for testing."""
+def sample_user_data() -> dict[str, Any]:
+    """Sample Atoms user data for testing."""
     unique_id = uuid.uuid4().hex[:8]
     return {
         "email": f"test.user.{unique_id}@example.com",
@@ -46,71 +48,85 @@ def sample_user_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def test_data_factory() -> Callable[[str], Dict[str, Any]]:
-    """Factory for generating various types of test data.
-    
+def test_data_factory() -> Callable[[str], dict[str, Any]]:
+    """Factory for generating various types of Atoms test data.
+
     Usage:
         def test_create_entity(test_data_factory):
             entity_data = test_data_factory("entity")
             # Use entity_data in test
     """
-    def create_test_data(data_type: str) -> Dict[str, Any]:
+    def create_test_data(data_type: str) -> dict[str, Any]:
         unique_id = uuid.uuid4().hex[:8]
-        
+
         if data_type == "workspace":
             return {
                 "name": f"Test Workspace {unique_id}",
                 "description": f"Automated test workspace {unique_id}",
                 "settings": {"privacy": "private"}
             }
-        
-        elif data_type == "entity":
+
+        if data_type == "entity":
             return {
                 "title": f"Test Entity {unique_id}",
                 "content": f"Test content {unique_id}",
                 "entity_type": "document"
             }
-        
-        elif data_type == "user":
+
+        if data_type == "user":
             return {
                 "email": f"test.user.{unique_id}@example.com",
                 "name": f"Test User {unique_id}",
                 "role": "member"
             }
-        
-        elif data_type == "project":
+
+        if data_type == "project":
             return {
                 "name": f"Test Project {unique_id}",
                 "description": f"Automated test project {unique_id}",
                 "status": "active"
             }
-        
-        else:
-            return {"id": unique_id, "type": data_type}
-    
+
+        if data_type == "organization":
+            # Atoms-specific organization data
+            import re
+            unique_slug = str(uuid.uuid4())[:8]
+            unique_slug = re.sub(r"[^a-z0-9-]", "", unique_slug.lower())
+            if not unique_slug or not unique_slug[0].isalpha():
+                unique_slug = f"org{unique_slug}"
+            return {
+                "name": f"Test Organization {unique_id}",
+                "slug": unique_slug,
+                "description": f"Automated test organization {unique_id}",
+                "type": "team"
+            }
+
+        return {"id": unique_id, "type": data_type}
+
     return create_test_data
 
 
 @pytest.fixture
-def bulk_test_data() -> Callable[[str, int], List[Dict[str, Any]]]:
-    """Factory for generating bulk test data.
-    
+def bulk_test_data() -> Callable[[str, int], list[dict[str, Any]]]:
+    """Factory for generating bulk Atoms test data.
+
     Usage:
         def test_bulk_operations(bulk_test_data):
             entities = bulk_test_data("entity", 10)
             # Process 10 test entities
     """
-    def create_bulk_data(data_type: str, count: int) -> List[Dict[str, Any]]:
-        from .data import test_data_factory
+    def create_bulk_data(data_type: str, count: int) -> list[dict[str, Any]]:
+        # Use the test_data_factory from this module
+        from .atoms_data import test_data_factory
         factory = test_data_factory()
         return [factory(data_type) for _ in range(count)]
-    
+
     return create_bulk_data
 
 
 @pytest.fixture(scope="session")
-def persistent_test_workspace() -> Dict[str, Any]:
-    """Session-scoped test workspace for tests that need shared state."""
+def persistent_test_workspace() -> dict[str, Any]:
+    """Session-scoped test workspace for tests that need shared Atoms state."""
     return {
         "name": f"Persistent Test Workspace {uuid.uuid4().hex[:8]}",
         "description": "Persistent workspace for session-scoped tests",
@@ -120,8 +136,8 @@ def persistent_test_workspace() -> Dict[str, Any]:
 
 @pytest.fixture
 def cleanup_test_data():
-    """Fixture that tracks and cleans up test data.
-    
+    """Fixture that tracks and cleans up Atoms test data.
+
     Usage:
         def test_create_entity(entity_client, cleanup_test_data):
             result = await entity_client.call("create", {...})
@@ -129,27 +145,27 @@ def cleanup_test_data():
             # Entity will be cleaned up after test
     """
     created_items = []
-    
+
     class TestDataTracker:
         def track(self, item_type: str, item_id: str):
             created_items.append({"type": item_type, "id": item_id})
-        
+
         def get_tracked_items(self):
             return created_items.copy()
-    
+
     tracker = TestDataTracker()
     yield tracker
-    
+
     # Cleanup logic would go here
     # For now, just log what would be cleaned up
     if created_items:
         print(f"Would clean up {len(created_items)} test items: {created_items}")
 
 
-# Realistic test data patterns
+# Realistic Atoms test data patterns
 @pytest.fixture
-def realistic_document_data() -> Dict[str, Any]:
-    """Realistic document data with proper structure."""
+def realistic_document_data() -> dict[str, Any]:
+    """Realistic Atoms document data with proper structure."""
     return {
         "title": "Product Requirements Document - Q1 2024",
         "content": """
@@ -160,7 +176,7 @@ def realistic_document_data() -> Dict[str, Any]:
 
         ## Features
         - Feature A: Core functionality improvements
-        - Feature B: User experience enhancements  
+        - Feature B: User experience enhancements
         - Feature C: Performance optimizations
 
         ## Acceptance Criteria
@@ -180,8 +196,8 @@ def realistic_document_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def realistic_workspace_structure() -> Dict[str, Any]:
-    """Realistic workspace with proper project structure."""
+def realistic_workspace_structure() -> dict[str, Any]:
+    """Realistic Atoms workspace with proper project structure."""
     return {
         "workspace": {
             "name": "Acme Corp Product Development",

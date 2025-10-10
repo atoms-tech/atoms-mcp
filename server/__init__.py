@@ -27,12 +27,13 @@ Usage:
 from __future__ import annotations
 
 import os
-from typing import Optional
+
+from utils.logging_setup import get_logger
 
 from .auth import (
     BearerToken,
-    RateLimitExceeded,
     RateLimiter,
+    RateLimitExceeded,
     apply_rate_limit_if_configured,
     check_rate_limit,
     extract_bearer_token,
@@ -55,8 +56,6 @@ from .serializers import (
     markdown_serializer,
     serialize_to_markdown,
 )
-
-from utils.logging_setup import get_logger
 
 logger = get_logger("atoms_fastmcp")
 
@@ -83,26 +82,26 @@ def main() -> None:
     """
     # Load env files early
     load_env_files()
-    
+
     # Debug environment loading
     fastmcp_vars = get_fastmcp_vars()
     print(f"🚀 MAIN DEBUG: FASTMCP environment variables: {fastmcp_vars}")
     print(f"🚀 MAIN DEBUG: Current working directory: {os.getcwd()}")
     print(f"🚀 MAIN DEBUG: .env file exists: {os.path.exists('.env')}")
-    
+
     # Get configuration from environment
     config = ServerConfig.from_env()
-    
+
     # Create server
     server = create_consolidated_server(config)
-    
+
     # Add health check for HTTP transport
     if config.transport == "http":
         @server.custom_route("/health", methods=["GET"])  # type: ignore[attr-defined]
         async def _health(_request):  # pragma: no cover
             from starlette.responses import PlainTextResponse
             return PlainTextResponse("OK")
-        
+
         logger.info(f"Starting HTTP server on {config.host}:{config.port}{config.http_path}")
         server.run(
             transport="http",
@@ -119,12 +118,12 @@ __all__ = [
     # Main functions
     "create_consolidated_server",
     "main",
-    
+
     # Configuration
     "ServerConfig",
     "EnvConfig",
     "SerializerConfig",
-    
+
     # Auth
     "BearerToken",
     "RateLimiter",
@@ -134,7 +133,7 @@ __all__ = [
     "apply_rate_limit_if_configured",
     "rate_limited_operation",
     "get_token_string",
-    
+
     # Environment
     "load_env_files",
     "parse_env_file",
@@ -142,7 +141,7 @@ __all__ = [
     "get_env_var",
     "get_fastmcp_vars",
     "EnvLoadError",
-    
+
     # Serialization
     "serialize_to_markdown",
     "markdown_serializer",

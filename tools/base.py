@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from utils.logging_setup import get_logger
-from typing import Any, Dict, Optional
 
 # Support both package and standalone imports
 try:
-    from ..infrastructure.factory import get_adapters
     from ..errors import normalize_error
-    from ..schemas.constants import Tables, ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE
+    from ..infrastructure.factory import get_adapters
+    from ..schemas.constants import ENTITY_TABLE_MAP, TABLES_WITHOUT_SOFT_DELETE, Tables
 except ImportError:
-    from infrastructure.factory import get_adapters
     from errors import normalize_error
+    from infrastructure.factory import get_adapters
     from schemas.constants import ENTITY_TABLE_MAP
 
 logger = get_logger(__name__)
@@ -20,18 +21,18 @@ logger = get_logger(__name__)
 
 class ToolBase:
     """Base class for consolidated tools with common functionality."""
-    
+
     def __init__(self):
         self._adapters = None
         self._user_context = {}
-    
-    def _get_adapters(self) -> Dict[str, Any]:
+
+    def _get_adapters(self) -> dict[str, Any]:
         """Get adapters, cached."""
         if self._adapters is None:
             self._adapters = get_adapters()
         return self._adapters
-    
-    async def _validate_auth(self, auth_token: str) -> Dict[str, Any]:
+
+    async def _validate_auth(self, auth_token: str) -> dict[str, Any]:
         """Validate authentication token and return user info.
 
         Also sets user's JWT on database adapter for proper RLS context.
@@ -55,15 +56,15 @@ class ToolBase:
 
         except Exception as e:
             raise normalize_error(e, "Authentication failed")
-    
+
     def _get_user_id(self) -> str:
         """Get current user ID from context."""
         return self._user_context.get("user_id", "")
-    
+
     def _get_username(self) -> str:
         """Get current username from context."""
         return self._user_context.get("username", "")
-    
+
     @property
     def supabase(self):
         """Get Supabase client from adapters."""
@@ -79,7 +80,7 @@ class ToolBase:
                 return get_supabase()
             except Exception as e:
                 raise RuntimeError(f"Could not get Supabase client: {e}")
-    
+
     async def _db_query(self, table: str, **kwargs) -> list:
         """Execute database query."""
         try:
@@ -87,15 +88,15 @@ class ToolBase:
             return await adapters["database"].query(table, **kwargs)
         except Exception as e:
             raise normalize_error(e, f"Database query failed for table {table}")
-    
-    async def _db_get_single(self, table: str, **kwargs) -> Optional[Dict[str, Any]]:
+
+    async def _db_get_single(self, table: str, **kwargs) -> dict[str, Any] | None:
         """Get single record from database."""
         try:
             adapters = self._get_adapters()
             return await adapters["database"].get_single(table, **kwargs)
         except Exception as e:
             raise normalize_error(e, f"Database get_single failed for table {table}")
-    
+
     async def _db_insert(self, table: str, data: Any, **kwargs) -> Any:
         """Insert record(s) into database."""
         try:
@@ -103,39 +104,39 @@ class ToolBase:
             return await adapters["database"].insert(table, data, **kwargs)
         except Exception as e:
             raise normalize_error(e, f"Database insert failed for table {table}")
-    
-    async def _db_update(self, table: str, data: Dict[str, Any], filters: Dict[str, Any], **kwargs) -> Any:
+
+    async def _db_update(self, table: str, data: dict[str, Any], filters: dict[str, Any], **kwargs) -> Any:
         """Update record(s) in database."""
         try:
             adapters = self._get_adapters()
             return await adapters["database"].update(table, data, filters, **kwargs)
         except Exception as e:
             raise normalize_error(e, f"Database update failed for table {table}")
-    
-    async def _db_delete(self, table: str, filters: Dict[str, Any]) -> int:
+
+    async def _db_delete(self, table: str, filters: dict[str, Any]) -> int:
         """Delete record(s) from database."""
         try:
             adapters = self._get_adapters()
             return await adapters["database"].delete(table, filters)
         except Exception as e:
             raise normalize_error(e, f"Database delete failed for table {table}")
-    
-    async def _db_count(self, table: str, filters: Optional[Dict[str, Any]] = None) -> int:
+
+    async def _db_count(self, table: str, filters: dict[str, Any] | None = None) -> int:
         """Count records in database table."""
         try:
             adapters = self._get_adapters()
             return await adapters["database"].count(table, filters)
         except Exception as e:
             raise normalize_error(e, f"Database count failed for table {table}")
-    
+
     def _resolve_entity_table(self, entity_type: str) -> str:
         """Map entity type to database table name."""
         table = ENTITY_TABLE_MAP.get(entity_type.lower())
         if not table:
             raise ValueError(f"Unknown entity type: {entity_type}")
         return table
-    
-    def _sanitize_entity(self, entity: Dict[str, Any]) -> Dict[str, Any]:
+
+    def _sanitize_entity(self, entity: dict[str, Any]) -> dict[str, Any]:
         """Remove large fields from entity to prevent token overflow.
 
         Strips out embedding vectors, large text fields, and nested structures
@@ -146,18 +147,18 @@ class ToolBase:
 
         # Fields to always exclude (commonly large or redundant)
         exclude_fields = {
-            'embedding',  # Vector embeddings are huge (768 floats)
-            'properties',  # Can contain arbitrary large nested data
-            'metadata',  # Can be recursive
-            'blocks',  # Large nested structures
-            'requirements',  # Large arrays
-            'tests',  # Large arrays
-            'trace_links',  # Large arrays
-            'ai_analysis',  # Can be very large with history
-            'fts_vector',  # Full-text search vectors
-            'content',  # Document content can be huge
-            'description',  # Descriptions can be very long
-            'preferences',  # User preferences object
+            "embedding",  # Vector embeddings are huge (768 floats)
+            "properties",  # Can contain arbitrary large nested data
+            "metadata",  # Can be recursive
+            "blocks",  # Large nested structures
+            "requirements",  # Large arrays
+            "tests",  # Large arrays
+            "trace_links",  # Large arrays
+            "ai_analysis",  # Can be very large with history
+            "fts_vector",  # Full-text search vectors
+            "content",  # Document content can be huge
+            "description",  # Descriptions can be very long
+            "preferences",  # User preferences object
         }
 
         # Keep only essential fields
@@ -186,7 +187,7 @@ class ToolBase:
 
         return sanitized
 
-    def _add_timing_metrics(self, result: Dict[str, Any], timings: Dict[str, float]) -> Dict[str, Any]:
+    def _add_timing_metrics(self, result: dict[str, Any], timings: dict[str, float]) -> dict[str, Any]:
         """Add timing metrics to result for performance debugging."""
         result["_performance"] = {
             "timings_ms": {k: round(v * 1000, 2) for k, v in timings.items()},
@@ -194,7 +195,7 @@ class ToolBase:
         }
         return result
 
-    def _format_result(self, data: Any, format_type: str = "detailed") -> Dict[str, Any]:
+    def _format_result(self, data: Any, format_type: str = "detailed") -> dict[str, Any]:
         """Format result data based on requested format."""
         # Always sanitize data before formatting to prevent token overflow
         if isinstance(data, list):
@@ -204,34 +205,31 @@ class ToolBase:
 
         if format_type == "raw":
             return {"data": data}
-        elif format_type == "summary":
+        if format_type == "summary":
             if isinstance(data, list):
                 return {
                     "count": len(data),
                     "items": data[:3] if len(data) > 3 else data,
                     "truncated": len(data) > 3
                 }
-            else:
-                return {"summary": str(data)[:200] + "..." if len(str(data)) > 200 else str(data)}
-        else:  # detailed
-            # Auto-paginate if list is too large (>10 items for MCP)
-            if isinstance(data, list) and len(data) > 10:
-                return {
-                    "success": True,
-                    "data": data[:10],  # Only return first 10
-                    "count": len(data),
-                    "truncated": True,
-                    "total_count": len(data),
-                    "showing": "1-10",
-                    "hint": "Use limit/offset parameters for pagination",
-                    "user_id": self._get_user_id(),
-                    "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
-                }
-            else:
-                return {
-                    "success": True,
-                    "data": data,
-                    "count": len(data) if isinstance(data, list) else 1,
-                    "user_id": self._get_user_id(),
-                    "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
-                }
+            return {"summary": str(data)[:200] + "..." if len(str(data)) > 200 else str(data)}
+        # Auto-paginate if list is too large (>10 items for MCP)
+        if isinstance(data, list) and len(data) > 10:
+            return {
+                "success": True,
+                "data": data[:10],  # Only return first 10
+                "count": len(data),
+                "truncated": True,
+                "total_count": len(data),
+                "showing": "1-10",
+                "hint": "Use limit/offset parameters for pagination",
+                "user_id": self._get_user_id(),
+                "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+            }
+        return {
+            "success": True,
+            "data": data,
+            "count": len(data) if isinstance(data, list) else 1,
+            "user_id": self._get_user_id(),
+            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        }

@@ -6,7 +6,7 @@ minimal project-specific customization (Supabase auth).
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from config.infrastructure import (
     get_auth_adapter,
@@ -17,7 +17,7 @@ from config.infrastructure import (
 )
 
 
-def get_adapters() -> Dict[str, Any]:
+def get_adapters() -> dict[str, Any]:
     """Return shared infrastructure adapters."""
     return {
         "database": get_database_adapter(),

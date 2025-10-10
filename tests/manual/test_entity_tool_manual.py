@@ -5,13 +5,14 @@ This script tests all CRUD operations for the entity_tool and documents results.
 Run with: python test_entity_tool_manual.py
 """
 
-import os
-import json
-import uuid
 import asyncio
+import json
+import os
+import uuid
+from datetime import UTC, datetime
+from typing import Any
+
 import httpx
-from datetime import datetime, timezone
-from typing import Dict, Any
 
 # Configuration
 MCP_BASE_URL = os.getenv("ATOMS_FASTMCP_BASE_URL", "http://127.0.0.1:8000")
@@ -51,7 +52,7 @@ class EntityToolTester:
         self.auth_token = session.access_token
         print("✅ Authenticated successfully")
 
-    async def call_entity_tool(self, operation: str, entity_type: str, **kwargs) -> Dict[str, Any]:
+    async def call_entity_tool(self, operation: str, entity_type: str, **kwargs) -> dict[str, Any]:
         """Call entity_tool via MCP HTTP interface."""
         base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
         headers = {
@@ -86,25 +87,24 @@ class EntityToolTester:
 
             if "result" in response_data:
                 return response_data["result"]
-            elif "error" in response_data:
+            if "error" in response_data:
                 return {
                     "success": False,
                     "error": response_data["error"].get("message", str(response_data["error"]))
                 }
-            else:
-                return {"success": False, "error": "Invalid response format"}
+            return {"success": False, "error": "Invalid response format"}
 
         except Exception as e:
             return {"success": False, "error": str(e)}
 
     def record_result(self, operation: str, entity_type: str, success: bool,
-                     response: Dict[str, Any], notes: str = ""):
+                     response: dict[str, Any], notes: str = ""):
         """Record test result."""
         result = {
             "operation": operation,
             "entity_type": entity_type,
             "success": success,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "notes": notes,
             "response_keys": list(response.keys()) if isinstance(response, dict) else [],
             "error": response.get("error") if not success else None
@@ -380,7 +380,7 @@ class EntityToolTester:
             print(f"\n{status} - {result['operation'].upper()} ({result['entity_type']})")
             print(f"  Timestamp: {result['timestamp']}")
             print(f"  Notes: {result['notes']}")
-            if result['error']:
+            if result["error"]:
                 print(f"  Error: {result['error']}")
             print(f"  Response Keys: {', '.join(result['response_keys'])}")
 
@@ -388,7 +388,7 @@ class EntityToolTester:
 
         # Save to file
         report_file = f"entity_tool_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(report_file, 'w') as f:
+        with open(report_file, "w") as f:
             json.dump({
                 "summary": {
                     "total": total,

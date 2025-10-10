@@ -2,6 +2,7 @@
 """Simple OAuth test for Atoms MCP using FastMCP built-in OAuth."""
 
 import asyncio
+
 from fastmcp import Client
 
 MCP_URL = "https://mcp.atoms.tech/api/mcp"

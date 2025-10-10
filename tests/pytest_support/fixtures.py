@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import os
-from typing import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import pytest
 
-from tests.framework import AtomsMCPClientAdapter
-
 # Import from shared mcp-QA library
 from mcp_qa.oauth import UnifiedCredentialBroker
+
+from tests.framework import AtomsMCPClientAdapter
 
 
 def _build_credential_overrides() -> dict[str, str]:
@@ -53,7 +53,7 @@ async def authenticated_client(oauth_broker: UnifiedCredentialBroker):
     """Return a session-scoped FastMCP client authenticated via OAuth."""
 
     client, credentials = await oauth_broker.get_authenticated_client()
-    yield client
+    return client
 
 
 @pytest.fixture(scope="session")
@@ -61,7 +61,7 @@ async def client_adapter(authenticated_client) -> AsyncIterator[AtomsMCPClientAd
     """Expose the MCP client through the adapter helpers."""
 
     adapter = AtomsMCPClientAdapter(authenticated_client, verbose_on_fail=True)
-    yield adapter
+    return adapter
 
 
 @pytest.fixture(scope="session")

@@ -9,8 +9,8 @@ Run with: pytest tests/unit/test_entity_fast.py -v
 """
 
 from datetime import datetime
-import pytest
 
+import pytest
 
 # ============================================================================
 # List Operations (Read-Only)

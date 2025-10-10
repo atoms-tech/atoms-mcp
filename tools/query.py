@@ -3,23 +3,23 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, Any, List, Optional, Literal
+from typing import Any, Literal
 
 try:
     from .base import ToolBase
 except ImportError:
     from tools.base import ToolBase
 
+from schemas.constants import TABLES_WITHOUT_SOFT_DELETE, Tables
 from schemas.enums import QueryType, RAGMode
-from schemas.constants import Tables, TABLES_WITHOUT_SOFT_DELETE
 from schemas.rls import (
-    PermissionDeniedError,
-    OrganizationPolicy,
-    ProjectPolicy,
     DocumentPolicy,
+    OrganizationPolicy,
+    PermissionDeniedError,
+    ProfilePolicy,
+    ProjectPolicy,
     RequirementPolicy,
     TestPolicy,
-    ProfilePolicy,
 )
 
 
@@ -50,7 +50,7 @@ class DataQueryEngine(ToolBase):
         }
         return policy_map.get(table)
 
-    async def _filter_results_by_rls(self, results: List[Dict[str, Any]], table: str) -> List[Dict[str, Any]]:
+    async def _filter_results_by_rls(self, results: list[dict[str, Any]], table: str) -> list[dict[str, Any]]:
         """Filter results based on RLS policies."""
         policy = self._get_policy_for_table(table)
         if not policy:
@@ -78,14 +78,14 @@ class DataQueryEngine(ToolBase):
             )
             self._embedding_service = get_embedding_service()
             self._vector_search_service = get_enhanced_vector_search_service(self.supabase)
-    
+
     async def _search_query(
         self,
-        entities: List[str],
+        entities: list[str],
         search_term: str,
-        conditions: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None
-    ) -> Dict[str, Any]:
+        conditions: dict[str, Any] | None = None,
+        limit: int | None = None
+    ) -> dict[str, Any]:
         """Perform cross-entity search with parallel execution."""
 
         async def search_entity(entity_type: str):
@@ -143,13 +143,13 @@ class DataQueryEngine(ToolBase):
             "total_results": sum(r.get("count", 0) for r in results.values()),
             "results_by_entity": results
         }
-    
+
     async def _aggregate_query(
         self,
-        entities: List[str],
-        conditions: Optional[Dict[str, Any]] = None,
-        projections: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        entities: list[str],
+        conditions: dict[str, Any] | None = None,
+        projections: list[str] | None = None
+    ) -> dict[str, Any]:
         """Perform aggregation queries across entities with parallel execution."""
 
         async def aggregate_entity(entity_type: str):
@@ -214,12 +214,12 @@ class DataQueryEngine(ToolBase):
             "entities_analyzed": entities,
             "results": results
         }
-    
+
     async def _analyze_query(
         self,
-        entities: List[str],
-        conditions: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        entities: list[str],
+        conditions: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Perform deep analysis of entities and their relationships with full parallelization."""
 
         async def analyze_entity(entity_type: str):
@@ -230,10 +230,10 @@ class DataQueryEngine(ToolBase):
                 # Add default filters (skip for tables without is_deleted column)
                 if "is_deleted" not in filters and table not in TABLES_WITHOUT_SOFT_DELETE:
                     filters["is_deleted"] = False
-                
+
                 # Basic metrics
                 total_count = await self._db_count(table, filters)
-                
+
                 # Entity-specific analysis
                 if entity_type == "organization":
                     # Analyze organization metrics with parallel queries
@@ -258,7 +258,7 @@ class DataQueryEngine(ToolBase):
 
                     member_counts = [stats[0] for stats in all_org_stats if not isinstance(stats[0], Exception)]
                     project_counts = [stats[1] for stats in all_org_stats if len(stats) > 1 and not isinstance(stats[1], Exception)]
-                    
+
                     return (entity_type, {
                         "total_organizations": total_count,
                         "avg_members_per_org": sum(member_counts) / len(member_counts) if member_counts else 0,
@@ -269,7 +269,7 @@ class DataQueryEngine(ToolBase):
                         }
                     })
 
-                elif entity_type == "project":
+                if entity_type == "project":
                     # Analyze project metrics with massive parallelization
                     all_projects = await self._db_query(table, filters=filters)
                     # Filter projects through RLS
@@ -314,7 +314,7 @@ class DataQueryEngine(ToolBase):
                         }
                     })
 
-                elif entity_type == "requirement":
+                if entity_type == "requirement":
                     # Analyze requirements
                     all_reqs = await self._db_query(table, filters=filters, select="status, priority")
                     # Filter requirements through RLS
@@ -344,13 +344,12 @@ class DataQueryEngine(ToolBase):
                             "coverage_percentage": round(coverage_percentage, 2)
                         }
                     })
-                
-                else:
-                    # Basic analysis for other entity types
-                    return (entity_type, {
-                        "total_count": total_count,
-                        "analysis": "basic_metrics_only"
-                    })
+
+                # Basic analysis for other entity types
+                return (entity_type, {
+                    "total_count": total_count,
+                    "analysis": "basic_metrics_only"
+                })
 
             except Exception as e:
                 return (entity_type, {
@@ -370,12 +369,12 @@ class DataQueryEngine(ToolBase):
             "entities_analyzed": entities,
             "analysis": analysis
         }
-    
+
     async def _relationship_query(
         self,
-        entities: List[str],
-        conditions: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        entities: list[str],
+        conditions: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Analyze relationships between entities."""
         relationships = {}
 
@@ -423,25 +422,25 @@ class DataQueryEngine(ToolBase):
             except Exception as e:
                 # Gracefully handle errors - don't fail entire query
                 relationships[rel_table] = {
-                    "error": f"INTERNAL_SERVER_ERROR: {str(e)}",
+                    "error": f"INTERNAL_SERVER_ERROR: {e!s}",
                     "total_count": 0
                 }
-        
+
         return {
             "query_type": "relationship_analysis",
             "relationship_tables": relationship_tables,
             "relationships": relationships
         }
-    
+
     async def _rag_search_query(
         self,
         query: str,
         mode: Literal["semantic", "keyword", "hybrid", "auto"] = "auto",
-        entities: Optional[List[str]] = None,
+        entities: list[str] | None = None,
         similarity_threshold: float = 0.7,
         limit: int = 10,
-        conditions: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        conditions: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Perform RAG-enabled search across entities."""
         self._init_rag_services()
 
@@ -480,7 +479,7 @@ class DataQueryEngine(ToolBase):
                 )
             else:
                 raise ValueError(f"Unsupported search mode: {mode}")
-            
+
             # Format results and filter through RLS
             formatted_results = []
             for result in search_response.results:
@@ -517,7 +516,7 @@ class DataQueryEngine(ToolBase):
                 "search_time_ms": search_response.search_time_ms,
                 "entities_searched": entities or ["all"]
             }
-            
+
         except Exception as e:
             return {
                 "search_type": "rag_search",
@@ -527,18 +526,18 @@ class DataQueryEngine(ToolBase):
                 "total_results": 0,
                 "results": []
             }
-    
+
     async def _similarity_analysis(
         self,
         content: str,
         entity_type: str,
         similarity_threshold: float = 0.8,
         limit: int = 5,
-        exclude_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        exclude_id: str | None = None
+    ) -> dict[str, Any]:
         """Find content similar to the provided text."""
         self._init_rag_services()
-        
+
         try:
             search_response = await self._vector_search_service.similarity_search_by_content(
                 content=content,
@@ -547,7 +546,7 @@ class DataQueryEngine(ToolBase):
                 limit=limit,
                 exclude_id=exclude_id
             )
-            
+
             # Format results and filter through RLS
             table = self._resolve_entity_table(entity_type)
             policy = self._get_policy_for_table(table) if table else None
@@ -579,7 +578,7 @@ class DataQueryEngine(ToolBase):
                 "query_embedding_tokens": search_response.query_embedding_tokens,
                 "search_time_ms": search_response.search_time_ms
             }
-            
+
         except Exception as e:
             return {
                 "analysis_type": "similarity_analysis",
@@ -598,19 +597,19 @@ _query_engine = DataQueryEngine()
 async def data_query(
     auth_token: str,
     query_type: Literal["search", "aggregate", "analyze", "relationships", "rag_search", "similarity"],
-    entities: List[str],
-    conditions: Optional[Dict[str, Any]] = None,
-    projections: Optional[List[str]] = None,
-    search_term: Optional[str] = None,
-    limit: Optional[int] = None,
+    entities: list[str],
+    conditions: dict[str, Any] | None = None,
+    projections: list[str] | None = None,
+    search_term: str | None = None,
+    limit: int | None = None,
     format_type: str = "detailed",
     # RAG-specific parameters
     rag_mode: Literal["semantic", "keyword", "hybrid", "auto"] = "auto",
     similarity_threshold: float = 0.7,
-    content: Optional[str] = None,
-    entity_type: Optional[str] = None,
-    exclude_id: Optional[str] = None
-) -> Dict[str, Any]:
+    content: str | None = None,
+    entity_type: str | None = None,
+    exclude_id: str | None = None
+) -> dict[str, Any]:
     """Query and analyze data across multiple entity types with RAG capabilities.
     
     Args:
@@ -634,7 +633,7 @@ async def data_query(
     try:
         # Validate authentication
         await _query_engine._validate_auth(auth_token)
-        
+
         # Validate entity types
         valid_entities = []
         for entity in entities:
@@ -644,10 +643,10 @@ async def data_query(
             except ValueError:
                 # Skip invalid entity types
                 pass
-        
+
         if not valid_entities:
             raise ValueError("No valid entity types provided")
-        
+
         # Execute query based on type
         if query_type == QueryType.SEARCH.value:
             if not search_term:
@@ -706,9 +705,9 @@ async def data_query(
 
         else:
             raise ValueError(f"Unknown query type: {query_type}")
-        
+
         return _query_engine._format_result(result, format_type)
-    
+
     except Exception as e:
         return {
             "success": False,

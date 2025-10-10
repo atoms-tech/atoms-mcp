@@ -3,7 +3,8 @@
 import sys
 import time
 import traceback
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from mcp_qa.core.base import BaseTestRunner
 
@@ -17,7 +18,7 @@ class AtomsTestRunner(BaseTestRunner):
         super().__init__(*args, **kwargs)
         self.workflow_manager = TestWorkflowManager(concurrency=self.parallel_workers)
 
-    def _get_metadata(self) -> Dict[str, Any]:
+    def _get_metadata(self) -> dict[str, Any]:
         """Attach Atoms-specific metadata to reports."""
         return {
             "endpoint": getattr(self.client_adapter, "endpoint", "unknown"),
@@ -26,16 +27,16 @@ class AtomsTestRunner(BaseTestRunner):
             "adapter_type": "AtomsMCPClientAdapter",
         }
 
-    def _get_category_order(self) -> List[str]:
+    def _get_category_order(self) -> list[str]:
         """Preferred execution order for Atoms test categories."""
         return ["core", "entity", "query", "relationship", "workflow", "integration"]
 
     async def _run_single_test(
         self,
         test_name: str,
-        test_info: Dict[str, Any],
-        pbar: Optional[Any] = None,
-        worker_id: Optional[int] = None,
+        test_info: dict[str, Any],
+        pbar: Any | None = None,
+        worker_id: int | None = None,
     ) -> None:
         """Override to route execution through the workflow manager."""
 
@@ -134,7 +135,7 @@ class AtomsTestRunner(BaseTestRunner):
             error_msg = str(exc)
 
             # For AssertionError, format it properly to show the assertion message
-            if exc_type and exc_type.__name__ == 'AssertionError':
+            if exc_type and exc_type.__name__ == "AssertionError":
                 if error_msg:
                     error = f"AssertionError: {error_msg}"
                 else:
@@ -169,7 +170,7 @@ class AtomsTestRunner(BaseTestRunner):
             worker_tag = f" [W{worker_id}]" if worker_id is not None else ""
             # Display full error message in console, not just first 50 chars
             error_display = error if len(error) <= 200 else f"{error[:200]}..."
-            verbose = getattr(self, 'verbose', False)
+            verbose = getattr(self, "verbose", False)
 
             if pbar:
                 pbar.update(1)

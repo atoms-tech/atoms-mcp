@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, Literal
+from typing import Any, Literal
 
 try:
     from .base import ToolBase
@@ -12,13 +12,13 @@ except ImportError:
 
 class WorkspaceManager(ToolBase):
     """Manages workspace context for users."""
-    
+
     def __init__(self):
         super().__init__()
         # In-memory context store (in production, could be Redis/database)
-        self._user_contexts: Dict[str, Dict[str, Any]] = {}
-    
-    async def get_context(self, user_id: str) -> Dict[str, Any]:
+        self._user_contexts: dict[str, dict[str, Any]] = {}
+
+    async def get_context(self, user_id: str) -> dict[str, Any]:
         """Get current workspace context for user."""
         return self._user_contexts.get(user_id, {
             "active_organization": None,
@@ -28,13 +28,13 @@ class WorkspaceManager(ToolBase):
             "recent_projects": [],
             "recent_documents": []
         })
-    
+
     async def set_context(
         self,
         user_id: str,
         context_type: str,
         entity_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Set active context for user."""
         if user_id not in self._user_contexts:
             self._user_contexts[user_id] = await self.get_context(user_id)
@@ -66,7 +66,7 @@ class WorkspaceManager(ToolBase):
                 recent.remove(entity_id)
             recent.insert(0, entity_id)
             context["recent_organizations"] = recent[:10]  # Keep last 10
-            
+
         elif context_type == "project":
             context["active_project"] = entity_id
             recent = context["recent_projects"]
@@ -74,7 +74,7 @@ class WorkspaceManager(ToolBase):
                 recent.remove(entity_id)
             recent.insert(0, entity_id)
             context["recent_projects"] = recent[:10]
-            
+
         elif context_type == "document":
             context["active_document"] = entity_id
             recent = context["recent_documents"]
@@ -82,15 +82,15 @@ class WorkspaceManager(ToolBase):
                 recent.remove(entity_id)
             recent.insert(0, entity_id)
             context["recent_documents"] = recent[:10]
-        
+
         return context
-    
+
     async def list_workspaces(
         self,
         user_id: str,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """List available workspaces for user with pagination.
 
         Args:
@@ -151,16 +151,16 @@ class WorkspaceManager(ToolBase):
             "has_more": (offset + len(organizations)) < total_count,
             "context": await self.get_context(user_id)
         }
-    
-    async def get_smart_defaults(self, user_id: str) -> Dict[str, Optional[str]]:
+
+    async def get_smart_defaults(self, user_id: str) -> dict[str, str | None]:
         """Get smart default values based on user context."""
         context = await self.get_context(user_id)
-        
+
         # Try to get active context first
         org_id = context.get("active_organization")
         project_id = context.get("active_project")
         document_id = context.get("active_document")
-        
+
         # If no active org, try personal org
         if not org_id:
             personal_org = await self._db_get_single(
@@ -173,11 +173,11 @@ class WorkspaceManager(ToolBase):
             )
             if personal_org:
                 org_id = personal_org["id"]
-        
+
         # If no active org still, try most recent
         if not org_id and context.get("recent_organizations"):
             org_id = context["recent_organizations"][0]
-        
+
         return {
             "organization_id": org_id,
             "project_id": project_id,
@@ -190,16 +190,16 @@ _workspace_manager = WorkspaceManager()
 
 
 async def workspace_operation(
-    auth_token: Optional[str],
+    auth_token: str | None,
     operation: Literal["get_context", "set_context", "list_workspaces", "get_defaults"],
-    context_type: Optional[Literal["organization", "project", "document"]] = None,
-    entity_id: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    context_type: Literal["organization", "project", "document"] | None = None,
+    entity_id: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
     format_type: str = "detailed",
-    organization_id: Optional[str] = None,
-    project_id: Optional[str] = None
-) -> Dict[str, Any]:
+    organization_id: str | None = None,
+    project_id: str | None = None
+) -> dict[str, Any]:
     """Manage workspace context for the current user.
 
     Args:

@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from entities import AggregateRoot, Entity, UUID4Identity
 from value_objects import Money, Currency, Email, Address, Country
+from value_object import ValueObject
 from events import DomainEvent, event_handler
 from specifications import Specification
 from repositories import Repository
@@ -38,7 +39,7 @@ from services import DomainService
 # =============================================================================
 
 @dataclass(frozen=True)
-class ProductSku(value_objects.ValueObject):  # type: ignore
+class ProductSku(ValueObject):
     """Stock Keeping Unit for products."""
 
     code: str

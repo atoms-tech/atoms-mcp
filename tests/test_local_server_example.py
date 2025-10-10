@@ -12,8 +12,9 @@ The fixtures will automatically use the local server if available,
 otherwise fall back to production.
 """
 
-import pytest
 import os
+
+import pytest
 
 
 @pytest.mark.integration

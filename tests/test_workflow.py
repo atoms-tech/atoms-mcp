@@ -8,8 +8,8 @@ Now compatible with pytest-xdist for parallel execution.
 from datetime import datetime
 
 import pytest
-from .framework import mcp_test, skip_if
 
+from .framework import mcp_test, skip_if
 
 # Skip workflow tests that require real entity IDs
 SKIP_WORKFLOW_TESTS = True
@@ -71,19 +71,19 @@ async def test_import_requirements(client_adapter):
 async def test_setup_test_matrix(client_adapter):
     """Test setting up test matrix workflow with create->operate->delete flow."""
     from tests.framework import DataGenerator
-    
+
     # First get an organization
     org_result = await client_adapter.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
-    
+
     if not org_result["success"] or not org_result["response"].get("organizations"):
         return {"success": True, "skipped": True, "skip_reason": "No organizations available"}
-    
+
     org_id = org_result["response"]["organizations"][0]["id"]
-    
+
     # Create a test project
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     project_data = DataGenerator.project_data(name=f"Test Matrix Project {timestamp}", organization_id=org_id)
-    
+
     create_result = await client_adapter.call_tool(
         "entity_tool",
         {
@@ -92,12 +92,12 @@ async def test_setup_test_matrix(client_adapter):
             "data": project_data
         }
     )
-    
+
     if not create_result["success"]:
         pytest.skip(f"Could not create project: {create_result.get('error')}")
-    
+
     project_id = create_result["response"]["project"]["id"]
-    
+
     try:
         # Now test the workflow with real project ID
         result = await client_adapter.call_tool(
@@ -107,12 +107,12 @@ async def test_setup_test_matrix(client_adapter):
                 "parameters": {"project_id": project_id},
             },
         )
-        
+
         assert result["success"], f"Workflow failed: {result.get('error')}"
-        
+
         response = result["response"]
         assert "matrix" in response or "test_cases" in response, "Missing test matrix results"
-        
+
     finally:
         # Cleanup: delete the test project
         await client_adapter.call_tool(

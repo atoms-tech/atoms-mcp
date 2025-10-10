@@ -6,31 +6,32 @@ as the actual database triggers, maintaining data consistency across
 client-side and server-side operations.
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
-from schemas.triggers import (
-    normalize_slug,
-    auto_generate_slug,
-    handle_updated_at,
-    set_created_timestamps,
-    generate_external_id,
-    generate_uuid,
-    sync_requirements_properties,
-    handle_requirement_hierarchy,
-    handle_new_user,
-    auto_add_org_owner,
-    handle_soft_delete,
-    handle_restore,
-    check_member_limits,
-    check_version_and_update,
-    check_requirement_cycle,
-    TriggerEmulator,
-)
+
 # Import from generated schemas and triggers (OrganizationType defined in triggers.py)
 from schemas import UserRoleType
-from schemas.triggers import OrganizationType
-from schemas.constants import Tables, Fields
-
+from schemas.constants import Fields, Tables
+from schemas.triggers import (
+    OrganizationType,
+    TriggerEmulator,
+    auto_add_org_owner,
+    auto_generate_slug,
+    check_member_limits,
+    check_requirement_cycle,
+    check_version_and_update,
+    generate_external_id,
+    generate_uuid,
+    handle_new_user,
+    handle_requirement_hierarchy,
+    handle_restore,
+    handle_soft_delete,
+    handle_updated_at,
+    normalize_slug,
+    set_created_timestamps,
+    sync_requirements_properties,
+)
 
 # =============================================================================
 # SLUG NORMALIZATION TESTS
@@ -100,7 +101,7 @@ class TestTimestamps:
         assert Fields.UPDATED_AT in result
         # Verify it's a recent timestamp
         updated_at = datetime.fromisoformat(result[Fields.UPDATED_AT])
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         assert (now - updated_at).total_seconds() < 1
 
     def test_set_created_timestamps(self):

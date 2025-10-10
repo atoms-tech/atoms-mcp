@@ -5,15 +5,17 @@ Following FastMCP documentation: https://docs.fastmcp.com/deployment/self-hosted
 """
 
 from __future__ import annotations
+
 import anyio
 from starlette.responses import JSONResponse
 
 # Setup structured logging before other imports
-from utils.logging_setup import setup_logging, get_logger
+from utils.logging_setup import get_logger, setup_logging
+
 setup_logging(level="INFO", use_color=False, use_timestamps=True)  # No color for Vercel logs
 logger = get_logger(__name__)
 
-from server import create_consolidated_server
+from server import create_consolidated_server  # noqa: E402
 
 logger.info("Starting Atoms MCP Server", environment="vercel", emoji="🚀")
 
@@ -52,7 +54,7 @@ _base_app = mcp.http_app(path="/api/mcp", stateless_http=True)
 
 # Add compression middleware
 # NOTE: SessionMiddleware is NOT needed - FastMCP's AuthKitProvider handles auth
-from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
 
 # Wrap with compression only
 app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 bytes
@@ -64,7 +66,7 @@ app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 byt
 # recreated for each request.
 
 # Patch the StreamableHTTPSessionManager directly
-from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager  # noqa: E402
 
 # Store the original handle_request method
 _original_handle_request = StreamableHTTPSessionManager.handle_request

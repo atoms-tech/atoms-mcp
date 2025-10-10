@@ -16,31 +16,31 @@ from pathlib import Path
 
 class PhenoSDKMigrator:
     """Migrates atoms_mcp libraries to pheno-sdk."""
-    
+
     def __init__(self):
         self.atoms_root = Path(__file__).parent
         self.pheno_sdk_root = self.atoms_root.parent / "pheno-sdk"
         self.deploy_kit_root = self.pheno_sdk_root / "deploy-kit" / "deploy_kit"
-        
+
         # Source paths
         self.lib_base = self.atoms_root / "lib" / "base"
         self.lib_platforms = self.atoms_root / "lib" / "platforms"
-        
+
         # Destination paths
         self.deploy_kit_base = self.deploy_kit_root / "base"
         self.deploy_kit_platforms_atoms = self.deploy_kit_root / "platforms" / "atoms"
-        
+
     def check_prerequisites(self) -> bool:
         """Check if all required paths exist."""
         print("🔍 Checking prerequisites...")
-        
+
         checks = [
             (self.pheno_sdk_root, "pheno-sdk root"),
             (self.deploy_kit_root, "deploy-kit"),
             (self.lib_base, "lib/base"),
             (self.lib_platforms, "lib/platforms"),
         ]
-        
+
         all_good = True
         for path, name in checks:
             if path.exists():
@@ -48,81 +48,81 @@ class PhenoSDKMigrator:
             else:
                 print(f"   ❌ {name} not found: {path}")
                 all_good = False
-        
+
         return all_good
-    
+
     def copy_base_layer(self) -> bool:
         """Copy lib/base/ to deploy-kit/deploy_kit/base/."""
         print("\n📦 Copying base layer...")
-        
+
         try:
             # Remove existing if present
             if self.deploy_kit_base.exists():
                 print(f"   🧹 Removing existing {self.deploy_kit_base}")
                 shutil.rmtree(self.deploy_kit_base)
-            
+
             # Copy
             print(f"   📁 Copying {self.lib_base} → {self.deploy_kit_base}")
             shutil.copytree(self.lib_base, self.deploy_kit_base)
-            
+
             # Count files
             py_files = list(self.deploy_kit_base.rglob("*.py"))
             print(f"   ✅ Copied {len(py_files)} Python files")
-            
+
             return True
         except Exception as e:
             print(f"   ❌ Error: {e}")
             return False
-    
+
     def copy_platforms_layer(self) -> bool:
         """Copy lib/platforms/ to deploy-kit/deploy_kit/platforms/atoms/."""
         print("\n📦 Copying platforms layer...")
-        
+
         try:
             # Create platforms directory if it doesn't exist
             platforms_dir = self.deploy_kit_root / "platforms"
             platforms_dir.mkdir(exist_ok=True)
-            
+
             # Create __init__.py if it doesn't exist
             platforms_init = platforms_dir / "__init__.py"
             if not platforms_init.exists():
                 platforms_init.write_text('"""Platform-specific implementations."""\n')
-            
+
             # Remove existing atoms platform if present
             if self.deploy_kit_platforms_atoms.exists():
                 print(f"   🧹 Removing existing {self.deploy_kit_platforms_atoms}")
                 shutil.rmtree(self.deploy_kit_platforms_atoms)
-            
+
             # Copy
             print(f"   📁 Copying {self.lib_platforms} → {self.deploy_kit_platforms_atoms}")
             shutil.copytree(self.lib_platforms, self.deploy_kit_platforms_atoms)
-            
+
             # Count files
             py_files = list(self.deploy_kit_platforms_atoms.rglob("*.py"))
             print(f"   ✅ Copied {len(py_files)} Python files")
-            
+
             return True
         except Exception as e:
             print(f"   ❌ Error: {e}")
             return False
-    
+
     def update_deploy_kit_init(self) -> bool:
         """Update deploy-kit __init__.py to export base and platforms."""
         print("\n📝 Updating deploy-kit __init__.py...")
-        
+
         try:
             init_file = self.deploy_kit_root / "__init__.py"
-            
+
             # Read existing content
             if init_file.exists():
                 with open(init_file) as f:
                     content = f.read()
             else:
                 content = '"""Deploy-kit - Deployment utilities."""\n\n'
-            
+
             # Add exports if not already present
             exports_to_add = []
-            
+
             if "from .base" not in content:
                 exports_to_add.append("""
 # Base abstractions
@@ -137,36 +137,36 @@ from .base.deployment import (
     DeploymentStatus,
 )
 """)
-            
+
             if "from .platforms.atoms" not in content:
                 exports_to_add.append("""
 # Platform implementations
 from .platforms.atoms.vercel import VercelDeploymentProvider
 from .platforms.atoms.http_health import HTTPHealthCheckProvider, AdvancedHealthChecker
 """)
-            
+
             if exports_to_add:
                 content += "\n".join(exports_to_add)
-                
+
                 with open(init_file, "w") as f:
                     f.write(content)
-                
+
                 print(f"   ✅ Updated {init_file}")
             else:
                 print("   ℹ️  Already up to date")
-            
+
             return True
         except Exception as e:
             print(f"   ❌ Error: {e}")
             return False
-    
+
     def create_migration_doc(self) -> bool:
         """Create migration documentation in pheno-sdk."""
         print("\n📚 Creating migration documentation...")
-        
+
         try:
             doc_path = self.pheno_sdk_root / "deploy-kit" / "ATOMS_MIGRATION.md"
-            
+
             doc_content = """# Atoms MCP Migration to Deploy-Kit
 
 ## Overview
@@ -272,54 +272,54 @@ deploy-kit/
 
 Automated migration script
 """
-            
+
             from datetime import datetime
             doc_content = doc_content.format(
                 migration_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )
-            
+
             with open(doc_path, "w") as f:
                 f.write(doc_content)
-            
+
             print(f"   ✅ Created {doc_path}")
             return True
         except Exception as e:
             print(f"   ❌ Error: {e}")
             return False
-    
+
     def run(self) -> bool:
         """Run the migration."""
         print("\n" + "=" * 70)
         print("  Migrating Atoms MCP Libraries to Pheno-SDK")
         print("=" * 70 + "\n")
-        
+
         if not self.check_prerequisites():
             print("\n❌ Prerequisites check failed")
             return False
-        
+
         steps = [
             ("Copy base layer", self.copy_base_layer),
             ("Copy platforms layer", self.copy_platforms_layer),
             ("Update deploy-kit __init__.py", self.update_deploy_kit_init),
             ("Create migration documentation", self.create_migration_doc),
         ]
-        
+
         for step_name, step_fn in steps:
             if not step_fn():
                 print(f"\n❌ Failed at: {step_name}")
                 return False
-        
+
         print("\n" + "=" * 70)
         print("✅ Migration Complete!")
         print("=" * 70 + "\n")
-        
+
         print("📋 Next Steps:")
         print("   1. Update atoms_mcp-old imports to use deploy_kit")
         print("   2. Test deployment in atoms_mcp-old")
         print("   3. Remove lib/base/ and lib/platforms/ from atoms_mcp-old")
         print("   4. Commit changes to pheno-sdk")
         print()
-        
+
         return True
 
 

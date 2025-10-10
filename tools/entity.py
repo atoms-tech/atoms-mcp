@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import re
 import asyncio
-from typing import Dict, Any, Optional, List, Literal
-from datetime import datetime, timezone
+import re
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 try:
     from .base import ToolBase
@@ -13,37 +13,37 @@ except ImportError:
     from tools.base import ToolBase
 
 # Import logging
-from utils.logging_setup import get_logger
+from schemas.validators import (
+    ValidationError,
+    validate_before_create,
+    validate_before_update,
+)
+
+from schemas.constants import (
+    REQUIRED_FIELDS,
+    TABLES_WITHOUT_AUDIT_FIELDS,
+    TABLES_WITHOUT_SOFT_DELETE,
+    Fields,
+    Tables,
+)
 
 # Import schema infrastructure
 from schemas.enums import (
+    EntityStatus,
     EntityType,
     OrganizationType,
-    EntityStatus,
     Priority,
 )
-from schemas.constants import (
-    Tables,
-    Fields,
-    REQUIRED_FIELDS,
-    TABLES_WITHOUT_SOFT_DELETE,
-    TABLES_WITHOUT_AUDIT_FIELDS,
-)
-from schemas.validators import (
-    validate_before_create,
-    validate_before_update,
-    ValidationError,
-)
-from schemas.triggers import TriggerEmulator
 from schemas.rls import (
-    OrganizationPolicy,
-    ProjectPolicy,
     DocumentPolicy,
+    OrganizationPolicy,
+    PermissionDeniedError,
+    ProjectPolicy,
     RequirementPolicy,
     TestPolicy,
-    PermissionDeniedError,
 )
-
+from schemas.triggers import TriggerEmulator
+from utils.logging_setup import get_logger
 
 slug_pattern = re.compile(r"[^a-z0-9]+")
 
@@ -66,7 +66,7 @@ class EntityManager(ToolBase):
         """Check if string is a valid UUID format."""
         import re
         uuid_pattern = re.compile(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
             re.IGNORECASE
         )
         return bool(uuid_pattern.match(value))
@@ -89,8 +89,8 @@ class EntityManager(ToolBase):
         if policy_class:
             return policy_class(user_id=user_id, db_adapter=db_adapter)
         return None
-    
-    def _get_entity_schema(self, entity_type: str) -> Dict[str, Any]:
+
+    def _get_entity_schema(self, entity_type: str) -> dict[str, Any]:
         """Get schema information for entity type using schemas.constants."""
         # Auto-generated fields (set by database)
         auto_fields = [Fields.ID, Fields.CREATED_AT, Fields.UPDATED_AT]
@@ -152,17 +152,17 @@ class EntityManager(ToolBase):
             }
         }
         return schemas.get(entity_type.lower(), {})
-    
-    def _apply_defaults(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+
+    def _apply_defaults(self, entity_type: str, data: dict[str, Any]) -> dict[str, Any]:
         """Apply default values and auto-generated fields."""
         schema = self._get_entity_schema(entity_type)
         result = data.copy()
-        
+
         # Apply defaults
         for field, value in schema.get("default_values", {}).items():
             if field not in result:
                 result[field] = value
-        
+
         # Apply auto fields
         user_id = self._get_user_id()
 
@@ -195,27 +195,27 @@ class EntityManager(ToolBase):
         if entity_type.lower() in [EntityType.ORGANIZATION.value, EntityType.DOCUMENT.value]:
             if not result.get(Fields.SLUG) and result.get(Fields.NAME):
                 result[Fields.SLUG] = _slugify(result[Fields.NAME])
-        
+
         return result
-    
-    def _validate_required_fields(self, entity_type: str, data: Dict[str, Any]) -> None:
+
+    def _validate_required_fields(self, entity_type: str, data: dict[str, Any]) -> None:
         """Validate that required fields are present."""
         schema = self._get_entity_schema(entity_type)
         required = schema.get("required_fields", [])
-        
+
         missing = [field for field in required if field not in data]
         if missing:
             raise ValueError(f"Missing required fields for {entity_type}: {missing}")
-    
-    async def _resolve_smart_defaults(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _resolve_smart_defaults(self, entity_type: str, data: dict[str, Any]) -> dict[str, Any]:
         """Resolve smart defaults like 'auto' for organization_id."""
         result = data.copy()
         user_id = self._get_user_id()
-        
+
         # Import workspace manager to get defaults
         from .workspace import _workspace_manager
         defaults = await _workspace_manager.get_smart_defaults(user_id)
-        
+
         # Apply smart defaults
         if result.get(Fields.ORGANIZATION_ID) == "auto":
             if defaults[Fields.ORGANIZATION_ID]:
@@ -234,15 +234,15 @@ class EntityManager(ToolBase):
                 result[Fields.DOCUMENT_ID] = defaults[Fields.DOCUMENT_ID]
             else:
                 raise ValueError("No active document found for 'auto' resolution")
-        
+
         return result
-    
+
     async def create_entity(
         self,
         entity_type: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         include_relations: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a new entity."""
         # Resolve smart defaults
         data = await self._resolve_smart_defaults(entity_type, data)
@@ -302,7 +302,7 @@ class EntityManager(ToolBase):
 
         return result
 
-    async def _generate_embedding_async(self, entity_type: str, entity_data: Dict[str, Any]):
+    async def _generate_embedding_async(self, entity_type: str, entity_data: dict[str, Any]):
         """Generate embedding for entity in background.
 
         This method runs asynchronously and won't block entity creation.
@@ -332,13 +332,13 @@ class EntityManager(ToolBase):
             # Log error but don't fail entity creation
             # In production, this should use proper logging
             print(f"Warning: Failed to generate embedding for {entity_type} {entity_data.get('id')}: {e}")
-    
+
     async def read_entity(
         self,
         entity_type: str,
         entity_id: str,
         include_relations: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Read an entity by ID."""
         table = self._resolve_entity_table(entity_type)
 
@@ -360,14 +360,14 @@ class EntityManager(ToolBase):
             result = await self._include_relationships(entity_type, result)
 
         return result
-    
+
     async def update_entity(
         self,
         entity_type: str,
         entity_id: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         include_relations: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Update an entity."""
         logger = get_logger(__name__)
 
@@ -444,7 +444,7 @@ class EntityManager(ToolBase):
             result = await self._include_relationships(entity_type, result)
 
         return result
-    
+
     async def delete_entity(
         self,
         entity_type: str,
@@ -475,7 +475,7 @@ class EntityManager(ToolBase):
             # Soft delete
             delete_data = {
                 Fields.IS_DELETED: True,
-                Fields.DELETED_AT: datetime.now(timezone.utc).isoformat()
+                Fields.DELETED_AT: datetime.now(UTC).isoformat()
                 # Don't set updated_at - let database trigger handle it
             }
 
@@ -496,27 +496,26 @@ class EntityManager(ToolBase):
 
             delete_data[Fields.DELETED_BY] = user_id
             delete_data[Fields.UPDATED_BY] = user_id
-            
+
             result = await self._db_update(
                 table,
                 delete_data,
                 filters={"id": entity_id}
             )
             return bool(result)
-        else:
-            # Hard delete
-            count = await self._db_delete(table, filters={"id": entity_id})
-            return count > 0
-    
+        # Hard delete
+        count = await self._db_delete(table, filters={"id": entity_id})
+        return count > 0
+
     async def search_entities(
         self,
         entity_type: str,
-        filters: Optional[Dict[str, Any]] = None,
-        search_term: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        order_by: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+        search_term: str | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+        order_by: str | None = None
+    ) -> list[dict[str, Any]]:
         """Search for entities with filters."""
         table = self._resolve_entity_table(entity_type)
 
@@ -550,14 +549,14 @@ class EntityManager(ToolBase):
             offset=offset,
             order_by=order_by
         )
-    
+
     async def list_entities(
         self,
         entity_type: str,
-        parent_type: Optional[str] = None,
-        parent_id: Optional[str] = None,
-        limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        parent_type: str | None = None,
+        parent_id: str | None = None,
+        limit: int | None = None
+    ) -> list[dict[str, Any]]:
         """List entities, optionally filtered by parent."""
         # Build filters - skip is_deleted for tables that don't have it
         table = self._resolve_entity_table(entity_type)
@@ -583,12 +582,12 @@ class EntityManager(ToolBase):
             filters=filters,
             limit=limit
         )
-    
+
     async def _include_relationships(
         self,
         entity_type: str,
-        entity: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        entity: dict[str, Any]
+    ) -> dict[str, Any]:
         """Include related entities in the response."""
         result = entity.copy()
         entity_id = entity[Fields.ID]
@@ -650,20 +649,20 @@ async def entity_operation(
     auth_token: str,
     operation: Literal["create", "read", "update", "delete", "search", "list"],
     entity_type: str,
-    data: Optional[Dict[str, Any]] = None,
-    filters: Optional[Dict[str, Any]] = None,
-    entity_id: Optional[str] = None,
+    data: dict[str, Any] | None = None,
+    filters: dict[str, Any] | None = None,
+    entity_id: str | None = None,
     include_relations: bool = False,
-    batch: Optional[List[Dict[str, Any]]] = None,
-    search_term: Optional[str] = None,
-    parent_type: Optional[str] = None,
-    parent_id: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    order_by: Optional[str] = None,
+    batch: list[dict[str, Any]] | None = None,
+    search_term: str | None = None,
+    parent_type: str | None = None,
+    parent_id: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+    order_by: str | None = None,
     soft_delete: bool = True,
     format_type: str = "detailed"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
     timings = {}
@@ -730,17 +729,16 @@ async def entity_operation(
                 timings["total"] = time.time() - start_total
                 formatted = _entity_manager._format_result(final_results, format_type)
                 return _entity_manager._add_timing_metrics(formatted, timings)
-            else:
-                # Single create
-                result = await _entity_manager.create_entity(
-                    entity_type, data, include_relations
-                )
-                timings["create"] = time.time() - t_op_start
-                timings["total"] = time.time() - start_total
-                formatted = _entity_manager._format_result(result, format_type)
-                return _entity_manager._add_timing_metrics(formatted, timings)
-        
-        elif operation == "read":
+            # Single create
+            result = await _entity_manager.create_entity(
+                entity_type, data, include_relations
+            )
+            timings["create"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            formatted = _entity_manager._format_result(result, format_type)
+            return _entity_manager._add_timing_metrics(formatted, timings)
+
+        if operation == "read":
             if not entity_id:
                 raise ValueError("entity_id is required for read operation")
 
@@ -778,8 +776,8 @@ async def entity_operation(
             timings["total"] = time.time() - start_total
             formatted = _entity_manager._format_result(result, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
-        
-        elif operation == "update":
+
+        if operation == "update":
             if not entity_id or not data:
                 raise ValueError("entity_id and data are required for update operation")
 
@@ -791,8 +789,8 @@ async def entity_operation(
             timings["total"] = time.time() - start_total
             formatted = _entity_manager._format_result(result, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
-        
-        elif operation == "delete":
+
+        if operation == "delete":
             if not entity_id:
                 raise ValueError("entity_id is required for delete operation")
 
@@ -811,7 +809,7 @@ async def entity_operation(
             }
             return _entity_manager._add_timing_metrics(result, timings)
 
-        elif operation == "search":
+        if operation == "search":
             t_op_start = time.time()
             result = await _entity_manager.search_entities(
                 entity_type, filters, search_term, limit, offset, order_by
@@ -821,7 +819,7 @@ async def entity_operation(
             formatted = _entity_manager._format_result(result, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
 
-        elif operation == "list":
+        if operation == "list":
             t_op_start = time.time()
             result = await _entity_manager.list_entities(
                 entity_type, parent_type, parent_id, limit
@@ -830,10 +828,9 @@ async def entity_operation(
             timings["total"] = time.time() - start_total
             formatted = _entity_manager._format_result(result, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
-        
-        else:
-            raise ValueError(f"Unknown operation: {operation}")
-    
+
+        raise ValueError(f"Unknown operation: {operation}")
+
     except PermissionDeniedError as e:
         return {
             "success": False,

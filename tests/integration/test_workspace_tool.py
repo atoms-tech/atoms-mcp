@@ -8,7 +8,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 # Import the workspace operation function
 try:
@@ -23,9 +23,9 @@ class WorkspaceToolTester:
     def __init__(self, auth_token: str = None):
         """Initialize tester with optional auth token."""
         self.auth_token = auth_token or os.getenv("TEST_AUTH_TOKEN")
-        self.results: List[Dict[str, Any]] = []
+        self.results: list[dict[str, Any]] = []
 
-    def log_result(self, operation: str, params: Dict[str, Any],
+    def log_result(self, operation: str, params: dict[str, Any],
                    status: str, response: Any, error: str = None):
         """Log test result."""
         result = {
@@ -51,7 +51,7 @@ class WorkspaceToolTester:
             print(f"Response Data: {json.dumps(response, indent=2, default=str)}")
         print(f"{'='*80}\n")
 
-    def _analyze_structure(self, data: Any) -> Dict[str, Any]:
+    def _analyze_structure(self, data: Any) -> dict[str, Any]:
         """Analyze data structure."""
         if isinstance(data, dict):
             return {
@@ -59,17 +59,16 @@ class WorkspaceToolTester:
                 "keys": list(data.keys()),
                 "nested_types": {k: type(v).__name__ for k, v in data.items()}
             }
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return {
                 "type": "list",
                 "length": len(data),
                 "item_types": list(set(type(item).__name__ for item in data))
             }
-        else:
-            return {
-                "type": type(data).__name__,
-                "value": str(data)
-            }
+        return {
+            "type": type(data).__name__,
+            "value": str(data)
+        }
 
     async def test_operation_1_list_workspaces(self):
         """Test 1: List all workspaces."""
@@ -145,7 +144,6 @@ class WorkspaceToolTester:
             "Operation not available in workspace_tool"
         )
 
-        return None
 
     async def test_operation_4_set_context(self, organization_id: str):
         """Test 4: Set active workspace context."""
@@ -221,7 +219,6 @@ class WorkspaceToolTester:
             "Operation not available in workspace_tool"
         )
 
-        return None
 
     async def test_operation_7_delete_workspace(self):
         """Test 7: Delete workspace.
@@ -249,7 +246,6 @@ class WorkspaceToolTester:
             "Operation not available in workspace_tool"
         )
 
-        return None
 
     async def run_all_tests(self):
         """Run all workspace_tool tests."""
@@ -314,7 +310,7 @@ class WorkspaceToolTester:
 
         # Save detailed report to file
         report_file = f"workspace_tool_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(report_file, 'w') as f:
+        with open(report_file, "w") as f:
             json.dump({
                 "summary": {
                     "total_tests": total_tests,

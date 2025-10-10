@@ -277,19 +277,16 @@ class PublicRequirementFormatEnum(str, Enum):
 class CustomModel(BaseModel):
     """Base model class with common features."""
 
-    pass
 
 
 class CustomModelInsert(CustomModel):
     """Base model for insert operations with common features."""
 
-    pass
 
 
 class CustomModelUpdate(CustomModel):
     """Base model for update operations with common features."""
 
-    pass
 
 
 # BASE CLASSES
@@ -727,7 +724,7 @@ class OrganizationBaseSchema(CustomModel):
     max_monthly_requests: int
     member_count: int | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
-    name: Annotated[str, StringConstraints(**{"min_length": 2, "max_length": 255})]
+    name: Annotated[str, StringConstraints(min_length=2, max_length=255)]
     owner_id: UUID4 | None = Field(default=None)
     settings: dict | list[dict] | list[Any] | Json | None = Field(default=None)
     slug: str
@@ -826,7 +823,7 @@ class ProjectBaseSchema(CustomModel):
     )
     is_deleted: bool | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
-    name: Annotated[str, StringConstraints(**{"min_length": 2, "max_length": 255})]
+    name: Annotated[str, StringConstraints(min_length=2, max_length=255)]
     organization_id: UUID4
     owned_by: UUID4
     settings: dict | list[dict] | list[Any] | Json | None = Field(default=None)
@@ -1836,7 +1833,7 @@ class OrganizationInsert(CustomModelInsert):
 
     # Required fields
     created_by: UUID4
-    name: Annotated[str, StringConstraints(**{"min_length": 2, "max_length": 255})]
+    name: Annotated[str, StringConstraints(min_length=2, max_length=255)]
     slug: str
     updated_by: UUID4
 
@@ -2009,7 +2006,7 @@ class ProjectInsert(CustomModelInsert):
 
     # Required fields
     created_by: UUID4
-    name: Annotated[str, StringConstraints(**{"min_length": 2, "max_length": 255})]
+    name: Annotated[str, StringConstraints(min_length=2, max_length=255)]
     organization_id: UUID4
     owned_by: UUID4
     slug: str
@@ -3217,7 +3214,7 @@ class OrganizationUpdate(CustomModelUpdate):
     member_count: int | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
     name: (
-        Annotated[str, StringConstraints(**{"min_length": 2, "max_length": 255})] | None
+        Annotated[str, StringConstraints(min_length=2, max_length=255)] | None
     ) = Field(default=None)
     owner_id: UUID4 | None = Field(default=None)
     settings: dict | list[dict] | list[Any] | Json | None = Field(default=None)
@@ -3377,7 +3374,7 @@ class ProjectUpdate(CustomModelUpdate):
     is_deleted: bool | None = Field(default=None)
     metadata: dict | list[dict] | list[Any] | Json | None = Field(default=None)
     name: (
-        Annotated[str, StringConstraints(**{"min_length": 2, "max_length": 255})] | None
+        Annotated[str, StringConstraints(min_length=2, max_length=255)] | None
     ) = Field(default=None)
     organization_id: UUID4 | None = Field(default=None)
     owned_by: UUID4 | None = Field(default=None)
@@ -3881,7 +3878,6 @@ class Assignment(AssignmentBaseSchema):
     Inherits from AssignmentBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class AuditLog(AuditLogBaseSchema):
@@ -3948,7 +3944,6 @@ class DiagramElementLinksWithDetail(DiagramElementLinksWithDetailBaseSchema):
     Inherits from DiagramElementLinksWithDetailBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class Document(DocumentBaseSchema):
@@ -3972,7 +3967,6 @@ class EmbeddingCache(EmbeddingCacheBaseSchema):
     Inherits from EmbeddingCacheBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class ExcalidrawDiagram(ExcalidrawDiagramBaseSchema):
@@ -3991,7 +3985,6 @@ class ExcalidrawElementLink(ExcalidrawElementLinkBaseSchema):
     Inherits from ExcalidrawElementLinkBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class ExternalDocument(ExternalDocumentBaseSchema):
@@ -4000,7 +3993,6 @@ class ExternalDocument(ExternalDocumentBaseSchema):
     Inherits from ExternalDocumentBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class McpSession(McpSessionBaseSchema):
@@ -4009,7 +4001,6 @@ class McpSession(McpSessionBaseSchema):
     Inherits from McpSessionBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class Notification(NotificationBaseSchema):
@@ -4018,7 +4009,6 @@ class Notification(NotificationBaseSchema):
     Inherits from NotificationBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class OauthAccessToken(OauthAccessTokenBaseSchema):
@@ -4027,7 +4017,6 @@ class OauthAccessToken(OauthAccessTokenBaseSchema):
     Inherits from OauthAccessTokenBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class OauthAuthorizationCode(OauthAuthorizationCodeBaseSchema):
@@ -4046,7 +4035,6 @@ class OauthClient(OauthClientBaseSchema):
     Inherits from OauthClientBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class OauthRefreshToken(OauthRefreshTokenBaseSchema):
@@ -4174,7 +4162,6 @@ class RagEmbedding(RagEmbeddingBaseSchema):
     Inherits from RagEmbeddingBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class RagSearchAnalytic(RagSearchAnalyticBaseSchema):
@@ -4183,7 +4170,6 @@ class RagSearchAnalytic(RagSearchAnalyticBaseSchema):
     Inherits from RagSearchAnalyticBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class ReactFlowDiagram(ReactFlowDiagramBaseSchema):
@@ -4281,7 +4267,6 @@ class TraceLink(TraceLinkBaseSchema):
     Inherits from TraceLinkBaseSchema. Add any customization here.
     """
 
-    pass
 
 
 class UsageLog(UsageLogBaseSchema):

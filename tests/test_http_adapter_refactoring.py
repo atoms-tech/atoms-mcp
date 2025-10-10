@@ -16,8 +16,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tests.framework.oauth_session import OAuthSessionBroker
-from tests.framework.adapters import AtomsMCPClientAdapter
 from tests.framework.parallel_clients import ParallelClientManager
+
+from tests.framework.adapters import AtomsMCPClientAdapter
 
 MCP_URL = "https://mcp.atoms.tech/api/mcp"
 
@@ -77,7 +78,7 @@ async def test_http_adapter_single(broker, access_token):
         print(f"   Success: {result.get('success')}")
         print(f"   Has response: {result.get('response') is not None}")
 
-        if result.get('success'):
+        if result.get("success"):
             print("✅ TEST 2 PASSED")
         else:
             print("⚠️  TEST 2 WARNING: Call succeeded but returned success=False")
@@ -128,7 +129,7 @@ async def test_parallel_http_adapters(access_token):
                     "workspace_tool",
                     {"operation": "get_context", "format_type": "summary"}
                 )
-                return adapter_id, result.get('success', False)
+                return adapter_id, result.get("success", False)
             finally:
                 await manager.release(adapter)
 
@@ -177,7 +178,7 @@ async def test_fallback_to_mcp(broker):
         print("✅ MCP call succeeded")
         print(f"   Success: {result.get('success')}")
 
-        if result.get('success'):
+        if result.get("success"):
             print("✅ TEST 4 PASSED")
         else:
             print("⚠️  TEST 4 WARNING: Call succeeded but returned success=False")

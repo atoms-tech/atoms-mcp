@@ -76,30 +76,30 @@ class TestMemoryUsage:
     def test_server_memory_footprint(self):
         """Test server memory footprint."""
         import tracemalloc
-        
+
         tracemalloc.start()
-        
+
         # Import and initialize server
-        
+
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
-        
+
         # Assert memory usage is reasonable (< 100MB)
         assert peak < 100 * 1024 * 1024, f"Peak memory usage: {peak / 1024 / 1024:.2f} MB"
 
     def test_vendor_memory_footprint(self):
         """Test vendor manager memory footprint."""
         import tracemalloc
-        
+
         tracemalloc.start()
-        
+
         # Import vendor manager
         from lib.vendor_manager import VendorManager
         vendor_mgr = VendorManager()
-        
+
         current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
-        
+
         # Assert memory usage is reasonable (< 50MB)
         assert peak < 50 * 1024 * 1024, f"Peak memory usage: {peak / 1024 / 1024:.2f} MB"
 

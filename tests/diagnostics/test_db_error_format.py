@@ -3,6 +3,7 @@
 Test script to verify DB constraint error formatting
 """
 import sys
+
 sys.path.insert(0, "/Users/kooshapari/temp-PRODVERCEL/485/kush/pheno-sdk/mcp-QA")
 
 from mcp_qa.reporters import DetailedErrorReporter

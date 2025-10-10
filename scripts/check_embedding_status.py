@@ -11,9 +11,9 @@ Usage:
 
 import os
 import sys
-from pathlib import Path
-from typing import Dict, Any
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,8 +22,8 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 # Load environment variables
-load_dotenv('.env', override=True)
-load_dotenv('.env.production', override=False)
+load_dotenv(".env", override=True)
+load_dotenv(".env.production", override=False)
 
 
 class EmbeddingStatusChecker:
@@ -39,7 +39,7 @@ class EmbeddingStatusChecker:
     def __init__(self, supabase):
         self.supabase = supabase
 
-    def check_all_status(self, verbose: bool = False) -> Dict[str, Any]:
+    def check_all_status(self, verbose: bool = False) -> dict[str, Any]:
         """Check embedding status for all entity types."""
         results = {}
         total_entities = 0
@@ -82,7 +82,7 @@ class EmbeddingStatusChecker:
             "by_entity_type": results
         }
 
-    def _check_entity_status(self, entity_type: str, table_name: str, verbose: bool) -> Dict[str, Any]:
+    def _check_entity_status(self, entity_type: str, table_name: str, verbose: bool) -> dict[str, Any]:
         """Check embedding status for a specific entity type."""
         try:
             # Total count
@@ -127,8 +127,8 @@ class EmbeddingStatusChecker:
                 if recent_missing.data:
                     print("\nRecent entities without embeddings:")
                     for entity in recent_missing.data:
-                        name = entity.get('name', 'N/A')
-                        created = entity.get('created_at', 'N/A')
+                        name = entity.get("name", "N/A")
+                        created = entity.get("created_at", "N/A")
                         print(f"  - {name} (created: {created})")
 
             return {
@@ -148,7 +148,7 @@ class EmbeddingStatusChecker:
                 "error": str(e)
             }
 
-    def check_recent_creations(self, hours: int = 24) -> Dict[str, Any]:
+    def check_recent_creations(self, hours: int = 24) -> dict[str, Any]:
         """Check if recently created entities have embeddings."""
         cutoff = datetime.utcnow() - timedelta(hours=hours)
         cutoff_str = cutoff.isoformat()
@@ -232,9 +232,9 @@ def main():
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if url:
-        url = url.strip().strip('"').strip("'").rstrip('/').rstrip('\n')
+        url = url.strip().strip('"').strip("'").rstrip("/").rstrip("\n")
     if key:
-        key = key.strip().strip('"').strip("'").rstrip('\n')
+        key = key.strip().strip('"').strip("'").rstrip("\n")
 
     if not url or not key:
         print("❌ Error: Missing Supabase credentials")

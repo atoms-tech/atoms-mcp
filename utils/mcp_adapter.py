@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+
 from fastmcp import Client
 
 # Ensure pheno-sdk/mcp-QA is on path when running in isolation

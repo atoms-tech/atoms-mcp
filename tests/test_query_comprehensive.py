@@ -16,18 +16,19 @@ Each test includes comprehensive assertions to validate:
 - RAG mode effectiveness
 """
 
-import pytest
 import sys
-from pathlib import Path
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
 
 # Add the parent directory to the Python path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.atoms_mcp.mcp_server import AtomsServer
-from src.atoms_mcp.models.base import Organization, Project, Document, Requirement, Test
-from src.atoms_mcp.models.enums import EntityStatus, RequirementPriority, TestStatus, RAGMode
+from src.atoms_mcp.models.base import Document, Organization, Project, Requirement, Test
+from src.atoms_mcp.models.enums import EntityStatus, RAGMode, RequirementPriority, TestStatus
 
 
 @pytest.fixture
@@ -40,7 +41,7 @@ async def server_with_test_data():
         id=str(uuid.uuid4()),
         name="TechCorp",
         description="Leading technology company focused on AI and cloud solutions",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata={"industry": "technology", "size": "large", "region": "global"}
     )
 
@@ -48,7 +49,7 @@ async def server_with_test_data():
         id=str(uuid.uuid4()),
         name="DataSystems",
         description="Data analytics and business intelligence solutions provider",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata={"industry": "data", "size": "medium", "region": "north_america"}
     )
 
@@ -223,11 +224,11 @@ async def server_with_test_data():
 
     # Store IDs for easy reference in tests
     server.test_data = {
-        'org_ids': [org1.id, org2.id],
-        'project_ids': [proj1.id, proj2.id, proj3.id],
-        'document_ids': [doc1.id, doc2.id, doc3.id, doc4.id],
-        'requirement_ids': [req1.id, req2.id, req3.id, req4.id, req5.id],
-        'test_ids': [test1.id, test2.id, test3.id]
+        "org_ids": [org1.id, org2.id],
+        "project_ids": [proj1.id, proj2.id, proj3.id],
+        "document_ids": [doc1.id, doc2.id, doc3.id, doc4.id],
+        "requirement_ids": [req1.id, req2.id, req3.id, req4.id, req5.id],
+        "test_ids": [test1.id, test2.id, test3.id]
     }
 
     return server

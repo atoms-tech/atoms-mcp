@@ -29,16 +29,21 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, List
-from utils.logging_setup import get_logger
+from typing import Any
+
+from schemas.constants import Tables
+from schemas.generated.fastapi.schema_public_latest import (
+    PublicProjectRoleEnum as ProjectRole,
+)
 
 # Import from generated schemas
 from schemas.generated.fastapi.schema_public_latest import (
     PublicUserRoleTypeEnum as UserRoleType,
-    PublicProjectRoleEnum as ProjectRole,
+)
+from schemas.generated.fastapi.schema_public_latest import (
     PublicVisibilityEnum as Visibility,
 )
-from schemas.constants import Tables
+from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -173,7 +178,7 @@ async def is_super_admin(user_id: str, db_adapter) -> bool:
         return False
 
 
-async def get_user_organization_ids(user_id: str, db_adapter) -> List[str]:
+async def get_user_organization_ids(user_id: str, db_adapter) -> list[str]:
     """
     Get all organization IDs that a user is a member of.
 
@@ -250,8 +255,8 @@ class PolicyValidator:
         """
         self.user_id = user_id
         self.db_adapter = db_adapter
-        self._is_super_admin_cache: Optional[bool] = None
-        self._user_orgs_cache: Optional[List[str]] = None
+        self._is_super_admin_cache: bool | None = None
+        self._user_orgs_cache: list[str] | None = None
 
     async def _check_super_admin(self) -> bool:
         """Check if user is super admin (cached)."""
@@ -259,13 +264,13 @@ class PolicyValidator:
             self._is_super_admin_cache = await is_super_admin(self.user_id, self.db_adapter)
         return self._is_super_admin_cache
 
-    async def _get_user_orgs(self) -> List[str]:
+    async def _get_user_orgs(self) -> list[str]:
         """Get user's organization IDs (cached)."""
         if self._user_orgs_cache is None:
             self._user_orgs_cache = await get_user_organization_ids(self.user_id, self.db_adapter)
         return self._user_orgs_cache
 
-    async def can_select(self, table: str, record: Dict[str, Any]) -> bool:
+    async def can_select(self, table: str, record: dict[str, Any]) -> bool:
         """
         Check if user can SELECT (read) a record.
 
@@ -284,7 +289,7 @@ class PolicyValidator:
         # Default: deny
         return False
 
-    async def can_insert(self, table: str, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, table: str, data: dict[str, Any]) -> bool:
         """
         Check if user can INSERT a record.
 
@@ -300,7 +305,7 @@ class PolicyValidator:
             return await policy.can_insert(data)
         return False
 
-    async def can_update(self, table: str, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, table: str, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """
         Check if user can UPDATE a record.
 
@@ -317,7 +322,7 @@ class PolicyValidator:
             return await policy.can_update(record, data)
         return False
 
-    async def can_delete(self, table: str, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, table: str, record: dict[str, Any]) -> bool:
         """
         Check if user can DELETE a record.
 
@@ -359,23 +364,23 @@ class TablePolicy:
         self.user_id = user_id
         self.db_adapter = db_adapter
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """Check SELECT permission."""
         raise NotImplementedError
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """Check INSERT permission."""
         raise NotImplementedError
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """Check UPDATE permission."""
         raise NotImplementedError
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Check DELETE permission."""
         raise NotImplementedError
 
-    async def validate_select(self, record: Dict[str, Any]):
+    async def validate_select(self, record: dict[str, Any]):
         """Validate SELECT or raise PermissionDeniedError."""
         if not await self.can_select(record):
             raise PermissionDeniedError(
@@ -384,7 +389,7 @@ class TablePolicy:
                 "User does not have read access to this record"
             )
 
-    async def validate_insert(self, data: Dict[str, Any]):
+    async def validate_insert(self, data: dict[str, Any]):
         """Validate INSERT or raise PermissionDeniedError."""
         if not await self.can_insert(data):
             raise PermissionDeniedError(
@@ -393,7 +398,7 @@ class TablePolicy:
                 "User does not have permission to create this record"
             )
 
-    async def validate_update(self, record: Dict[str, Any], data: Dict[str, Any]):
+    async def validate_update(self, record: dict[str, Any], data: dict[str, Any]):
         """Validate UPDATE or raise PermissionDeniedError."""
         if not await self.can_update(record, data):
             raise PermissionDeniedError(
@@ -402,7 +407,7 @@ class TablePolicy:
                 "User does not have permission to update this record"
             )
 
-    async def validate_delete(self, record: Dict[str, Any]):
+    async def validate_delete(self, record: dict[str, Any]):
         """Validate DELETE or raise PermissionDeniedError."""
         if not await self.can_delete(record):
             raise PermissionDeniedError(
@@ -423,7 +428,7 @@ class OrganizationPolicy(TablePolicy):
     - DELETE: Organization owner only
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they are a member."""
         org_id = record.get("id")
         if not org_id:
@@ -436,11 +441,11 @@ class OrganizationPolicy(TablePolicy):
         )
         return member is not None
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """Authenticated users can create organizations."""
         return bool(self.user_id)
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """Owner or admin can update."""
         org_id = record.get("id")
         if not org_id:
@@ -448,7 +453,7 @@ class OrganizationPolicy(TablePolicy):
 
         return await is_organization_owner_or_admin(org_id, self.user_id, self.db_adapter)
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Only owner can delete."""
         org_id = record.get("id")
         if not org_id:
@@ -473,7 +478,7 @@ class ProjectPolicy(TablePolicy):
     - DELETE: Project owner only
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they can access the project."""
         project_id = record.get("id")
         if not project_id:
@@ -481,7 +486,7 @@ class ProjectPolicy(TablePolicy):
 
         return await user_can_access_project(project_id, self.user_id, self.db_adapter)
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """User must be member of parent organization."""
         org_id = data.get("organization_id")
         if not org_id:
@@ -493,7 +498,7 @@ class ProjectPolicy(TablePolicy):
         )
         return member is not None
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """Project owner or admin can update."""
         project_id = record.get("id")
         if not project_id:
@@ -501,7 +506,7 @@ class ProjectPolicy(TablePolicy):
 
         return await is_project_owner_or_admin(project_id, self.user_id, self.db_adapter)
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Only project owner can delete."""
         project_id = record.get("id")
         if not project_id:
@@ -526,7 +531,7 @@ class DocumentPolicy(TablePolicy):
     - DELETE: Project owner or admin
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they can access the parent project."""
         project_id = record.get("project_id")
         if not project_id:
@@ -534,7 +539,7 @@ class DocumentPolicy(TablePolicy):
 
         return await user_can_access_project(project_id, self.user_id, self.db_adapter)
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """User must have editor+ role in parent project."""
         project_id = data.get("project_id")
         if not project_id:
@@ -552,7 +557,7 @@ class DocumentPolicy(TablePolicy):
         return role in [ProjectRole.OWNER.value, ProjectRole.ADMIN.value,
                        ProjectRole.MAINTAINER.value, ProjectRole.EDITOR.value]
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """User must have editor+ role in parent project."""
         project_id = record.get("project_id")
         if not project_id:
@@ -570,7 +575,7 @@ class DocumentPolicy(TablePolicy):
         return role in [ProjectRole.OWNER.value, ProjectRole.ADMIN.value,
                        ProjectRole.MAINTAINER.value, ProjectRole.EDITOR.value]
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Project owner or admin can delete."""
         project_id = record.get("project_id")
         if not project_id:
@@ -590,7 +595,7 @@ class RequirementPolicy(TablePolicy):
     - DELETE: User can access parent document's project (editor+)
     """
 
-    async def _get_project_id(self, record: Dict[str, Any]) -> Optional[str]:
+    async def _get_project_id(self, record: dict[str, Any]) -> str | None:
         """Get project ID from document ID."""
         doc_id = record.get("document_id")
         if not doc_id:
@@ -603,7 +608,7 @@ class RequirementPolicy(TablePolicy):
 
         return doc.get("project_id") if doc else None
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they can access the parent project."""
         project_id = await self._get_project_id(record)
         if not project_id:
@@ -611,7 +616,7 @@ class RequirementPolicy(TablePolicy):
 
         return await user_can_access_project(project_id, self.user_id, self.db_adapter)
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """User must have editor+ role."""
         project_id = await self._get_project_id(data)
         if not project_id:
@@ -629,11 +634,11 @@ class RequirementPolicy(TablePolicy):
         return role in [ProjectRole.OWNER.value, ProjectRole.ADMIN.value,
                        ProjectRole.MAINTAINER.value, ProjectRole.EDITOR.value]
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """User must have editor+ role."""
         return await self.can_insert(record)
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """User must have editor+ role."""
         return await self.can_insert(record)
 
@@ -649,7 +654,7 @@ class TestPolicy(TablePolicy):
     - DELETE: Project owner or admin
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they can access the parent project."""
         project_id = record.get("project_id")
         if not project_id:
@@ -657,7 +662,7 @@ class TestPolicy(TablePolicy):
 
         return await user_can_access_project(project_id, self.user_id, self.db_adapter)
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """User must have editor+ role."""
         project_id = data.get("project_id")
         if not project_id:
@@ -675,11 +680,11 @@ class TestPolicy(TablePolicy):
         return role in [ProjectRole.OWNER.value, ProjectRole.ADMIN.value,
                        ProjectRole.MAINTAINER.value, ProjectRole.EDITOR.value]
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """User must have editor+ role."""
         return await self.can_insert(record)
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Project owner or admin can delete."""
         project_id = record.get("project_id")
         if not project_id:
@@ -699,20 +704,20 @@ class ProfilePolicy(TablePolicy):
     - DELETE: Super admin only
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """All authenticated users can read profiles."""
         return bool(self.user_id)
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """Only super admin can insert (normally auto-created)."""
         return await is_super_admin(self.user_id, self.db_adapter)
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """User can only update their own profile."""
         profile_id = record.get("id")
         return profile_id == self.user_id
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Only super admin can delete."""
         return await is_super_admin(self.user_id, self.db_adapter)
 
@@ -728,7 +733,7 @@ class OrganizationMemberPolicy(TablePolicy):
     - DELETE: Organization owner or admin
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they are member of the organization."""
         org_id = record.get("organization_id")
         if not org_id:
@@ -740,7 +745,7 @@ class OrganizationMemberPolicy(TablePolicy):
         )
         return member is not None
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """Organization owner or admin can add members."""
         org_id = data.get("organization_id")
         if not org_id:
@@ -748,7 +753,7 @@ class OrganizationMemberPolicy(TablePolicy):
 
         return await is_organization_owner_or_admin(org_id, self.user_id, self.db_adapter)
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """Organization owner or admin can update memberships."""
         org_id = record.get("organization_id")
         if not org_id:
@@ -756,7 +761,7 @@ class OrganizationMemberPolicy(TablePolicy):
 
         return await is_organization_owner_or_admin(org_id, self.user_id, self.db_adapter)
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Organization owner or admin can remove members."""
         org_id = record.get("organization_id")
         if not org_id:
@@ -776,7 +781,7 @@ class ProjectMemberPolicy(TablePolicy):
     - DELETE: Project owner or admin
     """
 
-    async def can_select(self, record: Dict[str, Any]) -> bool:
+    async def can_select(self, record: dict[str, Any]) -> bool:
         """User can read if they can access the project."""
         project_id = record.get("project_id")
         if not project_id:
@@ -784,7 +789,7 @@ class ProjectMemberPolicy(TablePolicy):
 
         return await user_can_access_project(project_id, self.user_id, self.db_adapter)
 
-    async def can_insert(self, data: Dict[str, Any]) -> bool:
+    async def can_insert(self, data: dict[str, Any]) -> bool:
         """Project owner or admin can add members."""
         project_id = data.get("project_id")
         if not project_id:
@@ -792,7 +797,7 @@ class ProjectMemberPolicy(TablePolicy):
 
         return await is_project_owner_or_admin(project_id, self.user_id, self.db_adapter)
 
-    async def can_update(self, record: Dict[str, Any], data: Dict[str, Any]) -> bool:
+    async def can_update(self, record: dict[str, Any], data: dict[str, Any]) -> bool:
         """Project owner or admin can update memberships."""
         project_id = record.get("project_id")
         if not project_id:
@@ -800,7 +805,7 @@ class ProjectMemberPolicy(TablePolicy):
 
         return await is_project_owner_or_admin(project_id, self.user_id, self.db_adapter)
 
-    async def can_delete(self, record: Dict[str, Any]) -> bool:
+    async def can_delete(self, record: dict[str, Any]) -> bool:
         """Project owner or admin can remove members."""
         project_id = record.get("project_id")
         if not project_id:

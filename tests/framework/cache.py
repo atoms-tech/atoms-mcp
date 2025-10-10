@@ -5,9 +5,8 @@ This module extends the generic BaseTestCache from mcp-QA with Atoms-specific
 tool dependencies and framework file mappings.
 """
 
-from typing import Dict, List
-from mcp_qa.testing.test_cache import BaseTestCache
 
+from mcp_qa.testing.test_cache import BaseTestCache
 
 # Atoms-specific dependency mapping: tool -> framework files it depends on
 TOOL_DEPENDENCIES = {
@@ -93,11 +92,11 @@ class TestCache(BaseTestCache):
         """
         super().__init__(cache_file=cache_file)
 
-    def get_tool_dependencies(self) -> Dict[str, List[str]]:
+    def get_tool_dependencies(self) -> dict[str, list[str]]:
         """Get Atoms-specific tool dependency mappings."""
         return TOOL_DEPENDENCIES
 
-    def get_framework_files(self) -> List[str]:
+    def get_framework_files(self) -> list[str]:
         """Get Atoms-specific framework core files."""
         return FRAMEWORK_CORE_FILES
 

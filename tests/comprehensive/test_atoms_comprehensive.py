@@ -360,56 +360,56 @@ def print_functionality_matrix():
 
         print(f"\n🔐 Authentication: {'Required ✅' if tool_info.get('auth_required') else 'Optional ❌'}")
 
-        if 'operations' in tool_info:
+        if "operations" in tool_info:
             print("\n⚙️  Operations:")
-            for op in tool_info['operations']:
+            for op in tool_info["operations"]:
                 print(f"\n   • {op['name'].upper()}")
                 print(f"     └─ {op['description']}")
-                params_str = json.dumps(op['params'], indent=11)
+                params_str = json.dumps(op["params"], indent=11)
                 # Skip the first opening brace and newline
-                params_display = params_str.split('\n', 1)[1] if '\n' in params_str else params_str
+                params_display = params_str.split("\n", 1)[1] if "\n" in params_str else params_str
                 print(f"     └─ Example params: {params_display}")
 
-        if 'workflows' in tool_info:
+        if "workflows" in tool_info:
             print("\n🔄 Workflows:")
-            for wf in tool_info['workflows']:
+            for wf in tool_info["workflows"]:
                 print(f"\n   • {wf['name'].upper()}")
                 print(f"     └─ {wf['description']}")
-                params_str = json.dumps(wf['params'], indent=11)
-                params_display = params_str.split('\n', 1)[1] if '\n' in params_str else params_str
+                params_str = json.dumps(wf["params"], indent=11)
+                params_display = params_str.split("\n", 1)[1] if "\n" in params_str else params_str
                 print(f"     └─ Example params: {params_display}")
 
-        if 'query_types' in tool_info:
+        if "query_types" in tool_info:
             print("\n🔍 Query Types:")
-            for qt in tool_info['query_types']:
+            for qt in tool_info["query_types"]:
                 print(f"\n   • {qt['name'].upper()}")
                 print(f"     └─ {qt['description']}")
-                params_str = json.dumps(qt['params'], indent=11)
-                params_display = params_str.split('\n', 1)[1] if '\n' in params_str else params_str
+                params_str = json.dumps(qt["params"], indent=11)
+                params_display = params_str.split("\n", 1)[1] if "\n" in params_str else params_str
                 print(f"     └─ Example params: {params_display}")
 
-        if 'entity_types' in tool_info:
+        if "entity_types" in tool_info:
             print("\n📦 Supported Entity Types:")
-            for et in tool_info['entity_types']:
+            for et in tool_info["entity_types"]:
                 print(f"   • {et}")
 
-        if 'relationship_types' in tool_info:
+        if "relationship_types" in tool_info:
             print("\n🔗 Supported Relationship Types:")
-            for rt in tool_info['relationship_types']:
+            for rt in tool_info["relationship_types"]:
                 print(f"   • {rt}")
 
-        if 'rag_modes' in tool_info:
+        if "rag_modes" in tool_info:
             print("\n🤖 RAG Search Modes:")
-            for mode in tool_info['rag_modes']:
+            for mode in tool_info["rag_modes"]:
                 print(f"   • {mode}")
 
-        if 'features' in tool_info:
+        if "features" in tool_info:
             print("\n✨ Features:")
-            for feat in tool_info['features']:
+            for feat in tool_info["features"]:
                 print(f"   • {feat}")
 
         print("\n📋 Parameters:")
-        for param in tool_info['parameters']:
+        for param in tool_info["parameters"]:
             print(f"   • {param}")
 
     # Summary table
@@ -421,11 +421,11 @@ def print_functionality_matrix():
     print(f"{'-'*100}")
 
     for tool_name, tool_info in TOOLS.items():
-        op_count = len(tool_info.get('operations', tool_info.get('workflows', tool_info.get('query_types', []))))
-        auth = 'Yes ✅' if tool_info.get('auth_required') else 'No ❌'
-        features = ', '.join(tool_info.get('features', ['N/A'])[:2])
+        op_count = len(tool_info.get("operations", tool_info.get("workflows", tool_info.get("query_types", []))))
+        auth = "Yes ✅" if tool_info.get("auth_required") else "No ❌"
+        features = ", ".join(tool_info.get("features", ["N/A"])[:2])
         if len(features) > 42:
-            features = features[:39] + '...'
+            features = features[:39] + "..."
 
         print(f"{tool_name:<25} {op_count:<15} {auth:<15} {features:<45}")
 
@@ -433,7 +433,7 @@ def print_functionality_matrix():
 
     # Save to JSON
     output_file = f"atoms_functionality_matrix_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(TOOLS, f, indent=2)
 
     print(f"\n✅ Full matrix saved to: {output_file}")

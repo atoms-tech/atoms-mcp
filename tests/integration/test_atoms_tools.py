@@ -5,25 +5,25 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any
 
 # Set up environment
 os.environ["ENV"] = "dev"
 
 # Import the tools directly
 from tools import (
-    workspace_operation,
+    data_query,
     entity_operation,
     relationship_operation,
     workflow_execute,
-    data_query,
+    workspace_operation,
 )
 
 # Get auth token from environment
 AUTH_TOKEN = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 
-async def test_workspace_tool() -> Dict[str, Any]:
+async def test_workspace_tool() -> dict[str, Any]:
     """Test all workspace_tool operations."""
     results = {}
 
@@ -73,7 +73,7 @@ async def test_workspace_tool() -> Dict[str, Any]:
     return results
 
 
-async def test_entity_tool() -> Dict[str, Any]:
+async def test_entity_tool() -> dict[str, Any]:
     """Test all entity_tool operations."""
     results = {}
     test_entity_id = None
@@ -186,7 +186,7 @@ async def test_entity_tool() -> Dict[str, Any]:
     return results
 
 
-async def test_relationship_tool() -> Dict[str, Any]:
+async def test_relationship_tool() -> dict[str, Any]:
     """Test all relationship_tool operations."""
     results = {}
 
@@ -229,7 +229,7 @@ async def test_relationship_tool() -> Dict[str, Any]:
     return results
 
 
-async def test_query_tool() -> Dict[str, Any]:
+async def test_query_tool() -> dict[str, Any]:
     """Test all query_tool operations."""
     results = {}
 
@@ -287,7 +287,7 @@ async def test_query_tool() -> Dict[str, Any]:
     return results
 
 
-async def test_workflow_tool() -> Dict[str, Any]:
+async def test_workflow_tool() -> dict[str, Any]:
     """Test workflow_tool operations."""
     results = {}
 

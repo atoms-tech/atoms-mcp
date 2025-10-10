@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from pathlib import Path
-from typing import List, Optional
 
 import httpx
 from cli_builder.cli import CLI
@@ -17,7 +17,6 @@ from deploy_kit.local import LocalProcessConfig, LocalServiceManager, ReadyProbe
 from filewatch_kit.watcher import FileEvent, FileWatcher
 from observability.logging import StructuredLogger, stream_log_file
 from pydevkit.correlation_id import generate_correlation_id
-import sys
 
 
 async def _run_subprocess(cmd):
@@ -201,7 +200,7 @@ async def _verify_dcr(client: httpx.AsyncClient, domain: str, logger: Structured
 
 
 @cli.command("monitor", description="Stream structured logs from the local server")
-async def monitor_command(log_path: Optional[str] = None):
+async def monitor_command(log_path: str | None = None):
     logger = _logger("atoms-mcp-monitor")
     path = Path(log_path or os.getenv("ATOMS_LOG_PATH", "/tmp/atoms_mcp.log"))
 
@@ -235,7 +234,7 @@ async def watch_command(path: str):
 
 
 @cli.command("backfill", description="Run embedding backfill", args=["*options"])
-async def backfill_command(options: Optional[List[str]] = None):
+async def backfill_command(options: list[str] | None = None):
     cmd = [
         sys.executable,
         str(Path(__file__).parent / "backfill_embeddings.py"),

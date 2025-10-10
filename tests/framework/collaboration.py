@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from collections.abc import Awaitable, Callable
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Awaitable, Callable, Dict, Optional
+from typing import Any
 
 from event_kit.core.event_bus import Event, EventBus
 from workflow_kit.task import Worker, task
@@ -20,14 +21,14 @@ class TestEvent:
     test_name: str
     endpoint: str
     user: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     timestamp: datetime = datetime.utcnow()
 
     def to_bus_event(self) -> Event:
         return Event(name=TEST_EVENT_CHANNEL, data=asdict(self))
 
     @classmethod
-    def from_event(cls, event: Event) -> "TestEvent":
+    def from_event(cls, event: Event) -> TestEvent:
         payload = dict(event.data)
         payload.setdefault("timestamp", event.timestamp)
         return cls(**payload)
@@ -36,14 +37,14 @@ class TestEvent:
 class CollaborationFactory:
     """Factory creating event-driven collaboration helpers."""
 
-    def __init__(self, bus: Optional[EventBus] = None, worker: Optional[Worker] = None):
+    def __init__(self, bus: EventBus | None = None, worker: Worker | None = None):
         self.bus = bus or EventBus()
         self.worker = worker or Worker(concurrency=4)
 
-    def create_broadcaster(self) -> "CollaborationBroadcaster":
+    def create_broadcaster(self) -> CollaborationBroadcaster:
         return CollaborationBroadcaster(self.bus)
 
-    def create_subscriber(self, handler: Callable[[TestEvent], Awaitable[None]]) -> "CollaborationSubscriber":
+    def create_subscriber(self, handler: Callable[[TestEvent], Awaitable[None]]) -> CollaborationSubscriber:
         subscriber = CollaborationSubscriber(self.bus, self.worker, handler)
         return subscriber
 
@@ -74,7 +75,7 @@ class CollaborationSubscriber:
 
     def _register_subscription(self) -> None:
         @task()
-        async def process(event_payload: Dict[str, Any]):
+        async def process(event_payload: dict[str, Any]):
             event = TestEvent(
                 event_type=event_payload["event_type"],
                 test_name=event_payload["test_name"],
@@ -87,7 +88,7 @@ class CollaborationSubscriber:
 
         self.worker.register(process)
 
-        async def _dispatch(payload: Dict[str, Any]):
+        async def _dispatch(payload: dict[str, Any]):
             await process(payload)
 
         self.bus.subscribe(TEST_EVENT_CHANNEL, _dispatch)
@@ -97,8 +98,8 @@ class CollaborationSubscriber:
 
 
 __all__ = [
-    "CollaborationFactory",
     "CollaborationBroadcaster",
+    "CollaborationFactory",
     "CollaborationSubscriber",
     "TestEvent",
 ]

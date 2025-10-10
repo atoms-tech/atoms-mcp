@@ -6,8 +6,8 @@ Now compatible with pytest-xdist for parallel execution.
 """
 
 import pytest
-from .framework import mcp_test, skip_if
 
+from .framework import mcp_test, skip_if
 
 # Skip relationship tests that require real entity IDs
 # These should be run manually with actual IDs from list operations
@@ -52,8 +52,8 @@ async def test_list_relationships_member(client_adapter):
 
 @mcp_test(tool_name="relationship_tool", category="relationship", priority=5)
 async def test_link_entities(client_adapter):
-    """Test linking two entities - skipped (needs real UUIDs).""" 
-    pass  # Skipped by @skip_if decorator
+    """Test linking two entities - skipped (needs real UUIDs)."""
+    # Skipped by @skip_if decorator
 
 
 @skip_if(lambda: True, reason="Needs real relationship ID and relationship_type")
@@ -64,7 +64,7 @@ async def test_link_entities(client_adapter):
 @mcp_test(tool_name="relationship_tool", category="relationship", priority=5)
 async def test_unlink_entities(client_adapter):
     """Test unlinking - skipped (needs real IDs and relationship_type parameter)."""
-    pass  # Skipped by @skip_if decorator
+    # Skipped by @skip_if decorator
 
 
 @skip_if(lambda: True, reason="Needs real entity UUIDs")
@@ -75,7 +75,7 @@ async def test_unlink_entities(client_adapter):
 @mcp_test(tool_name="relationship_tool", category="relationship", priority=5)
 async def test_check_relationship(client_adapter):
     """Test checking relationship - skipped (needs real UUIDs)."""
-    pass  # Skipped by @skip_if decorator
+    # Skipped by @skip_if decorator
 
 
 @skip_if(lambda: True, reason="Needs real relationship ID and relationship_type")
@@ -86,4 +86,4 @@ async def test_check_relationship(client_adapter):
 @mcp_test(tool_name="relationship_tool", category="relationship", priority=5)
 async def test_update_relationship(client_adapter):
     """Test updating relationship - skipped (missing relationship_type parameter)."""
-    pass  # Skipped by @skip_if decorator
+    # Skipped by @skip_if decorator

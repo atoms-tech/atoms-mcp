@@ -5,8 +5,7 @@ Tests list_workspaces, get_context, set_context, and get_defaults operations.
 
 import pytest
 
-from tests.framework import mcp_test, validators, DataGenerator
-
+from tests.framework import DataGenerator, mcp_test, validators
 
 # ============================================================================
 # LIST_WORKSPACES TESTS (6 tests)

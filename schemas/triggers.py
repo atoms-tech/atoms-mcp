@@ -14,22 +14,25 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+
+# OrganizationType needs to be added - database has it but sb-pydantic didn't generate it
+# Temporary inline definition until we add it to generated file
+from enum import Enum
+from typing import Any
+
 # OrganizationType is missing from generated (bug in sb-pydantic)
 # UserRoleType comes from generated
 from schemas.generated.fastapi.schema_public_latest import (
     PublicUserRoleTypeEnum as UserRoleType,
 )
 
-# OrganizationType needs to be added - database has it but sb-pydantic didn't generate it
-# Temporary inline definition until we add it to generated file
-from enum import Enum
+
 class OrganizationType(str, Enum):
     PERSONAL = "personal"
     TEAM = "team"
     ENTERPRISE = "enterprise"
-from schemas.constants import Tables, Fields, TABLES_WITHOUT_SOFT_DELETE
+from schemas.constants import TABLES_WITHOUT_SOFT_DELETE, Fields, Tables
 from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -104,7 +107,7 @@ def auto_generate_slug(name: str, fallback: str = "entity") -> str:
 # =============================================================================
 
 
-def handle_updated_at(data: Dict[str, Any]) -> Dict[str, Any]:
+def handle_updated_at(data: dict[str, Any]) -> dict[str, Any]:
     """
     Set updated_at timestamp to current UTC time.
 
@@ -119,11 +122,11 @@ def handle_updated_at(data: Dict[str, Any]) -> Dict[str, Any]:
         Data with updated_at set to current UTC timestamp
     """
     result = data.copy()
-    result[Fields.UPDATED_AT] = datetime.now(timezone.utc).isoformat()
+    result[Fields.UPDATED_AT] = datetime.now(UTC).isoformat()
     return result
 
 
-def set_created_timestamps(data: Dict[str, Any]) -> Dict[str, Any]:
+def set_created_timestamps(data: dict[str, Any]) -> dict[str, Any]:
     """
     Set created_at and updated_at timestamps for new records.
 
@@ -138,7 +141,7 @@ def set_created_timestamps(data: Dict[str, Any]) -> Dict[str, Any]:
         Data with timestamps set
     """
     result = data.copy()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     result[Fields.CREATED_AT] = now
     result[Fields.UPDATED_AT] = now
     return result
@@ -149,7 +152,7 @@ def set_created_timestamps(data: Dict[str, Any]) -> Dict[str, Any]:
 # =============================================================================
 
 
-def generate_external_id(entity_type: str, prefix: Optional[str] = None) -> str:
+def generate_external_id(entity_type: str, prefix: str | None = None) -> str:
     """
     Generate external ID for requirements and other entities.
 
@@ -195,7 +198,7 @@ def generate_uuid() -> str:
 # =============================================================================
 
 
-def sync_requirements_properties(requirement_data: Dict[str, Any]) -> Dict[str, Any]:
+def sync_requirements_properties(requirement_data: dict[str, Any]) -> dict[str, Any]:
     """
     Sync requirement properties to ensure consistency.
 
@@ -225,9 +228,9 @@ def sync_requirements_properties(requirement_data: Dict[str, Any]) -> Dict[str, 
 
 
 def handle_requirement_hierarchy(
-    requirement_data: Dict[str, Any],
-    existing_closure: Optional[List[Dict[str, Any]]] = None
-) -> List[Dict[str, Any]]:
+    requirement_data: dict[str, Any],
+    existing_closure: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
     """
     Handle requirement hierarchy closure table updates.
 
@@ -276,7 +279,7 @@ def handle_requirement_hierarchy(
 # =============================================================================
 
 
-def handle_new_user(user_data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def handle_new_user(user_data: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Handle new user creation - create personal organization.
 
@@ -317,7 +320,7 @@ def handle_new_user(user_data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str
     return updated_profile, personal_org
 
 
-def auto_add_org_owner(org_id: str, user_id: str) -> Dict[str, Any]:
+def auto_add_org_owner(org_id: str, user_id: str) -> dict[str, Any]:
     """
     Automatically add organization owner to org_members.
 
@@ -338,8 +341,8 @@ def auto_add_org_owner(org_id: str, user_id: str) -> Dict[str, Any]:
         "user_id": user_id,
         "role": UserRoleType.OWNER.value,
         "status": "active",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
         "is_deleted": False
     }
 
@@ -349,7 +352,7 @@ def auto_add_org_owner(org_id: str, user_id: str) -> Dict[str, Any]:
 # =============================================================================
 
 
-def handle_soft_delete(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+def handle_soft_delete(data: dict[str, Any], user_id: str) -> dict[str, Any]:
     """
     Handle soft delete operation.
 
@@ -367,12 +370,12 @@ def handle_soft_delete(data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
     """
     result = data.copy()
     result[Fields.IS_DELETED] = True
-    result[Fields.DELETED_AT] = datetime.now(timezone.utc).isoformat()
+    result[Fields.DELETED_AT] = datetime.now(UTC).isoformat()
     result[Fields.DELETED_BY] = user_id
     return result
 
 
-def handle_restore(data: Dict[str, Any]) -> Dict[str, Any]:
+def handle_restore(data: dict[str, Any]) -> dict[str, Any]:
     """
     Handle restore from soft delete.
 
@@ -399,7 +402,7 @@ def handle_restore(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def check_member_limits(
-    org_data: Dict[str, Any],
+    org_data: dict[str, Any],
     current_member_count: int
 ) -> None:
     """
@@ -440,8 +443,8 @@ def check_version_and_update(
     table: str,
     entity_id: str,
     current_version: int,
-    new_data: Dict[str, Any]
-) -> Dict[str, Any]:
+    new_data: dict[str, Any]
+) -> dict[str, Any]:
     """
     Check version for optimistic locking and increment.
 
@@ -474,7 +477,7 @@ def check_version_and_update(
 def check_requirement_cycle(
     requirement_id: str,
     parent_id: str,
-    closure_data: List[Dict[str, Any]]
+    closure_data: list[dict[str, Any]]
 ) -> None:
     """
     Prevent cycles in requirement hierarchy.
@@ -532,7 +535,7 @@ class TriggerEmulator:
         """Set current user ID for audit fields."""
         self._user_id = user_id
 
-    def before_insert(self, table: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def before_insert(self, table: str, data: dict[str, Any]) -> dict[str, Any]:
         """
         Run BEFORE INSERT trigger logic.
 
@@ -622,9 +625,9 @@ class TriggerEmulator:
     def before_update(
         self,
         table: str,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Run BEFORE UPDATE trigger logic.
 
@@ -664,8 +667,8 @@ class TriggerEmulator:
     def after_insert(
         self,
         table: str,
-        data: Dict[str, Any]
-    ) -> List[Tuple[str, Dict[str, Any]]]:
+        data: dict[str, Any]
+    ) -> list[tuple[str, dict[str, Any]]]:
         """
         Run AFTER INSERT trigger logic.
 
@@ -693,7 +696,7 @@ class TriggerEmulator:
 
         elif table == Tables.REQUIREMENTS:
             # Handle hierarchy closure
-            if "parent_id" in data and data["parent_id"]:
+            if data.get("parent_id"):
                 # Would need to query existing closure entries
                 # and create new ones
                 pass
@@ -703,9 +706,9 @@ class TriggerEmulator:
     def after_update(
         self,
         table: str,
-        old_data: Dict[str, Any],
-        new_data: Dict[str, Any]
-    ) -> List[Tuple[str, Dict[str, Any]]]:
+        old_data: dict[str, Any],
+        new_data: dict[str, Any]
+    ) -> list[tuple[str, dict[str, Any]]]:
         """
         Run AFTER UPDATE trigger logic.
 

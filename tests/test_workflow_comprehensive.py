@@ -14,16 +14,13 @@ performance testing, and error handling scenarios.
 
 from __future__ import annotations
 
-import pytest
-import uuid
-from typing import Dict, Any, List, Callable
 import time
+import uuid
+from collections.abc import Callable
+from typing import Any
 
-from test_utils import (
-    EntityFactory,
-    AssertionHelpers,
-    PerformanceAnalyzer
-)
+import pytest
+from test_utils import AssertionHelpers, EntityFactory, PerformanceAnalyzer
 
 
 class WorkflowDataGenerator:
@@ -36,7 +33,7 @@ class WorkflowDataGenerator:
         return str(uuid.uuid4())
 
     @staticmethod
-    def generate_requirements(count: int, **kwargs) -> List[Dict[str, Any]]:
+    def generate_requirements(count: int, **kwargs) -> list[dict[str, Any]]:
         """Generate a list of requirement data.
 
         Args:
@@ -65,7 +62,7 @@ class WorkflowDataGenerator:
         return requirements
 
     @staticmethod
-    def generate_document_names(count: int) -> List[str]:
+    def generate_document_names(count: int) -> list[str]:
         """Generate a list of document names.
 
         Args:
@@ -96,7 +93,7 @@ class WorkflowDataGenerator:
         return names
 
     @staticmethod
-    def generate_entity_ids(count: int, entity_type: str) -> List[str]:
+    def generate_entity_ids(count: int, entity_type: str) -> list[str]:
         """Generate mock entity IDs for testing.
 
         Args:
@@ -739,7 +736,7 @@ class TestSetupTestMatrixWorkflow(WorkflowTestSuite):
 
     async def setup_project_with_requirements(
         self, call_mcp, requirement_count: int = 5
-    ) -> tuple[str, str, List[str]]:
+    ) -> tuple[str, str, list[str]]:
         """Create project with requirements for testing.
 
         Returns:
@@ -975,7 +972,7 @@ class TestBulkStatusUpdateWorkflow(WorkflowTestSuite):
 
     async def create_test_entities(
         self, call_mcp, entity_type: str, count: int
-    ) -> List[str]:
+    ) -> list[str]:
         """Create test entities for bulk update testing.
 
         Returns:

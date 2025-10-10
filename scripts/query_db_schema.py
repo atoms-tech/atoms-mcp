@@ -11,13 +11,13 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-async def get_all_tables(project_id: str) -> List[Dict[str, Any]]:
+async def get_all_tables(project_id: str) -> list[dict[str, Any]]:
     """Get all tables in the public schema using MCP."""
     try:
         # This would use the Supabase MCP list_tables tool
@@ -36,7 +36,7 @@ async def get_all_tables(project_id: str) -> List[Dict[str, Any]]:
         return []
 
 
-async def get_table_columns(project_id: str, table_name: str) -> List[Dict[str, Any]]:
+async def get_table_columns(project_id: str, table_name: str) -> list[dict[str, Any]]:
     """Get columns for a specific table."""
     try:
         # This would execute SQL via MCP
@@ -66,7 +66,7 @@ async def get_table_columns(project_id: str, table_name: str) -> List[Dict[str, 
         return []
 
 
-async def get_all_enums(project_id: str) -> Dict[str, List[str]]:
+async def get_all_enums(project_id: str) -> dict[str, list[str]]:
     """Get all enum types and their values."""
     try:
         sql = """
@@ -93,7 +93,7 @@ async def get_all_enums(project_id: str) -> Dict[str, List[str]]:
         return {}
 
 
-async def get_table_constraints(project_id: str, table_name: str) -> List[Dict[str, Any]]:
+async def get_table_constraints(project_id: str, table_name: str) -> list[dict[str, Any]]:
     """Get constraints for a table (foreign keys, unique, etc)."""
     try:
         sql = f"""
@@ -121,7 +121,7 @@ async def get_table_constraints(project_id: str, table_name: str) -> List[Dict[s
         return []
 
 
-async def get_table_indexes(project_id: str, table_name: str) -> List[Dict[str, Any]]:
+async def get_table_indexes(project_id: str, table_name: str) -> list[dict[str, Any]]:
     """Get indexes for a table."""
     try:
         sql = f"""
@@ -143,23 +143,23 @@ async def get_table_indexes(project_id: str, table_name: str) -> List[Dict[str, 
 async def export_schema_to_json(project_id: str, output_file: str):
     """Export full schema to JSON file."""
     schema = {
-        'tables': {},
-        'enums': {},
-        'metadata': {
-            'project_id': project_id,
-            'exported_at': None,  # Would be datetime.now().isoformat()
+        "tables": {},
+        "enums": {},
+        "metadata": {
+            "project_id": project_id,
+            "exported_at": None,  # Would be datetime.now().isoformat()
         }
     }
 
     # Get enums
     enums = await get_all_enums(project_id)
-    schema['enums'] = enums
+    schema["enums"] = enums
 
     # Get tables
     tables = await get_all_tables(project_id)
 
     for table in tables:
-        table_name = table.get('table_name')
+        table_name = table.get("table_name")
         if not table_name:
             continue
 
@@ -167,15 +167,15 @@ async def export_schema_to_json(project_id: str, output_file: str):
         constraints = await get_table_constraints(project_id, table_name)
         indexes = await get_table_indexes(project_id, table_name)
 
-        schema['tables'][table_name] = {
-            'columns': columns,
-            'constraints': constraints,
-            'indexes': indexes,
+        schema["tables"][table_name] = {
+            "columns": columns,
+            "constraints": constraints,
+            "indexes": indexes,
         }
 
     # Write to file
     output_path = Path(output_file)
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(schema, f, indent=2)
 
     print(f"\nSchema exported to: {output_path}")
@@ -186,8 +186,9 @@ async def export_schema_to_json(project_id: str, output_file: str):
 async def compare_with_local_schema():
     """Compare database schema with local Python schemas."""
     # Import local schemas
-    from schemas import enums
     from schemas.database import entities
+
+    from schemas import enums
 
     print("\nComparing with local schemas...")
 
@@ -196,7 +197,7 @@ async def compare_with_local_schema():
     for name in dir(enums):
         obj = getattr(enums, name)
         if isinstance(obj, type) and issubclass(obj, enums.Enum) and obj != enums.Enum:
-            if not name.startswith('_'):
+            if not name.startswith("_"):
                 local_enums.append(name)
 
     print(f"  Local enums: {len(local_enums)}")
@@ -204,7 +205,7 @@ async def compare_with_local_schema():
     # Get local table definitions
     local_tables = []
     for name in dir(entities):
-        if name.endswith('Row'):
+        if name.endswith("Row"):
             local_tables.append(name)
 
     print(f"  Local tables: {len(local_tables)}")
@@ -212,7 +213,7 @@ async def compare_with_local_schema():
 
 async def main():
     """Main entry point."""
-    project_id = os.getenv('SUPABASE_PROJECT_ID')
+    project_id = os.getenv("SUPABASE_PROJECT_ID")
 
     if not project_id:
         print("Error: SUPABASE_PROJECT_ID environment variable not set")
@@ -228,5 +229,5 @@ async def main():
     await compare_with_local_schema()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

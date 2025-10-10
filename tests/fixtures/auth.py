@@ -1,13 +1,15 @@
 """Authentication fixtures for session-scoped OAuth and multi-provider testing."""
 
+from collections.abc import AsyncGenerator
+
 import pytest
-from typing import AsyncGenerator
+
 from utils.logging_setup import get_logger
 
 from ..framework.auth_session import (
-    AuthSessionBroker,
     AuthCredentials,
     AuthenticatedHTTPClient,
+    AuthSessionBroker,
     get_auth_broker,
 )
 
@@ -48,15 +50,16 @@ async def authenticated_client(request):
             })
             assert result["success"]
     """
-    from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
-    from mcp_qa.adapters.fast_http_client import FastHTTPClient
     import os
+
+    from mcp_qa.adapters.fast_http_client import FastHTTPClient
+    from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
     mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
 
     # Try to get cached credentials from auth plugin
     cached_credentials = None
-    if hasattr(request.session.config, '_mcp_credentials'):
+    if hasattr(request.session.config, "_mcp_credentials"):
         cached_credentials = request.session.config._mcp_credentials
         logger.info("Using cached credentials from auth plugin")
 
@@ -101,7 +104,7 @@ async def authenticated_client(request):
         await broker.close()
 
 
-@pytest.fixture(scope="session") 
+@pytest.fixture(scope="session")
 async def github_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """GitHub OAuth client for testing GitHub SSO flows."""
     try:
@@ -113,7 +116,7 @@ async def github_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerato
 
 
 @pytest.fixture(scope="session")
-async def google_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerator[AuthenticatedHTTPClient, None]:  
+async def google_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """Google OAuth client for testing Google SSO flows."""
     try:
         credentials = await auth_session_broker.get_authenticated_credentials(provider="google")
@@ -130,11 +133,11 @@ async def fresh_authenticated_client(auth_session_broker: AuthSessionBroker) -> 
     Use this when you need to test auth refresh or credential expiry.
     """
     credentials = await auth_session_broker.get_authenticated_credentials(
-        provider="authkit", 
+        provider="authkit",
         force_refresh=True
     )
     client = AuthenticatedHTTPClient(credentials)
-    yield client
+    return client
 
 
 @pytest.fixture
@@ -154,7 +157,7 @@ async def mock_authenticated_client(mock_auth_credentials: AuthCredentials) -> A
 
 
 # Parallel testing support
-@pytest.fixture(scope="session") 
+@pytest.fixture(scope="session")
 def worker_auth_credentials(authenticated_credentials: AuthCredentials) -> AuthCredentials:
     """Worker-specific auth credentials for parallel testing.
     
@@ -168,4 +171,4 @@ def worker_auth_credentials(authenticated_credentials: AuthCredentials) -> AuthC
 async def isolated_client(worker_auth_credentials: AuthCredentials) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """Worker-isolated client for parallel test execution."""
     client = AuthenticatedHTTPClient(worker_auth_credentials)
-    yield client
+    return client

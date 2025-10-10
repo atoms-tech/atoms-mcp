@@ -1,7 +1,10 @@
 """Tool-specific fixtures for granular testing of individual MCP tools."""
 
+from collections.abc import Callable
+from typing import Any
+
 import pytest
-from typing import Dict, Any, Callable
+
 from ..framework.auth_session import AuthenticatedHTTPClient
 
 
@@ -13,21 +16,21 @@ class ToolClient:
     - Parameters: flat structure, not nested in "params" 
     - Auth: handled via Authorization header only
     """
-    
+
     def __init__(self, http_client: AuthenticatedHTTPClient, operation_name: str):
         self.http_client = http_client
         # Map operation names to actual tool names in the API
         tool_name_mapping = {
             "workspace_operation": "workspace_tool",
-            "entity_operation": "entity_tool", 
+            "entity_operation": "entity_tool",
             "relationship_operation": "relationship_tool",
             "workflow_execute": "workflow_tool",
             "data_query": "query_tool"
         }
         self.tool_name = tool_name_mapping.get(operation_name, operation_name)
         self.operation_name = operation_name
-    
-    async def call(self, operation: str, arguments: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+
+    async def call(self, operation: str, arguments: dict[str, Any] = None, **kwargs) -> dict[str, Any]:
         """Call the tool with operation and parameters.
         
         Uses the same parameter structure as working tests:
@@ -39,17 +42,17 @@ class ToolClient:
         tool_params = {
             "operation": operation
         }
-        
+
         # Add any provided arguments directly (not nested)
         if arguments:
             tool_params.update(arguments)
-        
+
         # Add any additional kwargs
         if kwargs:
             tool_params.update(kwargs)
-        
+
         return await self.http_client.call_tool(self.tool_name, tool_params)
-    
+
     async def health_check(self) -> bool:
         """Quick health check for the tool."""
         try:
@@ -115,7 +118,7 @@ def tool_client_factory(authenticated_client: AuthenticatedHTTPClient) -> Callab
     """
     def create_tool_client(tool_name: str) -> ToolClient:
         return ToolClient(authenticated_client, tool_name)
-    
+
     return create_tool_client
 
 
@@ -135,18 +138,18 @@ def mock_entity_client(mock_authenticated_client: AuthenticatedHTTPClient) -> To
 # Batch operation helpers
 class BatchToolClient:
     """Client for batch operations across multiple tools."""
-    
+
     def __init__(self, http_client: AuthenticatedHTTPClient):
         self.http_client = http_client
         self._tool_clients = {}
-    
+
     def get_tool_client(self, tool_name: str) -> ToolClient:
         """Get or create a tool client."""
         if tool_name not in self._tool_clients:
             self._tool_clients[tool_name] = ToolClient(self.http_client, tool_name)
         return self._tool_clients[tool_name]
-    
-    async def call_multiple(self, operations: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+
+    async def call_multiple(self, operations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Call multiple tools in sequence.
         
         Args:
@@ -183,7 +186,7 @@ async def available_tools(authenticated_client: AuthenticatedHTTPClient) -> list
 
 
 @pytest.fixture
-async def tool_schemas(authenticated_client: AuthenticatedHTTPClient) -> Dict[str, Dict]:
+async def tool_schemas(authenticated_client: AuthenticatedHTTPClient) -> dict[str, dict]:
     """Tool schemas for validation and test generation."""
     try:
         result = await authenticated_client.list_tools()
@@ -200,12 +203,12 @@ async def tool_schemas(authenticated_client: AuthenticatedHTTPClient) -> Dict[st
 # Performance testing helpers
 class PerformanceToolClient:
     """Tool client with performance monitoring."""
-    
+
     def __init__(self, tool_client: ToolClient):
         self.tool_client = tool_client
         self.call_times = []
-    
-    async def call(self, operation: str, params: Dict[str, Any] = None, **kwargs) -> Dict[str, Any]:
+
+    async def call(self, operation: str, params: dict[str, Any] = None, **kwargs) -> dict[str, Any]:
         """Call tool with timing measurement."""
         import time
         start_time = time.time()
@@ -215,12 +218,12 @@ class PerformanceToolClient:
         finally:
             end_time = time.time()
             self.call_times.append(end_time - start_time)
-    
+
     @property
     def avg_call_time(self) -> float:
         """Average call time in seconds."""
         return sum(self.call_times) / len(self.call_times) if self.call_times else 0.0
-    
+
     @property
     def total_calls(self) -> int:
         """Total number of calls made."""

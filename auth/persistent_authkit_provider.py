@@ -6,13 +6,15 @@ The pending_authentication_token from AuthKit contains the authenticated user.
 
 from __future__ import annotations
 
-from utils.logging_setup import get_logger
 import os
+
 import aiohttp
 from fastmcp.server.auth.providers.workos import AuthKitProvider
+from mcp_qa.utils import MetricsCollector, decode_jwt
 from starlette.responses import JSONResponse, RedirectResponse
 from starlette.routing import Route
-from mcp_qa.utils import decode_jwt, MetricsCollector
+
+from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 metrics = MetricsCollector()

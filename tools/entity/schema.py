@@ -15,7 +15,7 @@ Pythonic Patterns Applied:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, FrozenSet, List, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -31,25 +31,25 @@ class EntitySchema:
         auto_slug: Whether to auto-generate slug from name
     """
     entity_type: str
-    required_fields: FrozenSet[str]
-    auto_fields: FrozenSet[str] = field(default_factory=frozenset)
-    default_values: Dict[str, Any] = field(default_factory=dict)
-    relationships: FrozenSet[str] = field(default_factory=frozenset)
+    required_fields: frozenset[str]
+    auto_fields: frozenset[str] = field(default_factory=frozenset)
+    default_values: dict[str, Any] = field(default_factory=dict)
+    relationships: frozenset[str] = field(default_factory=frozenset)
     auto_slug: bool = False
-    
+
     def has_required_field(self, field_name: str) -> bool:
         """Check if field is required."""
         return field_name in self.required_fields
-    
+
     def has_auto_field(self, field_name: str) -> bool:
         """Check if field is auto-generated."""
         return field_name in self.auto_fields
-    
-    def get_default_value(self, field_name: str) -> Optional[Any]:
+
+    def get_default_value(self, field_name: str) -> Any | None:
         """Get default value for field."""
         return self.default_values.get(field_name)
-    
-    def validate_required_fields(self, data: Dict[str, Any]) -> List[str]:
+
+    def validate_required_fields(self, data: dict[str, Any]) -> list[str]:
         """Validate required fields and return list of missing fields.
         
         Args:
@@ -65,7 +65,7 @@ class EntitySchema:
 
 
 # Schema registry using frozen dataclasses
-ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
+ENTITY_SCHEMAS: dict[str, EntitySchema] = {
     "organization": EntitySchema(
         entity_type="organization",
         required_fields=frozenset(["name", "slug"]),
@@ -73,7 +73,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
         default_values={"is_deleted": False, "type": "team"},
         relationships=frozenset(["members", "projects", "invitations"]),
     ),
-    
+
     "project": EntitySchema(
         entity_type="project",
         required_fields=frozenset(["name", "organization_id"]),
@@ -82,7 +82,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
         relationships=frozenset(["members", "documents", "organization"]),
         auto_slug=True,
     ),
-    
+
     "document": EntitySchema(
         entity_type="document",
         required_fields=frozenset(["name", "project_id"]),
@@ -90,7 +90,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
         default_values={"is_deleted": False},
         relationships=frozenset(["blocks", "requirements", "project"]),
     ),
-    
+
     "requirement": EntitySchema(
         entity_type="requirement",
         required_fields=frozenset(["name", "document_id"]),
@@ -105,7 +105,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
         },
         relationships=frozenset(["document", "tests", "trace_links"]),
     ),
-    
+
     "test": EntitySchema(
         entity_type="test",
         required_fields=frozenset(["title", "project_id"]),
@@ -117,7 +117,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
         },
         relationships=frozenset(["requirements", "project"]),
     ),
-    
+
     "user": EntitySchema(
         entity_type="user",
         required_fields=frozenset(["id"]),
@@ -125,7 +125,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
         default_values={},
         relationships=frozenset(["organizations", "projects"]),
     ),
-    
+
     "profile": EntitySchema(
         entity_type="profile",
         required_fields=frozenset(["id"]),
@@ -136,7 +136,7 @@ ENTITY_SCHEMAS: Dict[str, EntitySchema] = {
 }
 
 
-def get_entity_schema(entity_type: str) -> Optional[EntitySchema]:
+def get_entity_schema(entity_type: str) -> EntitySchema | None:
     """Get schema for entity type.
     
     Args:
@@ -172,7 +172,7 @@ def validate_entity_type(entity_type: str) -> bool:
     return entity_type.lower() in ENTITY_SCHEMAS
 
 
-def get_all_entity_types() -> List[str]:
+def get_all_entity_types() -> list[str]:
     """Get list of all valid entity types.
     
     Returns:
@@ -188,8 +188,8 @@ def get_all_entity_types() -> List[str]:
 
 class EntityValidationError(Exception):
     """Raised when entity validation fails."""
-    
-    def __init__(self, entity_type: str, errors: List[str]):
+
+    def __init__(self, entity_type: str, errors: list[str]):
         self.entity_type = entity_type
         self.errors = errors
         super().__init__(
@@ -199,7 +199,7 @@ class EntityValidationError(Exception):
 
 def validate_entity_data(
     entity_type: str,
-    data: Dict[str, Any],
+    data: dict[str, Any],
     operation: str = "create"
 ) -> None:
     """Validate entity data against schema.
@@ -224,35 +224,35 @@ def validate_entity_data(
     """
     if not validate_entity_type(entity_type):
         raise ValueError(f"Invalid entity type: {entity_type}")
-    
+
     schema = get_entity_schema(entity_type)
     if not schema:
         raise ValueError(f"No schema found for entity type: {entity_type}")
-    
-    errors: List[str] = []
-    
+
+    errors: list[str] = []
+
     # Check required fields (only for create operations)
     if operation == "create":
         missing = schema.validate_required_fields(data)
         if missing:
             errors.extend(f"Missing required field: {field}" for field in missing)
-    
+
     # Additional validation can be added here
     # - Type checking
     # - Format validation
     # - Business rule validation
-    
+
     if errors:
         raise EntityValidationError(entity_type, errors)
 
 
 __all__ = [
-    "EntitySchema",
     "ENTITY_SCHEMAS",
-    "get_entity_schema",
-    "validate_entity_type",
-    "get_all_entity_types",
-    "validate_entity_data",
+    "EntitySchema",
     "EntityValidationError",
+    "get_all_entity_types",
+    "get_entity_schema",
+    "validate_entity_data",
+    "validate_entity_type",
 ]
 

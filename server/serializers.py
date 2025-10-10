@@ -14,7 +14,7 @@ Pythonic Patterns Applied:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Protocol
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
@@ -38,7 +38,7 @@ class SerializerConfig:
 
 class Serializable(Protocol):
     """Protocol for objects that can be serialized to Markdown."""
-    
+
     def to_markdown(self) -> str:
         """Convert object to Markdown representation."""
         ...
@@ -71,35 +71,35 @@ def serialize_to_markdown(
     """
     if config is None:
         config = SerializerConfig()
-    
+
     if data is None:
         return "*No data*"
-    
+
     if isinstance(data, str):
         return data  # Already a string, bypass serialization
-    
+
     if isinstance(data, bool):
         return "✅ Yes" if data else "❌ No"
-    
+
     if isinstance(data, (int, float)):
         return f"`{data}`"
-    
+
     if isinstance(data, dict):
         return _dict_to_markdown(data, config=config)
-    
+
     if isinstance(data, list):
         return _list_to_markdown(data, config=config)
-    
+
     # Check if object implements Serializable protocol
-    if hasattr(data, 'to_markdown') and callable(data.to_markdown):
+    if hasattr(data, "to_markdown") and callable(data.to_markdown):
         return data.to_markdown()
-    
+
     # Fallback to string representation
-    return f"```\n{str(data)}\n```"
+    return f"```\n{data!s}\n```"
 
 
 def _dict_to_markdown(
-    d: Dict[str, Any],
+    d: dict[str, Any],
     indent: int = 0,
     config: SerializerConfig | None = None
 ) -> str:
@@ -115,19 +115,19 @@ def _dict_to_markdown(
     """
     if config is None:
         config = SerializerConfig()
-    
+
     if not d:
         return "*Empty*"
-    
+
     # Check if dict looks like a single result with success/data structure
     if "success" in d and "data" in d:
         return _format_result_dict(d, config)
-    
+
     # Regular dict - format as key-value list
     return _format_regular_dict(d, indent, config)
 
 
-def _format_result_dict(d: Dict[str, Any], config: SerializerConfig) -> str:
+def _format_result_dict(d: dict[str, Any], config: SerializerConfig) -> str:
     """Format a result dictionary with success/data structure.
     
     Args:
@@ -137,13 +137,13 @@ def _format_result_dict(d: Dict[str, Any], config: SerializerConfig) -> str:
     Returns:
         Markdown-formatted string
     """
-    lines: List[str] = []
+    lines: list[str] = []
     success = d.get("success")
     lines.append(f"**Status**: {'✅ Success' if success else '❌ Failed'}")
-    
+
     if not success and "error" in d:
         lines.append(f"**Error**: `{d['error']}`")
-    
+
     if "data" in d:
         data = d["data"]
         if isinstance(data, list) and len(data) > 0:
@@ -154,19 +154,19 @@ def _format_result_dict(d: Dict[str, Any], config: SerializerConfig) -> str:
             lines.append(_dict_to_markdown(data, indent=1, config=config))
         elif data:
             lines.append(f"**Data**: {data}")
-    
+
     # Add metadata if present and enabled
     if config.show_metadata:
         metadata = {k: v for k, v in d.items() if k in config.metadata_fields}
         if metadata:
             lines.append("\n**Metadata**:")
             lines.extend(f"- {key}: `{value}`" for key, value in metadata.items())
-    
+
     return "\n".join(lines)
 
 
 def _format_regular_dict(
-    d: Dict[str, Any],
+    d: dict[str, Any],
     indent: int,
     config: SerializerConfig
 ) -> str:
@@ -180,9 +180,9 @@ def _format_regular_dict(
     Returns:
         Markdown-formatted string
     """
-    lines: List[str] = []
+    lines: list[str] = []
     prefix = " " * (indent * config.indent_size)
-    
+
     for key, value in d.items():
         if isinstance(value, dict):
             lines.append(f"{prefix}**{key}**:")
@@ -199,12 +199,12 @@ def _format_regular_dict(
             if len(str_value) > config.max_string_length:
                 str_value = str_value[:config.max_string_length] + "..."
             lines.append(f"{prefix}**{key}**: `{str_value}`")
-    
+
     return "\n".join(lines)
 
 
 def _list_to_markdown(
-    lst: List[Any],
+    lst: list[Any],
     indent: int = 0,
     config: SerializerConfig | None = None
 ) -> str:
@@ -220,19 +220,19 @@ def _list_to_markdown(
     """
     if config is None:
         config = SerializerConfig()
-    
+
     if not lst:
         return "*Empty list*"
-    
-    lines: List[str] = []
+
+    lines: list[str] = []
     prefix = " " * (indent * config.indent_size)
-    
+
     # If list of dicts (common for entity results), format as cards
     if all(isinstance(item, dict) for item in lst):
         for i, item in enumerate(lst, 1):
-            item_name = item.get('name', item.get('id', 'Item'))
+            item_name = item.get("name", item.get("id", "Item"))
             lines.append(f"\n{prefix}### {i}. {item_name}")
-            
+
             # Show key fields only
             key_fields = ["id", "name", "type", "status", "created_at", "similarity_score"]
             for key in key_fields:
@@ -241,7 +241,7 @@ def _list_to_markdown(
     else:
         # Simple list
         lines.extend(f"{prefix}- {item}" for item in lst)
-    
+
     return "\n".join(lines)
 
 
@@ -250,9 +250,9 @@ markdown_serializer = serialize_to_markdown
 
 
 __all__ = [
-    "serialize_to_markdown",
-    "markdown_serializer",
-    "SerializerConfig",
     "Serializable",
+    "SerializerConfig",
+    "markdown_serializer",
+    "serialize_to_markdown",
 ]
 

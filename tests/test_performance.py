@@ -14,12 +14,12 @@ Run with: pytest tests/test_performance.py -v -s
 
 from __future__ import annotations
 
+import asyncio
 import os
+import statistics
 import time
 import uuid
-import asyncio
-import statistics
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import httpx
 import pytest
@@ -53,7 +53,7 @@ class PerformanceMetrics:
     """Collect and analyze performance metrics."""
 
     def __init__(self):
-        self.measurements: Dict[str, List[float]] = {}
+        self.measurements: dict[str, list[float]] = {}
 
     def record(self, operation: str, duration: float):
         """Record a performance measurement."""
@@ -61,7 +61,7 @@ class PerformanceMetrics:
             self.measurements[operation] = []
         self.measurements[operation].append(duration)
 
-    def get_stats(self, operation: str) -> Dict[str, Any]:
+    def get_stats(self, operation: str) -> dict[str, Any]:
         """Get statistics for an operation."""
         if operation not in self.measurements:
             return {}
@@ -78,7 +78,7 @@ class PerformanceMetrics:
             "p99": statistics.quantiles(durations, n=100)[98] if len(durations) > 1 else durations[0],
         }
 
-    def generate_report(self) -> Dict[str, Any]:
+    def generate_report(self) -> dict[str, Any]:
         """Generate performance report."""
         report = {
             "summary": {
@@ -119,7 +119,7 @@ def mcp_client(check_server_running, shared_authkit_session, perf_metrics):
         "Content-Type": "application/json",
     }
 
-    async def call_tool(tool_name: str, params: Dict[str, Any], track_perf: bool = True) -> Tuple[Dict[str, Any], float]:
+    async def call_tool(tool_name: str, params: dict[str, Any], track_perf: bool = True) -> tuple[dict[str, Any], float]:
         """Call MCP tool and track performance."""
         payload = {
             "jsonrpc": "2.0",
@@ -518,17 +518,17 @@ class TestPerformanceReport:
         print(f"{'Operation':<40} {'Count':>6} {'Mean':>8} {'P95':>8} {'P99':>8}")
         print("-"*80)
 
-        for operation, stats in sorted(report['operations'].items()):
-            threshold = THRESHOLDS.get(operation, float('inf'))
-            p95_status = "❌" if stats.get('p95', 0) > threshold else "✅"
+        for operation, stats in sorted(report["operations"].items()):
+            threshold = THRESHOLDS.get(operation, float("inf"))
+            p95_status = "❌" if stats.get("p95", 0) > threshold else "✅"
 
             print(f"{operation:<40} {stats['count']:>6} {stats['mean']:>7.3f}s {stats['p95']:>7.3f}s {stats['p99']:>7.3f}s {p95_status}")
 
         # Threshold Violations
-        if report['threshold_violations']:
+        if report["threshold_violations"]:
             print(f"\n{'THRESHOLD VIOLATIONS':^80}")
             print("-"*80)
-            for violation in report['threshold_violations']:
+            for violation in report["threshold_violations"]:
                 print(f"❌ {violation['operation']}")
                 print(f"   Threshold: {violation['threshold']:.3f}s")
                 print(f"   P95:       {violation['p95']:.3f}s")

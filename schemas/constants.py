@@ -2,7 +2,6 @@
 Constants for table names, field names, and configuration.
 """
 
-from typing import Set
 
 
 class Tables:
@@ -199,7 +198,7 @@ class Fields:
 
 
 # Tables that don't have soft delete functionality (is_deleted column)
-TABLES_WITHOUT_SOFT_DELETE: Set[str] = {
+TABLES_WITHOUT_SOFT_DELETE: set[str] = {
     # Core tables without soft delete
     Tables.TEST_REQ,  # Has is_active instead
     Tables.PROFILES,
@@ -244,7 +243,7 @@ TABLES_WITHOUT_SOFT_DELETE: Set[str] = {
 
 
 # Tables that don't have created_by/updated_by columns
-TABLES_WITHOUT_AUDIT_FIELDS: Set[str] = {
+TABLES_WITHOUT_AUDIT_FIELDS: set[str] = {
     Tables.PROFILES,
     Tables.PROPERTIES,
 }

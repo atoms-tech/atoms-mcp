@@ -6,19 +6,21 @@ enabling stateless serverless deployments.
 
 from __future__ import annotations
 
-from utils.logging_setup import get_logger
-from typing import Optional, Dict, Any
+from typing import Any
+
+from mcp_qa.utils import MetricsCollector, decode_jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
-from mcp_qa.utils import decode_jwt, MetricsCollector
+from starlette.responses import JSONResponse, Response
+
+from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 metrics = MetricsCollector()
 
 # Global context to store session data for the current request
 # This is reset on each request and used by tools to access OAuth tokens
-_request_session_context: Dict[str, Any] = {}
+_request_session_context: dict[str, Any] = {}
 
 
 class SessionMiddleware(BaseHTTPMiddleware):
@@ -68,11 +70,11 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 # Try multiple claim names for user_id
                 # AuthKit/Supabase JWTs may use different claim names
                 user_id = (
-                    decoded.get('sub') or           # Standard JWT claim
-                    decoded.get('user_id') or       # Custom claim
-                    decoded.get('id') or            # Alternative
-                    decoded.get('user', {}).get('id') or  # Nested user object
-                    decoded.get('uid')              # Supabase uses 'uid' in some contexts
+                    decoded.get("sub") or           # Standard JWT claim
+                    decoded.get("user_id") or       # Custom claim
+                    decoded.get("id") or            # Alternative
+                    decoded.get("user", {}).get("id") or  # Nested user object
+                    decoded.get("uid")              # Supabase uses 'uid' in some contexts
                 )
 
                 # If still no user_id, log what we have and use role claim as fallback
@@ -83,7 +85,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
                     # For AuthKit/Supabase, the 'sub' should be the user ID
                     # If it's missing, we can't authenticate
-                    if decoded.get('role') == 'authenticated':
+                    if decoded.get("role") == "authenticated":
                         # This is a valid authenticated token, just missing user identifier
                         # Use a hash of the token as user_id for now
                         import hashlib
@@ -99,8 +101,8 @@ class SessionMiddleware(BaseHTTPMiddleware):
                         "access_token": jwt_token,
                         "user": {
                             "id": user_id,
-                            "email": decoded.get('email') or decoded.get('user', {}).get('email'),
-                            "role": decoded.get('role', 'authenticated')
+                            "email": decoded.get("email") or decoded.get("user", {}).get("email"),
+                            "role": decoded.get("role", "authenticated")
                         }
                     }
 
@@ -128,7 +130,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # Session state is managed by AuthKit JWT - no persistence needed
         return response
 
-    def _extract_jwt_token(self, request: Request) -> Optional[str]:
+    def _extract_jwt_token(self, request: Request) -> str | None:
         """Extract JWT token from Authorization header.
 
         Returns:
@@ -143,7 +145,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         return None
 
 
-def get_session_context() -> Dict[str, Any]:
+def get_session_context() -> dict[str, Any]:
     """Get the current request's session context.
 
     This is called by server.py to access OAuth tokens within tool handlers.
@@ -154,7 +156,7 @@ def get_session_context() -> Dict[str, Any]:
     return _request_session_context.copy()
 
 
-def get_session_token() -> Optional[str]:
+def get_session_token() -> str | None:
     """Get the OAuth access token from current session context.
 
     Returns:

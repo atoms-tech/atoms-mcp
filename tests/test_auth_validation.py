@@ -64,15 +64,14 @@ async def main():
         if result.valid:
             print("✅ Auth validation passed - Ready for test execution")
             return 0
-        else:
-            print("❌ Auth validation failed:")
-            print(f"   {result.error}")
-            print("")
-            print("Checks:")
-            for check_name, check_result in result.checks.items():
-                status = "✓" if check_result['success'] else "✗"
-                print(f"   {status} {check_name}: {check_result['message']}")
-            return 1
+        print("❌ Auth validation failed:")
+        print(f"   {result.error}")
+        print("")
+        print("Checks:")
+        for check_name, check_result in result.checks.items():
+            status = "✓" if check_result["success"] else "✗"
+            print(f"   {status} {check_name}: {check_result['message']}")
+        return 1
 
     except Exception as e:
         print("")

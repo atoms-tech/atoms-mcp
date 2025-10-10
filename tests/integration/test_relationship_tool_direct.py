@@ -6,13 +6,13 @@ Tests all operations by directly calling the relationship_operation function.
 This bypasses the MCP server and tests the tool logic directly.
 """
 
+import asyncio
+import json
 import os
 import sys
-import json
 import uuid
-import asyncio
-from typing import Any, Dict, Optional
 from datetime import datetime
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 # Add current directory to path
@@ -35,10 +35,10 @@ class TestResult:
     def __init__(
         self,
         operation: str,
-        params: Dict[str, Any],
+        params: dict[str, Any],
         success: bool,
-        response: Dict[str, Any],
-        error: Optional[str] = None,
+        response: dict[str, Any],
+        error: str | None = None,
     ):
         self.operation = operation
         self.params = params

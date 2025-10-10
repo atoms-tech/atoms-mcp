@@ -8,14 +8,15 @@ This is the slimmed-down version (~80 lines vs ~200 before) that leverages
 shared infrastructure from pheno-sdk.
 """
 
-import json
 import asyncio
-import httpx
-from typing import Any, Dict, Optional
+import json
 from datetime import datetime
-from utils.logging_setup import get_logger
+from typing import Any
 
+import httpx
 from mcp_qa.core.base import BaseClientAdapter
+
+from utils.logging_setup import get_logger
 
 logger = get_logger("atoms.adapter")
 
@@ -40,8 +41,8 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         client: Any = None,
         debug: bool = False,
         verbose_on_fail: bool = True,
-        mcp_endpoint: Optional[str] = None,
-        access_token: Optional[str] = None,
+        mcp_endpoint: str | None = None,
+        access_token: str | None = None,
         use_direct_http: bool = True
     ):
         """
@@ -66,10 +67,10 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         self.use_direct_http = use_direct_http
         self.mcp_endpoint = mcp_endpoint
         self.access_token = access_token
-        self._http_client: Optional[httpx.AsyncClient] = None
-        self._auth_handler: Optional[Any] = None  # Extracted from MCP client transport
+        self._http_client: httpx.AsyncClient | None = None
+        self._auth_handler: Any | None = None  # Extracted from MCP client transport
 
-    async def call_tool(self, name: str, params: Dict[str, Any]) -> Any:
+    async def call_tool(self, name: str, params: dict[str, Any]) -> Any:
         """
         Call a tool using direct HTTP JSON-RPC 2.0 or MCP client protocol.
 
@@ -173,7 +174,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
             raise
 
-    def _extract_auth_from_client(self) -> Optional[Any]:
+    def _extract_auth_from_client(self) -> Any | None:
         """
         Extract the auth handler from the MCP client's transport.
 
@@ -188,25 +189,24 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
         try:
             # FastMCP Client stores transport in .transport attribute
-            transport = getattr(self.client, 'transport', None)
+            transport = getattr(self.client, "transport", None)
             if not transport:
                 logger.debug("No transport found on MCP client")
                 return None
 
             # HTTP transport stores auth in .auth attribute
-            auth = getattr(transport, 'auth', None)
+            auth = getattr(transport, "auth", None)
             if auth:
                 logger.debug(f"Extracted auth handler from transport: {type(auth).__name__}")
                 return auth
-            else:
-                logger.debug("No auth handler found on transport")
-                return None
+            logger.debug("No auth handler found on transport")
+            return None
 
         except Exception as e:
             logger.warning(f"Failed to extract auth from MCP client: {e}")
             return None
 
-    async def _call_tool_http(self, name: str, params: Dict[str, Any]) -> Any:
+    async def _call_tool_http(self, name: str, params: dict[str, Any]) -> Any:
         """
         Make direct HTTP call to MCP tool endpoint using proper MCP HTTP protocol.
 
@@ -233,7 +233,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
         # Extract endpoint from client if not provided
         if not self.mcp_endpoint:
-            self.mcp_endpoint = getattr(self.client.transport, 'url', None)
+            self.mcp_endpoint = getattr(self.client.transport, "url", None)
             if not self.mcp_endpoint:
                 raise ValueError("Could not determine MCP endpoint from client")
 
@@ -265,7 +265,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         try:
             # Make JSON-RPC 2.0 call to MCP endpoint
             # Use unique ID for each request (required by JSON-RPC 2.0)
-            self._call_count_for_id = getattr(self, '_call_count_for_id', 0) + 1
+            self._call_count_for_id = getattr(self, "_call_count_for_id", 0) + 1
 
             payload = {
                 "jsonrpc": "2.0",
@@ -315,7 +315,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
             # Check for JSON-RPC error
             if "error" in rpc_response:
-                error_data = rpc_response['error']
+                error_data = rpc_response["error"]
                 error_msg = error_data if isinstance(error_data, str) else json.dumps(error_data)
                 raise Exception(f"JSON-RPC Error: {error_msg}")
 
@@ -325,7 +325,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             # Create a simple object that mimics FastMCP result structure
             class FakeMCPResult:
                 def __init__(self, data):
-                    self.content = [type('obj', (object,), {'text': json.dumps(data)})]
+                    self.content = [type("obj", (object,), {"text": json.dumps(data)})]
 
             return FakeMCPResult(result_data)
 
@@ -338,7 +338,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             # Fall back to MCP client protocol
             return await self._call_tool_mcp(name, params)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(
                 f"⏱️  [TIMEOUT] Direct HTTP call to {name} exceeded {self.HTTP_TIMEOUT}s timeout\n"
                 f"   Falling back to MCP client protocol..."
@@ -346,7 +346,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             # Fall back to MCP client protocol
             return await self._call_tool_mcp(name, params)
 
-    async def _call_tool_mcp(self, name: str, params: Dict[str, Any]) -> Any:
+    async def _call_tool_mcp(self, name: str, params: dict[str, Any]) -> Any:
         """
         Make traditional MCP client call.
 
@@ -377,7 +377,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
         return result
 
-    def _format_params_for_log(self, params: Dict[str, Any]) -> str:
+    def _format_params_for_log(self, params: dict[str, Any]) -> str:
         """
         Format parameters for logging (compact, safe).
 
@@ -405,8 +405,8 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             return json.dumps(safe_params, default=str)
         except Exception:
             return str(params)[:200]
-    
-    def _process_result(self, result: Any, tool_name: str, params: Dict[str, Any]) -> Any:
+
+    def _process_result(self, result: Any, tool_name: str, params: dict[str, Any]) -> Any:
         """
         Process Atoms MCP result format.
         
@@ -422,30 +422,30 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
                 "error": "Tool returned None",
                 "response": None,
             }
-        
+
         # Extract content from FastMCP result
-        if not hasattr(result, 'content') or not result.content:
+        if not hasattr(result, "content") or not result.content:
             return {
                 "success": False,
                 "error": "Empty response",
                 "response": None,
             }
-        
+
         text = result.content[0].text
-        
+
         try:
             parsed = json.loads(text)
-            
+
             # Check tool success
             tool_success = parsed.get("success", True)
-            
+
             return {
                 "success": tool_success,
                 "error": parsed.get("error") if not tool_success else None,
                 "response": parsed,
                 "request_params": params if not tool_success else None,
             }
-            
+
         except json.JSONDecodeError:
             # Non-JSON response (text response)
             return {
@@ -453,8 +453,8 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
                 "error": None,
                 "response": {"text": text},
             }
-    
-    def _log_error(self, error: Exception, tool_name: str, params: Dict[str, Any]) -> None:
+
+    def _log_error(self, error: Exception, tool_name: str, params: dict[str, Any]) -> None:
         """
         Log error with Atoms-specific formatting.
         
@@ -462,7 +462,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         detailed output for other errors.
         """
         error_msg = str(error)
-        
+
         # Check for DB permission errors
         is_db_error = any([
             "TABLE_ACCESS_RESTRICTED" in error_msg,
@@ -470,7 +470,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             "missing GRANT" in error_msg,
             "permission denied" in error_msg.lower(),
         ])
-        
+
         print("\n" + "=" * 80)
         if is_db_error:
             print("🔒 DATABASE PERMISSION ERROR")
@@ -484,12 +484,12 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             print(f"   Params: {json.dumps(params, indent=2, default=str)}")
             print(f"   Error: {error_msg}")
         print("=" * 80 + "\n")
-    
+
     # ============================================================================
     # Atoms-specific helper methods
     # ============================================================================
-    
-    async def workspace_operation(self, operation: str, params: Dict[str, Any]) -> Any:
+
+    async def workspace_operation(self, operation: str, params: dict[str, Any]) -> Any:
         """
         Atoms-specific workspace operation helper.
         
@@ -504,8 +504,8 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             "operation": operation,
             **params
         })
-    
-    async def entity_operation(self, entity_type: str, operation: str, data: Dict[str, Any]) -> Any:
+
+    async def entity_operation(self, entity_type: str, operation: str, data: dict[str, Any]) -> Any:
         """
         Atoms-specific entity operation helper.
         
@@ -522,11 +522,11 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             "operation": operation,
             "data": data
         })
-    
+
     async def list_tools(self):
         """List available tools."""
         return await self.client.list_tools()
-    
+
     async def get_tool(self, tool_name: str):
         """Get tool metadata."""
         tools = await self.list_tools()

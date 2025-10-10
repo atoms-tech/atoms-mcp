@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 import pytest
@@ -39,7 +39,7 @@ def mcp_client(check_server_running, shared_authkit_session):
         "Content-Type": "application/json",
     }
 
-    async def call_tool(tool_name: str, params: Dict[str, Any], expect_error: bool = False) -> Dict[str, Any]:
+    async def call_tool(tool_name: str, params: dict[str, Any], expect_error: bool = False) -> dict[str, Any]:
         """Call MCP tool with error handling."""
         payload = {
             "jsonrpc": "2.0",

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, Any, Optional
-from utils.logging_setup import get_logger
+from typing import Any
+
 from schemas.constants import TABLES_WITHOUT_SOFT_DELETE
+from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -32,7 +33,7 @@ class EntityResolver:
     def _is_uuid(self, value: str) -> bool:
         """Check if string looks like a UUID."""
         uuid_pattern = re.compile(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
             re.IGNORECASE
         )
         return bool(uuid_pattern.match(value))
@@ -41,10 +42,10 @@ class EntityResolver:
         self,
         entity_type: str,
         identifier: str,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
         threshold: int = 70,
         return_suggestions: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Resolve partial name or ID to full entity.
 
         Args:
@@ -87,7 +88,7 @@ class EntityResolver:
 
             # Search by name (exact or fuzzy)
             search_filters = filters.copy() if filters else {}
-            tables_without_soft_delete = {'test_req', 'properties'}
+            tables_without_soft_delete = {"test_req", "properties"}
             if table not in tables_without_soft_delete:
                 search_filters.setdefault("is_deleted", False)
 
@@ -168,7 +169,7 @@ class EntityResolver:
                     "match_type": "fuzzy",
                     "score": results[0]["score"]
                 }
-            elif len(results) > 1:
+            if len(results) > 1:
                 if return_suggestions:
                     return {
                         "success": False,
@@ -176,25 +177,23 @@ class EntityResolver:
                         "suggestions": results,
                         "ambiguous": True
                     }
-                else:
-                    # Return best match
-                    return {
-                        "success": True,
-                        "entity_id": results[0]["id"],
-                        "entity": results[0],
-                        "match_type": "fuzzy_best",
-                        "score": results[0]["score"],
-                        "note": f"Auto-selected best match (score: {results[0]['score']}). {len(results)-1} other matches found."
-                    }
-            else:
+                # Return best match
                 return {
-                    "success": False,
-                    "error": f"No {entity_type} found matching '{identifier}' (threshold: {threshold}%)"
+                    "success": True,
+                    "entity_id": results[0]["id"],
+                    "entity": results[0],
+                    "match_type": "fuzzy_best",
+                    "score": results[0]["score"],
+                    "note": f"Auto-selected best match (score: {results[0]['score']}). {len(results)-1} other matches found."
                 }
+            return {
+                "success": False,
+                "error": f"No {entity_type} found matching '{identifier}' (threshold: {threshold}%)"
+            }
 
         except Exception as e:
             logger.error(f"Entity resolution failed: {e}")
             return {
                 "success": False,
-                "error": f"Resolution error: {str(e)}"
+                "error": f"Resolution error: {e!s}"
             }

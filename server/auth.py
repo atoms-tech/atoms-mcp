@@ -14,9 +14,10 @@ Pythonic Patterns Applied:
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Optional, Protocol
+from typing import Any, Protocol
 
 from fastmcp.server.dependencies import get_access_token
 
@@ -27,11 +28,11 @@ logger = get_logger("atoms_fastmcp.auth")
 
 class RateLimiter(Protocol):
     """Protocol for rate limiter implementations."""
-    
+
     async def check_limit(self, user_id: str) -> bool:
         """Check if user is within rate limit."""
         ...
-    
+
     def get_remaining(self, user_id: str) -> int:
         """Get remaining requests for user."""
         ...
@@ -39,7 +40,7 @@ class RateLimiter(Protocol):
 
 class RateLimitExceeded(Exception):
     """Raised when rate limit is exceeded."""
-    
+
     def __init__(self, user_id: str, remaining: int):
         self.user_id = user_id
         self.remaining = remaining
@@ -60,8 +61,8 @@ class BearerToken:
     """
     token: str
     source: str
-    claims: Optional[dict[str, Any]] = None
-    
+    claims: dict[str, Any] | None = None
+
     def __str__(self) -> str:
         """Return masked token for logging."""
         if len(self.token) > 10:
@@ -69,7 +70,7 @@ class BearerToken:
         return "***"
 
 
-def extract_bearer_token() -> Optional[BearerToken]:
+def extract_bearer_token() -> BearerToken | None:
     """Extract bearer token from FastMCP's AuthKit OAuth.
     
     For stateless serverless with AuthKit:
@@ -90,7 +91,7 @@ def extract_bearer_token() -> Optional[BearerToken]:
     if not access_token:
         logger.debug("No access token from FastMCP")
         return None
-    
+
     # AuthKit tokens are stored in .token attribute
     token_str = getattr(access_token, "token", None)
     if token_str:
@@ -101,7 +102,7 @@ def extract_bearer_token() -> Optional[BearerToken]:
             source="authkit.token",
             claims=claims if isinstance(claims, dict) else None
         )
-    
+
     # Fallback: check claims dict
     claims = getattr(access_token, "claims", None)
     if isinstance(claims, dict):
@@ -114,14 +115,14 @@ def extract_bearer_token() -> Optional[BearerToken]:
                     source=f"authkit.claims.{key}",
                     claims=claims
                 )
-    
+
     logger.debug("No valid token found in access_token object")
     return None
 
 
 async def check_rate_limit(
     user_id: str,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> None:
     """Check rate limit for user and raise exception if exceeded.
     
@@ -143,7 +144,7 @@ async def check_rate_limit(
 @asynccontextmanager
 async def rate_limited_operation(
     user_id: str,
-    rate_limiter: Optional[RateLimiter] = None
+    rate_limiter: RateLimiter | None = None
 ) -> AsyncIterator[None]:
     """Context manager for rate-limited operations.
     
@@ -170,8 +171,8 @@ async def rate_limited_operation(
 
 
 async def apply_rate_limit_if_configured(
-    rate_limiter: Optional[RateLimiter] = None
-) -> Optional[BearerToken]:
+    rate_limiter: RateLimiter | None = None
+) -> BearerToken | None:
     """Apply rate limiting if configured and return auth token.
     
     This is a convenience function that combines token extraction
@@ -193,7 +194,7 @@ async def apply_rate_limit_if_configured(
         ...     print(f"Authenticated with {token.source}")
     """
     bearer_token = extract_bearer_token()
-    
+
     # Only apply rate limiting if we have a token and rate limiter is configured
     if bearer_token and rate_limiter:
         # Extract user_id from token without full validation (tools will validate)
@@ -210,11 +211,11 @@ async def apply_rate_limit_if_configured(
             # If auth parsing fails, tools will handle it
             # Only propagate rate limit errors
             logger.debug(f"Auth validation during rate limit check failed: {e}")
-    
+
     return bearer_token
 
 
-def get_token_string(bearer_token: Optional[BearerToken]) -> Optional[str]:
+def get_token_string(bearer_token: BearerToken | None) -> str | None:
     """Extract token string from BearerToken.
     
     Convenience function for backward compatibility.
@@ -233,13 +234,13 @@ def get_token_string(bearer_token: Optional[BearerToken]) -> Optional[str]:
 
 
 __all__ = [
-    "extract_bearer_token",
-    "check_rate_limit",
-    "apply_rate_limit_if_configured",
-    "rate_limited_operation",
-    "get_token_string",
     "BearerToken",
-    "RateLimiter",
     "RateLimitExceeded",
+    "RateLimiter",
+    "apply_rate_limit_if_configured",
+    "check_rate_limit",
+    "extract_bearer_token",
+    "get_token_string",
+    "rate_limited_operation",
 ]
 

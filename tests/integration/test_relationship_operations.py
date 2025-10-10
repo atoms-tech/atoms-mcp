@@ -6,12 +6,12 @@ Tests all operations with detailed reporting.
 Run with: python test_relationship_operations.py
 """
 
-import os
-import json
-import uuid
 import asyncio
-from typing import Any, Dict, Optional
+import json
+import os
+import uuid
 from datetime import datetime
+from typing import Any
 
 import httpx
 from supabase import create_client
@@ -29,9 +29,9 @@ test_results = []
 class TestResult:
     """Store test operation results."""
 
-    def __init__(self, operation: str, params: Dict[str, Any],
-                 success: bool, response: Dict[str, Any],
-                 error: Optional[str] = None):
+    def __init__(self, operation: str, params: dict[str, Any],
+                 success: bool, response: dict[str, Any],
+                 error: str | None = None):
         self.operation = operation
         self.params = params
         self.success = success
@@ -71,7 +71,7 @@ async def get_supabase_jwt() -> str:
     return session.access_token
 
 
-async def call_mcp(tool_name: str, params: Dict[str, Any], jwt_token: str) -> Dict[str, Any]:
+async def call_mcp(tool_name: str, params: dict[str, Any], jwt_token: str) -> dict[str, Any]:
     """Call an MCP tool via HTTP."""
     base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
     headers = {
@@ -161,7 +161,7 @@ async def main():
             req_params,
             False,
             req_result,
-            req_result.get('error')
+            req_result.get("error")
         ))
 
     print()
@@ -198,7 +198,7 @@ async def main():
             test_params,
             False,
             test_result,
-            test_result.get('error')
+            test_result.get("error")
         ))
 
     print()
@@ -251,7 +251,7 @@ async def main():
                 link_params,
                 False,
                 link_result,
-                link_result.get('error')
+                link_result.get("error")
             ))
     else:
         print("⚠️  Skipping: Required entities not created")
@@ -347,7 +347,7 @@ async def main():
                 list_params,
                 False,
                 list_result,
-                list_result.get('error')
+                list_result.get("error")
             ))
     else:
         print("⚠️  Skipping: Required entities not created")
@@ -398,7 +398,7 @@ async def main():
                 filter_params,
                 False,
                 filter_result,
-                filter_result.get('error')
+                filter_result.get("error")
             ))
     else:
         print("⚠️  Skipping: Required entities not created")
@@ -451,7 +451,7 @@ async def main():
                 update_params,
                 False,
                 update_result,
-                update_result.get('error')
+                update_result.get("error")
             ))
     else:
         print("⚠️  Skipping: Required entities not created")
@@ -500,7 +500,7 @@ async def main():
                 delete_params,
                 False,
                 delete_result,
-                delete_result.get('error')
+                delete_result.get("error")
             ))
     else:
         print("⚠️  Skipping: Required entities not created")
@@ -541,7 +541,7 @@ async def main():
                     cleanup_params,
                     False,
                     cleanup_result,
-                    cleanup_result.get('error')
+                    cleanup_result.get("error")
                 ))
 
     print()
@@ -588,7 +588,7 @@ async def main():
         "operations": [r.to_dict() for r in test_results]
     }
 
-    with open(report_file, 'w') as f:
+    with open(report_file, "w") as f:
         json.dump(report_data, f, indent=2)
 
     print(f"📄 Full report saved to: {report_file}")

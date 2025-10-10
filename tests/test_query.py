@@ -6,6 +6,7 @@ Now compatible with pytest-xdist for parallel execution.
 """
 
 import pytest
+
 from .framework import mcp_test
 
 

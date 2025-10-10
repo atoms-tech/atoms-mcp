@@ -15,7 +15,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class MCPWorkspaceToolTester:
@@ -23,18 +23,18 @@ class MCPWorkspaceToolTester:
 
     def __init__(self):
         """Initialize tester."""
-        self.results: List[Dict[str, Any]] = []
+        self.results: list[dict[str, Any]] = []
         self.test_start_time = datetime.now()
 
     def log_result(
         self,
         test_number: int,
         operation: str,
-        input_params: Dict[str, Any],
+        input_params: dict[str, Any],
         output_response: Any,
         status: str,
-        error: Optional[str] = None,
-        notes: Optional[str] = None
+        error: str | None = None,
+        notes: str | None = None
     ):
         """Log detailed test result."""
         result = {
@@ -67,7 +67,7 @@ class MCPWorkspaceToolTester:
             print(json.dumps(output_response, indent=2, default=str))
 
             print("\nResponse Structure:")
-            print(json.dumps(result['response_structure'], indent=2))
+            print(json.dumps(result["response_structure"], indent=2))
 
         if notes:
             print("\nNotes:")
@@ -75,7 +75,7 @@ class MCPWorkspaceToolTester:
 
         print(f"{'='*100}\n")
 
-    def _analyze_structure(self, data: Any) -> Dict[str, Any]:
+    def _analyze_structure(self, data: Any) -> dict[str, Any]:
         """Analyze data structure for documentation."""
         if isinstance(data, dict):
             analysis = {
@@ -96,17 +96,16 @@ class MCPWorkspaceToolTester:
 
             return analysis
 
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return {
                 "type": "list",
                 "length": len(data),
                 "item_types": list(set(type(item).__name__ for item in data)) if data else []
             }
-        else:
-            return {
-                "type": type(data).__name__,
-                "value": str(data) if data is not None else None
-            }
+        return {
+            "type": type(data).__name__,
+            "value": str(data) if data is not None else None
+        }
 
     def print_header(self, title: str):
         """Print formatted section header."""
@@ -114,7 +113,7 @@ class MCPWorkspaceToolTester:
         print(f"# {title}")
         print(f"{'#'*100}\n")
 
-    def generate_final_report(self) -> Dict[str, Any]:
+    def generate_final_report(self) -> dict[str, Any]:
         """Generate comprehensive final test report."""
         test_end_time = datetime.now()
         duration = (test_end_time - self.test_start_time).total_seconds()
@@ -171,7 +170,7 @@ class MCPWorkspaceToolTester:
 
         # Save to file
         report_filename = f"workspace_tool_mcp_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(report_filename, 'w') as f:
+        with open(report_filename, "w") as f:
             json.dump(report, f, indent=2, default=str)
 
         print(f"\nDetailed report saved to: {report_filename}")
