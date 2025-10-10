@@ -123,8 +123,8 @@ class TestReport:
 
 async def get_auth_token() -> str:
     """Authenticate and get JWT token."""
-    supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    supabase_key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    supabase_url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 
     if not supabase_url or not supabase_key:
         raise ValueError("Supabase credentials not configured")

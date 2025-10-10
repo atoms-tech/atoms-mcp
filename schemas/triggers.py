@@ -16,7 +16,19 @@ import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
-from schemas.enums import OrganizationType, UserRoleType
+# OrganizationType is missing from generated (bug in sb-pydantic)
+# UserRoleType comes from generated
+from schemas.generated.fastapi.schema_public_latest import (
+    PublicUserRoleTypeEnum as UserRoleType,
+)
+
+# OrganizationType needs to be added - database has it but sb-pydantic didn't generate it
+# Temporary inline definition until we add it to generated file
+from enum import Enum
+class OrganizationType(str, Enum):
+    PERSONAL = "personal"
+    TEAM = "team"
+    ENTERPRISE = "enterprise"
 from schemas.constants import Tables, Fields, TABLES_WITHOUT_SOFT_DELETE
 from utils.logging_setup import get_logger
 

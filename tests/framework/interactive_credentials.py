@@ -41,8 +41,8 @@ class InteractiveCredentialManager:
         # Credential mappings for different providers
         self.credential_mappings = {
             "authkit": {
-                "email": ["OAUTH_AUTHKIT_EMAIL", "OAUTH_EMAIL", "ZEN_TEST_EMAIL", "TEST_EMAIL"],
-                "password": ["OAUTH_AUTHKIT_PASSWORD", "OAUTH_PASSWORD", "ZEN_TEST_PASSWORD", "TEST_PASSWORD"],
+                "email": ["ATOMS_TEST_EMAIL", "OAUTH_AUTHKIT_EMAIL", "OAUTH_EMAIL", "ZEN_TEST_EMAIL", "TEST_EMAIL"],
+                "password": ["ATOMS_TEST_PASSWORD", "OAUTH_AUTHKIT_PASSWORD", "OAUTH_PASSWORD", "ZEN_TEST_PASSWORD", "TEST_PASSWORD"],
                 "mfa_secret": ["OAUTH_AUTHKIT_MFA_SECRET", "MFA_SECRET", "TOTP_SECRET"],
             },
             "github": {

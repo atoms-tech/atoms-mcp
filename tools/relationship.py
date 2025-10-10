@@ -251,7 +251,32 @@ class RelationshipManager(ToolBase):
         config = self._get_relationship_config(relationship_type)
         if not config:
             raise ValueError(f"Unknown relationship type: {relationship_type}")
-        
+
+        user_id = self._get_user_id()
+        adapters = self._get_adapters()
+        db_adapter = adapters["database"]
+
+        # RLS validation for member relationships
+        if relationship_type == RelationshipType.MEMBER:
+            if source.get("type") == "organization":
+                # Validate user can manage organization members
+                org_id = source["id"]
+                if not await is_organization_owner_or_admin(org_id, user_id, db_adapter):
+                    raise PermissionDeniedError(
+                        "organization_members",
+                        "DELETE",
+                        "Only organization owners and admins can remove members"
+                    )
+            elif source.get("type") == "project":
+                # Validate user can manage project members
+                project_id = source["id"]
+                if not await is_project_owner_or_admin(project_id, user_id, db_adapter):
+                    raise PermissionDeniedError(
+                        "project_members",
+                        "DELETE",
+                        "Only project owners and admins can remove members"
+                    )
+
         # Handle special cases for member relationships
         if relationship_type == RelationshipType.MEMBER:
             if source.get("type") in ["organization", "project"]:
@@ -350,6 +375,35 @@ class RelationshipManager(ToolBase):
             order_by="created_at:desc"
         )
 
+        # RLS filtering - check user can access these relationships
+        user_id = self._get_user_id()
+        adapters = self._get_adapters()
+        db_adapter = adapters["database"]
+
+        filtered_relationships = []
+        for rel in relationships:
+            try:
+                # Validate access based on relationship type
+                if relationship_type == RelationshipType.MEMBER:
+                    # Check if user is member of the organization/project
+                    if source and source.get("type") == "organization":
+                        org_member = await db_adapter.get_single(
+                            Tables.ORGANIZATION_MEMBERS,
+                            filters={"organization_id": rel.get("organization_id"), "user_id": user_id, "is_deleted": False}
+                        )
+                        if not org_member:
+                            continue
+                    elif source and source.get("type") == "project":
+                        if not await user_can_access_project(rel.get("project_id"), user_id, db_adapter):
+                            continue
+
+                filtered_relationships.append(rel)
+            except Exception:
+                # Skip relationships we can't validate
+                continue
+
+        relationships = filtered_relationships
+
         # For member relationships, manually join profile data (workaround for missing FK)
         if relationship_type == RelationshipType.MEMBER and relationships:
             # Extract unique user IDs
@@ -400,7 +454,32 @@ class RelationshipManager(ToolBase):
         config = self._get_relationship_config(relationship_type)
         if not config:
             raise ValueError(f"Unknown relationship type: {relationship_type}")
-        
+
+        user_id = self._get_user_id()
+        adapters = self._get_adapters()
+        db_adapter = adapters["database"]
+
+        # RLS validation for member relationships
+        if relationship_type == RelationshipType.MEMBER:
+            if source.get("type") == "organization":
+                # Validate user can manage organization members
+                org_id = source["id"]
+                if not await is_organization_owner_or_admin(org_id, user_id, db_adapter):
+                    raise PermissionDeniedError(
+                        "organization_members",
+                        "UPDATE",
+                        "Only organization owners and admins can update member roles"
+                    )
+            elif source.get("type") == "project":
+                # Validate user can manage project members
+                project_id = source["id"]
+                if not await is_project_owner_or_admin(project_id, user_id, db_adapter):
+                    raise PermissionDeniedError(
+                        "project_members",
+                        "UPDATE",
+                        "Only project owners and admins can update member roles"
+                    )
+
         # Build filters to find the relationship
         if relationship_type == RelationshipType.MEMBER:
             if source.get("type") in ["organization", "project"]:

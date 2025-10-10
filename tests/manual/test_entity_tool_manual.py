@@ -33,8 +33,8 @@ class EntityToolTester:
         """Authenticate and get Supabase JWT."""
         from supabase import create_client
 
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+        key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 
         if not url or not key:
             raise ValueError("Supabase credentials not configured")

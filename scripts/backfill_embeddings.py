@@ -441,8 +441,8 @@ async def main():
 
     args = parser.parse_args()
 
-    # Check environment
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    # Check environment - use canonical variable names with fallbacks
+    url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     # Strip quotes and whitespace (common in .env files)
@@ -454,7 +454,7 @@ async def main():
     if not url or not key:
         print("❌ Error: Missing Supabase credentials")
         print("   Required environment variables:")
-        print("   - NEXT_PUBLIC_SUPABASE_URL")
+        print("   - SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL for backward compatibility)")
         print("   - SUPABASE_SERVICE_ROLE_KEY")
         print("\n   Make sure .env or .env.production is properly configured")
         print(f"\n   Debug: URL={url[:30] if url else 'None'}...")

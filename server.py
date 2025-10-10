@@ -332,9 +332,37 @@ def _validate_entity_data(entity_type: str, operation: str, data: dict) -> dict:
         # Operation not in validation map - skip validation
         return data
 
-    # Validate and return cleaned data
-    validated = model(**data)
-    return validated.model_dump(exclude_none=True)
+    # Add placeholder for audit fields if missing (they're auto-populated in tool layer)
+    # This allows validation to pass while the actual values are set later
+    # Using a valid UUID4 format for placeholder
+    PLACEHOLDER_UUID = "00000000-0000-4000-8000-000000000000"  # Valid UUID4 format
+    validation_data = data.copy()
+
+    # Standard audit fields
+    if operation == "create" and "created_by" not in validation_data:
+        validation_data["created_by"] = PLACEHOLDER_UUID
+    if "updated_by" not in validation_data:
+        validation_data["updated_by"] = PLACEHOLDER_UUID
+
+    # Project-specific: owned_by field (auto-set to user_id in tool layer)
+    if entity_type.lower() == "project" and "owned_by" not in validation_data:
+        validation_data["owned_by"] = PLACEHOLDER_UUID
+
+    # Validate with placeholders
+    validated = model(**validation_data)
+
+    # Return cleaned data without the placeholder audit fields (they'll be set in tool layer)
+    result = validated.model_dump(exclude_none=True)
+
+    # Remove placeholder audit fields if they weren't in the original data
+    if data.get("created_by") is None and str(result.get("created_by")) == PLACEHOLDER_UUID:
+        result.pop("created_by", None)
+    if data.get("updated_by") is None and str(result.get("updated_by")) == PLACEHOLDER_UUID:
+        result.pop("updated_by", None)
+    if data.get("owned_by") is None and str(result.get("owned_by")) == PLACEHOLDER_UUID:
+        result.pop("owned_by", None)
+
+    return result
 
 
 def _load_env_files() -> None:
@@ -405,7 +433,8 @@ def create_consolidated_server() -> FastMCP:
     if not base_url:
         # Construct from environment if not provided
         host = get_env("ATOMS_FASTMCP_HOST", "127.0.0.1")
-        port = get_env("ATOMS_FASTMCP_PORT", "8000")
+        # Use canonical PORT variable with ATOMS_FASTMCP_PORT as fallback
+        port = get_env("PORT") or get_env("ATOMS_FASTMCP_PORT", "8000")
         transport = get_env("ATOMS_FASTMCP_TRANSPORT", "stdio")
 
         if transport == "http":
@@ -874,7 +903,8 @@ def main() -> None:
 
     transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
     host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
-    port_str = os.getenv("ATOMS_FASTMCP_PORT", "8000")
+    # Use canonical PORT variable with ATOMS_FASTMCP_PORT as fallback
+    port_str = os.getenv("PORT") or os.getenv("ATOMS_FASTMCP_PORT", "8000")
 
     try:
         port = int(port_str)

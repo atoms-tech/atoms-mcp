@@ -44,9 +44,9 @@ def main():
     if check(env_file.exists(), ".env file exists"):
         passed += 1
 
-    # Test 2: Port configuration
+    # Test 2: Port configuration - check both PORT and ATOMS_FASTMCP_PORT
     total += 1
-    port = os.environ.get('PORT', '')
+    port = os.environ.get('PORT') or os.environ.get('ATOMS_FASTMCP_PORT', '')
     if check(port == '50002', f"PORT=50002 (found: {port})"):
         passed += 1
 
@@ -84,6 +84,7 @@ def main():
     # Test 8: Server can be imported
     total += 1
     try:
+        # Set PORT (canonical) and ATOMS_FASTMCP_PORT (backward compatibility)
         os.environ['PORT'] = '50002'
         os.environ['ATOMS_FASTMCP_PORT'] = '50002'
         from server import create_consolidated_server

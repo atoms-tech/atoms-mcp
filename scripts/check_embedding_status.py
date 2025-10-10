@@ -227,8 +227,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Get credentials
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    # Get credentials - use canonical variable names with fallbacks
+    url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if url:
@@ -238,7 +238,7 @@ def main():
 
     if not url or not key:
         print("❌ Error: Missing Supabase credentials")
-        print("   Required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY")
+        print("   Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY")
         sys.exit(1)
 
     # Create client

@@ -397,51 +397,49 @@ class EntityManager(ToolBase):
             except PermissionDeniedError as e:
                 raise ValueError(f"Permission denied: {e.reason}")
 
-        # Prepare update data
-        update_data = data.copy()
-        # Don't set updated_at manually - let database trigger handle it
-        # This prevents "Concurrent update detected" errors from optimistic locking
+        # Get user_id for trigger emulation with fallback
+        user_id = self._get_user_id()
+        if not user_id and table not in TABLES_WITHOUT_AUDIT_FIELDS:
+            # Fallback: Get from existing record
+            print(f"⚠️ UPDATE: No user_id in context, using fallback from existing record")
+            logger.info(f"⚠️ UPDATE: No user_id in context, using fallback from existing record")
+            user_id = existing_record.get(Fields.CREATED_BY) or existing_record.get(Fields.UPDATED_BY)
+            if user_id:
+                print(f"✅ UPDATE: Got user_id from existing record: {user_id}")
+                logger.info(f"✅ UPDATE: Got user_id from existing record: {user_id}")
 
-        # Set updated_by if the table has this column (tables without audit fields don't have it)
-        if table not in TABLES_WITHOUT_AUDIT_FIELDS:
-            user_id = self._get_user_id()
-            print(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
-            logger.info(f"🔍 UPDATE: user_id from context: '{user_id}', full context: {self._user_context}")
+        # Validate user_id is available for tables that require it
+        if not user_id and table not in TABLES_WITHOUT_AUDIT_FIELDS:
+            print(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
+            logger.error(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
+            raise ValueError(f"Could not determine user_id for update operation. Context: {self._user_context}")
 
-            if not user_id:
-                # Fallback: Query existing record to get created_by
-                print(f"⚠️ UPDATE: No user_id in context, using fallback query")
-                logger.info(f"⚠️ UPDATE: No user_id in context, using fallback query")
-                try:
-                    # Use direct Supabase client to bypass RLS temporarily
-                    result = self.supabase.table(table).select(f"{Fields.CREATED_BY}, {Fields.UPDATED_BY}").eq(Fields.ID, entity_id).execute()
-                    print(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
-                    logger.info(f"🔍 UPDATE: Fallback query result: {result.data if result else 'None'}")
-                    if result.data and len(result.data) > 0:
-                        user_id = result.data[0].get(Fields.CREATED_BY) or result.data[0].get(Fields.UPDATED_BY)
-                        print(f"✅ UPDATE: Got user_id from fallback: {user_id}")
-                        logger.info(f"✅ UPDATE: Got user_id from fallback: {user_id}")
-                except Exception as e:
-                    print(f"❌ UPDATE: Fallback query failed: {e}")
-                    logger.error(f"❌ UPDATE: Fallback query failed: {e}")
-                    pass
+        # Set user context for trigger emulation
+        if user_id:
+            self.trigger_emulator.set_user_context(user_id)
 
-            # Ensure updated_by is always set for tables that require it
-            if not user_id:
-                print(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
-                logger.error(f"❌ UPDATE: Could not determine user_id. Context: {self._user_context}")
-                raise ValueError(f"Could not determine user_id for update operation. Context: {self._user_context}")
+        # Emulate BEFORE UPDATE triggers - transform data
+        try:
+            update_data = self.trigger_emulator.before_update(table, existing_record, data)
+        except ValueError as e:
+            raise ValueError(f"Trigger validation failed: {e}")
 
-            update_data[Fields.UPDATED_BY] = user_id
-            print(f"✅ UPDATE: Set updated_by to: {user_id}")
-            logger.info(f"✅ UPDATE: Set updated_by to: {user_id}")
-
+        # Update entity
         result = await self._db_update(
             table,
             update_data,
             filters={"id": entity_id},
             returning="*"
         )
+
+        # Emulate AFTER UPDATE triggers - handle side effects (mainly for soft delete cascading)
+        side_effects = self.trigger_emulator.after_update(table, existing_record, result)
+        for effect_table, effect_data in side_effects:
+            try:
+                await self._db_insert(effect_table, effect_data)
+            except Exception as e:
+                # Log side effect failures but don't fail the main operation
+                logger.warning(f"Side effect from update failed for {effect_table}: {e}")
 
         if include_relations and isinstance(result, dict):
             result = await self._include_relationships(entity_type, result)
@@ -837,10 +835,31 @@ async def entity_operation(
         else:
             raise ValueError(f"Unknown operation: {operation}")
     
+    except PermissionDeniedError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": "permission_denied",
+            "table": e.table,
+            "operation": operation,
+            "entity_type": entity_type
+        }
+    except ValueError as e:
+        # Check if this is a permission error (converted from PermissionDeniedError)
+        error_msg = str(e)
+        error_type = "permission_denied" if "Permission denied:" in error_msg else "validation_error"
+        return {
+            "success": False,
+            "error": error_msg,
+            "error_type": error_type,
+            "operation": operation,
+            "entity_type": entity_type
+        }
     except Exception as e:
         return {
             "success": False,
             "error": str(e),
+            "error_type": "server_error",
             "operation": operation,
             "entity_type": entity_type
         }

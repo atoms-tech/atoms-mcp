@@ -302,8 +302,9 @@ Examples:
         except ImportError:
             logger.warning("python-dotenv not installed, skipping .env loading")
 
-    # Set environment variables for server
-    os.environ["ATOMS_FASTMCP_PORT"] = str(port)
+    # Set environment variables for server - use canonical PORT variable
+    os.environ["PORT"] = str(port)
+    os.environ["ATOMS_FASTMCP_PORT"] = str(port)  # Keep for backward compatibility
     os.environ["ATOMS_FASTMCP_HOST"] = "127.0.0.1"
     os.environ["ATOMS_FASTMCP_TRANSPORT"] = "http"
     os.environ["ATOMS_LOCAL_PORT"] = str(port)

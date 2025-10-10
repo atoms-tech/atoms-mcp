@@ -185,12 +185,12 @@ async def get_auth_token():
     try:
         from supabase import create_client
 
-        url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+        url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+        key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 
         if not url or not key:
             print("ERROR: Supabase configuration not found in environment.")
-            print("Required: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY")
+            print("Required: SUPABASE_URL and SUPABASE_ANON_KEY")
             return None
 
         client = create_client(url, key)

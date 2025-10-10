@@ -32,13 +32,13 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, List
 from utils.logging_setup import get_logger
 
-# Support both package and standalone imports
-try:
-    from ..schemas.enums import UserRoleType, ProjectRole, Visibility
-    from ..schemas.constants import Tables
-except ImportError:
-    from schemas.enums import UserRoleType, ProjectRole, Visibility
-    from schemas.constants import Tables
+# Import from generated schemas
+from schemas.generated.fastapi.schema_public_latest import (
+    PublicUserRoleTypeEnum as UserRoleType,
+    PublicProjectRoleEnum as ProjectRole,
+    PublicVisibilityEnum as Visibility,
+)
+from schemas.constants import Tables
 
 logger = get_logger(__name__)
 

@@ -13,11 +13,11 @@ from supabase import create_client
 
 def get_admin_client():
     """Get Supabase admin client with service role key."""
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+    url = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
     service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
     if not url or not service_key:
-        raise ValueError("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required")
+        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required")
 
     return create_client(url, service_key)
 
