@@ -42,11 +42,8 @@ from .atoms import (
     start_atoms_server,
 )
 
-# Legacy compatibility (deprecated, use atoms.* instead)
-from .deployment import deploy_to_vercel, start_local_server
-
 __all__ = [
-    # Base abstractions (→ pheno-sdk)
+    # Base abstractions (from pheno-sdk/deploy-kit)
     "DeploymentEnvironment",
     "DeploymentStatus",
     "DeploymentConfig",
@@ -56,22 +53,18 @@ __all__ = [
     "ServerProvider",
     "TunnelProvider",
     "ConfigurationProvider",
-    
-    # Platform implementations (→ pheno-sdk)
+
+    # Platform implementations (from pheno-sdk/deploy-kit)
     "VercelDeploymentProvider",
     "VercelConfigProvider",
     "HTTPHealthCheckProvider",
     "AdvancedHealthChecker",
-    
-    # Atoms-specific (stays here)
+
+    # Atoms-specific (stays in atoms_mcp-old)
     "AtomsDeploymentConfig",
     "AtomsVercelDeployer",
     "deploy_atoms_to_vercel",
     "AtomsServerManager",
     "start_atoms_server",
-    
-    # Legacy (deprecated)
-    "deploy_to_vercel",
-    "start_local_server",
 ]
 

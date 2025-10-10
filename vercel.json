@@ -1,12 +1,15 @@
 {
   "version": 2,
   "buildCommand": "bash build.sh",
-  "functions": {
-    "app.py": {
-      "maxDuration": 60,
-      "memory": 3008
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     }
-  },
+  ],
   "routes": [
     {
       "src": "/health",

@@ -1,0 +1,274 @@
+name: Performance & Benchmarks
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ============================================================================
+  # Performance Benchmarks
+  # ============================================================================
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-benchmark pytest-profiling memory_profiler
+
+      - name: Run benchmarks
+        run: |
+          pytest tests/performance/ --benchmark-only --benchmark-json=benchmark.json
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'pytest'
+          output-file-path: benchmark.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
+
+  # ============================================================================
+  # Memory Profiling
+  # ============================================================================
+  memory-profile:
+    name: Memory Profiling
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install memory_profiler matplotlib
+
+      - name: Run memory profiling
+        run: |
+          python -m memory_profiler scripts/profile_memory.py
+
+      - name: Upload memory profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-profile
+          path: memory_profile.png
+          retention-days: 30
+
+  # ============================================================================
+  # Load Testing
+  # ============================================================================
+  load-test:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install locust
+
+      - name: Start server
+        run: |
+          ./atoms start --no-tunnel &
+          sleep 10
+
+      - name: Run load tests
+        run: |
+          locust -f tests/load/locustfile.py --headless -u 100 -r 10 -t 60s --html=load_test_report.html
+
+      - name: Upload load test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report
+          path: load_test_report.html
+          retention-days: 30
+
+  # ============================================================================
+  # Code Complexity Analysis
+  # ============================================================================
+  complexity:
+    name: Code Complexity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install radon xenon
+
+      - name: Run complexity analysis
+        run: |
+          radon cc . -a -s --json > complexity.json
+          radon mi . --json > maintainability.json
+
+      - name: Check complexity thresholds
+        run: |
+          xenon --max-absolute B --max-modules A --max-average A .
+
+      - name: Upload complexity reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: complexity-reports
+          path: |
+            complexity.json
+            maintainability.json
+          retention-days: 30
+
+  # ============================================================================
+  # Dependency Analysis
+  # ============================================================================
+  dependencies:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipdeptree pip-audit
+
+      - name: Generate dependency tree
+        run: |
+          pipdeptree --json > dependency_tree.json
+          pipdeptree --graph-output png > dependency_graph.png
+
+      - name: Audit dependencies
+        run: |
+          pip-audit --format json > audit_report.json || true
+
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-reports
+          path: |
+            dependency_tree.json
+            dependency_graph.png
+            audit_report.json
+          retention-days: 30
+
+  # ============================================================================
+  # Code Quality Metrics
+  # ============================================================================
+  quality-metrics:
+    name: Code Quality Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install pylint prospector
+
+      - name: Run Pylint
+        run: |
+          pylint --output-format=json . > pylint_report.json || true
+
+      - name: Run Prospector
+        run: |
+          prospector --output-format json > prospector_report.json || true
+
+      - name: Upload quality reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
+            pylint_report.json
+            prospector_report.json
+          retention-days: 30
+
+  # ============================================================================
+  # Documentation Coverage
+  # ============================================================================
+  doc-coverage:
+    name: Documentation Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install interrogate
+
+      - name: Check docstring coverage
+        run: |
+          interrogate -v --fail-under 80 . --generate-badge docs/badges/
+
+      - name: Upload badge
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-coverage-badge
+          path: docs/badges/
+          retention-days: 30
+

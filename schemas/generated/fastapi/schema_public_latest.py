@@ -246,6 +246,7 @@ class PublicOrganizationTypeEnum(str, Enum):
     PERSONAL = "personal"
     TEAM = "team"
     ENTERPRISE = "enterprise"
+    BUSINESS = "business"  # Legacy value - exists in production database
 
 
 class PublicPropertyTypeEnum(str, Enum):

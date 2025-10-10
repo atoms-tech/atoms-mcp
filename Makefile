@@ -1,0 +1,203 @@
+.PHONY: help install dev-install lint format type-check test test-cov clean pre-commit setup
+
+# Default target
+.DEFAULT_GOAL := help
+
+# Colors
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+help: ## Show this help message
+	@echo "$(BLUE)Atoms MCP - Development Commands$(NC)"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+
+# ============================================================================
+# Installation
+# ============================================================================
+
+install: ## Install production dependencies
+	@echo "$(BLUE)Installing production dependencies...$(NC)"
+	pip install -r requirements.txt
+
+dev-install: ## Install development dependencies
+	@echo "$(BLUE)Installing development dependencies...$(NC)"
+	pip install -r requirements.txt
+	pip install -e ".[dev]"
+	@echo "$(GREEN)✓ Development dependencies installed$(NC)"
+
+setup: dev-install pre-commit-install ## Complete development setup
+	@echo "$(GREEN)✓ Development environment ready!$(NC)"
+
+# ============================================================================
+# Code Quality
+# ============================================================================
+
+lint: ## Run linting (ruff)
+	@echo "$(BLUE)Running ruff linter...$(NC)"
+	ruff check . --fix
+	@echo "$(GREEN)✓ Linting complete$(NC)"
+
+format: ## Format code (ruff + black)
+	@echo "$(BLUE)Formatting code...$(NC)"
+	ruff format .
+	black .
+	isort .
+	@echo "$(GREEN)✓ Formatting complete$(NC)"
+
+type-check: ## Run type checking (mypy)
+	@echo "$(BLUE)Running type checker...$(NC)"
+	mypy .
+	@echo "$(GREEN)✓ Type checking complete$(NC)"
+
+check: lint type-check ## Run all checks (lint + type-check)
+	@echo "$(GREEN)✓ All checks passed$(NC)"
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+test: ## Run tests
+	@echo "$(BLUE)Running tests...$(NC)"
+	pytest
+
+test-cov: ## Run tests with coverage
+	@echo "$(BLUE)Running tests with coverage...$(NC)"
+	pytest --cov=. --cov-report=term-missing --cov-report=html
+	@echo "$(GREEN)✓ Coverage report generated in htmlcov/$(NC)"
+
+test-unit: ## Run unit tests only
+	@echo "$(BLUE)Running unit tests...$(NC)"
+	pytest -m unit
+
+test-integration: ## Run integration tests only
+	@echo "$(BLUE)Running integration tests...$(NC)"
+	pytest -m integration
+
+test-e2e: ## Run end-to-end tests only
+	@echo "$(BLUE)Running end-to-end tests...$(NC)"
+	pytest -m e2e
+
+test-fast: ## Run tests in parallel (fast)
+	@echo "$(BLUE)Running tests in parallel...$(NC)"
+	pytest -n auto
+
+test-watch: ## Run tests in watch mode
+	@echo "$(BLUE)Running tests in watch mode...$(NC)"
+	pytest-watch
+
+# ============================================================================
+# Pre-commit
+# ============================================================================
+
+pre-commit-install: ## Install pre-commit hooks
+	@echo "$(BLUE)Installing pre-commit hooks...$(NC)"
+	pre-commit install
+	pre-commit install --hook-type commit-msg
+	@echo "$(GREEN)✓ Pre-commit hooks installed$(NC)"
+
+pre-commit-run: ## Run pre-commit on all files
+	@echo "$(BLUE)Running pre-commit on all files...$(NC)"
+	pre-commit run --all-files
+
+pre-commit-update: ## Update pre-commit hooks
+	@echo "$(BLUE)Updating pre-commit hooks...$(NC)"
+	pre-commit autoupdate
+
+# ============================================================================
+# Atoms CLI
+# ============================================================================
+
+start: ## Start local server
+	./atoms start
+
+deploy-preview: ## Deploy to preview
+	./atoms deploy --preview
+
+deploy-prod: ## Deploy to production
+	./atoms deploy --production
+
+vendor: ## Vendor pheno-sdk packages
+	./atoms vendor setup --clean
+
+schema-check: ## Check schema drift
+	./atoms schema check
+
+schema-sync: ## Sync schemas from database
+	./atoms schema sync
+
+deployment-check: ## Check deployment readiness
+	./atoms check
+
+# ============================================================================
+# Cleanup
+# ============================================================================
+
+clean: ## Clean build artifacts
+	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
+	rm -rf build/
+	rm -rf dist/
+	rm -rf *.egg-info
+	rm -rf .pytest_cache/
+	rm -rf .mypy_cache/
+	rm -rf .ruff_cache/
+	rm -rf htmlcov/
+	rm -rf .coverage
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
+	find . -type f -name "*.pyo" -delete
+	@echo "$(GREEN)✓ Cleanup complete$(NC)"
+
+clean-all: clean ## Clean everything including venv
+	@echo "$(BLUE)Cleaning everything...$(NC)"
+	rm -rf .venv/
+	@echo "$(GREEN)✓ Deep cleanup complete$(NC)"
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+docs-serve: ## Serve documentation locally
+	@echo "$(BLUE)Serving documentation...$(NC)"
+	@echo "$(YELLOW)Not implemented yet$(NC)"
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+ci: lint type-check test ## Run CI checks locally
+	@echo "$(GREEN)✓ All CI checks passed$(NC)"
+
+ci-fast: ## Run fast CI checks (no type-check)
+	@echo "$(BLUE)Running fast CI checks...$(NC)"
+	ruff check .
+	pytest -n auto --maxfail=1
+	@echo "$(GREEN)✓ Fast CI checks passed$(NC)"
+
+# ============================================================================
+# Utilities
+# ============================================================================
+
+requirements-update: ## Update requirements files
+	@echo "$(BLUE)Updating requirements...$(NC)"
+	pip-compile requirements.in -o requirements.txt
+	@echo "$(GREEN)✓ Requirements updated$(NC)"
+
+show-outdated: ## Show outdated packages
+	@echo "$(BLUE)Checking for outdated packages...$(NC)"
+	pip list --outdated
+
+version: ## Show version information
+	@echo "$(BLUE)Version Information:$(NC)"
+	@python --version
+	@pip --version
+	@echo ""
+	@echo "$(BLUE)Installed Tools:$(NC)"
+	@ruff --version || echo "ruff: not installed"
+	@black --version || echo "black: not installed"
+	@mypy --version || echo "mypy: not installed"
+	@pytest --version || echo "pytest: not installed"
+
