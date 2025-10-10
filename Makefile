@@ -90,6 +90,81 @@ test-watch: ## Run tests in watch mode
 	pytest-watch
 
 # ============================================================================
+# Performance & Benchmarking
+# ============================================================================
+
+benchmark: ## Run performance benchmarks
+	@echo "$(BLUE)Running performance benchmarks...$(NC)"
+	pytest tests/performance/ --benchmark-only --benchmark-autosave
+
+benchmark-compare: ## Compare benchmark results
+	@echo "$(BLUE)Comparing benchmark results...$(NC)"
+	pytest-benchmark compare
+
+profile-memory: ## Profile memory usage
+	@echo "$(BLUE)Profiling memory usage...$(NC)"
+	python -m memory_profiler scripts/profile_memory.py
+
+load-test: ## Run load tests
+	@echo "$(BLUE)Running load tests...$(NC)"
+	locust -f tests/load/locustfile.py --headless -u 100 -r 10 -t 60s
+
+load-test-ui: ## Run load tests with UI
+	@echo "$(BLUE)Starting Locust UI...$(NC)"
+	@echo "$(YELLOW)Open http://localhost:8089 in your browser$(NC)"
+	locust -f tests/load/locustfile.py
+
+# ============================================================================
+# Code Quality Analysis
+# ============================================================================
+
+complexity: ## Analyze code complexity
+	@echo "$(BLUE)Analyzing code complexity...$(NC)"
+	radon cc . -a -s
+	radon mi . -s
+
+complexity-check: ## Check complexity thresholds
+	@echo "$(BLUE)Checking complexity thresholds...$(NC)"
+	xenon --max-absolute B --max-modules A --max-average A .
+
+dead-code: ## Detect dead code
+	@echo "$(BLUE)Detecting dead code...$(NC)"
+	vulture . --min-confidence 80
+
+duplication: ## Check for code duplication
+	@echo "$(BLUE)Checking for code duplication...$(NC)"
+	pylint --disable=all --enable=duplicate-code .
+
+doc-coverage: ## Check documentation coverage
+	@echo "$(BLUE)Checking documentation coverage...$(NC)"
+	interrogate -v --fail-under 80 .
+
+quality-report: ## Generate comprehensive quality report
+	@echo "$(BLUE)Generating quality report...$(NC)"
+	prospector --profile prospector.yaml
+
+# ============================================================================
+# Dependency Analysis
+# ============================================================================
+
+deps-tree: ## Show dependency tree
+	@echo "$(BLUE)Dependency tree:$(NC)"
+	pipdeptree
+
+deps-graph: ## Generate dependency graph
+	@echo "$(BLUE)Generating dependency graph...$(NC)"
+	pydeps . --max-bacon=2 --cluster --rankdir=TB -o dependency_graph.svg
+	@echo "$(GREEN)✓ Graph saved to dependency_graph.svg$(NC)"
+
+deps-audit: ## Audit dependencies for vulnerabilities
+	@echo "$(BLUE)Auditing dependencies...$(NC)"
+	pip-audit
+
+deps-licenses: ## Show dependency licenses
+	@echo "$(BLUE)Dependency licenses:$(NC)"
+	pip-licenses --format=markdown
+
+# ============================================================================
 # Pre-commit
 # ============================================================================
 
