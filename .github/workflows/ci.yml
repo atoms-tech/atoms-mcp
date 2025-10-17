@@ -32,19 +32,20 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install ruff black isort
+        run: uv sync --group dev
 
       - name: Run Ruff
-        run: ruff check . --output-format=github
+        run: uv run ruff check . --output-format=github
 
       - name: Check formatting (Black)
-        run: black --check .
+        run: uv run black --check .
 
       - name: Check import sorting (isort)
-        run: isort --check-only .
+        run: uv run isort --check-only .
 
   # ============================================================================
   # Type Checking
@@ -63,13 +64,10 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install mypy types-requests types-python-dateutil
-          pip install -r requirements.txt
+        run: uv sync --group dev
 
-      - name: Run MyPy
-        run: mypy . --show-error-codes
+      - name: Run Zuban (mypy mode)
+        run: uv run zuban mypy . --show-error-codes
 
   # ============================================================================
   # Security Checks
@@ -87,16 +85,17 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install bandit[toml] safety
+        run: uv sync --group dev
 
       - name: Run Bandit
-        run: bandit -r . -c pyproject.toml
+        run: uv run bandit -r . -c pyproject.toml
 
       - name: Check dependencies (Safety)
-        run: safety check --json || true
+        run: uv run safety check --json || true
 
   # ============================================================================
   # Tests
@@ -125,14 +124,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-xdist pytest-asyncio
+        run: uv sync --group dev
 
       - name: Run tests
-        run: pytest -n auto --cov=. --cov-report=xml --cov-report=term-missing
+        run: uv run pytest -n auto --cov=. --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
@@ -159,16 +158,17 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install build tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Install dependencies
+        run: uv sync --group dev
 
       - name: Build package
-        run: python -m build
+        run: uv run python -m build
 
       - name: Check package
-        run: twine check dist/*
+        run: uv run twine check dist/*
 
   # ============================================================================
   # Deployment Readiness
@@ -187,12 +187,10 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: uv sync --group dev
 
       - name: Check deployment readiness
-        run: ./atoms check || true
+        run: uv run ./atoms check || true
 
   # ============================================================================
   # All Checks Passed
@@ -204,4 +202,3 @@ jobs:
     steps:
       - name: All checks passed
         run: echo "✅ All CI checks passed!"
-

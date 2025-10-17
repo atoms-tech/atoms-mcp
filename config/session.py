@@ -14,21 +14,32 @@ _authkit_path = _repo_root / "pheno-sdk" / "authkit-client"
 if _authkit_path.exists():
     sys.path.insert(0, str(_authkit_path))
 
-# Import from pheno-sdk
-from authkit_client.session import DatabaseSessionStore, SessionManager  # noqa: E402
+# Import from pheno-sdk with fallback
+try:
+    from authkit_client.session import DatabaseSessionStore, SessionManager  # noqa: E402
+except ImportError:
+    DatabaseSessionStore = None
+    SessionManager = None
 
 # Import Atoms-specific components
-from supabase_client import get_supabase  # noqa: E402
-from utils.logging_setup import get_logger  # noqa: E402
+try:
+    from supabase_client import get_supabase  # noqa: E402
+except ImportError:
+    get_supabase = None
 
-logger = get_logger(__name__)
+try:
+    from utils.logging_setup import get_logger  # noqa: E402
+    logger = get_logger(__name__)
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
 
 
 # Singleton instance
-_session_manager: SessionManager | None = None
+_session_manager = None
 
 
-def get_session_manager() -> SessionManager:
+def get_session_manager():
     """
     Get configured session manager.
 
@@ -40,18 +51,21 @@ def get_session_manager() -> SessionManager:
     global _session_manager
 
     if _session_manager is None:
-        supabase = get_supabase()
-        store = DatabaseSessionStore(
-            db_client=supabase,
-            table_name="sessions",
-            logger=logger,
-        )
-        _session_manager = SessionManager(
-            store=store,
-            session_ttl_hours=24,
-            logger=logger,
-        )
-        logger.info("Initialized SessionManager with DatabaseSessionStore (pheno-sdk)")
+        if SessionManager and DatabaseSessionStore and get_supabase:
+            supabase = get_supabase()
+            store = DatabaseSessionStore(
+                db_client=supabase,
+                table_name="sessions",
+                logger=logger,
+            )
+            _session_manager = SessionManager(
+                store=store,
+                session_ttl_hours=24,
+                logger=logger,
+            )
+            logger.info("Initialized SessionManager with DatabaseSessionStore (pheno-sdk)")
+        else:
+            raise RuntimeError("SessionManager not available - authkit-client or dependencies not installed")
 
     return _session_manager
 

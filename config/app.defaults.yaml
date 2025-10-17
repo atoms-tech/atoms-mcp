@@ -1,0 +1,43 @@
+# ============================================================================
+# Atoms MCP Default Configuration
+# ============================================================================
+# This file provides baseline configuration values that can be overridden by
+# environment variables, .env files, or programmatic inputs.
+# Set ATOMS_SETTINGS_FILE to point at an alternate YAML, if desired.
+
+transport: "http"
+host: "127.0.0.1"
+port: 8000
+http_path: "/api/mcp"
+base_url: null
+public_base_url: null
+vercel_url: null
+rate_limit_rpm: 120
+environment: "production"
+reload_server: false
+http_auth_mode: "required"
+log_level: "INFO"
+claude_provider: "vertex"
+google_cloud_project: "serious-mile-462615-a2"
+google_cloud_location: "us-central1"
+vertex_embeddings_model: "gemini-embedding-001"
+
+supabase:
+  url: "https://ydogoylwenufckscqijp.supabase.co"
+  service_role_key: null
+  anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlkb2dveWx3ZW51ZmNrc2NxaWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MzUxNjYsImV4cCI6MjA1MjMxMTE2Nn0.Oy0K0aalki4e4b5h8caHYdWxZVKB6IWDDYQ3zvCUu4Y"
+  project_id: null
+  db_password: null
+
+authkit:
+  domain: "https://decent-hymn-17-staging.authkit.app"
+  base_url: "https://atomcp.kooshapari.com"
+  required_scopes:
+    - "openid"
+    - "profile"
+    - "email"
+
+workos:
+  api_url: "https://api.workos.com"
+  api_key: "sk_test_a2V5XzAxSzRDR1cyMjJXSlFXQlI1RDdDUFczUUM3LGxDdWJmN2tNTDBjaHlRNjhUaEtsalQ0ZTM"
+  client_id: "client_01K4CGW2J1FGWZYZJDMVWGQZBDDB"

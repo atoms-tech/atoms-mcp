@@ -4,6 +4,10 @@
 # NOTE: Plugin is auto-loaded by pytest.ini (mcp_auth_enable = true)
 # pytest_plugins = ["mcp_qa.pytest_plugins.auth_plugin"]
 
+# Load Phase 2 test infrastructure plugins
+# These plugins provide test mode support, cascade flow ordering, and conditional fixtures
+pytest_plugins = ["tests.framework.pytest_atoms_modes"]
+
 import os  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -278,7 +282,15 @@ async def mcp_client(request, local_server_config):
     credentials = None
     if hasattr(request.session.config, "_mcp_credentials"):
         credentials = request.session.config._mcp_credentials
-        print("Using cached credentials from auth plugin")
+        # Validate credentials before use - avoid expired tokens
+        if credentials and hasattr(credentials, 'is_valid'):
+            if not credentials.is_valid():
+                print("⚠️  Cached credentials expired, will re-authenticate")
+                credentials = None  # Force fresh authentication
+            else:
+                print("Using cached credentials from auth plugin")
+        else:
+            print("Using cached credentials from auth plugin")
 
     provider = os.getenv("ATOMS_OAUTH_PROVIDER", "authkit")
 

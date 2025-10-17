@@ -78,14 +78,22 @@ class CapturedCredentials:
     mcp_endpoint: str = ""
 
     def is_valid(self) -> bool:
-        """Check if credentials are still valid."""
+        """Check if credentials are still valid.
+
+        Includes a 1-hour safety margin before expiration to prevent
+        race conditions where token expires during request execution.
+        """
         if not self.access_token:
             return False
         # Check for placeholder token that was never actually captured
         if self.access_token in ("captured_from_oauth", "placeholder", "TODO"):
             return False
-        if self.expires_at and datetime.now() >= self.expires_at:
-            return False
+        if self.expires_at:
+            # Add 1-hour safety margin before expiration
+            from datetime import timedelta
+            safety_margin = timedelta(hours=1)
+            if datetime.now() >= (self.expires_at - safety_margin):
+                return False
         return True
 
     def to_dict(self) -> Dict[str, Any]:

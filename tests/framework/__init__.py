@@ -151,6 +151,112 @@ except ImportError:
 # Import Atoms-specific helpers
 from .atoms_helpers import AtomsTestHelpers  # noqa: E402
 
+# ============================================================================
+# Phase 2 Test Infrastructure (NEW!)
+# ============================================================================
+
+# @harmful decorator for automatic test state tracking
+try:
+    from .harmful import (
+        Entity,
+        EntityType,
+        HarmfulStateTracker,
+        TestDataTracker,
+        TestHarmfulState,
+        CleanupStrategy,
+        create_and_track,
+        harmful,
+        harmful_context,
+    )
+except ImportError:
+    Entity = None
+    EntityType = None
+    HarmfulStateTracker = None
+    TestDataTracker = None
+    TestHarmfulState = None
+    CleanupStrategy = None
+    create_and_track = None
+    harmful = None
+    harmful_context = None
+
+# Test modes framework
+try:
+    from .test_modes import (
+        ConditionalFixture,
+        TestMode,
+        TestModeConfig,
+        TestModeDetector,
+        TestModeManager,
+        TestModeValidator,
+        get_mode_manager,
+        get_test_mode,
+        get_test_mode_config,
+        set_test_mode,
+    )
+except ImportError:
+    ConditionalFixture = None
+    TestMode = None
+    TestModeConfig = None
+    TestModeDetector = None
+    TestModeManager = None
+    TestModeValidator = None
+    get_mode_manager = None
+    get_test_mode = None
+    get_test_mode_config = None
+    set_test_mode = None
+
+# Test mode conditional fixtures
+try:
+    from .fixtures import (
+        conditional_auth_manager,
+        conditional_database,
+        conditional_event_loop,
+        conditional_http_client,
+        conditional_mcp_client,
+        conditional_temp_directory,
+        create_mock_mcp_client,
+        create_real_mcp_client,
+        create_simulated_mcp_client,
+    )
+except ImportError:
+    conditional_auth_manager = None
+    conditional_database = None
+    conditional_event_loop = None
+    conditional_http_client = None
+    conditional_mcp_client = None
+    conditional_temp_directory = None
+    create_mock_mcp_client = None
+    create_real_mcp_client = None
+    create_simulated_mcp_client = None
+
+# Cascade flow patterns for test dependency ordering
+try:
+    from .dependencies import (
+        FlowPattern,
+        FlowTestGenerator,
+        FlowVisualizer,
+        TestResult,
+        TestResultRegistry,
+        cascade_flow,
+        depends_on,
+        flow_stage,
+        get_result_registry,
+        store_result,
+        test_results,
+    )
+except ImportError:
+    FlowPattern = None
+    FlowTestGenerator = None
+    FlowVisualizer = None
+    TestResult = None
+    TestResultRegistry = None
+    cascade_flow = None
+    depends_on = None
+    flow_stage = None
+    get_result_registry = None
+    store_result = None
+    test_results = None
+
 try:
     from .file_watcher import SmartReloadManager, TestFileWatcher
 except ImportError:
@@ -327,4 +433,52 @@ __all__ = [
 
     # ========== TUI ==========
     "run_tui_dashboard",
+
+    # ========== Phase 2 Test Infrastructure (NEW!) ==========
+    # @harmful decorator for automatic test state tracking
+    "harmful",
+    "harmful_context",
+    "create_and_track",
+    "HarmfulStateTracker",
+    "TestHarmfulState",
+    "Entity",
+    "EntityType",
+    "CleanupStrategy",
+    "TestDataTracker",
+
+    # Test modes framework
+    "TestMode",
+    "TestModeConfig",
+    "TestModeDetector",
+    "TestModeValidator",
+    "TestModeManager",
+    "ConditionalFixture",
+    "get_mode_manager",
+    "set_test_mode",
+    "get_test_mode",
+    "get_test_mode_config",
+
+    # Test mode conditional fixtures
+    "conditional_mcp_client",
+    "conditional_http_client",
+    "conditional_database",
+    "conditional_auth_manager",
+    "conditional_temp_directory",
+    "conditional_event_loop",
+    "create_real_mcp_client",
+    "create_mock_mcp_client",
+    "create_simulated_mcp_client",
+
+    # Cascade flow patterns for test dependency ordering
+    "FlowPattern",
+    "TestResult",
+    "TestResultRegistry",
+    "depends_on",
+    "flow_stage",
+    "cascade_flow",
+    "FlowVisualizer",
+    "FlowTestGenerator",
+    "get_result_registry",
+    "test_results",
+    "store_result",
 ]

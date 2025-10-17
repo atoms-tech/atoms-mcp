@@ -14,12 +14,13 @@ Pythonic Patterns Applied:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
 from fastmcp import FastMCP
 
 from utils.logging_setup import get_logger
+
+from config.settings import AppSettings, get_settings
 
 from .auth import RateLimiter
 from .env import get_fastmcp_vars, load_env_files
@@ -39,6 +40,7 @@ class ServerConfig:
         name: Server name
         base_url: Base URL for the server
         authkit_domain: AuthKit domain for OAuth
+        authkit_required_scopes: Optional OAuth scopes for AuthKit
         rate_limit_rpm: Rate limit in requests per minute
         transport: Transport type (stdio or http)
         host: Host for HTTP transport
@@ -48,6 +50,7 @@ class ServerConfig:
     name: str = "atoms-fastmcp-consolidated"
     base_url: str | None = None
     authkit_domain: str | None = None
+    authkit_required_scopes: tuple[str, ...] = ()
     rate_limit_rpm: int = 120
     transport: str = "stdio"
     host: str = "127.0.0.1"
@@ -65,60 +68,19 @@ class ServerConfig:
             >>> config = ServerConfig.from_env()
             >>> print(config.base_url)
         """
-        return cls(
-            base_url=cls._resolve_base_url(),
-            authkit_domain=os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN"),
-            rate_limit_rpm=int(os.getenv("MCP_RATE_LIMIT_RPM", "120")),
-            transport=os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio"),
-            host=os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1"),
-            port=int(os.getenv("ATOMS_FASTMCP_PORT", "8000")),
-            http_path=os.getenv("ATOMS_FASTMCP_HTTP_PATH", "/api/mcp"),
-        )
+        settings = get_settings()
+        return cls.from_settings(settings)
 
-    @staticmethod
-    def _resolve_base_url() -> str | None:
-        """Resolve base URL from environment variables.
+    @classmethod
+    def from_settings(cls, settings: AppSettings | None = None) -> ServerConfig:
+        """Create configuration from an AppSettings instance."""
+        if settings is None:
+            settings = get_settings()
 
-        Returns:
-            Resolved base URL or None
-        """
-        # Try explicit base URL first
-        base_url = os.getenv("ATOMS_FASTMCP_BASE_URL")
-        if base_url:
-            return base_url
+        # Convert settings to server kwargs
+        kwargs = settings.to_server_kwargs()
 
-        # Try public base URL
-        public_base_url = (
-            os.getenv("ATOMS_FASTMCP_PUBLIC_BASE_URL")
-            or os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
-            or os.getenv("PUBLIC_URL")
-        )
-
-        if public_base_url:
-            cleaned = public_base_url.rstrip("/")
-            # Remove common suffixes
-            for suffix in ("/api/mcp", "/mcp"):
-                if cleaned.endswith(suffix):
-                    cleaned = cleaned[:-len(suffix)]
-            return cleaned
-
-        # Try Vercel URL
-        vercel_url = os.getenv("VERCEL_URL")
-        if vercel_url:
-            guess = f"https://{vercel_url}".rstrip("/")
-            if guess.endswith("/api/mcp"):
-                guess = guess[:-len("/api/mcp")]
-            logger.info(f"Using VERCEL_URL for base URL: {guess}")
-            return guess
-
-        # Construct from host/port if HTTP transport
-        transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
-        if transport == "http":
-            host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
-            port = os.getenv("ATOMS_FASTMCP_PORT", "8000")
-            return f"http://{host}:{port}"
-
-        return None
+        return cls(**kwargs)
 
 
 def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
@@ -168,7 +130,7 @@ def _create_auth_provider(config: ServerConfig):
     auth_provider = PersistentAuthKitProvider(
         authkit_domain=config.authkit_domain,
         base_url=config.base_url,
-        required_scopes=None,  # Accept any AuthKit token
+        required_scopes=list(config.authkit_required_scopes) or None,
     )
 
     logger.info(f"✅ PersistentAuthKitProvider configured: {config.authkit_domain}")
@@ -346,4 +308,3 @@ __all__ = [
     "ServerConfig",
     "create_consolidated_server",
 ]
-

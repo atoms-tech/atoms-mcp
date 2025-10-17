@@ -1,43 +1,68 @@
-archive/
-.env*
-# Created by https://www.toptal.com/developers/gitignore/api/nextjs
-# Edit at https://www.toptal.com/developers/gitignore?templates=nextjs
-*.sql
-.env
-### NextJS ###
-# dependencies
+# ============================================================================
+# Python
+# ============================================================================
 __pycache__/
-/node_modules
-/.pnp
-.pnp.json
-/public
-/.history
-/reports/
-/memory/
-/.claude
-/.kwatch
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
 
-# testing
-/coverage
+# ============================================================================
+# Virtual Environments
+# ============================================================================
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
 
-# next.js
-/.next/
-/out/
+# ============================================================================
+# Testing & Coverage
+# ============================================================================
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.hypothesis/
+.pytest_cache/
+cover/
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# local env files
+# ============================================================================
+# Environment Files
+# ============================================================================
 .env
 .env.local
 .env*.local
@@ -51,56 +76,69 @@ yarn-error.log*
 .env.vertex
 .emv
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# End of https://www.toptal.com/developers/gitignore/api/nextjs
-
-.idea
-
-.cursorrules
+# ============================================================================
+# IDEs & Editors
+# ============================================================================
+.vscode/
+.idea/
+*.sublime-*
 .cursor/
+*.swp
+*.swo
+*~
+.#*
+.DS_Store
+Thumbs.db
 
-bun.lock
-
-.kiro
-.vscode
+# ============================================================================
+# Project Specific
+# ============================================================================
+archive/
+pheno_vendor/
+schemas/generated/
+lib-sdks/
 
 # Google Cloud credentials
 atoms-mcp-sa-key.json
 *-sa-key.json
 service-account*.json
+*.pem
 
-# Temporary and backup files
-*.tmp
-*.temp
-*.swp
-*.swo
-*~
-.#*
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.sql
 
 # Logs
 *.log
 logs/
 
-# IDE and editor files
-.vscode/
-.idea/
-*.sublime-*
-.cursor/
+# Temporary files
+*.tmp
+*.temp
+*.cache
 
-# OS files
-.DS_Store
-Thumbs.db
+# Reports & Metrics
+/reports/
+/memory/
+/.claude
+/.kwatch
+/.history
 
-# Build artifacts
-dist/
-build/
-.cache/
+# Next.js (if any)
+/node_modules
+/.pnp
+.pnp.json
+/public
+/.next/
+/out/
+*.tsbuildinfo
+next-env.d.ts
+bun.lock
+
+# Vercel
+.vercel
 
 # Documentation backups (keep only primary docs)
 *_BACKUP.md
@@ -113,5 +151,11 @@ KINFRA_COMPLETE.md
 KINFRA_CONFIGURATION.md
 KINFRA_SETUP_COMPLETE.md
 KINFRA_WRAPPER_COMPLETE.md
-.env.preview
-.env.production
+
+# Other
+.kiro
+.cursorrules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

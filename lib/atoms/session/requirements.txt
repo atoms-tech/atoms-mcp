@@ -1,0 +1,11 @@
+# Core dependencies
+httpx>=0.24.0
+
+# Optional storage backends
+upstash-redis>=0.15.0  # For Vercel KV
+redis>=5.0.0  # For Redis
+
+# Development dependencies
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0

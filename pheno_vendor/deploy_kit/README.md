@@ -156,7 +156,7 @@ WORKDIR /app
 RUN pip install pheno-vendor
 COPY . /app/
 RUN pheno-vendor setup --no-validate
-RUN pip install -r requirements-prod.txt
+RUN uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 ENV PYTHONPATH=/app/pheno_vendor
 CMD ["python", "server.py"]
@@ -350,7 +350,7 @@ docker run myapp
 ```bash
 # Vendor and package
 pheno-vendor setup
-pip install -r requirements-prod.txt -t package/
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt -t package/
 cd package && zip -r ../deployment.zip .
 ```
 

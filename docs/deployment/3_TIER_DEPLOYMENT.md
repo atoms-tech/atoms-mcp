@@ -313,7 +313,7 @@ nslookup atomcp.kooshapari.com
 
 ### Per Developer
 - [ ] Clone repository
-- [ ] Install dependencies: `pip install -r requirements.txt`
+- [ ] Install dependencies: `uv sync`
 - [ ] Copy `.env.example` to `.env` and configure
 - [ ] Run: `python start_server.py`
 - [ ] Verify: OAuth works locally

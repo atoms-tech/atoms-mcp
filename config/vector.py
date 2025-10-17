@@ -14,16 +14,34 @@ _vector_kit_path = _repo_root / "pheno-sdk" / "vector-kit"
 if _vector_kit_path.exists():
     sys.path.insert(0, str(_vector_kit_path))
 
-# Import from pheno-sdk/vector-kit
-from vector_kit.pipelines.progressive import ProgressiveEmbeddingService  # noqa: E402
-from vector_kit.providers.factory import (  # noqa: E402
-    get_embedding_service as _get_embedding_service,
-)
-from vector_kit.search.enhanced import EnhancedVectorSearchService  # noqa: E402
-from vector_kit.search.vector_search import VectorSearchService  # noqa: E402
+# Import from pheno-sdk/vector-kit with fallback
+try:
+    from vector_kit.pipelines.progressive import ProgressiveEmbeddingService  # noqa: E402
+except ImportError:
+    ProgressiveEmbeddingService = None
+
+try:
+    from vector_kit.providers.factory import (  # noqa: E402
+        get_embedding_service as _get_embedding_service,
+    )
+except ImportError:
+    _get_embedding_service = None
+
+try:
+    from vector_kit.search.enhanced import EnhancedVectorSearchService  # noqa: E402
+except ImportError:
+    EnhancedVectorSearchService = None
+
+try:
+    from vector_kit.search.vector_search import VectorSearchService  # noqa: E402
+except ImportError:
+    VectorSearchService = None
 
 # Import Supabase client
-from supabase_client import get_supabase  # noqa: E402
+try:
+    from supabase_client import get_supabase  # noqa: E402
+except ImportError:
+    get_supabase = None
 
 # Singleton instances
 _embedding_service = None

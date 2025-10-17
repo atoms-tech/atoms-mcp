@@ -21,12 +21,11 @@ help: ## Show this help message
 
 install: ## Install production dependencies
 	@echo "$(BLUE)Installing production dependencies...$(NC)"
-	pip install -r requirements.txt
+	uv sync --frozen
 
 dev-install: ## Install development dependencies
 	@echo "$(BLUE)Installing development dependencies...$(NC)"
-	pip install -r requirements.txt
-	pip install -e ".[dev]"
+	uv sync --frozen --group dev
 	@echo "$(GREEN)✓ Development dependencies installed$(NC)"
 
 setup: dev-install pre-commit-install ## Complete development setup
@@ -48,9 +47,9 @@ format: ## Format code (ruff + black)
 	isort .
 	@echo "$(GREEN)✓ Formatting complete$(NC)"
 
-type-check: ## Run type checking (mypy)
+type-check: ## Run type checking (zuban)
 	@echo "$(BLUE)Running type checker...$(NC)"
-	mypy lib/ tools/ schemas/ server/ auth/ utils/ --explicit-package-bases --exclude '(pheno_vendor|archive|schemas/generated)'
+	uv run zuban mypy .
 	@echo "$(GREEN)✓ Type checking complete$(NC)"
 
 check: lint type-check ## Run all checks (lint + type-check)
@@ -218,6 +217,7 @@ clean: ## Clean build artifacts
 	rm -rf *.egg-info
 	rm -rf .pytest_cache/
 	rm -rf .mypy_cache/
+	rm -rf .zuban_cache/
 	rm -rf .ruff_cache/
 	rm -rf htmlcov/
 	rm -rf .coverage
@@ -273,6 +273,5 @@ version: ## Show version information
 	@echo "$(BLUE)Installed Tools:$(NC)"
 	@ruff --version || echo "ruff: not installed"
 	@black --version || echo "black: not installed"
-	@mypy --version || echo "mypy: not installed"
+	@zuban --version || echo "zuban: not installed"
 	@pytest --version || echo "pytest: not installed"
-

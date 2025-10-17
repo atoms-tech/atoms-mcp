@@ -123,7 +123,7 @@ python app.py
 
 **Solution**:
 ```bash
-pip install -r requirements-dev.txt
+uv sync --group dev
 ```
 
 This installs:
@@ -194,7 +194,7 @@ Fixed:
 
 1. **Install Dev Dependencies**:
    ```bash
-   pip install -r requirements-dev.txt
+   uv sync --group dev
    ```
 
 2. **Run Tests**:

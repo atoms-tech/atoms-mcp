@@ -100,7 +100,7 @@ python app.py
 To run tests, you need to install dev dependencies:
 
 ```bash
-pip install -r requirements-dev.txt
+uv sync --group dev
 ```
 
 This installs:
@@ -196,7 +196,7 @@ Fixed:
 - [x] Pytest plugin conflict resolved
 
 ### ⏭️ Pending
-- [ ] Install dev dependencies (`pip install -r requirements-dev.txt`)
+- [ ] Install dev dependencies (`uv sync --group dev`)
 - [ ] Deploy to Vercel (`vercel --prod --yes`)
 - [ ] Test health endpoint
 - [ ] Run tests to verify schema fix

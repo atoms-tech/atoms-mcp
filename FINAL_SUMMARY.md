@@ -172,7 +172,7 @@ Fixed:
 
 1. **Install dev dependencies**:
    ```bash
-   pip install -r requirements-dev.txt
+   uv sync --group dev
    ```
 
 2. **Run tests locally** (without OAuth):

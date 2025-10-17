@@ -19,6 +19,7 @@ from .infrastructure import (
     get_storage_adapter,
 )
 from .session import get_session_manager
+from .settings import AppSettings, get_settings, reset_settings_cache
 from .vector import (
     get_embedding_service,
     get_enhanced_vector_search_service,
@@ -42,5 +43,8 @@ __all__ = [
     "get_vector_search_service",
     "get_enhanced_vector_search_service",
     "get_progressive_embedding_service",
+    # Settings
+    "AppSettings",
+    "get_settings",
+    "reset_settings_cache",
 ]
-

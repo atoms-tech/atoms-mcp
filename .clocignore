@@ -1,0 +1,50 @@
+# ============================================================================
+# CLOC (Count Lines of Code) - Ignore Patterns
+# ============================================================================
+
+# Third-party code
+pheno_vendor
+lib-sdks
+node_modules
+
+# Generated code
+schemas/generated
+
+# Archives
+archive
+
+# Virtual environments
+.venv
+venv
+env
+
+# Build artifacts
+build
+dist
+*.egg-info
+
+# Tests (optional - comment out to include test LOC)
+# tests
+# test_*.py
+
+# Cache directories
+__pycache__
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Documentation
+*.md
+docs
+
+# Config files (already small)
+*.yaml
+*.yml
+*.toml
+*.ini
+*.cfg
+
+# IDE
+.vscode
+.idea
+.cursor

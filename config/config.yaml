@@ -1,0 +1,142 @@
+# ============================================================================
+# Atoms MCP Default Configuration
+# ============================================================================
+# This file provides baseline configuration values that can be overridden by
+# environment variables, .env files, or programmatic inputs.
+# Set ATOMS_SETTINGS_FILE to point at an alternate YAML, if desired.
+
+# Server Configuration
+server:
+  name: "atoms-fastmcp-consolidated"
+  transport: "http"
+  host: "127.0.0.1"
+  port: 8000
+  http_path: "/api/mcp"
+  base_url: null
+  public_base_url: null
+  vercel_url: null
+  reload_server: false
+  http_auth_mode: "required"
+  environment: "production"
+
+# KINFRA Configuration
+kinfra:
+  enabled: true
+  project_name: "atoms-mcp"
+  preferred_port: 8100
+  enable_tunnel: false
+  enable_fallback: false
+  config_dir: null
+
+# FastMCP Configuration
+fastmcp:
+  rate_limit_rpm: 120
+  max_concurrent_requests: 10
+  request_timeout_seconds: 30
+  enable_compression: true
+  enable_cors: true
+
+# Authentication & Authorization
+auth:
+  authkit:
+    domain: "https://decent-hymn-17-staging.authkit.app"
+    base_url: "https://atomcp.kooshapari.com"
+    required_scopes:
+      - "openid"
+      - "profile"
+      - "email"
+  workos:
+    api_url: "https://api.workos.com"
+    api_key: null  # Set via WORKOS_API_KEY env var
+    client_id: null  # Set via WORKOS_CLIENT_ID env var
+
+# Database Configuration
+database:
+  supabase:
+    url: "https://ydogoylwenufckscqijp.supabase.co"
+    service_role_key: null  # Set via SUPABASE_SERVICE_ROLE_KEY env var
+    anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlkb2dveWx3ZW51ZmNrc2NxaWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MzUxNjYsImV4cCI6MjA1MjMxMTE2Nn0.Oy0K0aalki4e4b5h8caHYdWxZVKB6IWDDYQ3zvCUu4Y"
+    project_id: null
+    db_password: null  # Set via SUPABASE_DB_PASSWORD env var
+    pool_size: 5
+    max_overflow: 10
+    pool_timeout: 30
+
+# API Keys & Secrets
+api_keys:
+  claude_provider: "vertex"
+  anthropic_api_key: null  # Set via ANTHROPIC_API_KEY env var
+  google_cloud:
+    project: "serious-mile-462615-a2"
+    location: "us-central1"
+    credentials_path: null  # Set via GOOGLE_APPLICATION_CREDENTIALS env var
+  vertex:
+    embeddings_model: "text-embedding-004"
+    chat_model: "gemini-1.5-pro"
+
+# Feature Flags
+features:
+  enable_rag: true
+  enable_vector_search: true
+  enable_workspace_context: true
+  enable_entity_resolver: true
+  enable_relationship_graph: true
+  enable_workflow_execution: true
+  enable_session_persistence: true
+  enable_metrics: true
+  enable_tracing: false
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "text"
+  output: "stdout"
+  file_path: null
+  enable_rotation: false
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+  log_sql_queries: false
+  log_api_requests: true
+
+# Performance & Caching
+performance:
+  enable_query_cache: true
+  cache_ttl_seconds: 300
+  max_cache_size_mb: 100
+  enable_connection_pooling: true
+  enable_request_batching: false
+
+# Observability
+observability:
+  enable_health_checks: true
+  enable_readiness_checks: true
+  enable_liveness_checks: true
+  health_check_interval_seconds: 30
+  metrics_port: 9090
+  tracing_endpoint: null
+  tracing_sample_rate: 0.1
+
+# Security
+security:
+  enable_rate_limiting: true
+  enable_request_validation: true
+  enable_response_validation: true
+  max_request_size_mb: 10
+  allowed_origins:
+    - "https://atomcp.kooshapari.com"
+    - "https://devmcp.atoms.tech"
+    - "https://mcp.atoms.tech"
+    - "http://localhost:*"
+  enable_csrf_protection: false
+  session_secret_key: null  # Set via SESSION_SECRET_KEY env var
+  jwt_secret_key: null  # Set via JWT_SECRET_KEY env var
+  jwt_algorithm: "HS256"
+  jwt_expiry_minutes: 60
+
+# Development
+development:
+  debug: false
+  hot_reload: false
+  profile: false
+  mock_external_apis: false
+  seed_test_data: false

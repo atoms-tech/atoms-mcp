@@ -1,0 +1,105 @@
+# ============================================================================
+# Docker Build Optimization - Exclude from Build Context
+# ============================================================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+*.cover
+coverage.xml
+nosetests.xml
+
+# IDEs
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Development files
+.env
+.env.*
+*.log
+*.tmp
+*.temp
+
+# Documentation
+*.md
+!README.md
+docs/
+.github/
+
+# Testing
+tests/
+test_*.py
+
+# Archives
+archive/
+pheno_vendor/
+lib-sdks/
+
+# Reports
+reports/
+memory/
+.claude/
+.kwatch/
+
+# Cache
+.cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+
+# Vercel
+.vercel/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Project specific
+schemas/generated/
+*.db
+*.sqlite
+*.sql
+*-sa-key.json
+service-account*.json
+*.pem

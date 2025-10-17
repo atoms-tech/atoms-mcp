@@ -1,0 +1,31 @@
+# ============================================================================
+# Pylint - Ignore Patterns
+# ============================================================================
+
+# Vendored packages
+pheno_vendor/
+
+# SDK libraries
+lib-sdks/
+
+# Generated schemas
+schemas/generated/
+
+# Archives
+archive/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Cache
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

@@ -1,0 +1,174 @@
+# KINFRA Configuration for Atoms MCP Server
+# ==========================================
+# This file configures the KINFRA infrastructure management system
+# for the Atoms MCP server, providing port allocation and service management.
+
+# Service Configuration
+service:
+  # Service identifier - used for port registry and logging
+  name: "atoms-mcp"
+
+  # Display name for logs and UI
+  display_name: "Atoms MCP Server"
+
+  # Service description
+  description: "Model Context Protocol server for Atoms workspace management"
+
+# Port Configuration
+port:
+  # Preferred port number
+  # KINFRA will attempt to allocate this port first
+  preferred: 8100
+
+  # Port range for fallback allocation if preferred port is unavailable
+  # Format: [min, max]
+  range: [8100, 8199]
+
+  # Whether to kill existing processes on the preferred port
+  # Set to true for development, false for production
+  kill_existing: false
+
+# Tunnel Configuration
+tunnel:
+  # Enable/disable Cloudflare tunnel
+  # Set to false for local-only operation
+  enabled: false
+
+  # Domain for tunnel (only used if enabled)
+  domain: "kooshapari.com"
+
+  # Custom subdomain (optional)
+  # If not set, uses service name as subdomain
+  subdomain: null
+
+  # Tunnel protocol
+  protocol: "https"
+
+# Health Check Configuration
+health:
+  # Enable health checks
+  enabled: true
+
+  # Health check endpoint path
+  endpoint: "/health"
+
+  # Health check interval in seconds
+  interval: 30
+
+  # Health check timeout in seconds
+  timeout: 5
+
+  # Expected HTTP status code for healthy service
+  expected_status: 200
+
+# Fallback Server Configuration
+fallback:
+  # Enable fallback server (for graceful degradation)
+  # Set to false for stdio/simple HTTP servers
+  enabled: false
+
+  # Fallback server port
+  port: 9000
+
+  # Fallback page type: "loading", "503", "maintenance"
+  page_type: "loading"
+
+  # Auto-refresh interval in seconds
+  refresh_interval: 5
+
+# Resource Management
+resources:
+  # Enable automatic resource management (Docker, systemd, etc.)
+  enabled: false
+
+  # Resource dependencies (databases, caches, etc.)
+  dependencies: []
+
+# Logging Configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+
+  # Enable colored output
+  colored: true
+
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log file path (optional)
+  # If not set, logs only to console
+  file: null
+
+# Cleanup Configuration
+cleanup:
+  # Grace period in seconds before forceful shutdown
+  grace_period: 3.0
+
+  # Whether to force kill processes if graceful shutdown fails
+  force_kill: true
+
+  # PIDs to exclude from cleanup (comma-separated)
+  exclude_pids: []
+
+# Advanced Configuration
+advanced:
+  # Config directory for KINFRA state
+  # Default: ~/.kinfra
+  config_dir: null
+
+  # Enable debug mode
+  debug: false
+
+  # Enable verbose output
+  verbose: false
+
+  # Max retry attempts for port allocation
+  max_retries: 3
+
+  # Retry delay in seconds
+  retry_delay: 1.0
+
+# Environment-Specific Overrides
+# These settings override the defaults based on the environment
+environments:
+  development:
+    port:
+      kill_existing: true
+    logging:
+      level: "DEBUG"
+      colored: true
+    advanced:
+      debug: true
+      verbose: true
+
+  staging:
+    port:
+      kill_existing: false
+    logging:
+      level: "INFO"
+      colored: true
+    tunnel:
+      enabled: false
+
+  production:
+    port:
+      kill_existing: false
+      preferred: 8100
+    logging:
+      level: "WARNING"
+      colored: false
+      file: "/var/log/atoms-mcp/kinfra.log"
+    health:
+      interval: 60
+    tunnel:
+      enabled: false
+    cleanup:
+      grace_period: 5.0
+
+# Notes:
+# ------
+# 1. This configuration is loaded by kinfra_setup.py
+# 2. Environment-specific overrides are applied based on the ENVIRONMENT variable
+# 3. All paths are relative to the project root unless absolute
+# 4. Tunnel is disabled by default for local-only operation
+# 5. Port 8100 is the preferred port for Atoms MCP server

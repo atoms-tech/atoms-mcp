@@ -159,7 +159,7 @@ echo "Vendoring pheno-sdk packages..."
 pheno-vendor setup --no-validate
 
 echo "Installing production dependencies..."
-pip install -r requirements-prod.txt
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 echo "Vercel build complete!"
 """
@@ -218,7 +218,7 @@ pheno-vendor setup --project-root "$(pwd)/../.." --no-validate
 cd ../..
 
 echo "Installing production dependencies..."
-pip install -r requirements-prod.txt -t "$PACKAGE_DIR"
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt -t "$PACKAGE_DIR"
 
 echo "Copying application code..."
 cp -r !(lambda_build) "$PACKAGE_DIR/"
@@ -245,7 +245,7 @@ echo "Vendoring pheno-sdk packages..."
 pheno-vendor setup --no-validate
 
 echo "Installing production dependencies..."
-pip install -r requirements-prod.txt
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 echo "Railway build complete!"
 """
@@ -265,7 +265,7 @@ echo "Vendoring pheno-sdk packages..."
 pheno-vendor setup --no-validate
 
 echo "Installing production dependencies..."
-pip install -r requirements-prod.txt
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 echo "Heroku build complete!"
 """
@@ -286,7 +286,7 @@ COPY . /app/
 RUN pheno-vendor setup --no-validate
 
 # Install dependencies
-RUN pip install -r requirements-prod.txt
+RUN uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 # Set Python path
 ENV PYTHONPATH=/app/pheno_vendor
@@ -308,7 +308,7 @@ echo "Vendoring pheno-sdk packages..."
 pheno-vendor setup --no-validate
 
 echo "Installing production dependencies..."
-pip install -r requirements-prod.txt
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 echo "Building for Cloudflare Workers..."
 # Additional Cloudflare-specific build steps here
@@ -331,7 +331,7 @@ echo "Vendoring pheno-sdk packages..."
 pheno-vendor setup --no-validate
 
 echo "Installing production dependencies..."
-pip install -r requirements-prod.txt
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 echo "Build complete!"
 """

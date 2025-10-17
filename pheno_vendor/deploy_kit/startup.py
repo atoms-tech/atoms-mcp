@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from deploy_kit.checks import VendorChecker
+from .checks import VendorChecker
 
 
 def should_skip_vendor_check() -> bool:

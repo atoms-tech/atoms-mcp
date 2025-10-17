@@ -100,7 +100,7 @@ result = asyncio.run(test())
 To run tests, you still need to install dev dependencies:
 
 ```bash
-pip install -r requirements-dev.txt
+uv sync --group dev
 ```
 
 This will install the full `mcp_qa` package which includes:

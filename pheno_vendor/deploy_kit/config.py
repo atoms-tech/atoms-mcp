@@ -201,7 +201,7 @@ CMD ["python", "{self.entry_point or 'server.py'}"]
         config = {
             "build": {
                 "builder": "nixpacks",
-                "buildCommand": "pip install -r requirements-prod.txt",
+                "buildCommand": "uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt",
             },
             "deploy": {
                 "startCommand": f"python {self.entry_point or 'server.py'}",
@@ -232,7 +232,7 @@ python -m deploy_kit.vendor vendor
 
 # Install production dependencies
 echo "Installing dependencies..."
-pip install -r requirements-prod.txt
+uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
 # Run tests (optional)
 if [ -d "tests" ]; then

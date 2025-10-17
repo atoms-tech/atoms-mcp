@@ -103,8 +103,8 @@ async def workflow_client(authenticated_client: AuthenticatedHTTPClient) -> Tool
 
 @pytest.fixture
 async def query_client(authenticated_client: AuthenticatedHTTPClient) -> ToolClient:
-    """Client specifically for data_query tool."""
-    return ToolClient(authenticated_client, "data_query")
+    """Client specifically for query_tool."""
+    return ToolClient(authenticated_client, "query_tool")
 
 
 @pytest.fixture

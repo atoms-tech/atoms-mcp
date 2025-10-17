@@ -31,7 +31,7 @@ echo "SUPABASE_PROJECT_ID=$SUPABASE_PROJECT_ID" >> .env
 ## Step 2: Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ## Step 3: Run Your First Schema Check

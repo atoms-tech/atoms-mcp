@@ -1,0 +1,135 @@
+# ============================================================================
+# Atoms MCP Settings Schema
+# ============================================================================
+# This file defines the complete schema for all application settings using
+# Pydantic model-compatible YAML structure. It serves as both documentation
+# and validation reference.
+
+# Server Configuration
+server:
+  name: str  # Server name identifier
+  transport: str  # Transport type: stdio, http, or sse
+  host: str  # Host address for HTTP transport
+  port: int  # Port number (1-65535)
+  http_path: str  # HTTP endpoint path
+  base_url: Optional[str]  # Base URL for the server
+  public_base_url: Optional[str]  # Public-facing base URL
+  vercel_url: Optional[str]  # Vercel deployment URL
+  reload_server: bool  # Enable auto-reload in development
+  http_auth_mode: str  # Authentication mode: optional or required
+  environment: str  # Deployment environment: local, dev, staging, production
+
+# KINFRA Configuration
+kinfra:
+  enabled: bool  # Enable KINFRA integration
+  project_name: str  # Service name for KINFRA
+  preferred_port: int  # Preferred port for allocation
+  enable_tunnel: bool  # Enable CloudFlare tunnel
+  enable_fallback: bool  # Enable fallback pages
+  config_dir: Optional[str]  # Custom config directory path
+
+# FastMCP Configuration
+fastmcp:
+  rate_limit_rpm: int  # Rate limit in requests per minute
+  max_concurrent_requests: int  # Maximum concurrent requests
+  request_timeout_seconds: int  # Request timeout in seconds
+  enable_compression: bool  # Enable response compression
+  enable_cors: bool  # Enable CORS headers
+
+# Authentication & Authorization
+auth:
+  authkit:
+    domain: Optional[str]  # AuthKit domain URL
+    base_url: Optional[str]  # Base URL for OAuth callbacks
+    required_scopes: List[str]  # Required OAuth scopes
+  workos:
+    api_url: str  # WorkOS API endpoint
+    api_key: Optional[str]  # WorkOS API key (secret)
+    client_id: Optional[str]  # WorkOS OAuth client ID
+
+# Database Configuration
+database:
+  supabase:
+    url: Optional[str]  # Supabase project URL
+    service_role_key: Optional[str]  # Service role key (secret)
+    anon_key: Optional[str]  # Anonymous key
+    project_id: Optional[str]  # Project identifier
+    db_password: Optional[str]  # Database password (secret)
+    pool_size: int  # Connection pool size
+    max_overflow: int  # Max overflow connections
+    pool_timeout: int  # Pool timeout in seconds
+
+# API Keys & Secrets
+api_keys:
+  claude_provider: Optional[str]  # Claude API provider: anthropic, vertex, bedrock
+  anthropic_api_key: Optional[str]  # Anthropic API key (secret)
+  google_cloud:
+    project: Optional[str]  # GCP project ID
+    location: Optional[str]  # GCP region/location
+    credentials_path: Optional[str]  # Path to service account JSON
+  vertex:
+    embeddings_model: Optional[str]  # Vertex embeddings model name
+    chat_model: Optional[str]  # Vertex chat model name
+
+# Feature Flags
+features:
+  enable_rag: bool  # Enable RAG search functionality
+  enable_vector_search: bool  # Enable vector similarity search
+  enable_workspace_context: bool  # Enable workspace context management
+  enable_entity_resolver: bool  # Enable entity resolution
+  enable_relationship_graph: bool  # Enable relationship graph
+  enable_workflow_execution: bool  # Enable workflow engine
+  enable_session_persistence: bool  # Enable session state persistence
+  enable_metrics: bool  # Enable metrics collection
+  enable_tracing: bool  # Enable distributed tracing
+
+# Logging Configuration
+logging:
+  level: str  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: str  # Log format: json, text, pretty
+  output: str  # Log output: stdout, stderr, file
+  file_path: Optional[str]  # Log file path (if output=file)
+  enable_rotation: bool  # Enable log rotation
+  max_bytes: int  # Max log file size before rotation
+  backup_count: int  # Number of backup log files to keep
+  log_sql_queries: bool  # Log SQL queries
+  log_api_requests: bool  # Log API requests
+
+# Performance & Caching
+performance:
+  enable_query_cache: bool  # Enable query result caching
+  cache_ttl_seconds: int  # Cache TTL in seconds
+  max_cache_size_mb: int  # Maximum cache size in MB
+  enable_connection_pooling: bool  # Enable database connection pooling
+  enable_request_batching: bool  # Enable request batching
+
+# Observability
+observability:
+  enable_health_checks: bool  # Enable health check endpoints
+  enable_readiness_checks: bool  # Enable readiness probes
+  enable_liveness_checks: bool  # Enable liveness probes
+  health_check_interval_seconds: int  # Health check interval
+  metrics_port: int  # Prometheus metrics port
+  tracing_endpoint: Optional[str]  # OpenTelemetry collector endpoint
+  tracing_sample_rate: float  # Trace sampling rate (0.0-1.0)
+
+# Security
+security:
+  enable_rate_limiting: bool  # Enable rate limiting
+  enable_request_validation: bool  # Enable request validation
+  enable_response_validation: bool  # Enable response validation
+  max_request_size_mb: int  # Maximum request body size
+  allowed_origins: List[str]  # CORS allowed origins
+  enable_csrf_protection: bool  # Enable CSRF protection
+  session_secret_key: Optional[str]  # Session encryption key (secret)
+  jwt_secret_key: Optional[str]  # JWT signing key (secret)
+  jwt_algorithm: str  # JWT algorithm: HS256, RS256, etc.
+  jwt_expiry_minutes: int  # JWT expiration time
+
+# Development
+development:
+  debug: bool  # Enable debug mode
+  hot_reload: bool  # Enable hot reload
+  profile: bool  # Enable profiling
+  mock_external_apis: bool  # Mock external API calls
+  seed_test_data: bool  # Seed database with test data

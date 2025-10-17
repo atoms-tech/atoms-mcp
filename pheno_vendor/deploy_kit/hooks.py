@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Optional, List
 
-from deploy_kit.checks import VendorChecker
+from .checks import VendorChecker
 
 
 def get_project_root() -> Path:

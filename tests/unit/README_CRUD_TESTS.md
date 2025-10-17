@@ -241,7 +241,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: uv sync
       - name: Run CRUD Tests
         run: pytest tests/unit/test_entity_crud_flow.py -v --tb=short
 ```

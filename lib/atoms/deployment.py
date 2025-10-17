@@ -7,15 +7,27 @@ This is the Atoms-specific layer that uses the platform-agnostic base classes fr
 from pathlib import Path
 
 # Import from pheno-sdk/deploy-kit
-from deploy_kit.base import (
-    DeploymentConfig,
-    DeploymentEnvironment,
-    DeploymentResult,
-)
-from deploy_kit.platforms import (
-    HTTPHealthCheckProvider,
-    VercelDeploymentProvider,
-)
+try:
+    # Try pheno-sdk if installed
+    from pheno.kits.deploy.cloud.types import (
+        DeploymentConfig,
+        DeploymentStatus,
+    )
+except ImportError:
+    try:
+        # Fall back to vendored version in atoms-mcp-prod
+        from pheno_vendor.deploy_kit.cloud.types import (
+            DeploymentConfig,
+            DeploymentStatus,
+        )
+    except ImportError as e:
+        raise ImportError(
+            "Could not import deployment types. "
+            "Make sure pheno-sdk is installed or pheno_vendor is available."
+        ) from e
+
+# Import local Atoms deployment types
+from lib import DeploymentEnvironment, DeploymentResult
 
 
 class AtomsDeploymentConfig:
@@ -65,7 +77,7 @@ class AtomsDeploymentConfig:
             env_file=env_file,
             domain=domain,
             build_command="bash build.sh",
-            install_command="pip install --upgrade pip && pip install -r requirements-prod.txt"
+            install_command="pip install --upgrade pip && pip install ."
         )
 
 
@@ -231,4 +243,3 @@ def deploy_atoms_to_vercel(
     result = deployer.deploy()
 
     return 0 if result.success else 1
-

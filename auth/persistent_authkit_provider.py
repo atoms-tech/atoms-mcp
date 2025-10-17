@@ -6,8 +6,6 @@ The pending_authentication_token from AuthKit contains the authenticated user.
 
 from __future__ import annotations
 
-import os
-
 import aiohttp
 from fastmcp.server.auth.providers.workos import AuthKitProvider
 from mcp_qa.utils import MetricsCollector, decode_jwt
@@ -15,6 +13,7 @@ from starlette.responses import JSONResponse, RedirectResponse
 from starlette.routing import Route
 
 from utils.logging_setup import get_logger
+from config import get_settings
 
 logger = get_logger(__name__)
 metrics = MetricsCollector()
@@ -87,8 +86,14 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     )
 
                 # Complete with AuthKit
-                workos_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").strip().rstrip("/")
-                workos_key = os.getenv("WORKOS_API_KEY", "").strip()
+                workos_settings = get_settings().workos
+                workos_url = str(workos_settings.api_url).rstrip("/")
+                workos_key_secret = workos_settings.api_key
+                workos_key = (
+                    workos_key_secret.get_secret_value().strip()
+                    if workos_key_secret
+                    else ""
+                )
 
                 if not workos_key:
                     logger.error("❌ WORKOS_API_KEY not set")

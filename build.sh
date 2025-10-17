@@ -16,17 +16,21 @@ echo "🔧 Preparing Vercel deployment..."
 if [ -n "$VERCEL" ]; then
     echo "📦 Detected Vercel environment"
 
-    # CRITICAL: Replace requirements.txt with requirements-prod.txt
-    # This removes editable installs like -e ../pheno-sdk/mcp-QA
-    if [ -f "requirements-prod.txt" ]; then
-        echo "✅ Replacing requirements.txt with requirements-prod.txt"
-        echo "   (This removes editable installs that don't work in Vercel)"
-        cp requirements-prod.txt requirements.txt
-    else
-        echo "❌ ERROR: requirements-prod.txt not found!"
-        echo "   Run './atoms vendor setup' locally to generate it"
+    # Ensure uv is available for exporting dependency manifests
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "⬇️  Installing uv (lightweight Python package manager)..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+    fi
+
+    if ! command -v uv >/dev/null 2>&1; then
+        echo "❌ ERROR: uv installation failed"
         exit 1
     fi
+
+    echo "✅ Exporting locked requirements for Vercel build"
+    uv export --no-dev --format requirements --no-hashes --frozen > requirements.txt
+    uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt
 
     # Verify vendored packages exist (should be committed to git)
     if [ ! -d "pheno_vendor" ]; then
@@ -75,4 +79,3 @@ else
 fi
 
 echo "✅ Build preparation complete"
-

@@ -1,0 +1,27 @@
+# ============================================================================
+# Vulture (Dead Code Detection) - Ignore Patterns
+# ============================================================================
+
+# Vendored packages
+pheno_vendor/
+
+# SDK libraries
+lib-sdks/
+
+# Archives
+archive/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tests (may have intentionally unused test fixtures)
+tests/
+
+# Generated schemas
+schemas/generated/
+
+# Cache
+__pycache__/
+.pytest_cache/
+.ruff_cache/

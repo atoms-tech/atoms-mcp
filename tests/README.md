@@ -401,7 +401,7 @@ pytest -n auto
 **Solution**:
 ```bash
 # Install test dependencies
-pip install -r requirements.txt
+uv sync
 
 # Verify installation
 python -c "import pytest; import pytest_asyncio; print('OK')"
@@ -562,7 +562,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
+        uv sync
 
     - name: Run unit tests
       run: |

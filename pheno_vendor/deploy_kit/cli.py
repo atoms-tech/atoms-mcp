@@ -13,11 +13,11 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from deploy_kit.vendor import PhenoVendor
-from deploy_kit.utils import PlatformDetector, BuildHookGenerator
-from deploy_kit.checks import check_freshness
-from deploy_kit.startup import check_vendor_on_startup
-from deploy_kit.install_hooks import (
+from .vendor import PhenoVendor
+from .utils import PlatformDetector, BuildHookGenerator
+from .checks import check_freshness
+from .startup import check_vendor_on_startup
+from .install_hooks import (
     install_pre_push_hook,
     uninstall_pre_push_hook,
     verify_hook_installation,
@@ -144,7 +144,7 @@ def setup(
             console.print("  1. Review vendored packages:")
             console.print(f"     [cyan]ls -la {vendor.vendor_dir}[/cyan]")
             console.print("  2. Test with production requirements:")
-            console.print("     [cyan]pip install -r requirements-prod.txt[/cyan]")
+            console.print("     [cyan]uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt[/cyan]")
             console.print("  3. Run tests:")
             console.print("     [cyan]pytest tests/[/cyan]")
             console.print("  4. Deploy:")

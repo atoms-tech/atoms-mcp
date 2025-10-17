@@ -257,7 +257,7 @@ fi
 # Example: .gitlab-ci.yml
 schema-check:
   script:
-    - pip install -r requirements.txt
+    - uv sync
     - python scripts/sync_schema.py --check
   only:
     - merge_requests

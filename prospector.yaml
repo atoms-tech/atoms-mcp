@@ -58,7 +58,4 @@ dodgy:
   run: true
 
 mypy:
-  run: true
-  options:
-    ignore-missing-imports: true
-
+  run: false

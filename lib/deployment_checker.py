@@ -207,18 +207,18 @@ def create_vercel_deployment_checks(project_root: Path | None = None) -> list[De
             fix_hint="Run: ./atoms vendor setup"
         ),
 
-        # Requirements
+        # Dependencies
         DeploymentCheck(
-            name="📄 Requirements: Production file exists",
-            check_fn=lambda: checker.check_file_exists("requirements-prod.txt", "requirements-prod.txt"),
+            name="📄 Dependencies: uv.lock exists",
+            check_fn=lambda: checker.check_file_exists("uv.lock", "uv.lock"),
             severity="error",
-            fix_hint="Run: ./atoms vendor setup"
+            fix_hint="Run: uv lock"
         ),
         DeploymentCheck(
-            name="📄 Requirements: No editable installs",
-            check_fn=lambda: checker.check_file_not_contains("requirements-prod.txt", r"^-e ", "no editable installs"),
+            name="📄 Dependencies: requirements-prod.txt exported",
+            check_fn=lambda: checker.check_file_exists("requirements-prod.txt", "requirements-prod.txt"),
             severity="error",
-            fix_hint="Run: ./atoms vendor setup"
+            fix_hint="Run: uv export --no-dev --format requirements --no-hashes --frozen > requirements-prod.txt"
         ),
 
         # Sitecustomize
@@ -285,7 +285,7 @@ def create_vercel_deployment_checks(project_root: Path | None = None) -> list[De
             name="📝 Git: requirements-prod.txt tracked",
             check_fn=lambda: checker.check_git_tracked("requirements-prod.txt", "requirements-prod.txt"),
             severity="error",
-            fix_hint="Run: git add requirements-prod.txt"
+            fix_hint="Run: git add uv.lock requirements-prod.txt"
         ),
         DeploymentCheck(
             name="📝 Git: sitecustomize.py tracked",
@@ -330,4 +330,3 @@ def main():
 if __name__ == "__main__":
     import sys
     sys.exit(main())
-

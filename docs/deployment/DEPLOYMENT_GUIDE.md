@@ -324,7 +324,7 @@ http://localhost:50002/login
 
 ```bash
 # 1. Install dependencies
-pip install -r requirements.txt
+uv sync
 
 # 2. Configure environment
 cp .env.example .env
@@ -717,7 +717,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          uv sync
           pip install pytest pytest-xdist pytest-cov
 
       - name: Run unit tests

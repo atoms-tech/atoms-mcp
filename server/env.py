@@ -2,7 +2,9 @@
 Environment configuration loading for MCP server.
 
 This module provides utilities for loading environment variables from
-.env and .env.local files with proper precedence and validation.
+.env and .env.local files with proper precedence and validation and
+keeps the `config.settings` cache in sync so Pydantic settings always
+reflect the latest values.
 
 Pythonic Patterns Applied:
 - Type hints throughout
@@ -21,6 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from utils.logging_setup import get_logger
+from config import reset_settings_cache
 
 logger = get_logger("atoms_fastmcp.env")
 
@@ -168,6 +171,9 @@ def load_env_files(config: EnvConfig | None = None) -> dict[str, str]:
 
     logger.info(f"Applied {applied_count} environment variables")
 
+    if applied_count:
+        reset_settings_cache()
+
     # Check required variables
     missing = config.required_vars - set(os.environ.keys())
     if missing:
@@ -267,4 +273,3 @@ __all__ = [
     "parse_env_file",
     "temporary_env",
 ]
-
