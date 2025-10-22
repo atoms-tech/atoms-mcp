@@ -101,7 +101,7 @@ class EntityHierarchyBuilder:
 
     def __init__(self, call_mcp: Callable):
         self.call_mcp = call_mcp
-        self.created_entities = {
+        self.created_entities: dict[str, list[str]] = {
             "organizations": [],
             "projects": [],
             "documents": [],

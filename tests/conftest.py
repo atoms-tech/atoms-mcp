@@ -24,12 +24,12 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv()
 load_dotenv(".env.local", override=True)
 
-# Import endpoint configuration from centralized mcp_qa library
-from mcp_qa.config.endpoints import EndpointRegistry, Environment, MCPProject  # noqa: E402
+# Import endpoint configuration from pheno-sdk
+from pheno.mcp.qa.config.endpoints import EndpointRegistry, Environment, MCPProject  # noqa: E402
 
 # Import pheno-sdk kits for testing (optional)
 try:
-    from event_kit import Event, EventBus
+    from pheno.kits.event_kit import Event, EventBus
     HAS_EVENT_KIT = True
 except ImportError:
     HAS_EVENT_KIT = False
@@ -226,7 +226,7 @@ def local_server_config():
         try:
             import sys
             sys.path.insert(0, str(Path(__file__).parent.parent))
-            from kinfra import get_smart_infra_manager
+            from pheno.infra import get_smart_infra_manager
 
             infra = get_smart_infra_manager(project_name="atoms_mcp", domain="atomcp.kooshapari.com")
             config = infra.get_project_config()
@@ -265,7 +265,7 @@ async def mcp_client(request, local_server_config):
     Automatically uses local server if available (ATOMS_USE_LOCAL_SERVER=true),
     otherwise falls back to production server at mcp.atoms.tech.
     """
-    from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+    from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
     # Use local server if available, otherwise production
     if local_server_config:
@@ -383,7 +383,7 @@ def test_cache():
 
 def pytest_collection_modifyitems(session, config, items):
     """Convert @mcp_test decorated functions to pytest tests."""
-    from tests.framework.decorators import get_test_registry
+    from pheno.testing.mcp_qa.core import get_test_registry
 
     registry = get_test_registry()
     registered_tests = registry.get_tests()

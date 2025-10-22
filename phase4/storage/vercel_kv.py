@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Optional, List, Dict
+from typing import Any
 
 import httpx
 
-from .base import StorageBackend
 from utils.logging_setup import get_logger
+
+from .base import StorageBackend
 
 logger = get_logger(__name__)
 
@@ -23,8 +24,8 @@ class VercelKVBackend(StorageBackend):
 
     def __init__(
         self,
-        url: Optional[str] = None,
-        token: Optional[str] = None,
+        url: str | None = None,
+        token: str | None = None,
     ):
         """Initialize Vercel KV backend.
 
@@ -46,7 +47,7 @@ class VercelKVBackend(StorageBackend):
     async def _request(
         self,
         method: str,
-        command: List[Any]
+        command: list[Any]
     ) -> Any:
         """Execute KV command via REST API.
 
@@ -82,7 +83,7 @@ class VercelKVBackend(StorageBackend):
                 logger.error(f"Vercel KV error: {e}")
                 raise
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get value by key."""
         result = await self._request("POST", ["GET", key])
 
@@ -99,7 +100,7 @@ class VercelKVBackend(StorageBackend):
         self,
         key: str,
         value: Any,
-        expire: Optional[int] = None
+        expire: int | None = None
     ) -> None:
         """Set value with optional expiration."""
         # Serialize to JSON if not string
@@ -128,7 +129,7 @@ class VercelKVBackend(StorageBackend):
         result = await self._request("POST", ["EXPIRE", key, ttl])
         return bool(result)
 
-    async def ttl(self, key: str) -> Optional[int]:
+    async def ttl(self, key: str) -> int | None:
         """Get remaining TTL for key."""
         result = await self._request("POST", ["TTL", key])
 
@@ -144,11 +145,11 @@ class VercelKVBackend(StorageBackend):
         self,
         pattern: str,
         count: int = 100
-    ) -> List[str]:
+    ) -> list[str]:
         """Scan for keys matching pattern."""
         # Vercel KV supports SCAN command
         cursor = 0
-        keys = []
+        keys: list[str] = []
 
         while True:
             result = await self._request(
@@ -158,8 +159,9 @@ class VercelKVBackend(StorageBackend):
 
             if result:
                 cursor = result[0]
-                batch_keys = result[1] or []
-                keys.extend(batch_keys)
+                batch_keys: Any = result[1] or []
+                if isinstance(batch_keys, list):
+                    keys.extend(batch_keys)
 
                 if cursor == 0 or len(keys) >= count:
                     break
@@ -168,7 +170,7 @@ class VercelKVBackend(StorageBackend):
 
         return keys[:count]
 
-    async def mget(self, keys: List[str]) -> Dict[str, Any]:
+    async def mget(self, keys: list[str]) -> dict[str, Any]:
         """Get multiple keys at once."""
         if not keys:
             return {}
@@ -188,8 +190,8 @@ class VercelKVBackend(StorageBackend):
 
     async def mset(
         self,
-        items: Dict[str, Any],
-        expire: Optional[int] = None
+        items: dict[str, Any],
+        expire: int | None = None
     ) -> None:
         """Set multiple keys at once."""
         if not items:
@@ -264,7 +266,7 @@ class VercelKVBackend(StorageBackend):
 
         return await self._request("POST", ["SREM", key] + list(values))
 
-    async def get_set_members(self, key: str) -> set:
+    async def get_set_members(self, key: str) -> set[Any]:
         """Get all members of a set using Redis SMEMBERS."""
         result = await self._request("POST", ["SMEMBERS", key])
         return set(result) if result else set()

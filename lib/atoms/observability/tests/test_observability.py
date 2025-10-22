@@ -13,42 +13,38 @@ Author: Atoms MCP Platform
 """
 
 import asyncio
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from lib.atoms.observability import (
-    # Logging
-    get_logger,
-    LogContext,
-    set_correlation_id,
-    get_correlation_id,
-    PerformanceMetric,
+    AlertSeverity,
+    ComponentType,
     # Metrics
     Counter,
-    Gauge,
-    Histogram,
-    registry,
-    record_http_request,
-    record_tool_execution,
-    get_prometheus_metrics,
-    # Health
-    HealthCheck,
-    HealthStatus,
-    ComponentType,
     CustomHealthCheck,
-    health_monitor,
-    # Decorators
-    observe_tool,
-    log_operation,
-    measure_performance,
+    Gauge,
+    # Health
+    HealthStatus,
+    Histogram,
+    LogContext,
+    PerformanceMetric,
+    WebhookClient,
+    WebhookConfig,
+    WebhookEventType,
     # Webhooks
     WebhookPayload,
-    WebhookConfig,
-    WebhookClient,
-    WebhookEventType,
-    AlertSeverity,
+    get_correlation_id,
+    # Logging
+    get_logger,
+    get_prometheus_metrics,
+    log_operation,
+    measure_performance,
+    # Decorators
+    observe_tool,
+    record_http_request,
+    record_tool_execution,
+    registry,
 )
-
 
 # ============================================================================
 # Logging Tests
@@ -74,7 +70,7 @@ class TestLogging:
 
     def test_auto_correlation_id(self):
         """Test automatic correlation ID generation."""
-        with LogContext() as ctx:
+        with LogContext():
             correlation_id = get_correlation_id()
             assert correlation_id is not None
             assert len(correlation_id) > 0

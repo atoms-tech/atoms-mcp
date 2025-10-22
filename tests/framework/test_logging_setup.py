@@ -150,7 +150,7 @@ class QuietLogger:
 
     def __init__(self, level: int = logging.ERROR):
         self.level = level
-        self.previous_levels = {}
+        self.previous_levels: dict[str, int] = {}
 
     def __enter__(self):
         # Save current levels and set to ERROR

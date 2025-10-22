@@ -20,7 +20,9 @@ from tools import (
 )
 
 # Get auth token from environment
-AUTH_TOKEN = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+AUTH_TOKEN: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or ""
+if not AUTH_TOKEN:
+    raise ValueError("SUPABASE_SERVICE_ROLE_KEY environment variable is required")
 
 
 async def test_workspace_tool() -> dict[str, Any]:

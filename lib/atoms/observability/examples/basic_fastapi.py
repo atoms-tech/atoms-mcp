@@ -11,30 +11,28 @@ This example demonstrates:
 Author: Atoms MCP Platform
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 import asyncio
 
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+
 from lib.atoms.observability import (
+    ComponentType,
+    CustomHealthCheck,
+    ErrorTrackingMiddleware,
+    LogContext,
+    PerformanceTrackingMiddleware,
     # Middleware
     RequestTrackingMiddleware,
-    ErrorTrackingMiddleware,
-    PerformanceTrackingMiddleware,
-    # Health checks
-    register_health_check,
-    SupabaseHealthCheck,
-    CustomHealthCheck,
-    ComponentType,
-    # Logging
     get_logger,
-    LogContext,
-    # Decorators
-    observe_tool,
     log_operation,
     measure_performance,
-    # Webhooks
-    configure_vercel_webhook,
-    WebhookEventType,
+    # Decorators
+    observe_tool,
+    # Health checks
+    register_health_check,
+)
+from lib.atoms.observability import (
     # Endpoints
     router as observability_router,
 )
@@ -73,7 +71,7 @@ app.add_middleware(
 # register_health_check(SupabaseHealthCheck(supabase, timeout_seconds=5.0))
 
 # Example: Custom Redis health check
-async def check_redis_health() -> bool:
+async def check_redis_health_async() -> bool:
     """Check Redis connectivity."""
     try:
         # Implement your Redis check here
@@ -81,6 +79,15 @@ async def check_redis_health() -> bool:
         return True  # Placeholder
     except Exception as e:
         logger.error(f"Redis health check failed: {e}")
+        return False
+
+def check_redis_health() -> bool:
+    """Sync wrapper for Redis health check."""
+    import asyncio
+    try:
+        return asyncio.run(check_redis_health_async())
+    except Exception as e:
+        logger.error(f"Redis health check wrapper failed: {e}")
         return False
 
 register_health_check(
@@ -94,7 +101,7 @@ register_health_check(
 )
 
 # Example: External API health check
-async def check_external_api() -> bool:
+async def check_external_api_async() -> bool:
     """Check external API availability."""
     try:
         # Implement your API check here
@@ -104,6 +111,15 @@ async def check_external_api() -> bool:
         return True  # Placeholder
     except Exception as e:
         logger.error(f"External API health check failed: {e}")
+        return False
+
+def check_external_api() -> bool:
+    """Sync wrapper for external API health check."""
+    import asyncio
+    try:
+        return asyncio.run(check_external_api_async())
+    except Exception as e:
+        logger.error(f"External API health check wrapper failed: {e}")
         return False
 
 register_health_check(

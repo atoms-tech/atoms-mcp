@@ -150,7 +150,7 @@ class EntityManager(ToolBase):
                 "relationships": ["organizations", "projects"]
             }
         }
-        return schemas.get(entity_type.lower(), {})
+        return dict(schemas.get(entity_type.lower(), {}))
 
     def _apply_defaults(self, entity_type: str, data: dict[str, Any]) -> dict[str, Any]:
         """Apply default values and auto-generated fields."""
@@ -397,7 +397,7 @@ class EntityManager(ToolBase):
             # Fallback: Get from existing record
             print("⚠️ UPDATE: No user_id in context, using fallback from existing record")
             logger.info("⚠️ UPDATE: No user_id in context, using fallback from existing record")
-            user_id = existing_record.get(Fields.CREATED_BY) or existing_record.get(Fields.UPDATED_BY)
+            user_id = existing_record.get(Fields.CREATED_BY) or existing_record.get(Fields.UPDATED_BY) or ""
             if user_id:
                 print(f"✅ UPDATE: Got user_id from existing record: {user_id}")
                 logger.info(f"✅ UPDATE: Got user_id from existing record: {user_id}")
@@ -556,7 +556,7 @@ class EntityManager(ToolBase):
         # Build filters - skip is_deleted for tables that don't have it
         table = self._resolve_entity_table(entity_type)
 
-        filters = {}
+        filters: dict[str, Any] = {}
         if table not in TABLES_WITHOUT_SOFT_DELETE:
             filters[Fields.IS_DELETED] = False
 
@@ -713,11 +713,11 @@ async def entity_operation(
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
                 # Handle exceptions
-                final_results = []
+                final_results: list[dict[str, object]] = []
                 for i, result in enumerate(results):
                     if isinstance(result, Exception):
                         final_results.append({"error": str(result), "index": i})
-                    else:
+                    elif isinstance(result, dict):
                         final_results.append(result)
 
                 timings["batch_create"] = time.time() - t_op_start
@@ -738,12 +738,12 @@ async def entity_operation(
                 raise ValueError("entity_id is required for read operation")
 
             t_op_start = time.time()
-            result = await _entity_manager.read_entity(
+            read_result: dict[str, Any] | None = await _entity_manager.read_entity(
                 entity_type, entity_id, include_relations
             )
             timings["read"] = time.time() - t_op_start
 
-            if result is None:
+            if read_result is None:
                 # Entity not found - provide helpful suggestions
                 from tools.entity_resolver import EntityResolver
                 resolver = EntityResolver(_entity_manager._get_adapters()["database"])
@@ -769,7 +769,7 @@ async def entity_operation(
                 return error_response
 
             timings["total"] = time.time() - start_total
-            formatted = _entity_manager._format_result(result, format_type)
+            formatted = _entity_manager._format_result(read_result, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
 
         if operation == "update":
@@ -806,22 +806,22 @@ async def entity_operation(
 
         if operation == "search":
             t_op_start = time.time()
-            result = await _entity_manager.search_entities(
+            search_results: list[dict[str, Any]] = await _entity_manager.search_entities(
                 entity_type, filters, search_term, limit, offset, order_by
             )
             timings["search"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
-            formatted = _entity_manager._format_result(result, format_type)
+            formatted = _entity_manager._format_result(search_results, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
 
         if operation == "list":
             t_op_start = time.time()
-            result = await _entity_manager.list_entities(
+            list_results: list[dict[str, Any]] = await _entity_manager.list_entities(
                 entity_type, parent_type, parent_id, limit
             )
             timings["list"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
-            formatted = _entity_manager._format_result(result, format_type)
+            formatted = _entity_manager._format_result(list_results, format_type)
             return _entity_manager._add_timing_metrics(formatted, timings)
 
         raise ValueError(f"Unknown operation: {operation}")

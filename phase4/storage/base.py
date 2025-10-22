@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional, List, Dict
+from typing import Any
 
 
 class StorageBackend(ABC):
@@ -14,7 +14,7 @@ class StorageBackend(ABC):
     """
 
     @abstractmethod
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get value by key.
 
         Args:
@@ -30,7 +30,7 @@ class StorageBackend(ABC):
         self,
         key: str,
         value: Any,
-        expire: Optional[int] = None
+        expire: int | None = None
     ) -> None:
         """Set value with optional expiration.
 
@@ -79,7 +79,7 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def ttl(self, key: str) -> Optional[int]:
+    async def ttl(self, key: str) -> int | None:
         """Get remaining TTL for key.
 
         Args:
@@ -95,7 +95,7 @@ class StorageBackend(ABC):
         self,
         pattern: str,
         count: int = 100
-    ) -> List[str]:
+    ) -> list[str]:
         """Scan for keys matching pattern.
 
         Args:
@@ -108,7 +108,7 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def mget(self, keys: List[str]) -> Dict[str, Any]:
+    async def mget(self, keys: list[str]) -> dict[str, Any]:
         """Get multiple keys at once.
 
         Args:
@@ -122,8 +122,8 @@ class StorageBackend(ABC):
     @abstractmethod
     async def mset(
         self,
-        items: Dict[str, Any],
-        expire: Optional[int] = None
+        items: dict[str, Any],
+        expire: int | None = None
     ) -> None:
         """Set multiple keys at once.
 
@@ -226,7 +226,7 @@ class StorageBackend(ABC):
 
         return original_size - len(current)
 
-    async def get_set_members(self, key: str) -> set:
+    async def get_set_members(self, key: str) -> set[Any]:
         """Get all members of a set.
 
         Args:

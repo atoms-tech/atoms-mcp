@@ -49,7 +49,7 @@ class WorkflowTestRunner:
             "summary": {},
             "detailed_results": {}
         }
-        self.created_entities = {
+        self.created_entities: dict[str, list[str]] = {
             "organizations": [],
             "projects": [],
             "documents": [],
@@ -100,7 +100,7 @@ class WorkflowTestRunner:
         print("="*80)
 
         start_time = time.time()
-        test_result = {
+        test_result: dict[str, Any] = {
             "workflow": "organization_onboarding",
             "scenarios": [],
             "entities_created": [],
@@ -187,7 +187,7 @@ class WorkflowTestRunner:
         print("="*80)
 
         start_time = time.time()
-        test_result = {
+        test_result: dict[str, Any] = {
             "workflow": "setup_project",
             "scenarios": [],
             "entities_created": [],
@@ -305,7 +305,7 @@ class WorkflowTestRunner:
         print("="*80)
 
         start_time = time.time()
-        test_result = {
+        test_result: dict[str, Any] = {
             "workflow": "import_requirements",
             "scenarios": [],
             "entities_created": [],
@@ -401,7 +401,7 @@ class WorkflowTestRunner:
         print("="*80)
 
         start_time = time.time()
-        test_result = {
+        test_result: dict[str, Any] = {
             "workflow": "setup_test_matrix",
             "scenarios": [],
             "entities_created": [],
@@ -469,7 +469,7 @@ class WorkflowTestRunner:
         print("="*80)
 
         start_time = time.time()
-        test_result = {
+        test_result: dict[str, Any] = {
             "workflow": "bulk_status_update",
             "scenarios": [],
             "entities_created": [],

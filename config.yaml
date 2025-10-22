@@ -1,0 +1,76 @@
+# Atoms MCP Production Configuration
+# ============================================================================
+
+# Server Configuration
+server:
+  environment: "local"  # local, staging, production
+  log_level: "info"     # debug, info, warning, error, critical
+  debug: false
+
+# KINFRA Infrastructure Configuration
+kinfra:
+  managed: 1
+  tunnel: 0          # Set to 1 for CloudFlare tunnel to atomcp.kooshapari.com
+  fallback: 1        # Enable fallback pages
+  restart: 1         # Auto-restart on failure
+
+# FastMCP Configuration
+fastmcp:
+  transport: "http"
+  host: "127.0.0.1"
+  port: 8000
+  base_url: "https://atomcp.kooshapari.com"
+  http_path: "/api/mcp"
+  reload: false
+  http_auth_mode: "optional"
+
+# Authentication Configuration
+auth:
+  authkit_provider:
+    authkit_domain: "https://decent-hymn-17-staging.authkit.app"
+    authkit_required_scopes: ["openid", "profile", "email"]
+
+# API Keys
+api_keys:
+  openai: "sk-..."
+  anthropic: "sk-ant-..."
+  openrouter: "sk_live_..."
+  groq: "gsk_..."
+
+# Database Configuration
+database:
+  url: "postgresql://user:password@localhost:5432/atoms_mcp"
+  supabase:
+    url: "https://your-project.supabase.co"
+    key: "your-anon-key"
+
+# Feature Flags
+features:
+  enable_caching: true
+  enable_streaming: true
+  enable_tool_use: true
+  enable_logging: true
+
+# Tool Configuration
+tools:
+  timeout: 30
+  max_retries: 3
+  retry_delay: 1
+
+# Observability
+observability:
+  enable_profiling: false
+  enable_tracing: false
+  telemetry_enabled: false
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "json"
+  max_size: "10MB"
+
+# Performance Configuration
+performance:
+  cache_ttl_seconds: 600
+  http_timeout_seconds: 30
+  max_concurrent_requests: 100

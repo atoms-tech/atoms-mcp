@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from datetime import datetime
+from typing import Any
 
-from ..models import Session, SessionStatus, DeviceInfo, TokenPair
+from utils.logging_setup import get_logger
+
+from ..models import DeviceInfo, Session, SessionStatus, TokenPair
 from ..storage import StorageBackend, get_storage_backend
 from .audit import AuditService
 from .token_refresh import TokenRefreshService
-from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -28,9 +29,9 @@ class SessionManager:
 
     def __init__(
         self,
-        storage: Optional[StorageBackend] = None,
-        audit_service: Optional[AuditService] = None,
-        token_service: Optional[TokenRefreshService] = None,
+        storage: StorageBackend | None = None,
+        audit_service: AuditService | None = None,
+        token_service: TokenRefreshService | None = None,
     ):
         """Initialize session manager.
 
@@ -53,9 +54,9 @@ class SessionManager:
         self,
         user_id: str,
         token_pair: TokenPair,
-        device_info: Optional[DeviceInfo] = None,
-        ip_address: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        device_info: DeviceInfo | None = None,
+        ip_address: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Session:
         """Create a new session for user.
 
@@ -108,7 +109,7 @@ class SessionManager:
         self,
         session_id: str,
         validate: bool = True,
-    ) -> Optional[Session]:
+    ) -> Session | None:
         """Get session by ID.
 
         Args:
@@ -141,7 +142,7 @@ class SessionManager:
         self,
         user_id: str,
         active_only: bool = True,
-    ) -> List[Session]:
+    ) -> list[Session]:
         """Get all sessions for a user.
 
         Args:
@@ -169,9 +170,9 @@ class SessionManager:
     async def validate_session(
         self,
         session_id: str,
-        device_info: Optional[DeviceInfo] = None,
-        ip_address: Optional[str] = None,
-    ) -> Tuple[bool, Optional[str]]:
+        device_info: DeviceInfo | None = None,
+        ip_address: str | None = None,
+    ) -> tuple[bool, str | None]:
         """Validate session with security checks.
 
         Args:
@@ -272,7 +273,7 @@ class SessionManager:
     async def terminate_session(
         self,
         session_id: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> None:
         """Terminate a specific session.
 
@@ -310,8 +311,8 @@ class SessionManager:
     async def terminate_all_user_sessions(
         self,
         user_id: str,
-        except_session: Optional[str] = None,
-        reason: Optional[str] = None,
+        except_session: str | None = None,
+        reason: str | None = None,
     ) -> int:
         """Terminate all sessions for a user.
 
@@ -375,7 +376,8 @@ class SessionManager:
             session_id: Session ID to add
         """
         key = f"user_sessions:{user_id}"
-        sessions = await self.storage.get(key) or []
+        sessions_data: Any = await self.storage.get(key) or []
+        sessions: list[str] = sessions_data if isinstance(sessions_data, list) else []
 
         if session_id not in sessions:
             sessions.append(session_id)
@@ -390,14 +392,15 @@ class SessionManager:
             session_id: Session ID to remove
         """
         key = f"user_sessions:{user_id}"
-        sessions = await self.storage.get(key) or []
+        sessions_data: Any = await self.storage.get(key) or []
+        sessions: list[str] = sessions_data if isinstance(sessions_data, list) else []
 
         if session_id in sessions:
             sessions.remove(session_id)
 
         await self.storage.set(key, sessions)
 
-    async def _get_user_session_ids(self, user_id: str) -> List[str]:
+    async def _get_user_session_ids(self, user_id: str) -> list[str]:
         """Get all session IDs for a user.
 
         Args:
@@ -407,7 +410,8 @@ class SessionManager:
             List of session IDs
         """
         key = f"user_sessions:{user_id}"
-        return await self.storage.get(key) or []
+        sessions_data: Any = await self.storage.get(key) or []
+        return sessions_data if isinstance(sessions_data, list) else []
 
     async def _enforce_session_limit(self, user_id: str) -> None:
         """Enforce maximum session limit per user.

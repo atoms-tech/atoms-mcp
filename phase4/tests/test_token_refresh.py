@@ -1,11 +1,12 @@
 """Tests for token refresh service."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
+import pytest
+
+from phase4.models import RefreshTokenRotation, TokenPair
 from phase4.services.token_refresh import TokenRefreshService
-from phase4.models import TokenPair, RefreshTokenRotation
 from phase4.storage.base import StorageBackend
 
 
@@ -182,7 +183,7 @@ async def test_proactive_refresh_needed(token_service, mock_storage):
     """Test proactive refresh when token is approaching expiration."""
     # Create token that expires in 4 minutes (less than 5 minute buffer)
     exp_time = int((datetime.utcnow() + timedelta(minutes=4)).timestamp())
-    access_token = f"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImV4cCI6{exp_time}}.test"
+    access_token = f"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImV4cCI6{exp_time}.test"
     refresh_token = "valid_refresh"
 
     # Mock the refresh call
@@ -212,7 +213,7 @@ async def test_proactive_refresh_not_needed(token_service):
     """Test proactive refresh when token has plenty of time left."""
     # Create token that expires in 1 hour
     exp_time = int((datetime.utcnow() + timedelta(hours=1)).timestamp())
-    access_token = f"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImV4cCI6{exp_time}}.test"
+    access_token = f"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImV4cCI6{exp_time}.test"
     refresh_token = "valid_refresh"
 
     # Execute

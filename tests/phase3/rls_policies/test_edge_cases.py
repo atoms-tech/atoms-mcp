@@ -11,10 +11,10 @@ Run with: pytest tests/phase3/rls_policies/test_edge_cases.py -v
 """
 
 from unittest.mock import AsyncMock
+
 import pytest
 
 from schemas import ProjectRole, UserRoleType
-from schemas.constants import Tables
 from schemas.rls import (
     DocumentPolicy,
     OrganizationMemberPolicy,
@@ -22,9 +22,7 @@ from schemas.rls import (
     ProfilePolicy,
     ProjectMemberPolicy,
     ProjectPolicy,
-    is_organization_owner_or_admin,
 )
-
 
 # =============================================================================
 # FIXTURES

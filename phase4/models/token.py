@@ -7,7 +7,7 @@ import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class TokenType(Enum):
@@ -33,8 +33,8 @@ class TokenPair:
 
     access_token: str
     access_expires_in: int = 3600  # 1 hour default
-    refresh_token: Optional[str] = None
-    refresh_expires_in: Optional[int] = 604800  # 7 days default
+    refresh_token: str | None = None
+    refresh_expires_in: int | None = 604800  # 7 days default
     scope: str = "openid profile email"
     token_type: str = "Bearer"
     issued_at: datetime = field(default_factory=datetime.utcnow)
@@ -45,13 +45,13 @@ class TokenPair:
         return self.issued_at + timedelta(seconds=self.access_expires_in)
 
     @property
-    def refresh_expires_at(self) -> Optional[datetime]:
+    def refresh_expires_at(self) -> datetime | None:
         """Get refresh token expiration time."""
         if self.refresh_token and self.refresh_expires_in:
             return self.issued_at + timedelta(seconds=self.refresh_expires_in)
         return None
 
-    def to_response(self) -> Dict[str, Any]:
+    def to_response(self) -> dict[str, Any]:
         """Convert to OAuth2 token response format.
 
         Returns:
@@ -83,7 +83,7 @@ class RefreshTokenRotation:
     """
 
     current_token: str
-    previous_token: Optional[str] = None
+    previous_token: str | None = None
     rotation_count: int = 0
     grace_period_seconds: int = 60  # 1 minute grace
     last_rotation: datetime = field(default_factory=datetime.utcnow)
@@ -140,7 +140,7 @@ class RefreshTokenRotation:
             Cryptographically secure token
         """
         # Generate 32 bytes of random data
-        token_bytes = secrets.token_bytes(32)
+        secrets.token_bytes(32)
         # Convert to URL-safe base64
         return secrets.token_urlsafe(32)
 
@@ -181,14 +181,14 @@ class TokenMetadata:
     token_type: TokenType
     user_id: str
     session_id: str
-    client_id: Optional[str] = None
+    client_id: str | None = None
     issued_at: datetime = field(default_factory=datetime.utcnow)
-    expires_at: Optional[datetime] = None
-    used_at: Optional[datetime] = None
+    expires_at: datetime | None = None
+    used_at: datetime | None = None
     use_count: int = 0
     revoked: bool = False
-    revoked_at: Optional[datetime] = None
-    revocation_reason: Optional[str] = None
+    revoked_at: datetime | None = None
+    revocation_reason: str | None = None
 
     @staticmethod
     def hash_token(token: str) -> str:
@@ -207,7 +207,7 @@ class TokenMetadata:
         self.use_count += 1
         self.used_at = datetime.utcnow()
 
-    def revoke(self, reason: Optional[str] = None) -> None:
+    def revoke(self, reason: str | None = None) -> None:
         """Revoke the token.
 
         Args:
@@ -229,7 +229,7 @@ class TokenMetadata:
         """Check if token is valid (not revoked or expired)."""
         return not self.revoked and not self.is_expired
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for storage.
 
         Returns:

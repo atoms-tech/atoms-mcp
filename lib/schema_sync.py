@@ -54,9 +54,9 @@ class SchemaSync:
         self.project_id = project_id or os.getenv("SUPABASE_PROJECT_ID")
         self.root_dir = Path(__file__).parent.parent
         self.schemas_dir = self.root_dir / "schemas"
-        self.db_schema = {}
-        self.local_schema = {}
-        self.differences = []
+        self.db_schema: dict[str, Any] = {}
+        self.local_schema: dict[str, Any] = {}
+        self.differences: list[Any] = []
 
     def get_supabase_schema(self) -> dict[str, Any]:
         """Query Supabase for current database schema via direct psycopg2."""
@@ -89,7 +89,7 @@ class SchemaSync:
             cur.execute(tables_query)
             tables = cur.fetchall()
 
-            schema = {"tables": {}, "enums": {}}
+            schema: dict[str, Any] = {"tables": {}, "enums": {}}
 
             # For each table, get columns
             for table_row in tables:
@@ -445,7 +445,7 @@ SOURCE = "supabase-pydantic generated from database"
 
     def get_local_schema(self) -> dict[str, Any]:
         """Extract schema from generated Python file."""
-        local = {"tables": {}, "enums": {}}
+        local: dict[str, Any] = {"tables": {}, "enums": {}}
 
         # Extract enums from generated schema
         for name in dir(generated_schema):

@@ -15,6 +15,38 @@ Version: 1.0.0
 """
 
 # Logging exports
+# Decorator exports
+from .decorators import (
+    log_operation,
+    measure_performance,
+    observe_tool,
+    track_database_operation,
+)
+
+# Endpoint exports
+from .endpoints import (
+    get_dashboard,
+    get_health,
+    get_metrics,
+    router,
+)
+
+# Health monitoring exports
+from .health import (
+    AuthKitHealthCheck,
+    ComponentType,
+    CustomHealthCheck,
+    HealthCheck,
+    HealthCheckResult,
+    HealthMonitor,
+    HealthStatus,
+    PerformanceMonitor,
+    SupabaseHealthCheck,
+    SystemHealth,
+    check_health,
+    health_monitor,
+    register_health_check,
+)
 from .logging import (
     AtomLogger,
     LogContext,
@@ -55,23 +87,6 @@ from .metrics import (
     tool_executions_total,
 )
 
-# Health monitoring exports
-from .health import (
-    AuthKitHealthCheck,
-    ComponentType,
-    CustomHealthCheck,
-    HealthCheck,
-    HealthCheckResult,
-    HealthMonitor,
-    HealthStatus,
-    PerformanceMonitor,
-    SupabaseHealthCheck,
-    SystemHealth,
-    check_health,
-    health_monitor,
-    register_health_check,
-)
-
 # Middleware exports
 from .middleware import (
     ContextPropagationMiddleware,
@@ -79,14 +94,6 @@ from .middleware import (
     PerformanceTrackingMiddleware,
     RequestTrackingMiddleware,
     get_propagated_headers,
-)
-
-# Decorator exports
-from .decorators import (
-    log_operation,
-    measure_performance,
-    observe_tool,
-    track_database_operation,
 )
 
 # Webhook exports
@@ -100,14 +107,6 @@ from .webhooks import (
     configure_custom_webhook,
     configure_vercel_webhook,
     webhook_manager,
-)
-
-# Endpoint exports
-from .endpoints import (
-    get_dashboard,
-    get_health,
-    get_metrics,
-    router,
 )
 
 __all__ = [

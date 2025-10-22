@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from mcp_qa.testing.unified_runner import UnifiedMCPTestRunner
+from pheno.mcp.qa.core import UnifiedMCPTestRunner
 
 from .adapters import AtomsMCPClientAdapter
 from .reporters import (

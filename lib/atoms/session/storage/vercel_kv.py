@@ -8,7 +8,6 @@ optimized for serverless environments with edge network support.
 import json
 import logging
 import os
-from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 try:
@@ -18,10 +17,9 @@ except ImportError:
     UPSTASH_AVAILABLE = False
     Redis = None
 
-from .base import StorageBackend
-from ..models import Session, TokenRefreshRecord, AuditLog
+from ..models import AuditLog, Session, TokenRefreshRecord
 from ..revocation import RevocationRecord
-
+from .base import StorageBackend
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +42,9 @@ class VercelKVStorage(StorageBackend):
 
     def __init__(
         self,
-        rest_api_url: Optional[str] = None,
-        rest_api_token: Optional[str] = None,
-        redis_client: Optional[Redis] = None,
+        rest_api_url: str | None = None,
+        rest_api_token: str | None = None,
+        redis_client: Redis | None = None,
         key_prefix: str = "atoms:session:",
         default_ttl_hours: int = 24,
     ):
@@ -113,7 +111,7 @@ class VercelKVStorage(StorageBackend):
 
         logger.debug(f"Saved session {session.session_id} with TTL {ttl}s")
 
-    async def get_session(self, session_id: str) -> Optional[Session]:
+    async def get_session(self, session_id: str) -> Session | None:
         """Get session from Vercel KV."""
         key = self._key("session", session_id)
 
@@ -141,7 +139,7 @@ class VercelKVStorage(StorageBackend):
 
         logger.debug(f"Deleted session {session_id}")
 
-    async def get_user_sessions(self, user_id: str) -> List[Session]:
+    async def get_user_sessions(self, user_id: str) -> list[Session]:
         """Get all sessions for user from Vercel KV."""
         user_key = self._key("user_sessions", user_id)
 
@@ -161,10 +159,10 @@ class VercelKVStorage(StorageBackend):
 
         return sessions
 
-    async def get_all_sessions(self, limit: int = 100) -> List[Session]:
+    async def get_all_sessions(self, limit: int = 100) -> list[Session]:
         """Get all sessions from Vercel KV."""
         # Scan for session keys
-        sessions = []
+        sessions: list[str] = []
         pattern = self._key("session", "*")
 
         cursor = 0
@@ -215,7 +213,7 @@ class VercelKVStorage(StorageBackend):
         self,
         session_id: str,
         limit: int = 10,
-    ) -> List[TokenRefreshRecord]:
+    ) -> list[TokenRefreshRecord]:
         """Get refresh history from Vercel KV."""
         history_key = self._key("refresh_history", session_id)
 
@@ -262,7 +260,7 @@ class VercelKVStorage(StorageBackend):
     async def get_revocation_record(
         self,
         token_hash: str,
-    ) -> Optional[RevocationRecord]:
+    ) -> RevocationRecord | None:
         """Get revocation record from Vercel KV."""
         key = self._key("revocation", token_hash)
 
@@ -276,7 +274,7 @@ class VercelKVStorage(StorageBackend):
     async def get_session_revocations(
         self,
         session_id: str,
-    ) -> List[RevocationRecord]:
+    ) -> list[RevocationRecord]:
         """Get session revocations from Vercel KV."""
         session_key = self._key("session_revocations", session_id)
 
@@ -331,10 +329,10 @@ class VercelKVStorage(StorageBackend):
 
     async def get_audit_logs(
         self,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """Get audit logs from Vercel KV."""
         # Determine which index to use
         if session_id:
@@ -366,7 +364,7 @@ class VercelKVStorage(StorageBackend):
         self,
         user_id: str,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """Get user audit logs from Vercel KV."""
         return await self.get_audit_logs(user_id=user_id, limit=limit)
 

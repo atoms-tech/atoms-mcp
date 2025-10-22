@@ -26,7 +26,7 @@ TEST_ORG_ID = str(uuid.uuid4())
 TEST_PROJECT_ID = str(uuid.uuid4())
 
 # Test results storage
-test_results = []
+test_results: list[Any] = []
 
 
 class TestResult:

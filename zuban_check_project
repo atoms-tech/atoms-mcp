@@ -1,0 +1,9 @@
+#!/bin/bash
+# Wrapper script for zuban check that works around the panic issue
+# Usage: ./zuban_check_project [options]
+
+# Get the directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Run the Python batch checker
+python3 "$SCRIPT_DIR/zuban_check_all.py" "$@"

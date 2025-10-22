@@ -9,6 +9,7 @@ Run with: pytest tests/examples/test_harmful_example.py -v
 import pytest
 
 from tests.framework import (
+    CleanupStrategy,
     EntityType,
     create_and_track,
     harmful,
@@ -19,7 +20,7 @@ from tests.framework import (
 class TestHarmfulDecorator:
     """Tests using @harmful decorator for automatic cleanup."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_create_organization(self, fast_http_client, harmful_tracker):
         """Example test that creates an organization.
 
@@ -42,7 +43,7 @@ class TestHarmfulDecorator:
         entity = create_and_track(harmful_tracker, EntityType.ORGANIZATION, result, "Test Org")
         assert entity.id == org_id
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_create_workspace(self, fast_http_client, harmful_tracker):
         """Example test that creates a workspace under an organization."""
         # First create the parent organization
@@ -119,7 +120,7 @@ class TestHarmfulContext:
 class TestCascadeCleanup:
     """Tests demonstrating cascade cleanup order."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_full_entity_hierarchy(self, fast_http_client, harmful_tracker):
         """Test creating full entity hierarchy with proper cleanup order."""
         # Create top-level organization
@@ -177,7 +178,7 @@ class TestCascadeCleanup:
 class TestHarmfulWithMocks:
     """Test @harmful decorator with mocked HTTP client."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_with_mock_client(self, harmful_tracker):
         """Example test with mocked dependencies."""
         # In COLD mode, this would use mocked HTTP client
@@ -196,7 +197,7 @@ class TestHarmfulWithMocks:
 class TestHarmfulErrorHandling:
     """Tests demonstrating error handling in @harmful decorator."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_entity_creation_failure_cleanup(self, fast_http_client, harmful_tracker):
         """Test that cleanup still happens even if test fails."""
         # Create a valid entity

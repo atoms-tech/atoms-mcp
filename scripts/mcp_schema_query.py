@@ -63,7 +63,7 @@ class MCPSchemaQuery:
 
     async def get_table_schema(self, table_name: str) -> dict[str, Any]:
         """Get complete schema for a table including columns, constraints, indexes."""
-        schema = {
+        schema: dict[str, Any] = {
             "table_name": table_name,
             "columns": [],
             "constraints": [],
@@ -213,7 +213,7 @@ class MCPSchemaQuery:
 
     async def analyze_schema_complexity(self) -> dict[str, Any]:
         """Analyze schema complexity and provide metrics."""
-        metrics = {
+        metrics: dict[str, Any] = {
             "tables": {},
             "total_columns": 0,
             "total_indexes": 0,

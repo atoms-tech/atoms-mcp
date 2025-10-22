@@ -8,14 +8,14 @@ rotation, introspection, and error recovery with exponential backoff.
 import asyncio
 import hashlib
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
+
 import httpx
 
-from .models import Session, TokenRefreshRecord, AuditLog, AuditAction
+from .models import AuditAction, AuditLog, Session, TokenRefreshRecord
 from .storage.base import StorageBackend
-
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +69,11 @@ class TokenManager:
         self,
         storage: StorageBackend,
         token_endpoint: str,
-        introspection_endpoint: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
-        refresh_config: Optional[RefreshConfig] = None,
-        retry_config: Optional[RetryConfig] = None,
+        introspection_endpoint: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        refresh_config: RefreshConfig | None = None,
+        retry_config: RetryConfig | None = None,
     ):
         """
         Initialize token manager.
@@ -95,7 +95,7 @@ class TokenManager:
         self.refresh_config = refresh_config or RefreshConfig()
         self.retry_config = retry_config or RetryConfig()
 
-        self._http_client: Optional[httpx.AsyncClient] = None
+        self._http_client: httpx.AsyncClient | None = None
 
     async def _get_http_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -175,7 +175,7 @@ class TokenManager:
         session: Session,
         force: bool = False,
         reason: str = "proactive",
-    ) -> Tuple[Session, TokenRefreshRecord]:
+    ) -> tuple[Session, TokenRefreshRecord]:
         """
         Refresh access token with rotation support.
 
@@ -263,7 +263,6 @@ class TokenManager:
             # Handle refresh token rotation
             if "refresh_token" in token_data:
                 # New refresh token provided - rotation enabled
-                old_refresh_token = session.refresh_token
                 session.refresh_token = token_data["refresh_token"]
                 record.new_refresh_token_hash = self._hash_token(
                     session.refresh_token
@@ -350,7 +349,7 @@ class TokenManager:
         self,
         token: str,
         token_type_hint: str = "access_token",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Introspect token to validate and get metadata.
 
@@ -461,11 +460,11 @@ class TokenManager:
     async def _create_audit_log(
         self,
         action: AuditAction,
-        session: Optional[Session] = None,
+        session: Session | None = None,
         details: str = "",
         is_success: bool = True,
-        error_message: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        error_message: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """Create and store audit log entry."""
         log = AuditLog(

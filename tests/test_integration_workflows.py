@@ -221,7 +221,7 @@ class TestCompleteProjectLifecycle:
         scenario_start = time.time()
         steps = []
         tools_used = []
-        test_data = {"org_id": None, "project_id": None, "doc_ids": [], "req_ids": [], "test_ids": []}
+        test_data: dict[str, str | None | list[str]] = {"org_id": None, "project_id": None, "doc_ids": [], "req_ids": [], "test_ids": []}
 
         try:
             # Step 1: Create Organization
@@ -319,7 +319,7 @@ class TestCompleteProjectLifecycle:
                 "tool": "workflow_tool",
                 "status": "passed",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Created project {test_data['project_id']} with {len(test_data['doc_ids'])} documents"
+                "result": f"Created project {test_data['project_id']} with {len(test_data['doc_ids']) if isinstance(test_data['doc_ids'], list) else 0} documents"
             })
 
             # Step 4: Verify Context Auto-Resolution
@@ -360,7 +360,9 @@ class TestCompleteProjectLifecycle:
                     test_report.total_tool_calls += 1
 
                     if req_result.get("success"):
-                        test_data["req_ids"].append(req_result["data"]["id"])
+                        req_ids = test_data["req_ids"]
+                        if isinstance(req_ids, list):
+                            req_ids.append(req_result["data"]["id"])
 
             steps.append({
                 "step": 4,
@@ -368,7 +370,7 @@ class TestCompleteProjectLifecycle:
                 "tool": "entity_tool",
                 "status": "passed" if test_data["req_ids"] else "partial",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Created {len(test_data['req_ids'])} requirements"
+                "result": f"Created {len(test_data['req_ids']) if isinstance(test_data['req_ids'], list) else 0} requirements"
             })
 
             # Step 5: Add Team Members
@@ -415,7 +417,9 @@ class TestCompleteProjectLifecycle:
 
                 if test_result.get("success"):
                     test_id = test_result["data"]["id"]
-                    test_data["test_ids"].append(test_id)
+                    test_ids = test_data["test_ids"]
+                    if isinstance(test_ids, list):
+                        test_ids.append(test_id)
 
                     # Link test to requirement
                     link_result = await mcp_client("relationship_tool", {
@@ -436,7 +440,7 @@ class TestCompleteProjectLifecycle:
                 "tool": "entity_tool, relationship_tool",
                 "status": link_status if test_data["test_ids"] else "skipped",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Created {len(test_data['test_ids'])} tests and linked to requirements"
+                "result": f"Created {len(test_data['test_ids']) if isinstance(test_data['test_ids'], list) else 0} tests and linked to requirements"
             })
 
             # Step 7: Perform Cross-Entity Search
@@ -516,7 +520,7 @@ class TestCompleteProjectLifecycle:
                 passed=scenario_passed,
                 steps=steps,
                 duration=time.time() - scenario_start,
-                notes=f"Created {len(test_data['doc_ids'])} documents, {len(test_data['req_ids'])} requirements, {len(test_data['test_ids'])} tests"
+                notes=f"Created {len(test_data['doc_ids']) if isinstance(test_data['doc_ids'], list) else 0} documents, {len(test_data['req_ids']) if isinstance(test_data['req_ids'], list) else 0} requirements, {len(test_data['test_ids']) if isinstance(test_data['test_ids'], list) else 0} tests"
             )
 
             assert scenario_passed, "Scenario 1 failed - see steps for details"
@@ -566,7 +570,7 @@ class TestRequirementsManagement:
         scenario_start = time.time()
         steps = []
         tools_used = []
-        test_data = {"org_id": None, "project_id": None, "doc_id": None, "req_ids": []}
+        test_data: dict[str, str | None | list[str]] = {"org_id": None, "project_id": None, "doc_id": None, "req_ids": []}
 
         try:
             # Setup: Create org, project, and document
@@ -642,7 +646,7 @@ class TestRequirementsManagement:
                 "tool": "workflow_tool",
                 "status": "passed" if import_result.get("success") else "failed",
                 "duration": f"{time.time() - step_start:.2f}s",
-                "result": f"Imported {len(test_data['req_ids'])} requirements"
+                "result": f"Imported {len(test_data['req_ids']) if isinstance(test_data['req_ids'], list) else 0} requirements"
             })
 
             # Step 2: Create Trace Links
@@ -650,13 +654,14 @@ class TestRequirementsManagement:
             step_start = time.time()
 
             trace_links_created = 0
-            if len(test_data["req_ids"]) >= 2:
+            req_ids = test_data["req_ids"]
+            if isinstance(req_ids, list) and len(req_ids) >= 2:
                 # Link REQ-001 to REQ-002 (parent-child relationship)
                 link_result = await mcp_client("relationship_tool", {
                     "operation": "link",
                     "relationship_type": "trace_link",
-                    "source": {"type": "requirement", "id": test_data["req_ids"][0]},
-                    "target": {"type": "requirement", "id": test_data["req_ids"][1]},
+                    "source": {"type": "requirement", "id": req_ids[0]},
+                    "target": {"type": "requirement", "id": req_ids[1]},
                     "metadata": {
                         "source_type": "requirement",
                         "target_type": "requirement",
@@ -787,7 +792,7 @@ class TestRequirementsManagement:
                 passed=scenario_passed,
                 steps=steps,
                 duration=time.time() - scenario_start,
-                notes=f"Managed {len(test_data['req_ids'])} requirements across workflow"
+                notes=f"Managed {len(test_data['req_ids']) if isinstance(test_data['req_ids'], list) else 0} requirements across workflow"
             )
 
             assert scenario_passed, "Scenario 2 failed - see steps for details"

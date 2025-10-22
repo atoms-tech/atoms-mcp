@@ -88,7 +88,7 @@ async def _patched_handle_request(self, scope, receive, send):
         await _original_handle_request(self, scope, receive, send)
 
 # Monkey patch the class method
-StreamableHTTPSessionManager.handle_request = _patched_handle_request
+StreamableHTTPSessionManager.handle_request = _patched_handle_request  # type: ignore[assignment]
 print("✅ Patched StreamableHTTPSessionManager.handle_request for serverless deployment")
 
 # Vercel will import the 'app' variable

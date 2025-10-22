@@ -4,11 +4,12 @@ Tests for Security Service
 Comprehensive test suite for rate limiting, hijacking detection, and security monitoring.
 """
 
-import pytest
 from datetime import datetime, timedelta
 
-from ..security import SecurityService, RateLimitError, RateLimitRule
-from ..models import Session, DeviceFingerprint, AuditLog, AuditAction
+import pytest
+
+from ..models import AuditAction, AuditLog, DeviceFingerprint, Session
+from ..security import RateLimitError, RateLimitRule, SecurityService
 from ..storage.base import InMemoryStorage
 
 

@@ -122,7 +122,7 @@ class WorkflowTestSuite:
         self.data_generator = WorkflowDataGenerator()
         self.assertion_helpers = AssertionHelpers()
         self.performance_analyzer = PerformanceAnalyzer()
-        self.created_entities = []
+        self.created_entities: list[str] = []
 
     async def cleanup(self):
         """Clean up created entities."""

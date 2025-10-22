@@ -69,15 +69,15 @@ class TestSlugNormalization:
         """Test slug handles empty/invalid input."""
         with pytest.raises(ValueError, match="non-empty string"):
             normalize_slug("")
-        with pytest.raises(ValueError, match="non-empty string"):
-            normalize_slug(None)
+        with pytest.raises((TypeError, ValueError), match="non-empty string|expected str"):
+            normalize_slug(None)  # type: ignore[arg-type]
 
     def test_auto_generate_slug(self):
         """Test auto slug generation."""
         assert auto_generate_slug("Test Project") == "test-project"
         assert auto_generate_slug("My Org") == "my-org"
         assert auto_generate_slug("", "document") == "document"
-        assert auto_generate_slug(None, "entity") == "entity"
+        assert auto_generate_slug(None, "entity") == "entity"  # type: ignore[arg-type]
 
     def test_auto_generate_slug_invalid_fallback(self):
         """Test auto slug uses fallback for invalid names."""

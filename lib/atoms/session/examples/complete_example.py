@@ -7,18 +7,15 @@ security, and storage backends.
 
 import asyncio
 import logging
-from datetime import timedelta
 
 from atoms.session import (
-    SessionManager,
-    TokenManager,
+    DeviceFingerprint,
     RevocationService,
     SecurityService,
-    DeviceFingerprint,
-    SessionState,
+    SessionManager,
+    TokenManager,
 )
 from atoms.session.storage import InMemoryStorage
-
 
 # Configure logging
 logging.basicConfig(
@@ -149,7 +146,7 @@ async def main():
                     reason="proactive",
                 )
 
-                logger.info(f"Token refreshed successfully")
+                logger.info("Token refreshed successfully")
                 logger.info(f"Refresh record ID: {refresh_record.record_id}")
                 logger.info(f"Rotation enabled: {refresh_record.rotation_enabled}")
 

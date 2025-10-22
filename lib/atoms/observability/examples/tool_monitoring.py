@@ -8,16 +8,15 @@ Author: Atoms MCP Platform
 """
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any
 
 from lib.atoms.observability import (
-    observe_tool,
-    get_logger,
     LogContext,
-    record_tool_execution,
+    get_logger,
     measure_performance,
+    observe_tool,
+    record_tool_execution,
     webhook_manager,
-    AlertSeverity,
 )
 
 logger = get_logger(__name__)
@@ -28,7 +27,7 @@ logger = get_logger(__name__)
 # ============================================================================
 
 @observe_tool("search_repository", track_performance=True, log_inputs=True)
-async def search_repository(query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+async def search_repository(query: str, max_results: int = 10) -> list[dict[str, Any]]:
     """
     Search code repository with automatic monitoring.
 
@@ -55,7 +54,7 @@ async def search_repository(query: str, max_results: int = 10) -> List[Dict[str,
 
 
 @observe_tool("execute_code", track_performance=True, log_outputs=False)
-async def execute_code(code: str, language: str = "python") -> Dict[str, Any]:
+async def execute_code(code: str, language: str = "python") -> dict[str, Any]:
     """
     Execute code with monitoring.
 
@@ -75,7 +74,7 @@ async def execute_code(code: str, language: str = "python") -> Dict[str, Any]:
 
 @observe_tool("analyze_file", track_performance=True)
 @measure_performance("file_analysis", threshold_warning_ms=2000)
-async def analyze_file(file_path: str) -> Dict[str, Any]:
+async def analyze_file(file_path: str) -> dict[str, Any]:
     """
     Analyze file with performance thresholds.
 
@@ -221,7 +220,7 @@ async def monitored_tool_chain(user_query: str):
 
 @observe_tool("real_time_analysis", track_performance=True)
 @measure_performance("real_time", threshold_warning_ms=100, threshold_critical_ms=500)
-async def real_time_analysis(data: List[float]) -> Dict[str, float]:
+async def real_time_analysis(data: list[float]) -> dict[str, float]:
     """
     Performance-critical tool with strict thresholds.
 
@@ -243,7 +242,7 @@ async def real_time_analysis(data: List[float]) -> Dict[str, float]:
 # ============================================================================
 
 @observe_tool("unreliable_api_call", track_performance=True)
-async def unreliable_api_call(endpoint: str, retry_count: int = 0) -> Dict[str, Any]:
+async def unreliable_api_call(endpoint: str, retry_count: int = 0) -> dict[str, Any]:
     """
     Tool that might fail - monitoring captures errors.
     """
@@ -294,10 +293,10 @@ async def main():
     max_retries = 3
     for retry in range(max_retries):
         try:
-            result = await unreliable_api_call("/api/data", retry_count=retry)
+            await unreliable_api_call("/api/data", retry_count=retry)
             print(f"   API call succeeded on attempt {retry + 1}\n")
             break
-        except Exception as e:
+        except Exception:
             if retry == max_retries - 1:
                 print(f"   API call failed after {max_retries} attempts\n")
             else:

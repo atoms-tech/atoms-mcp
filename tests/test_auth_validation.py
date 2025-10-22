@@ -17,8 +17,8 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
-from mcp_qa.testing.auth_validator import validate_auth
+from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+from pheno.testing.mcp_qa.testing.auth_validator import validate_auth
 
 
 async def main():

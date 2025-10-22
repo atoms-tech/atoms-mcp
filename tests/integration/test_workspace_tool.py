@@ -14,7 +14,7 @@ from typing import Any
 try:
     from tools.workspace import workspace_operation
 except ImportError:
-    from workspace import workspace_operation
+    from workspace import workspace_operation  # type: ignore
 
 
 class WorkspaceToolTester:

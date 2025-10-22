@@ -4,13 +4,14 @@ Tests for Token Manager
 Comprehensive test suite for token refresh, rotation, and introspection.
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from ..token_manager import TokenManager, TokenRefreshError
+import pytest
+
 from ..models import Session, TokenRefreshRecord
 from ..storage.base import InMemoryStorage
+from ..token_manager import TokenManager, TokenRefreshError
 
 
 @pytest.fixture

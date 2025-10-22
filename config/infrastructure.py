@@ -14,6 +14,8 @@ This module provides factory functions for creating infrastructure components:
 import sys
 from pathlib import Path
 
+from .settings import get_settings
+
 # Add pheno-sdk to path
 _repo_root = Path(__file__).resolve().parents[2]
 _adapter_kit_path = _repo_root / "pheno-sdk" / "adapter-kit"
@@ -52,8 +54,6 @@ try:
     from observability.rate_limiting import TokenBucketRateLimiter  # noqa: E402
 except ImportError:
     TokenBucketRateLimiter = None
-
-from .settings import get_settings
 
 # Singleton instances
 _database_adapter = None

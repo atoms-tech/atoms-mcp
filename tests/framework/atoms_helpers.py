@@ -8,8 +8,8 @@ Provides helpers for Atoms MCP Server testing:
 """
 
 
-# Import from pheno_vendor for generic validation
-from pheno_vendor.mcp_qa.core.validators import ResponseValidator as BaseValidator
+# Import from local validators
+from .validators import ResponseValidator as BaseValidator
 
 
 class AtomsTestHelpers:

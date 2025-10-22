@@ -22,12 +22,13 @@ Usage:
 
 import asyncio
 import logging
-from typing import Any, AsyncIterator, Optional
+from collections.abc import AsyncIterator, Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from .test_modes import ConditionalFixture, TestMode, TestModeConfig
+from .test_modes import ConditionalFixture, TestModeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 async def create_real_mcp_client(endpoint: str) -> Any:
     """Create real MCP client for HOT mode."""
-    from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+    from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
     broker = UnifiedCredentialBroker(mcp_endpoint=endpoint, provider="authkit")
     client, _ = await broker.get_authenticated_client()
@@ -92,22 +93,22 @@ async def create_simulated_mcp_client() -> Any:
                 return {"success": True, "id": entity_id, "data": arguments}
 
             elif operation == "read":
-                entity_id = arguments.get("id")
-                if entity_id in self.entities:
-                    return {"success": True, "data": self.entities[entity_id]}
+                read_entity_id: Any = arguments.get("id")
+                if read_entity_id and isinstance(read_entity_id, str) and read_entity_id in self.entities:
+                    return {"success": True, "data": self.entities[read_entity_id]}
                 return {"success": False, "error": "not_found"}
 
             elif operation == "update":
-                entity_id = arguments.get("id")
-                if entity_id in self.entities:
-                    self.entities[entity_id].update(arguments.get("data", {}))
-                    return {"success": True, "id": entity_id, "data": self.entities[entity_id]}
+                update_entity_id: Any = arguments.get("id")
+                if update_entity_id and isinstance(update_entity_id, str) and update_entity_id in self.entities:
+                    self.entities[update_entity_id].update(arguments.get("data", {}))
+                    return {"success": True, "id": update_entity_id, "data": self.entities[update_entity_id]}
                 return {"success": False, "error": "not_found"}
 
             elif operation == "delete":
-                entity_id = arguments.get("id")
-                if entity_id in self.entities:
-                    del self.entities[entity_id]
+                delete_entity_id: Any = arguments.get("id")
+                if delete_entity_id and isinstance(delete_entity_id, str) and delete_entity_id in self.entities:
+                    del self.entities[delete_entity_id]
                     return {"success": True}
                 return {"success": False, "error": "not_found"}
 
@@ -314,7 +315,7 @@ async def conditional_auth_manager(atoms_mode_config: TestModeConfig) -> AsyncIt
     """
 
     async def hot_impl():
-        from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+        from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
         broker = UnifiedCredentialBroker(mcp_endpoint="http://localhost:8000/api/mcp", provider="authkit")
         return broker
@@ -356,7 +357,7 @@ async def conditional_auth_manager(atoms_mode_config: TestModeConfig) -> AsyncIt
 
 
 @pytest.fixture
-def conditional_temp_directory(atoms_mode_config: TestModeConfig) -> AsyncIterator[str]:
+def conditional_temp_directory(atoms_mode_config: TestModeConfig) -> Generator[str, None, None]:
     """Mode-aware temporary directory fixture.
 
     HOT/COLD/DRY: All use real temp directories (no difference in modes)
@@ -375,7 +376,7 @@ def conditional_temp_directory(atoms_mode_config: TestModeConfig) -> AsyncIterat
 
 
 @pytest.fixture(scope="session")
-def conditional_event_loop(atoms_mode_config: TestModeConfig) -> AsyncIterator[asyncio.AbstractEventLoop]:
+def conditional_event_loop(atoms_mode_config: TestModeConfig) -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Mode-aware event loop fixture.
 
     HOT/COLD/DRY: All use the same event loop implementation

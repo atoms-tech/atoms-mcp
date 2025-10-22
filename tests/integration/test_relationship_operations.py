@@ -23,7 +23,7 @@ TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
 TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 
 # Test results storage
-test_results = []
+test_results: list[Any] = []
 
 
 class TestResult:

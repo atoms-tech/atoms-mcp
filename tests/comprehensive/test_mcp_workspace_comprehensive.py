@@ -251,7 +251,7 @@ async def run_comprehensive_tests():
     try:
         from tools.workspace import workspace_operation
     except ImportError:
-        from workspace import workspace_operation
+        from workspace import workspace_operation  # type: ignore
 
     # TEST 1: List Workspaces
     tester.print_header("TEST 1: List Workspaces")

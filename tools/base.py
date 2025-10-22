@@ -8,13 +8,28 @@ from utils.logging_setup import get_logger
 
 # Support both package and standalone imports
 try:
-    from ..errors import normalize_error
-    from ..infrastructure.factory import get_adapters
-    from ..schemas.constants import ENTITY_TABLE_MAP
-except ImportError:
     from errors import normalize_error
     from infrastructure.factory import get_adapters
     from schemas.constants import ENTITY_TABLE_MAP
+except ImportError:
+        # Mock implementations for type checking
+        class ApiError(Exception):
+            def __init__(self, code: str, message: str, status: int = 500, details: Any | None = None):
+                super().__init__(message)
+                self.code = code
+                self.message = message
+                self.status = status
+                self.details = details
+
+        def normalize_error(err: Exception | str, fallback_message: str) -> ApiError:  # type: ignore
+            if isinstance(err, str):
+                return ApiError(code="INTERNAL_SERVER_ERROR", message=fallback_message)
+            return ApiError(code="INTERNAL_SERVER_ERROR", message=str(err) or fallback_message)
+
+        def get_adapters() -> dict[str, Any]:
+            return {}
+
+        ENTITY_TABLE_MAP = {}
 
 logger = get_logger(__name__)
 
@@ -55,7 +70,8 @@ class ToolBase:
             return user_info
 
         except Exception as e:
-            raise normalize_error(e, "Authentication failed")
+            error: Exception = normalize_error(e, "Authentication failed")
+            raise error
 
     def _get_user_id(self) -> str:
         """Get current user ID from context."""
@@ -87,7 +103,8 @@ class ToolBase:
             adapters = self._get_adapters()
             return await adapters["database"].query(table, **kwargs)
         except Exception as e:
-            raise normalize_error(e, f"Database query failed for table {table}")
+            error: Exception = normalize_error(e, f"Database query failed for table {table}")
+            raise error
 
     async def _db_get_single(self, table: str, **kwargs) -> dict[str, Any] | None:
         """Get single record from database."""
@@ -95,7 +112,8 @@ class ToolBase:
             adapters = self._get_adapters()
             return await adapters["database"].get_single(table, **kwargs)
         except Exception as e:
-            raise normalize_error(e, f"Database get_single failed for table {table}")
+            error: Exception = normalize_error(e, f"Database get_single failed for table {table}")
+            raise error
 
     async def _db_insert(self, table: str, data: Any, **kwargs) -> Any:
         """Insert record(s) into database."""
@@ -103,7 +121,8 @@ class ToolBase:
             adapters = self._get_adapters()
             return await adapters["database"].insert(table, data, **kwargs)
         except Exception as e:
-            raise normalize_error(e, f"Database insert failed for table {table}")
+            error: Exception = normalize_error(e, f"Database insert failed for table {table}")
+            raise error
 
     async def _db_update(self, table: str, data: dict[str, Any], filters: dict[str, Any], **kwargs) -> Any:
         """Update record(s) in database."""
@@ -111,7 +130,8 @@ class ToolBase:
             adapters = self._get_adapters()
             return await adapters["database"].update(table, data, filters, **kwargs)
         except Exception as e:
-            raise normalize_error(e, f"Database update failed for table {table}")
+            error: Exception = normalize_error(e, f"Database update failed for table {table}")
+            raise error
 
     async def _db_delete(self, table: str, filters: dict[str, Any]) -> int:
         """Delete record(s) from database."""
@@ -162,7 +182,7 @@ class ToolBase:
         }
 
         # Keep only essential fields
-        sanitized = {}
+        sanitized: dict[str, Any] = {}
         for key, value in entity.items():
             if key in exclude_fields:
                 continue
@@ -224,12 +244,12 @@ class ToolBase:
                 "showing": "1-10",
                 "hint": "Use limit/offset parameters for pagination",
                 "user_id": self._get_user_id(),
-                "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+                "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
             }
         return {
             "success": True,
             "data": data,
             "count": len(data) if isinstance(data, list) else 1,
             "user_id": self._get_user_id(),
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
+            "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
         }

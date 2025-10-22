@@ -8,14 +8,13 @@ revocation lists with TTL, and complete audit trails.
 import asyncio
 import hashlib
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any, Set
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
-from .models import Session, SessionState, AuditLog, AuditAction
+from .models import AuditAction, AuditLog, Session, SessionState
 from .storage.base import StorageBackend
-
 
 logger = logging.getLogger(__name__)
 
@@ -32,14 +31,14 @@ class RevocationRecord:
     revocation_id: str
     token_hash: str
     token_type: str  # access_token, refresh_token, id_token
-    session_id: Optional[str] = None
-    user_id: Optional[str] = None
+    session_id: str | None = None
+    user_id: str | None = None
     revoked_at: datetime = None
-    expires_at: Optional[datetime] = None  # When to remove from revocation list
+    expires_at: datetime | None = None  # When to remove from revocation list
     reason: str = "user_logout"
-    revoked_by: Optional[str] = None  # User or system that triggered revocation
-    cascaded_from: Optional[str] = None  # Parent revocation ID if cascaded
-    metadata: Dict[str, Any] = None
+    revoked_by: str | None = None  # User or system that triggered revocation
+    cascaded_from: str | None = None  # Parent revocation ID if cascaded
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.revoked_at is None:
@@ -47,7 +46,7 @@ class RevocationRecord:
         if self.metadata is None:
             self.metadata = {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "revocation_id": self.revocation_id,
@@ -64,7 +63,7 @@ class RevocationRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RevocationRecord":
+    def from_dict(cls, data: dict[str, Any]) -> "RevocationRecord":
         """Create from dictionary."""
         if "revoked_at" in data and isinstance(data["revoked_at"], str):
             data["revoked_at"] = datetime.fromisoformat(data["revoked_at"])
@@ -108,11 +107,11 @@ class RevocationService:
         self.audit_enabled = audit_enabled
 
         # In-memory cache for fast lookups
-        self._revocation_cache: Set[str] = set()
+        self._revocation_cache: set[str] = set()
         self._cache_lock = asyncio.Lock()
 
         # Background cleanup task
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
 
     def _hash_token(self, token: str) -> str:
         """Create secure hash of token."""
@@ -122,11 +121,11 @@ class RevocationService:
         self,
         token: str,
         token_type: str,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         reason: str = "user_logout",
-        revoked_by: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        revoked_by: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> RevocationRecord:
         """
         Revoke a single token.
@@ -201,8 +200,8 @@ class RevocationService:
         self,
         session: Session,
         reason: str = "user_logout",
-        revoked_by: Optional[str] = None,
-    ) -> List[RevocationRecord]:
+        revoked_by: str | None = None,
+    ) -> list[RevocationRecord]:
         """
         Revoke all tokens for a session.
 
@@ -267,10 +266,10 @@ class RevocationService:
     async def revoke_user_sessions(
         self,
         user_id: str,
-        except_session_id: Optional[str] = None,
+        except_session_id: str | None = None,
         reason: str = "user_logout_all",
-        revoked_by: Optional[str] = None,
-    ) -> List[RevocationRecord]:
+        revoked_by: str | None = None,
+    ) -> list[RevocationRecord]:
         """
         Revoke all sessions for a user.
 
@@ -310,11 +309,11 @@ class RevocationService:
     async def revoke_with_cascade(
         self,
         refresh_token: str,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         reason: str = "refresh_token_revoked",
-        revoked_by: Optional[str] = None,
-    ) -> List[RevocationRecord]:
+        revoked_by: str | None = None,
+    ) -> list[RevocationRecord]:
         """
         Revoke refresh token and cascade to related access tokens.
 
@@ -366,7 +365,7 @@ class RevocationService:
                         "access_token",
                         session_id=session_id,
                         user_id=user_id,
-                        reason=f"cascaded_from_refresh_token",
+                        reason="cascaded_from_refresh_token",
                         revoked_by=revoked_by,
                         metadata={"cascaded_from": parent_record.revocation_id}
                     )
@@ -380,7 +379,7 @@ class RevocationService:
                         "id_token",
                         session_id=session_id,
                         user_id=user_id,
-                        reason=f"cascaded_from_refresh_token",
+                        reason="cascaded_from_refresh_token",
                         revoked_by=revoked_by,
                         metadata={"cascaded_from": parent_record.revocation_id}
                     )
@@ -433,7 +432,7 @@ class RevocationService:
     async def get_revocation_record(
         self,
         token: str,
-    ) -> Optional[RevocationRecord]:
+    ) -> RevocationRecord | None:
         """
         Get revocation record for token.
 
@@ -449,7 +448,7 @@ class RevocationService:
     async def get_session_revocations(
         self,
         session_id: str,
-    ) -> List[RevocationRecord]:
+    ) -> list[RevocationRecord]:
         """
         Get all revocations for a session.
 
@@ -526,10 +525,10 @@ class RevocationService:
     async def _create_audit_log(
         self,
         action: AuditAction,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         details: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """Create and store audit log entry."""
         log = AuditLog(

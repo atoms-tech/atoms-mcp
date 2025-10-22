@@ -11,19 +11,17 @@ Run with: pytest tests/phase3/rls_policies/test_access_control.py -v
 """
 
 from unittest.mock import AsyncMock
+
 import pytest
 
 from schemas import ProjectRole, UserRoleType, Visibility
 from schemas.constants import Tables
 from schemas.rls import (
     DocumentPolicy,
-    OrganizationMemberPolicy,
     OrganizationPolicy,
-    ProjectMemberPolicy,
     ProjectPolicy,
     user_can_access_project,
 )
-
 
 # =============================================================================
 # FIXTURES

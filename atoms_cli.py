@@ -4,17 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 # Ensure project modules are importable
 PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "pheno_vendor"))
 
 try:  # pragma: no cover - optional structured logging
     from observability import LogLevel, StructuredLogger
@@ -34,6 +35,7 @@ except ImportError:  # pragma: no cover - fallback logging
     USE_STRUCTURED_LOGGING = False
 
 from config import get_settings, reset_settings_cache  # noqa: E402
+from config.settings import AppSettings  # noqa: E402
 
 ENV_ALIASES: dict[str, str] = {
     "local": "local",
@@ -109,7 +111,7 @@ def environment_variables_for(env: str) -> dict[str, str]:
     return env_vars
 
 
-def apply_environment(env: str) -> tuple[dict[str, str], Any]:
+def apply_environment(env: str) -> tuple[dict[str, str], AppSettings | None]:
     env_vars = environment_variables_for(env)
     for key, value in env_vars.items():
         if value is not None:
@@ -117,8 +119,9 @@ def apply_environment(env: str) -> tuple[dict[str, str], Any]:
 
     reset_settings_cache()
     try:
-        settings = get_settings()
-        settings.apply_to_environment(override=True)
+        settings: AppSettings | None = get_settings()
+        if settings:
+            settings.apply_to_environment(override=True)
     except Exception:  # pragma: no cover - defensive fallback
         settings = None
 
@@ -132,30 +135,318 @@ def run_subprocess(command: Sequence[str], *, env: dict[str, str] | None = None)
 
 
 def handle_start(args: argparse.Namespace) -> int:
+    """Start Atoms MCP with full orchestration (byteport-style behavior)."""
     env = canonical_environment(args.environment, "local")
     env_vars, settings = apply_environment(env)
 
     log_info(
-        "Starting server",
+        "Starting Atoms MCP with orchestration",
         environment=env,
         endpoint=env_vars.get("MCP_ENDPOINT"),
         base_url=getattr(settings, "resolved_base_url", None),
     )
 
+    # Import orchestration components
     try:
-        from lib.atoms import start_atoms_server
-    except ImportError as exc:  # pragma: no cover - module missing
-        log_error("Unable to import start_atoms_server", error=str(exc))
-        print("Error: start_atoms_server not available")
-        return 1
+        import sys
 
-    port = args.port or 8000
-    return start_atoms_server(
-        port=port,
-        verbose=args.verbose,
-        no_tunnel=args.no_tunnel,
-        logger=_LOGGER if USE_STRUCTURED_LOGGING else None,
+        # Add pheno-sdk to path
+        sys.path.insert(0, str(PROJECT_ROOT.parent / "pheno-sdk" / "src"))
+
+        # Determine mode based on environment
+        dev_mode = env in ["dev", "development", "preview"]
+        local_mode = env == "local"
+
+        # Set port in environment if specified
+        if args.port:
+            os.environ["ATOMS_MCP_PORT"] = str(args.port)
+
+        # Set tunnel mode
+        if args.no_tunnel:
+            os.environ["ATOMS_NO_TUNNEL"] = "true"
+
+        # Run the orchestration
+        asyncio.run(start_atoms_orchestration(dev_mode=dev_mode, local_mode=local_mode))
+        return 0
+
+    except Exception as exc:
+        log_error("Orchestration failed, falling back to simple start", error=str(exc))
+
+        # Fallback to simple server start
+        try:
+            from lib.atoms import start_atoms_server
+        except ImportError as exc2:
+            log_error("Unable to import start_atoms_server", error=str(exc2))
+            print("Error: start_atoms_server not available")
+            return 1
+
+        # Use pheno-sdk port allocation if no specific port provided
+        if args.port:
+            port = args.port
+        else:
+            # Try to use pheno-sdk port allocation
+            try:
+                from pheno.infra.port_allocator import SmartPortAllocator
+                from pheno.infra.port_registry import PortRegistry
+                from pheno.infra.process_cleanup import ProcessCleanupConfig
+
+                # Perform process cleanup before port allocation
+                ProcessCleanupConfig(
+                    cleanup_related_services=True,
+                    cleanup_tunnels=True,
+                    grace_period=2.0,
+                )
+                # Note: cleanup_before_startup is async, skip for now
+                print("🧹 Process cleanup skipped (sync context)")
+
+                registry = PortRegistry()
+                allocator = SmartPortAllocator(registry)
+                port = allocator.allocate_port("atoms-mcp-server")
+                print(f"🔧 pheno-sdk allocated port {port} for atoms-mcp-server")
+            except ImportError:
+                port = 8000
+                print("⚠️  pheno-sdk not available, using default port 8000")
+            except Exception as e:
+                port = 8000
+                print(f"⚠️  pheno-sdk port allocation failed: {e}, using default port 8000")
+
+        return start_atoms_server(
+            port=port,
+            verbose=args.verbose,
+            no_tunnel=args.no_tunnel,
+            logger=_LOGGER if USE_STRUCTURED_LOGGING else None,
+        )
+
+
+async def start_atoms_orchestration(dev_mode: bool = False, local_mode: bool = False) -> None:
+    """Start Atoms MCP with full orchestration (byteport-style behavior)."""
+    import logging
+    import os
+    import subprocess
+    import sys
+
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+        datefmt='%H:%M:%S'
     )
+    logger = logging.getLogger("atoms-orchestrator")
+
+    # Default configuration
+    DEFAULT_PORT = 8000
+    DEFAULT_HOST = "127.0.0.1"
+    DEFAULT_HTTP_PATH = "/api/mcp"
+    PUBLIC_DOMAIN = "atoms.kooshapari.com"
+
+    class AtomsOrchestrator:
+        """Orchestrator for Atoms MCP services."""
+
+        def __init__(self):
+            self.process: subprocess.Popen | None = None
+            self.allocated_port: int | None = None
+            self.tunnel_info: dict | None = None
+
+        def allocate_port(self, service_name: str = "atoms-mcp-server") -> int:
+            """Allocate a port using pheno-sdk's smart port allocator."""
+            try:
+                from pheno.infra.port_allocator import SmartPortAllocator
+                from pheno.infra.port_registry import PortRegistry
+                from pheno.infra.process_cleanup import ProcessCleanupConfig
+
+                # Perform process cleanup before port allocation
+                ProcessCleanupConfig(
+                    cleanup_related_services=True,
+                    cleanup_tunnels=True,
+                    grace_period=2.0,
+                )
+                # Note: cleanup_before_startup is async, skip for now
+                logger.info("🧹 Process cleanup skipped (sync context)")
+
+                # Create port allocator and registry
+                registry = PortRegistry()
+                allocator = SmartPortAllocator(registry)
+
+                # Allocate port for the service
+                port = allocator.allocate_port(service_name)
+                logger.info(f"🔧 pheno-sdk allocated port {port} for service '{service_name}'")
+                return port
+
+            except ImportError:
+                logger.warning("⚠️  pheno-sdk not available, using default port")
+                return DEFAULT_PORT
+            except Exception as e:
+                logger.warning(f"⚠️  pheno-sdk port allocation failed: {e}, using default port")
+                return DEFAULT_PORT
+
+        def setup_tunnel(self, local_port: int, domain: str = PUBLIC_DOMAIN) -> dict | None:
+            """Setup Cloudflare tunnel for the service."""
+            try:
+                from pheno.infra.tunneling import TunnelManager, TunnelProtocol, TunnelType
+
+                tunnel_config = {
+                    "domain": domain,
+                    "local_host": DEFAULT_HOST,
+                    "local_port": local_port,
+                    "tunnel_type": TunnelType.CLOUDFLARE.value,
+                    "protocol": TunnelProtocol.HTTPS.value,
+                }
+
+                manager = TunnelManager(tunnel_config)
+                tunnel_info = asyncio.run(manager.establish())
+
+                logger.info(f"🌐 Tunnel established: {tunnel_info.public_url}")
+                return {
+                    "tunnel_id": tunnel_info.tunnel_id,
+                    "public_url": tunnel_info.public_url,
+                    "local_port": local_port,
+                    "manager": manager
+                }
+
+            except ImportError:
+                logger.warning("⚠️  pheno-sdk tunneling not available")
+                return None
+            except Exception as e:
+                logger.warning(f"⚠️  Tunnel setup failed: {e}")
+                return None
+
+        async def start_mcp_server(self, port: int, dev_mode: bool = False, local_mode: bool = False) -> bool:
+            """Start the MCP server process."""
+            try:
+                # Set environment variables
+                env = os.environ.copy()
+                env.update({
+                    "ATOMS_FASTMCP_TRANSPORT": "http",
+                    "ATOMS_FASTMCP_HOST": DEFAULT_HOST,
+                    "ATOMS_FASTMCP_PORT": str(port),
+                    "ATOMS_FASTMCP_HTTP_PATH": DEFAULT_HTTP_PATH,
+                    "ENABLE_KINFRA": "true",
+                    "LOG_LEVEL": "INFO",
+                    "ENVIRONMENT": "development" if dev_mode else "production",
+                    "FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN": "http://localhost:3000",
+                })
+
+                if local_mode:
+                    env["ATOMS_NO_TUNNEL"] = "true"
+
+                # Build command - use conda python
+                cmd = ["python", "-m", "server"]
+                if dev_mode:
+                    cmd.append("--reload")
+
+                logger.info(f"🚀 Starting MCP server on {DEFAULT_HOST}:{port}")
+                logger.info(f"   Command: {' '.join(cmd)}")
+                logger.info(f"   Mode: {'LOCAL' if local_mode else 'DEV' if dev_mode else 'PRODUCTION'}")
+
+                # Start the process
+                self.process = subprocess.Popen(
+                    cmd,
+                    cwd=PROJECT_ROOT,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    bufsize=1
+                )
+
+                # Wait a moment for startup
+                await asyncio.sleep(2)
+
+                # Check if process is still running
+                if self.process.poll() is not None:
+                    logger.error("❌ MCP server failed to start")
+                    return False
+
+                logger.info(f"✅ MCP server started with PID {self.process.pid}")
+                return True
+
+            except Exception as e:
+                logger.error(f"❌ Failed to start MCP server: {e}")
+                return False
+
+        async def stop_services(self) -> None:
+            """Stop all running services."""
+            logger.info("🛑 Stopping Atoms MCP services...")
+
+            if self.process:
+                try:
+                    self.process.terminate()
+                    await asyncio.sleep(1)
+                    if self.process.poll() is None:
+                        self.process.kill()
+                    logger.info("✅ MCP server stopped")
+                except Exception as e:
+                    logger.error(f"❌ Error stopping MCP server: {e}")
+
+            if self.tunnel_info and "manager" in self.tunnel_info:
+                try:
+                    await self.tunnel_info["manager"].teardown()
+                    logger.info("✅ Tunnel closed")
+                except Exception as e:
+                    logger.error(f"❌ Error closing tunnel: {e}")
+
+        def show_status(self) -> None:
+            """Show status of running services."""
+            print("\n" + "=" * 60)
+            print("📊 Atoms MCP Service Status")
+            print("=" * 60)
+
+            if self.process and self.process.poll() is None:
+                print(f"✅ MCP Server: Running (PID: {self.process.pid})")
+                print(f"   URL: http://{DEFAULT_HOST}:{self.allocated_port}{DEFAULT_HTTP_PATH}")
+                print(f"   Health: http://{DEFAULT_HOST}:{self.allocated_port}/health")
+            else:
+                print("❌ MCP Server: Not running")
+
+            if self.tunnel_info:
+                print("🌐 Tunnel: Active")
+                print(f"   Public URL: {self.tunnel_info['public_url']}")
+            else:
+                print("🌐 Tunnel: Not active")
+
+            print("=" * 60)
+
+    # Start orchestration
+    logger.info("=" * 60)
+    logger.info("🎯 Atoms MCP Orchestrator Starting...")
+    logger.info(f"   Mode: {'LOCAL' if local_mode else 'DEV' if dev_mode else 'PRODUCTION'}")
+    logger.info("=" * 60)
+
+    orchestrator = AtomsOrchestrator()
+
+    # Allocate port
+    orchestrator.allocated_port = orchestrator.allocate_port()
+
+    # Setup tunnel if not in local mode
+    if not local_mode:
+        orchestrator.tunnel_info = orchestrator.setup_tunnel(orchestrator.allocated_port)
+
+    # Start MCP server
+    success = await orchestrator.start_mcp_server(
+        port=orchestrator.allocated_port,
+        dev_mode=dev_mode,
+        local_mode=local_mode
+    )
+
+    if not success:
+        logger.error("❌ Failed to start Atoms MCP services")
+        await orchestrator.stop_services()
+        sys.exit(1)
+
+    # Show status
+    orchestrator.show_status()
+
+    try:
+        # Monitor the process
+        while True:
+            if orchestrator.process and orchestrator.process.poll() is not None:
+                logger.error("❌ MCP server process died unexpectedly")
+                break
+            await asyncio.sleep(1)
+    except KeyboardInterrupt:
+        logger.info("\n👋 Shutting down...")
+        await orchestrator.stop_services()
+        logger.info("✅ Shutdown complete")
 
 
 def handle_deploy(args: argparse.Namespace) -> int:
@@ -220,6 +511,11 @@ def handle_test(args: argparse.Namespace) -> int:
     if tokens and tokens[0] in SUITE_PATHS:
         suite = tokens.pop(0)
 
+    # Check if the next token is a test mode
+    mode = args.mode  # Default from argument
+    if tokens and tokens[0] in ["hot", "cold", "dry", "all"]:
+        mode = tokens.pop(0)
+
     markers = list(tokens)
     if args.markers:
         markers.extend(args.markers)
@@ -229,6 +525,9 @@ def handle_test(args: argparse.Namespace) -> int:
 
     pytest_cmd = ["pytest", suite_path]
     pytest_cmd.append("-vv" if args.verbose else "-v")
+
+    # Add test mode
+    pytest_cmd.extend(["--mode", mode])
 
     if args.workers:
         pytest_cmd.extend(["-n", str(args.workers)])
@@ -313,12 +612,60 @@ def handle_vendor(args: argparse.Namespace) -> int:
     return 1
 
 
+def handle_sync(args: argparse.Namespace) -> int:
+    """Sync dependencies with local pheno-sdk."""
+    import subprocess
+    from pathlib import Path
+
+    if args.verbose:
+        print("🔄 Syncing dependencies with pheno-sdk...")
+
+    # Check if pheno-sdk exists (for local option)
+    if args.local:
+        pheno_sdk_path = Path("../pheno-sdk").resolve()
+        if not pheno_sdk_path.exists():
+            log_error(f"pheno-sdk not found at {pheno_sdk_path}")
+            return 1
+        if args.verbose:
+            print(f"Using local pheno-sdk at {pheno_sdk_path}")
+
+    # Build uv sync command
+    cmd = ["uv", "sync"]
+
+    if args.dev:
+        cmd.append("--dev")
+
+    if args.verbose:
+        cmd.append("--verbose")
+
+    try:
+        if args.verbose:
+            print(f"Running: {' '.join(cmd)}")
+
+        subprocess.run(cmd, check=True, capture_output=not args.verbose, text=True)
+
+        if args.verbose:
+            print("✅ Dependencies synced successfully")
+        else:
+            print("✅ Dependencies synced successfully")
+
+        return 0
+    except subprocess.CalledProcessError as e:
+        log_error(f"Failed to sync dependencies: {e}")
+        if not args.verbose and e.stderr:
+            print(f"Error: {e.stderr}")
+        return 1
+    except FileNotFoundError:
+        log_error("uv not found. Please install uv first: pip install uv")
+        return 1
+
+
 def handle_config(args: argparse.Namespace) -> int:
     env = canonical_environment(args.environment, "production")
     env_vars, settings = apply_environment(env)
 
     if args.action == "show":
-        data = settings.model_dump() if settings else {}
+        data: dict[str, Any] = settings.model_dump() if settings else {}
         for key, value in sorted(data.items()):
             print(f"{key}: {value}")
         return 0
@@ -408,6 +755,51 @@ def handle_stats(args: argparse.Namespace) -> int:
     return run_subprocess(command)
 
 
+def handle_orchestrate(args: argparse.Namespace) -> int:
+    """Handle orchestration launcher commands."""
+    try:
+        import sys
+
+        from atoms_entry import main as orchestrate_main
+
+        # Convert args to sys.argv format for the orchestration launcher
+        orchestrate_args = ["atoms_entry.py"]
+
+        if args.dev:
+            orchestrate_args.append("--dev")
+        if args.local:
+            orchestrate_args.append("--local")
+        if args.stop:
+            orchestrate_args.append("--stop")
+        if args.status:
+            orchestrate_args.append("--status")
+        if args.test:
+            orchestrate_args.append("--test")
+        if args.test_unit:
+            orchestrate_args.append("--test-unit")
+        if args.test_e2e:
+            orchestrate_args.append("--test-e2e")
+
+        # Temporarily replace sys.argv
+        original_argv = sys.argv
+        sys.argv = orchestrate_args
+
+        try:
+            orchestrate_main()
+            return 0
+        finally:
+            # Restore original sys.argv
+            sys.argv = original_argv
+
+    except ImportError as exc:
+        log_error("Unable to import orchestration launcher", error=str(exc))
+        print("Error: Orchestration launcher not available")
+        return 1
+    except Exception as exc:
+        log_error("Orchestration launcher failed", error=str(exc))
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="atoms",
@@ -441,6 +833,7 @@ def build_parser() -> argparse.ArgumentParser:
     test_parser = subparsers.add_parser("test", help="Run test suites.")
     test_parser.add_argument("tokens", nargs="*", help="Environment, suite, and markers.")
     test_parser.add_argument("--suite", help="Explicit suite (unit, integration, e2e, performance).")
+    test_parser.add_argument("--mode", choices=["hot", "cold", "dry", "all"], default="hot", help="Test execution mode (default: hot).")
     test_parser.add_argument("-k", help="Pytest expression.")
     test_parser.add_argument("-m", "--markers", nargs="*", help="Additional pytest markers.")
     test_parser.add_argument("-w", "--workers", type=int, help="Number of parallel workers.")
@@ -479,6 +872,17 @@ def build_parser() -> argparse.ArgumentParser:
     vendor_parser.add_argument("--clean", action="store_true", help="Clean before setup.")
     vendor_parser.set_defaults(func=handle_vendor)
 
+    # sync
+    sync_parser = subparsers.add_parser("sync", help="Sync dependencies with local pheno-sdk.")
+    sync_parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Use local pheno-sdk from ../pheno-sdk",
+    )
+    sync_parser.add_argument("--dev", action="store_true", help="Include dev dependencies.")
+    sync_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output.")
+    sync_parser.set_defaults(func=handle_sync)
+
     # config
     config_parser = subparsers.add_parser("config", help="Inspect configuration.")
     config_parser.add_argument(
@@ -512,6 +916,45 @@ def build_parser() -> argparse.ArgumentParser:
         help="Minimum confidence for vulture findings.",
     )
     stats_parser.set_defaults(func=handle_stats)
+
+    # orchestrate - new command for using the orchestration launcher
+    orchestrate_parser = subparsers.add_parser("orchestrate", help="Use KINFRA orchestration launcher.")
+    orchestrate_parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Run in development mode with live reload"
+    )
+    orchestrate_parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Run in local mode (uses localhost ports and disables tunnels)"
+    )
+    orchestrate_parser.add_argument(
+        "--stop",
+        action="store_true",
+        help="Stop all running Atoms MCP services"
+    )
+    orchestrate_parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Show status of running services"
+    )
+    orchestrate_parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run all tests"
+    )
+    orchestrate_parser.add_argument(
+        "--test-unit",
+        action="store_true",
+        help="Run unit tests only"
+    )
+    orchestrate_parser.add_argument(
+        "--test-e2e",
+        action="store_true",
+        help="Run E2E tests only"
+    )
+    orchestrate_parser.set_defaults(func=handle_orchestrate)
 
     return parser
 

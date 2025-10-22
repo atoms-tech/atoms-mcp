@@ -15,7 +15,7 @@ Atoms-specific tool name extraction logic.
 
 
 try:
-    from mcp_qa.execution.pytest_plugin import MCPPytestPlugin, create_pytest_addoption
+    from pheno.testing.mcp_qa.execution.pytest_plugin import MCPPytestPlugin, create_pytest_addoption
 except ImportError:
     raise ImportError(
         "mcp-QA package not found. Please install it with: pip install -e ../pheno-sdk/mcp-QA"

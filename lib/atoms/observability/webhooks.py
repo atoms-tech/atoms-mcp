@@ -17,12 +17,12 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 
-from .logging import get_logger
 from .health import HealthStatus
+from .logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -56,11 +56,11 @@ class WebhookPayload:
     title: str
     message: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     source: str = "atoms-mcp"
     environment: str = "production"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "event_type": self.event_type.value,
@@ -80,11 +80,11 @@ class WebhookConfig:
     url: str
     name: str
     enabled: bool = True
-    event_types: List[WebhookEventType] = field(default_factory=list)
+    event_types: list[WebhookEventType] = field(default_factory=list)
     retry_attempts: int = 3
     retry_delay_seconds: float = 1.0
     timeout_seconds: float = 10.0
-    headers: Dict[str, str] = field(default_factory=dict)
+    headers: dict[str, str] = field(default_factory=dict)
 
     def should_send_event(self, event_type: WebhookEventType) -> bool:
         """Check if this webhook should receive the event."""
@@ -167,7 +167,7 @@ class WebhookClient:
                                 }
                             )
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(
                     f"Webhook timeout: {self.config.name}",
                     extra_fields={
@@ -215,7 +215,7 @@ class WebhookManager:
     """
 
     def __init__(self):
-        self.webhooks: List[WebhookClient] = []
+        self.webhooks: list[WebhookClient] = []
 
     def register_webhook(self, config: WebhookConfig) -> None:
         """Register a webhook endpoint."""
@@ -230,7 +230,7 @@ class WebhookManager:
             }
         )
 
-    async def send_notification(self, payload: WebhookPayload) -> Dict[str, bool]:
+    async def send_notification(self, payload: WebhookPayload) -> dict[str, bool]:
         """
         Send notification to all applicable webhooks.
 
@@ -273,8 +273,8 @@ class WebhookManager:
         self,
         deployment_id: str,
         environment: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send deployment started notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.DEPLOYMENT_STARTED,
@@ -294,8 +294,8 @@ class WebhookManager:
         deployment_id: str,
         environment: str,
         duration_seconds: float,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send deployment completed notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.DEPLOYMENT_COMPLETED,
@@ -316,8 +316,8 @@ class WebhookManager:
         deployment_id: str,
         environment: str,
         error: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send deployment failed notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.DEPLOYMENT_FAILED,
@@ -338,8 +338,8 @@ class WebhookManager:
         error_type: str,
         error_message: str,
         source: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send error alert notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.ERROR_OCCURRED,
@@ -359,8 +359,8 @@ class WebhookManager:
         warning_type: str,
         warning_message: str,
         source: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send warning alert notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.WARNING_OCCURRED,
@@ -380,8 +380,8 @@ class WebhookManager:
         component_name: str,
         health_status: HealthStatus,
         message: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send health degradation alert."""
         severity = (
             AlertSeverity.CRITICAL if health_status == HealthStatus.UNHEALTHY
@@ -405,8 +405,8 @@ class WebhookManager:
         self,
         component_name: str,
         message: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send health recovery notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.HEALTH_RECOVERED,
@@ -425,8 +425,8 @@ class WebhookManager:
         operation: str,
         duration_ms: float,
         threshold_ms: float,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send performance degradation alert."""
         payload = WebhookPayload(
             event_type=WebhookEventType.PERFORMANCE_DEGRADED,
@@ -447,8 +447,8 @@ class WebhookManager:
         title: str,
         message: str,
         severity: AlertSeverity = AlertSeverity.INFO,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, bool]:
+        metadata: dict[str, Any] | None = None
+    ) -> dict[str, bool]:
         """Send custom event notification."""
         payload = WebhookPayload(
             event_type=WebhookEventType.CUSTOM_EVENT,
@@ -466,7 +466,7 @@ webhook_manager = WebhookManager()
 
 def configure_vercel_webhook(
     webhook_url: str,
-    event_types: Optional[List[WebhookEventType]] = None
+    event_types: list[WebhookEventType] | None = None
 ) -> None:
     """
     Configure Vercel webhook for notifications.
@@ -491,8 +491,8 @@ def configure_vercel_webhook(
 def configure_custom_webhook(
     name: str,
     webhook_url: str,
-    event_types: Optional[List[WebhookEventType]] = None,
-    headers: Optional[Dict[str, str]] = None
+    event_types: list[WebhookEventType] | None = None,
+    headers: dict[str, str] | None = None
 ) -> None:
     """
     Configure a custom webhook endpoint.

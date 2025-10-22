@@ -14,7 +14,7 @@ Version: 1.0.0
 
 import time
 import traceback
-from typing import Callable, Optional
+from collections.abc import Callable
 from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -25,9 +25,6 @@ from starlette.types import ASGIApp
 from .logging import (
     LogContext,
     get_logger,
-    set_correlation_id,
-    set_request_path,
-    set_user_context,
 )
 from .metrics import (
     active_connections,
@@ -282,7 +279,7 @@ class ContextPropagationMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: ASGIApp,
-        propagate_headers: Optional[list] = None
+        propagate_headers: list | None = None
     ):
         super().__init__(app)
         self.propagate_headers = propagate_headers or [

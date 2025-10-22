@@ -78,7 +78,7 @@ class RelationshipManager(ToolBase):
                 "defaults": {"status": InvitationStatus.PENDING}
             }
         }
-        return configs.get(relationship_type.lower(), {})
+        return configs.get(relationship_type.lower(), {})  # type: ignore
 
     async def link_entities(
         self,
@@ -320,12 +320,14 @@ class RelationshipManager(ToolBase):
         if not config:
             raise ValueError(f"Unknown relationship type: {relationship_type}")
 
+        # Initialize query_filters
+        query_filters: dict[str, Any] = {}
+
         # Handle special cases for member relationships
         if relationship_type == RelationshipType.MEMBER:
             if source and source.get("type") in ["organization", "project"]:
                 table_config = config[source["type"]]
                 table = table_config["table"]
-                query_filters = {}
 
                 if source:
                     query_filters[table_config["source_field"]] = source["id"]
@@ -336,7 +338,6 @@ class RelationshipManager(ToolBase):
                 # For simplicity, default to organization members
                 table_config = config["organization"]
                 table = table_config["table"]
-                query_filters = {}
 
                 if source:
                     query_filters[table_config["source_field"]] = source["id"]
@@ -344,7 +345,6 @@ class RelationshipManager(ToolBase):
                     query_filters[table_config["target_field"]] = target["id"]
         else:
             table = config["table"]
-            query_filters = {}
 
             if source:
                 query_filters[config["source_field"]] = source["id"]
@@ -565,21 +565,21 @@ async def relationship_operation(
             }
 
         if operation == "list":
-            result = await _relationship_manager.list_relationships(
+            list_result: list[dict[str, Any]] = await _relationship_manager.list_relationships(
                 relationship_type, source, target, filters, limit, offset
             )
-            return _relationship_manager._format_result(result, format_type)
+            return _relationship_manager._format_result(list_result, format_type)
 
         if operation == "check":
             if not target:
                 raise ValueError("target is required for check operation")
 
-            result = await _relationship_manager.check_relationship(
+            check_result: dict[str, Any] | None = await _relationship_manager.check_relationship(
                 relationship_type, source, target
             )
             return {
-                "exists": result is not None,
-                "relationship": result,
+                "exists": check_result is not None,
+                "relationship": check_result,
                 "relationship_type": relationship_type
             }
 

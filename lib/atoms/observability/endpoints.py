@@ -11,12 +11,12 @@ Version: 1.0.0
 """
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
-from .health import check_health, HealthStatus, SystemHealth
+from .health import HealthStatus, check_health
 from .logging import get_logger
 from .metrics import get_prometheus_metrics, registry
 
@@ -32,14 +32,14 @@ class HealthCheckResponse(BaseModel):
     """Health check response model."""
     status: str = Field(..., description="Overall health status")
     timestamp: str = Field(..., description="Timestamp of health check")
-    uptime_seconds: Optional[float] = Field(None, description="System uptime in seconds")
-    version: Optional[str] = Field(None, description="Application version")
-    components: List[Dict[str, Any]] = Field(..., description="Component health details")
+    uptime_seconds: float | None = Field(None, description="System uptime in seconds")
+    version: str | None = Field(None, description="Application version")
+    components: list[dict[str, Any]] = Field(..., description="Component health details")
 
 
 class MetricValueModel(BaseModel):
     """Single metric value model."""
-    labels: Dict[str, str] = Field(default_factory=dict)
+    labels: dict[str, str] = Field(default_factory=dict)
     value: float
 
 
@@ -48,13 +48,13 @@ class MetricModel(BaseModel):
     name: str
     type: str
     description: str
-    values: List[Any]
+    values: list[Any]
 
 
 class MetricsSnapshotResponse(BaseModel):
     """Metrics snapshot response model."""
     timestamp: str
-    metrics: Dict[str, Any]
+    metrics: dict[str, Any]
 
 
 class DashboardMetric(BaseModel):
@@ -62,15 +62,15 @@ class DashboardMetric(BaseModel):
     name: str
     value: float
     unit: str
-    change_percent: Optional[float] = None
+    change_percent: float | None = None
 
 
 class DashboardResponse(BaseModel):
     """Observability dashboard response."""
     health: HealthCheckResponse
-    key_metrics: List[DashboardMetric]
-    recent_errors: List[Dict[str, Any]]
-    performance_summary: Dict[str, Any]
+    key_metrics: list[DashboardMetric]
+    recent_errors: list[dict[str, Any]]
+    performance_summary: dict[str, Any]
 
 
 # Endpoints
@@ -158,6 +158,8 @@ async def get_health() -> HealthCheckResponse:
         return HealthCheckResponse(
             status=HealthStatus.UNHEALTHY.value,
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
+            uptime_seconds=None,
+            version=None,
             components=[{
                 "component_name": "system",
                 "component_type": "internal_service",
@@ -173,7 +175,7 @@ async def get_health() -> HealthCheckResponse:
     summary="Liveness Probe",
     description="Simple liveness check for Kubernetes/container orchestration"
 )
-async def liveness_probe() -> Dict[str, str]:
+async def liveness_probe() -> dict[str, str]:
     """
     Liveness probe endpoint.
 
@@ -191,7 +193,7 @@ async def liveness_probe() -> Dict[str, str]:
     summary="Readiness Probe",
     description="Readiness check for Kubernetes/container orchestration"
 )
-async def readiness_probe() -> Dict[str, str]:
+async def readiness_probe() -> dict[str, str]:
     """
     Readiness probe endpoint.
 
@@ -306,7 +308,7 @@ async def get_dashboard() -> DashboardResponse:
         key_metrics = await _get_key_metrics()
 
         # Get recent errors (simulated - in production, would query error log)
-        recent_errors = []
+        recent_errors: list[dict[str, Any]] = []
 
         # Get performance summary
         performance_summary = await _get_performance_summary()
@@ -333,7 +335,7 @@ async def get_dashboard() -> DashboardResponse:
         )
 
 
-async def _get_key_metrics() -> List[DashboardMetric]:
+async def _get_key_metrics() -> list[DashboardMetric]:
     """Extract key metrics for dashboard."""
     metrics = registry.collect_all()
     key_metrics = []
@@ -393,10 +395,10 @@ async def _get_key_metrics() -> List[DashboardMetric]:
     return key_metrics
 
 
-async def _get_performance_summary() -> Dict[str, Any]:
+async def _get_performance_summary() -> dict[str, Any]:
     """Get performance summary statistics."""
     metrics = registry.collect_all()
-    summary = {
+    summary: dict[str, Any] = {
         "http_requests": {},
         "tool_executions": {},
         "database_queries": {}
@@ -462,7 +464,7 @@ async def _get_performance_summary() -> Dict[str, Any]:
     summary="Get Specific Metric",
     description="Get detailed information about a specific metric"
 )
-async def get_specific_metric(metric_name: str) -> Dict[str, Any]:
+async def get_specific_metric(metric_name: str) -> dict[str, Any]:
     """
     Get detailed information about a specific metric.
 

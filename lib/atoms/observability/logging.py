@@ -22,14 +22,14 @@ from contextvars import ContextVar
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 from uuid import uuid4
 
 # Context variables for request tracking
-correlation_id_var: ContextVar[Optional[str]] = ContextVar('correlation_id', default=None)
-user_id_var: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
-session_id_var: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
-request_path_var: ContextVar[Optional[str]] = ContextVar('request_path', default=None)
+correlation_id_var: ContextVar[str | None] = ContextVar('correlation_id', default=None)
+user_id_var: ContextVar[str | None] = ContextVar('user_id', default=None)
+session_id_var: ContextVar[str | None] = ContextVar('session_id', default=None)
+request_path_var: ContextVar[str | None] = ContextVar('request_path', default=None)
 
 
 class LogLevel(str, Enum):
@@ -47,9 +47,9 @@ class PerformanceMetric:
     def __init__(self, operation: str):
         self.operation = operation
         self.start_time = time.perf_counter()
-        self.end_time: Optional[float] = None
-        self.duration_ms: Optional[float] = None
-        self.metadata: Dict[str, Any] = {}
+        self.end_time: float | None = None
+        self.duration_ms: float | None = None
+        self.metadata: dict[str, Any] = {}
 
     def add_metadata(self, key: str, value: Any) -> None:
         """Add metadata to the performance metric."""
@@ -61,7 +61,7 @@ class PerformanceMetric:
         self.duration_ms = (self.end_time - self.start_time) * 1000
         return self.duration_ms
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for logging."""
         return {
             "operation": self.operation,
@@ -89,7 +89,7 @@ class StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
         # Base log structure
-        log_data: Dict[str, Any] = {
+        log_data: dict[str, Any] = {
             "timestamp": self._format_timestamp(record.created),
             "level": record.levelname,
             "logger": record.name,
@@ -133,7 +133,7 @@ class StructuredFormatter(logging.Formatter):
         else:
             return dt.strftime(self.timestamp_format)
 
-    def _get_context(self) -> Dict[str, Any]:
+    def _get_context(self) -> dict[str, Any]:
         """Extract context from context variables."""
         context = {}
 
@@ -155,7 +155,7 @@ class StructuredFormatter(logging.Formatter):
 
         return context
 
-    def _format_exception(self, exc_info) -> List[str]:
+    def _format_exception(self, exc_info) -> list[str]:
         """Format exception stack trace."""
         return traceback.format_exception(*exc_info)
 
@@ -175,10 +175,10 @@ class AtomLogger:
     def __init__(
         self,
         name: str,
-        level: Union[str, LogLevel] = LogLevel.INFO,
+        level: str | LogLevel = LogLevel.INFO,
         enable_console: bool = True,
         enable_file: bool = False,
-        log_file_path: Optional[Path] = None,
+        log_file_path: Path | None = None,
         json_format: bool = True
     ):
         self.name = name
@@ -207,7 +207,7 @@ class AtomLogger:
             file_handler.setFormatter(formatter)
             self.logger.addHandler(file_handler)
 
-    def _get_level(self, level: Union[str, LogLevel]) -> int:
+    def _get_level(self, level: str | LogLevel) -> int:
         """Convert log level to logging constant."""
         level_map = {
             "DEBUG": logging.DEBUG,
@@ -223,8 +223,8 @@ class AtomLogger:
         self,
         level: int,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None,
-        performance: Optional[PerformanceMetric] = None,
+        extra_fields: dict[str, Any] | None = None,
+        performance: PerformanceMetric | None = None,
         exc_info: bool = False
     ) -> None:
         """Internal logging method with extra fields support."""
@@ -239,8 +239,8 @@ class AtomLogger:
     def debug(
         self,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None,
-        performance: Optional[PerformanceMetric] = None
+        extra_fields: dict[str, Any] | None = None,
+        performance: PerformanceMetric | None = None
     ) -> None:
         """Log debug message."""
         self._log(logging.DEBUG, message, extra_fields, performance)
@@ -248,8 +248,8 @@ class AtomLogger:
     def info(
         self,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None,
-        performance: Optional[PerformanceMetric] = None
+        extra_fields: dict[str, Any] | None = None,
+        performance: PerformanceMetric | None = None
     ) -> None:
         """Log info message."""
         self._log(logging.INFO, message, extra_fields, performance)
@@ -257,8 +257,8 @@ class AtomLogger:
     def warning(
         self,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None,
-        performance: Optional[PerformanceMetric] = None
+        extra_fields: dict[str, Any] | None = None,
+        performance: PerformanceMetric | None = None
     ) -> None:
         """Log warning message."""
         self._log(logging.WARNING, message, extra_fields, performance)
@@ -266,8 +266,8 @@ class AtomLogger:
     def error(
         self,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None,
-        performance: Optional[PerformanceMetric] = None,
+        extra_fields: dict[str, Any] | None = None,
+        performance: PerformanceMetric | None = None,
         exc_info: bool = False
     ) -> None:
         """Log error message."""
@@ -276,8 +276,8 @@ class AtomLogger:
     def critical(
         self,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None,
-        performance: Optional[PerformanceMetric] = None,
+        extra_fields: dict[str, Any] | None = None,
+        performance: PerformanceMetric | None = None,
         exc_info: bool = False
     ) -> None:
         """Log critical message."""
@@ -286,7 +286,7 @@ class AtomLogger:
     def exception(
         self,
         message: str,
-        extra_fields: Optional[Dict[str, Any]] = None
+        extra_fields: dict[str, Any] | None = None
     ) -> None:
         """Log exception with stack trace."""
         self._log(logging.ERROR, message, extra_fields, exc_info=True)
@@ -297,10 +297,10 @@ class LogContext:
 
     def __init__(
         self,
-        correlation_id: Optional[str] = None,
-        user_id: Optional[str] = None,
-        session_id: Optional[str] = None,
-        request_path: Optional[str] = None,
+        correlation_id: str | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        request_path: str | None = None,
         auto_generate_correlation_id: bool = True
     ):
         self.correlation_id = correlation_id or (str(uuid4()) if auto_generate_correlation_id else None)
@@ -342,7 +342,7 @@ class LogContext:
 
 def get_logger(
     name: str,
-    level: Union[str, LogLevel] = LogLevel.INFO,
+    level: str | LogLevel = LogLevel.INFO,
     json_format: bool = True
 ) -> AtomLogger:
     """
@@ -370,12 +370,12 @@ def set_correlation_id(correlation_id: str) -> None:
     correlation_id_var.set(correlation_id)
 
 
-def get_correlation_id() -> Optional[str]:
+def get_correlation_id() -> str | None:
     """Get correlation ID from current context."""
     return correlation_id_var.get()
 
 
-def set_user_context(user_id: str, session_id: Optional[str] = None) -> None:
+def set_user_context(user_id: str, session_id: str | None = None) -> None:
     """Set user context for current request."""
     user_id_var.set(user_id)
     if session_id:

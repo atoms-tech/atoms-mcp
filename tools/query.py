@@ -163,30 +163,37 @@ class DataQueryEngine(ToolBase):
                     filters["is_deleted"] = False
 
                 # Parallel execution of count queries
-                from datetime import datetime, timedelta
-                thirty_days_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
+                from datetime import datetime, timedelta, timezone
+                thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
                 recent_filters = filters.copy()
                 recent_filters["created_at"] = {"gte": thirty_days_ago}
 
                 # Execute counts in parallel
+                async def _zero_count() -> int:
+                    return 0
+
                 count_tasks = [
                     self._db_count(table, filters),  # total
-                    self._db_count(table, recent_filters) if filters else asyncio.sleep(0)  # recent
+                    self._db_count(table, recent_filters) if filters else _zero_count()  # recent
                 ]
 
-                # Add status query if applicable
-                if entity_type in ["requirement", "test", "project"]:
-                    count_tasks.append(self._db_query(table, select="status", filters=filters))
-
                 count_results = await asyncio.gather(*count_tasks, return_exceptions=True)
+
+                # Get status data separately if applicable
+                status_data: list[Any] = []
+                if entity_type in ["requirement", "test", "project"]:
+                    try:
+                        status_data = await self._db_query(table, select="status", filters=filters)
+                    except Exception:
+                        status_data = []
 
                 total_count = count_results[0] if not isinstance(count_results[0], Exception) else 0
                 recent_count = count_results[1] if len(count_results) > 1 and not isinstance(count_results[1], Exception) else 0
 
                 # Status breakdown
-                status_breakdown = {}
-                if len(count_results) > 2 and not isinstance(count_results[2], Exception):
-                    for record in count_results[2]:
+                status_breakdown: dict[str, int] = {}
+                if status_data:
+                    for record in status_data:
                         status = record.get("status", "unknown")
                         status_breakdown[status] = status_breakdown.get(status, 0) + 1
 
@@ -320,8 +327,8 @@ class DataQueryEngine(ToolBase):
                     # Filter requirements through RLS
                     reqs = await self._filter_results_by_rls(all_reqs, table)
 
-                    status_counts = {}
-                    priority_counts = {}
+                    status_counts: dict[str, int] = {}
+                    priority_counts: dict[str, int] = {}
 
                     for req in reqs:
                         status = req.get("status", "unknown")
@@ -678,7 +685,7 @@ async def data_query(
                 mode=rag_mode,
                 entities=valid_entities,
                 similarity_threshold=similarity_threshold,
-                limit=limit,
+                limit=limit or 10,
                 conditions=conditions
             )
 
@@ -699,7 +706,7 @@ async def data_query(
                 content=content,
                 entity_type=target_entity_type,
                 similarity_threshold=similarity_threshold,
-                limit=limit,
+                limit=limit or 10,
                 exclude_id=exclude_id
             )
 

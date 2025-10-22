@@ -18,11 +18,22 @@ if __name__ == "__main__":
         # Import and run atoms-mcp.py
         import importlib.util
         spec = importlib.util.spec_from_file_location("atoms_mcp_cli", atoms_mcp_cli)
-        cli_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(cli_module)
-        sys.exit(cli_module.main())
+        if spec is not None and spec.loader is not None:
+            cli_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(cli_module)
+            if hasattr(cli_module, 'main'):
+                sys.exit(cli_module.main())
+            else:
+                print("Error: atoms-mcp.py does not have a main() function")
+                sys.exit(1)
+        else:
+            print("Error: Could not load atoms-mcp.py")
+            sys.exit(1)
     else:
         # Fallback to old behavior if atoms-mcp.py not found
-        from .server import main
+        try:
+            from server import main
+        except ImportError:
+            from server import main
         main()
 

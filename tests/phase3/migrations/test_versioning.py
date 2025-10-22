@@ -15,22 +15,19 @@ Coverage areas:
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List
 
 import pytest
 import pytest_asyncio
-
 from pheno_vendor.db_kit.adapters.base import DatabaseAdapter
-from pheno_vendor.db_kit.migrations import Migration, MigrationEngine, MigrationStatus
+from pheno_vendor.db_kit.migrations import MigrationEngine
+
 from tests.framework import harmful
+from tests.framework.harmful import CleanupStrategy
+
 from .test_migration_runner import (
     MockDatabaseAdapter,
-    migration_001_down,
     migration_001_up,
-    migration_002_down,
     migration_002_up,
-    migration_003_down,
     migration_003_up,
 )
 
@@ -95,8 +92,9 @@ async def migration_engine_versioning_hot(real_adapter_versioning):
 async def real_adapter_versioning():
     """Provide real database adapter for versioning tests."""
     try:
-        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
         import os
+
+        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
 
         db_url = os.getenv("TEST_DATABASE_URL")
         if not db_url:
@@ -285,7 +283,7 @@ class TestVersioningCOLD:
 class TestVersioningHOT:
     """Test versioning functionality with real database (HOT mode)."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_05_version_history_tracking_hot(
         self, migration_engine_versioning_hot, harmful_tracker
     ):
@@ -324,7 +322,7 @@ class TestVersioningHOT:
             logger.error(f"FAIL: Version history test failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_06_version_checksum_integrity_hot(
         self, migration_engine_versioning_hot, harmful_tracker
     ):
