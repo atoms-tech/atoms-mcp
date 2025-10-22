@@ -16,16 +16,16 @@ Coverage areas:
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List
 from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-
 from pheno_vendor.db_kit.adapters.base import DatabaseAdapter
-from pheno_vendor.db_kit.migrations import Migration, MigrationEngine, MigrationStatus
+from pheno_vendor.db_kit.migrations import MigrationEngine, MigrationStatus
+
 from tests.framework import harmful
+from tests.framework.harmful import CleanupStrategy
+
 from .test_migration_runner import (
     MockDatabaseAdapter,
     migration_001_down,
@@ -124,8 +124,9 @@ async def migration_engine_rollback_hot(real_adapter_rollback):
 async def real_adapter_rollback():
     """Provide real database adapter for rollback testing."""
     try:
-        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
         import os
+
+        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
 
         db_url = os.getenv("TEST_DATABASE_URL")
         if not db_url:
@@ -315,7 +316,7 @@ class TestRollbackCOLD:
 class TestRollbackHOT:
     """Test rollback functionality with real database (HOT mode)."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_05_rollback_preserves_data_hot(
         self, migration_engine_rollback_hot, harmful_tracker
     ):
@@ -356,7 +357,7 @@ class TestRollbackHOT:
             logger.error(f"FAIL: Rollback data test failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_06_rollback_complex_migration_hot(
         self, migration_engine_rollback_hot, harmful_tracker
     ):
@@ -397,7 +398,7 @@ class TestRollbackHOT:
             logger.error(f"FAIL: Complex rollback failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_07_rollback_updates_status_hot(
         self, migration_engine_rollback_hot, harmful_tracker
     ):
@@ -431,7 +432,7 @@ class TestRollbackHOT:
             logger.error(f"FAIL: Rollback status test failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_08_failed_rollback_handling_hot(
         self, migration_engine_rollback_hot, harmful_tracker
     ):

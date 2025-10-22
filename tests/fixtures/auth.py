@@ -52,22 +52,19 @@ async def authenticated_client(request):
     """
     import os
 
-    from mcp_qa.adapters.fast_http_client import FastHTTPClient
-    from mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+    from pheno.testing.mcp_qa.adapters.fast_http_client import FastHTTPClient
+    from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
     mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
 
     # Try to get cached credentials from auth plugin
-    cached_credentials = None
     if hasattr(request.session.config, "_mcp_credentials"):
-        cached_credentials = request.session.config._mcp_credentials
         logger.info("Using cached credentials from auth plugin")
 
     # Use UnifiedCredentialBroker for OAuth (will use cache if available)
     broker = UnifiedCredentialBroker(
         mcp_endpoint=mcp_endpoint,
         provider="authkit",
-        cached_credentials=cached_credentials
     )
 
     client = None

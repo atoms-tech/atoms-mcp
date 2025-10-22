@@ -16,16 +16,15 @@ Coverage areas:
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
 import pytest
 import pytest_asyncio
-
 from pheno_vendor.db_kit.adapters.base import DatabaseAdapter
-from pheno_vendor.db_kit.migrations import Migration, MigrationEngine, MigrationStatus
+from pheno_vendor.db_kit.migrations import MigrationEngine, MigrationStatus
+
 from tests.framework import harmful
+from tests.framework.harmful import CleanupStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +39,12 @@ class MockDatabaseAdapter(DatabaseAdapter):
 
     def __init__(self):
         """Initialize mock adapter with in-memory storage."""
-        self.tables: Dict[str, List[Dict[str, Any]]] = {}
-        self.queries_executed: List[str] = []
+        self.tables: dict[str, list[dict[str, Any]]] = {}
+        self.queries_executed: list[str] = []
         self.should_fail = False
         self.fail_on_query = None
 
-    async def execute(self, sql: str, params: Any = None) -> List[Dict[str, Any]]:
+    async def execute(self, sql: str, params: Any = None) -> list[dict[str, Any]]:
         """Execute SQL query on mock database."""
         self.queries_executed.append(sql)
         logger.debug(f"Mock execute: {sql[:100]}...")
@@ -77,7 +76,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
 
     async def insert(
         self, table: str, data: Any, *, returning: str = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Insert data into mock table."""
         if table not in self.tables:
             self.tables[table] = []
@@ -89,11 +88,11 @@ class MockDatabaseAdapter(DatabaseAdapter):
             self.tables[table].append(data)
             return data
 
-    async def query(self, table: str, **kwargs) -> List[Dict[str, Any]]:
+    async def query(self, table: str, **kwargs) -> list[dict[str, Any]]:
         """Query mock table."""
         return self.tables.get(table, [])
 
-    async def get_single(self, table: str, filters: Dict, **kwargs):
+    async def get_single(self, table: str, filters: dict, **kwargs):
         """Get single row from mock table."""
         rows = self.tables.get(table, [])
         for row in rows:
@@ -101,11 +100,11 @@ class MockDatabaseAdapter(DatabaseAdapter):
                 return row
         return None
 
-    async def update(self, table: str, filters: Dict, data: Dict, **kwargs):
+    async def update(self, table: str, filters: dict, data: dict, **kwargs):
         """Update mock table."""
         return []
 
-    async def delete(self, table: str, filters: Dict, **kwargs):
+    async def delete(self, table: str, filters: dict, **kwargs):
         """Delete from mock table."""
         return []
 
@@ -113,7 +112,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
         """Upsert into mock table."""
         return data
 
-    async def count(self, table: str, filters: Dict = None) -> int:
+    async def count(self, table: str, filters: dict = None) -> int:
         """Count rows in mock table."""
         return len(self.tables.get(table, []))
 
@@ -138,8 +137,9 @@ async def real_adapter():
     Skip tests if database is not available.
     """
     try:
-        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
         import os
+
+        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
 
         # Check for database connection string
         db_url = os.getenv("TEST_DATABASE_URL")
@@ -434,7 +434,7 @@ class TestMigrationRunnerHOT:
     Expected execution time: < 30s per test.
     """
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_06_migration_applies_without_errors_hot(
         self, migration_engine_hot, harmful_tracker
     ):
@@ -476,7 +476,7 @@ class TestMigrationRunnerHOT:
             logger.error(f"FAIL: Migration failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_07_migration_version_tracking_hot(
         self, migration_engine_hot, harmful_tracker
     ):
@@ -512,7 +512,7 @@ class TestMigrationRunnerHOT:
             logger.error(f"FAIL: Version tracking failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_08_partial_migration_target_hot(
         self, migration_engine_hot, harmful_tracker
     ):
@@ -549,7 +549,7 @@ class TestMigrationRunnerHOT:
             logger.error(f"FAIL: Partial migration failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_09_migration_status_reporting_hot(
         self, migration_engine_hot, harmful_tracker
     ):
@@ -590,7 +590,7 @@ class TestMigrationRunnerHOT:
             logger.error(f"FAIL: Status reporting failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_10_checksum_validation_hot(
         self, migration_engine_hot, harmful_tracker
     ):
@@ -663,7 +663,7 @@ class TestMigrationRunnerEdgeCases:
         """
         logger.info("TEST: Migration with no down function")
 
-        migration = migration_engine_cold.register(
+        migration_engine_cold.register(
             "001", "no_rollback", migration_001_up, down=None
         )
 

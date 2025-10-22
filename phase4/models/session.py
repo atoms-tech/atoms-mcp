@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Any
 
 from .device import DeviceInfo
 from .token import TokenPair
@@ -49,12 +49,12 @@ class Session:
     refresh_expires_at: datetime = field(default_factory=datetime.utcnow)
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_activity: datetime = field(default_factory=datetime.utcnow)
-    device_info: Optional[DeviceInfo] = None
+    device_info: DeviceInfo | None = None
     ip_address: str = ""
     is_active: bool = True
-    revoked_at: Optional[datetime] = None
-    revocation_reason: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    revoked_at: datetime | None = None
+    revocation_reason: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def status(self) -> SessionStatus:
@@ -128,7 +128,7 @@ class Session:
 
         self.update_activity()
 
-    def revoke(self, reason: Optional[str] = None) -> None:
+    def revoke(self, reason: str | None = None) -> None:
         """Revoke the session.
 
         Args:
@@ -174,7 +174,7 @@ class Session:
         # In production, consider IP range matching for mobile networks
         return self.ip_address == ip_address
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert session to dictionary.
 
         Returns:
@@ -201,7 +201,7 @@ class Session:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Session:
+    def from_dict(cls, data: dict[str, Any]) -> Session:
         """Create session from dictionary.
 
         Args:

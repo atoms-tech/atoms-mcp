@@ -5,13 +5,13 @@ Provides common test data, mock database adapters, and helper utilities
 for testing Row-Level Security policies.
 """
 
+from typing import Any
 from unittest.mock import AsyncMock
-from typing import Any, Dict, List
+
 import pytest
 
 from schemas import ProjectRole, UserRoleType, Visibility
 from schemas.constants import Tables
-
 
 # =============================================================================
 # TEST USER FIXTURES
@@ -185,7 +185,7 @@ def configured_db_adapter(test_users, test_organizations, test_projects):
         },
     ]
 
-    def mock_get_single(table: str, filters: Dict[str, Any]) -> Dict[str, Any] | None:
+    def mock_get_single(table: str, filters: dict[str, Any]) -> dict[str, Any] | None:
         """Simulate get_single queries."""
         if table == Tables.ORGANIZATION_MEMBERS:
             for member in org_memberships:
@@ -208,7 +208,7 @@ def configured_db_adapter(test_users, test_organizations, test_projects):
 
         return None
 
-    def mock_query(table: str, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+    def mock_query(table: str, filters: dict[str, Any] = None) -> list[dict[str, Any]]:
         """Simulate query (returns multiple records)."""
         filters = filters or {}
 
@@ -248,7 +248,7 @@ def make_membership():
         project_id: str = None,
         role: str = None,
         is_deleted: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a membership record."""
         membership = {
             "user_id": user_id,

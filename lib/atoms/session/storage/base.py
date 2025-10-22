@@ -5,19 +5,16 @@ Abstract storage interface for session management with implementations
 for Vercel KV, Redis, and in-memory storage.
 """
 
-import json
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Optional, List, Dict, Any
 
 from ..models import (
+    AuditLog,
     Session,
     TokenRefreshRecord,
-    AuditLog,
 )
 from ..revocation import RevocationRecord
-
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +38,7 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def get_session(self, session_id: str) -> Optional[Session]:
+    async def get_session(self, session_id: str) -> Session | None:
         """
         Get session by ID.
 
@@ -64,7 +61,7 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def get_user_sessions(self, user_id: str) -> List[Session]:
+    async def get_user_sessions(self, user_id: str) -> list[Session]:
         """
         Get all sessions for a user.
 
@@ -77,7 +74,7 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    async def get_all_sessions(self, limit: int = 100) -> List[Session]:
+    async def get_all_sessions(self, limit: int = 100) -> list[Session]:
         """
         Get all sessions (for cleanup).
 
@@ -104,7 +101,7 @@ class StorageBackend(ABC):
         self,
         session_id: str,
         limit: int = 10,
-    ) -> List[TokenRefreshRecord]:
+    ) -> list[TokenRefreshRecord]:
         """
         Get refresh history for session.
 
@@ -131,7 +128,7 @@ class StorageBackend(ABC):
     async def get_revocation_record(
         self,
         token_hash: str,
-    ) -> Optional[RevocationRecord]:
+    ) -> RevocationRecord | None:
         """
         Get revocation record by token hash.
 
@@ -147,7 +144,7 @@ class StorageBackend(ABC):
     async def get_session_revocations(
         self,
         session_id: str,
-    ) -> List[RevocationRecord]:
+    ) -> list[RevocationRecord]:
         """
         Get all revocations for a session.
 
@@ -188,10 +185,10 @@ class StorageBackend(ABC):
     @abstractmethod
     async def get_audit_logs(
         self,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """
         Get audit logs with optional filtering.
 
@@ -210,7 +207,7 @@ class StorageBackend(ABC):
         self,
         user_id: str,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """
         Get audit logs for a user.
 
@@ -238,13 +235,13 @@ class InMemoryStorage(StorageBackend):
 
     def __init__(self):
         """Initialize in-memory storage."""
-        self._sessions: Dict[str, Session] = {}
-        self._user_sessions: Dict[str, List[str]] = {}
-        self._refresh_records: Dict[str, List[TokenRefreshRecord]] = {}
-        self._revocations: Dict[str, RevocationRecord] = {}
-        self._session_revocations: Dict[str, List[str]] = {}
-        self._audit_logs: List[AuditLog] = []
-        self._user_audit_logs: Dict[str, List[str]] = {}
+        self._sessions: dict[str, Session] = {}
+        self._user_sessions: dict[str, list[str]] = {}
+        self._refresh_records: dict[str, list[TokenRefreshRecord]] = {}
+        self._revocations: dict[str, RevocationRecord] = {}
+        self._session_revocations: dict[str, list[str]] = {}
+        self._audit_logs: list[AuditLog] = []
+        self._user_audit_logs: dict[str, list[str]] = {}
 
         logger.info("Initialized in-memory storage backend")
 
@@ -258,7 +255,7 @@ class InMemoryStorage(StorageBackend):
         if session.session_id not in self._user_sessions[session.user_id]:
             self._user_sessions[session.user_id].append(session.session_id)
 
-    async def get_session(self, session_id: str) -> Optional[Session]:
+    async def get_session(self, session_id: str) -> Session | None:
         """Get session from memory."""
         return self._sessions.get(session_id)
 
@@ -270,7 +267,7 @@ class InMemoryStorage(StorageBackend):
             if session_id in user_sessions:
                 user_sessions.remove(session_id)
 
-    async def get_user_sessions(self, user_id: str) -> List[Session]:
+    async def get_user_sessions(self, user_id: str) -> list[Session]:
         """Get all sessions for user from memory."""
         session_ids = self._user_sessions.get(user_id, [])
         return [
@@ -279,7 +276,7 @@ class InMemoryStorage(StorageBackend):
             if sid in self._sessions
         ]
 
-    async def get_all_sessions(self, limit: int = 100) -> List[Session]:
+    async def get_all_sessions(self, limit: int = 100) -> list[Session]:
         """Get all sessions from memory."""
         return list(self._sessions.values())[:limit]
 
@@ -293,7 +290,7 @@ class InMemoryStorage(StorageBackend):
         self,
         session_id: str,
         limit: int = 10,
-    ) -> List[TokenRefreshRecord]:
+    ) -> list[TokenRefreshRecord]:
         """Get refresh history from memory."""
         records = self._refresh_records.get(session_id, [])
         return sorted(
@@ -315,14 +312,14 @@ class InMemoryStorage(StorageBackend):
     async def get_revocation_record(
         self,
         token_hash: str,
-    ) -> Optional[RevocationRecord]:
+    ) -> RevocationRecord | None:
         """Get revocation record from memory."""
         return self._revocations.get(token_hash)
 
     async def get_session_revocations(
         self,
         session_id: str,
-    ) -> List[RevocationRecord]:
+    ) -> list[RevocationRecord]:
         """Get session revocations from memory."""
         token_hashes = self._session_revocations.get(session_id, [])
         return [
@@ -364,10 +361,10 @@ class InMemoryStorage(StorageBackend):
 
     async def get_audit_logs(
         self,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """Get audit logs from memory."""
         logs = self._audit_logs
 
@@ -378,7 +375,7 @@ class InMemoryStorage(StorageBackend):
 
         return sorted(
             logs,
-            key=lambda l: l.timestamp,
+            key=lambda log_entry: log_entry.timestamp,
             reverse=True,
         )[:limit]
 
@@ -386,7 +383,7 @@ class InMemoryStorage(StorageBackend):
         self,
         user_id: str,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """Get user audit logs from memory."""
         log_ids = self._user_audit_logs.get(user_id, [])
         logs = [
@@ -395,7 +392,7 @@ class InMemoryStorage(StorageBackend):
         ]
         return sorted(
             logs,
-            key=lambda l: l.timestamp,
+            key=lambda log_entry: log_entry.timestamp,
             reverse=True,
         )[:limit]
 

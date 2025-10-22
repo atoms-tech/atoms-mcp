@@ -13,6 +13,7 @@ Run with: pytest tests/phase3/rls_policies/test_policy_performance.py -v
 import asyncio
 import time
 from unittest.mock import AsyncMock
+
 import pytest
 
 from schemas import ProjectRole, UserRoleType, Visibility
@@ -24,7 +25,6 @@ from schemas.rls import (
     ProjectPolicy,
     user_can_access_project,
 )
-
 
 # =============================================================================
 # FIXTURES

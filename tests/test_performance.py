@@ -80,7 +80,7 @@ class PerformanceMetrics:
 
     def generate_report(self) -> dict[str, Any]:
         """Generate performance report."""
-        report = {
+        report: dict[str, Any] = {
             "summary": {
                 "total_operations": sum(len(m) for m in self.measurements.values()),
                 "operation_types": len(self.measurements),
@@ -96,12 +96,14 @@ class PerformanceMetrics:
             # Check threshold violations
             threshold = THRESHOLDS.get(operation)
             if threshold and stats.get("p95", 0) > threshold:
-                report["threshold_violations"].append({
+                violations = report.get("threshold_violations", [])
+                if isinstance(violations, list):
+                    violations.append({
                     "operation": operation,
                     "threshold": threshold,
                     "p95": stats["p95"],
                     "violation": stats["p95"] - threshold
-                })
+                    })
 
         return report
 

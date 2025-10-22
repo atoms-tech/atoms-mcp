@@ -1,15 +1,15 @@
 """Storage backend factory."""
 
 import os
-from typing import Optional
+
+from utils.logging_setup import get_logger
 
 from .base import StorageBackend
-from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
 # Global storage instance
-_storage_backend: Optional[StorageBackend] = None
+_storage_backend: StorageBackend | None = None
 
 
 def get_storage_backend(force_new: bool = False) -> StorageBackend:

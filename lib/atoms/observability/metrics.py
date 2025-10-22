@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from threading import Lock
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from .logging import get_logger
 
@@ -41,7 +41,7 @@ class MetricValue:
     """Container for metric values with timestamp."""
     value: float
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -59,14 +59,14 @@ class Counter:
     errors, etc. They reset to 0 on process restart.
     """
 
-    def __init__(self, name: str, description: str, labels: Optional[List[str]] = None):
+    def __init__(self, name: str, description: str, labels: list[str] | None = None):
         self.name = name
         self.description = description
         self.label_names = labels or []
-        self._values: Dict[Tuple[str, ...], float] = defaultdict(float)
+        self._values: dict[tuple[str, ...], float] = defaultdict(float)
         self._lock = Lock()
 
-    def inc(self, amount: float = 1.0, labels: Optional[Dict[str, str]] = None) -> None:
+    def inc(self, amount: float = 1.0, labels: dict[str, str] | None = None) -> None:
         """Increment counter by amount."""
         if amount < 0:
             raise ValueError("Counter can only be incremented by non-negative values")
@@ -75,19 +75,19 @@ class Counter:
         with self._lock:
             self._values[label_values] += amount
 
-    def get(self, labels: Optional[Dict[str, str]] = None) -> float:
+    def get(self, labels: dict[str, str] | None = None) -> float:
         """Get current counter value."""
         label_values = self._get_label_values(labels)
         with self._lock:
             return self._values[label_values]
 
-    def _get_label_values(self, labels: Optional[Dict[str, str]]) -> Tuple[str, ...]:
+    def _get_label_values(self, labels: dict[str, str] | None) -> tuple[str, ...]:
         """Convert label dict to tuple for indexing."""
         if not labels:
             return tuple()
         return tuple(labels.get(name, "") for name in self.label_names)
 
-    def collect(self) -> List[Tuple[Dict[str, str], float]]:
+    def collect(self) -> list[tuple[dict[str, str], float]]:
         """Collect all metric values with labels."""
         with self._lock:
             result = []
@@ -105,44 +105,44 @@ class Gauge:
     (e.g., active connections, memory usage).
     """
 
-    def __init__(self, name: str, description: str, labels: Optional[List[str]] = None):
+    def __init__(self, name: str, description: str, labels: list[str] | None = None):
         self.name = name
         self.description = description
         self.label_names = labels or []
-        self._values: Dict[Tuple[str, ...], float] = defaultdict(float)
+        self._values: dict[tuple[str, ...], float] = defaultdict(float)
         self._lock = Lock()
 
-    def set(self, value: float, labels: Optional[Dict[str, str]] = None) -> None:
+    def set(self, value: float, labels: dict[str, str] | None = None) -> None:
         """Set gauge to specific value."""
         label_values = self._get_label_values(labels)
         with self._lock:
             self._values[label_values] = value
 
-    def inc(self, amount: float = 1.0, labels: Optional[Dict[str, str]] = None) -> None:
+    def inc(self, amount: float = 1.0, labels: dict[str, str] | None = None) -> None:
         """Increment gauge by amount."""
         label_values = self._get_label_values(labels)
         with self._lock:
             self._values[label_values] += amount
 
-    def dec(self, amount: float = 1.0, labels: Optional[Dict[str, str]] = None) -> None:
+    def dec(self, amount: float = 1.0, labels: dict[str, str] | None = None) -> None:
         """Decrement gauge by amount."""
         label_values = self._get_label_values(labels)
         with self._lock:
             self._values[label_values] -= amount
 
-    def get(self, labels: Optional[Dict[str, str]] = None) -> float:
+    def get(self, labels: dict[str, str] | None = None) -> float:
         """Get current gauge value."""
         label_values = self._get_label_values(labels)
         with self._lock:
             return self._values[label_values]
 
-    def _get_label_values(self, labels: Optional[Dict[str, str]]) -> Tuple[str, ...]:
+    def _get_label_values(self, labels: dict[str, str] | None) -> tuple[str, ...]:
         """Convert label dict to tuple for indexing."""
         if not labels:
             return tuple()
         return tuple(labels.get(name, "") for name in self.label_names)
 
-    def collect(self) -> List[Tuple[Dict[str, str], float]]:
+    def collect(self) -> list[tuple[dict[str, str], float]]:
         """Collect all metric values with labels."""
         with self._lock:
             result = []
@@ -167,8 +167,8 @@ class Histogram:
         self,
         name: str,
         description: str,
-        labels: Optional[List[str]] = None,
-        buckets: Optional[List[float]] = None
+        labels: list[str] | None = None,
+        buckets: list[float] | None = None
     ):
         self.name = name
         self.description = description
@@ -176,14 +176,14 @@ class Histogram:
         self.buckets = sorted(buckets or self.DEFAULT_BUCKETS)
 
         # Storage: label_values -> bucket_index -> count
-        self._bucket_counts: Dict[Tuple[str, ...], List[int]] = defaultdict(
+        self._bucket_counts: dict[tuple[str, ...], list[int]] = defaultdict(
             lambda: [0] * len(self.buckets)
         )
-        self._sums: Dict[Tuple[str, ...], float] = defaultdict(float)
-        self._counts: Dict[Tuple[str, ...], int] = defaultdict(int)
+        self._sums: dict[tuple[str, ...], float] = defaultdict(float)
+        self._counts: dict[tuple[str, ...], int] = defaultdict(int)
         self._lock = Lock()
 
-    def observe(self, value: float, labels: Optional[Dict[str, str]] = None) -> None:
+    def observe(self, value: float, labels: dict[str, str] | None = None) -> None:
         """Record an observation."""
         label_values = self._get_label_values(labels)
 
@@ -198,7 +198,7 @@ class Histogram:
             self._counts[label_values] += 1
 
     @contextmanager
-    def time(self, labels: Optional[Dict[str, str]] = None):
+    def time(self, labels: dict[str, str] | None = None):
         """Context manager to time code blocks."""
         start = time.perf_counter()
         try:
@@ -207,32 +207,32 @@ class Histogram:
             duration = time.perf_counter() - start
             self.observe(duration, labels)
 
-    def get_buckets(self, labels: Optional[Dict[str, str]] = None) -> List[Tuple[float, int]]:
+    def get_buckets(self, labels: dict[str, str] | None = None) -> list[tuple[float, int]]:
         """Get bucket counts for given labels."""
         label_values = self._get_label_values(labels)
         with self._lock:
             counts = self._bucket_counts[label_values]
             return list(zip(self.buckets, counts))
 
-    def get_sum(self, labels: Optional[Dict[str, str]] = None) -> float:
+    def get_sum(self, labels: dict[str, str] | None = None) -> float:
         """Get sum of all observations."""
         label_values = self._get_label_values(labels)
         with self._lock:
             return self._sums[label_values]
 
-    def get_count(self, labels: Optional[Dict[str, str]] = None) -> int:
+    def get_count(self, labels: dict[str, str] | None = None) -> int:
         """Get count of all observations."""
         label_values = self._get_label_values(labels)
         with self._lock:
             return self._counts[label_values]
 
-    def _get_label_values(self, labels: Optional[Dict[str, str]]) -> Tuple[str, ...]:
+    def _get_label_values(self, labels: dict[str, str] | None) -> tuple[str, ...]:
         """Convert label dict to tuple for indexing."""
         if not labels:
             return tuple()
         return tuple(labels.get(name, "") for name in self.label_names)
 
-    def collect(self) -> List[Tuple[Dict[str, str], List[Tuple[float, int]], float, int]]:
+    def collect(self) -> list[tuple[dict[str, str], list[tuple[float, int]], float, int]]:
         """Collect all metric values with labels."""
         with self._lock:
             result = []
@@ -254,14 +254,14 @@ class MetricsRegistry:
     """
 
     def __init__(self):
-        self._metrics: Dict[str, Any] = {}
+        self._metrics: dict[str, Any] = {}
         self._lock = Lock()
 
     def register_counter(
         self,
         name: str,
         description: str,
-        labels: Optional[List[str]] = None
+        labels: list[str] | None = None
     ) -> Counter:
         """Register a counter metric."""
         with self._lock:
@@ -279,7 +279,7 @@ class MetricsRegistry:
         self,
         name: str,
         description: str,
-        labels: Optional[List[str]] = None
+        labels: list[str] | None = None
     ) -> Gauge:
         """Register a gauge metric."""
         with self._lock:
@@ -297,8 +297,8 @@ class MetricsRegistry:
         self,
         name: str,
         description: str,
-        labels: Optional[List[str]] = None,
-        buckets: Optional[List[float]] = None
+        labels: list[str] | None = None,
+        buckets: list[float] | None = None
     ) -> Histogram:
         """Register a histogram metric."""
         with self._lock:
@@ -312,12 +312,12 @@ class MetricsRegistry:
             self._metrics[name] = histogram
             return histogram
 
-    def get_metric(self, name: str) -> Optional[Any]:
+    def get_metric(self, name: str) -> Any | None:
         """Get registered metric by name."""
         with self._lock:
             return self._metrics.get(name)
 
-    def collect_all(self) -> Dict[str, Any]:
+    def collect_all(self) -> dict[str, Any]:
         """Collect all metrics for exposition."""
         with self._lock:
             result = {}
@@ -382,7 +382,7 @@ class MetricsRegistry:
 
         return "\n".join(lines)
 
-    def _format_labels(self, labels: Dict[str, str]) -> str:
+    def _format_labels(self, labels: dict[str, str]) -> str:
         """Format labels for Prometheus exposition."""
         if not labels:
             return ""
@@ -510,7 +510,7 @@ def record_database_query(
     database_query_duration_seconds.observe(duration, labels={"operation": operation})
 
 
-def get_metrics_snapshot() -> Dict[str, Any]:
+def get_metrics_snapshot() -> dict[str, Any]:
     """Get current snapshot of all metrics."""
     return registry.collect_all()
 

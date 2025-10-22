@@ -29,9 +29,8 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from utils.logging_setup import get_logger
-
 from config import get_settings
+from utils.logging_setup import get_logger
 
 from .auth import (
     BearerToken,
@@ -68,7 +67,7 @@ _kinfra_instance = None
 _service_manager = None
 
 try:
-    from kinfra_setup import setup_kinfra, cleanup_kinfra, get_allocated_port, health_check
+    from kinfra_setup import cleanup_kinfra, get_allocated_port, health_check, setup_kinfra
     _kinfra_enabled = True
     logger.info("✅ KINFRA integration available")
 except ImportError as e:
@@ -117,8 +116,8 @@ def main() -> None:
     fastmcp_vars = get_fastmcp_vars()
     settings = get_settings()
     print(f"🚀 MAIN DEBUG: FASTMCP environment variables: {fastmcp_vars}")
-    print(f"🚀 MAIN DEBUG: Resolved base URL: {settings.resolved_base_url}")
-    print(f"🚀 MAIN DEBUG: Transport: {settings.transport}, HTTP path: {settings.http_path}")
+    print(f"🚀 MAIN DEBUG: Resolved base URL: {settings.fastmcp.base_url}")
+    print(f"🚀 MAIN DEBUG: Transport: {settings.fastmcp.transport}, HTTP path: {settings.fastmcp.http_path}")
 
     # Get configuration from environment
     config = ServerConfig.from_settings(settings)
@@ -168,7 +167,7 @@ def main() -> None:
 
         logger.info(f"Starting HTTP server on {config.host}:{config.port}{config.http_path}")
         print(f"\n{'='*60}")
-        print(f"🚀 Atoms MCP Server Starting")
+        print("🚀 Atoms MCP Server Starting")
         print(f"{'='*60}")
         print(f"   Host: {config.host}")
         print(f"   Port: {config.port}")

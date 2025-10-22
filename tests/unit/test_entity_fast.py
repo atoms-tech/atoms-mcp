@@ -5,7 +5,15 @@ These tests use direct HTTP calls instead of the MCP decorator framework,
 providing ~20x speed improvement while still validating real Supabase data,
 RLS policies, and schema constraints.
 
-Run with: pytest tests/unit/test_entity_fast.py -v
+Supports test modes:
+- HOT: Real server with actual data
+- COLD: Mocked server with predictable responses
+- DRY: Simulated server with in-memory storage
+
+Run with:
+    pytest tests/unit/test_entity_fast.py -v --mode hot
+    pytest tests/unit/test_entity_fast.py -v --mode cold
+    pytest tests/unit/test_entity_fast.py -v --mode dry
 """
 
 from datetime import datetime
@@ -13,13 +21,14 @@ from datetime import datetime
 import pytest
 
 # ============================================================================
-# List Operations (Read-Only)
+# List Operations (Read-Only) - HOT Mode (Real Server)
 # ============================================================================
 
 
+@pytest.mark.hot
 @pytest.mark.asyncio
-async def test_list_organizations(authenticated_client):
-    """Test listing organizations via fast HTTP client."""
+async def test_list_organizations_hot(authenticated_client):
+    """Test listing organizations via fast HTTP client in HOT mode (real server)."""
     result = await authenticated_client.call_tool(
         "entity_tool",
         {
@@ -36,9 +45,74 @@ async def test_list_organizations(authenticated_client):
     assert isinstance(organizations, list), f"Expected list of organizations, got {type(organizations)}"
 
 
+# ============================================================================
+# List Operations (Read-Only) - COLD Mode (Mocked Server)
+# ============================================================================
+
+
+@pytest.mark.cold
 @pytest.mark.asyncio
-async def test_list_projects(authenticated_client):
-    """Test listing projects via fast HTTP client."""
+async def test_list_organizations_cold(fastmcp_client):
+    """Test listing organizations via FastMCP client in COLD mode (mocked server)."""
+    result = await fastmcp_client.call_tool(
+        "entity_tool",
+        {
+            "entity_type": "organization",
+            "operation": "list"
+        }
+    )
+
+    assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
+    assert "data" in result
+    organizations = result["data"]
+    assert isinstance(organizations, list)
+    assert len(organizations) == 2  # Mock returns 2 organizations
+
+
+# ============================================================================
+# List Operations (Read-Only) - DRY Mode (Simulated Server)
+# ============================================================================
+
+
+@pytest.mark.dry
+@pytest.mark.asyncio
+async def test_list_organizations_dry(fastmcp_client):
+    """Test listing organizations via FastMCP client in DRY mode (simulated server)."""
+    # First create some simulated organizations
+    for i in range(3):
+        await fastmcp_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Simulated Org {i}"}
+            }
+        )
+
+    result = await fastmcp_client.call_tool(
+        "entity_tool",
+        {
+            "entity_type": "organization",
+            "operation": "list"
+        }
+    )
+
+    assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
+    assert "data" in result
+    organizations = result["data"]
+    assert isinstance(organizations, list)
+    assert len(organizations) == 3  # We created 3 organizations
+
+
+# ============================================================================
+# HOT Mode Tests (Real Server)
+# ============================================================================
+
+
+@pytest.mark.hot
+@pytest.mark.asyncio
+async def test_list_projects_hot(authenticated_client):
+    """Test listing projects via fast HTTP client in HOT mode (real server)."""
     result = await authenticated_client.call_tool(
         "entity_tool",
         {
@@ -55,8 +129,58 @@ async def test_list_projects(authenticated_client):
     assert isinstance(projects, list), f"Expected list of projects, got {type(projects)}"
 
 
+@pytest.mark.cold
 @pytest.mark.asyncio
-async def test_list_documents(authenticated_client):
+async def test_list_projects_cold(fastmcp_client):
+    """Test listing projects via FastMCP client in COLD mode (mocked server)."""
+    result = await fastmcp_client.call_tool(
+        "entity_tool",
+        {
+            "entity_type": "project",
+            "operation": "list"
+        }
+    )
+
+    assert result["success"], f"Failed to list projects: {result.get('error')}"
+    assert "data" in result
+    projects = result["data"]
+    assert isinstance(projects, list)
+    assert len(projects) == 2  # Mock returns 2 projects
+
+
+@pytest.mark.dry
+@pytest.mark.asyncio
+async def test_list_projects_dry(fastmcp_client):
+    """Test listing projects via FastMCP client in DRY mode (simulated server)."""
+    # First create some simulated projects
+    for i in range(3):
+        await fastmcp_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "create",
+                "data": {"name": f"Simulated Project {i}", "organization_id": f"org_{i}"}
+            }
+        )
+
+    result = await fastmcp_client.call_tool(
+        "entity_tool",
+        {
+            "entity_type": "project",
+            "operation": "list"
+        }
+    )
+
+    assert result["success"], f"Failed to list projects: {result.get('error')}"
+    assert "data" in result
+    projects = result["data"]
+    assert isinstance(projects, list)
+    assert len(projects) == 3  # We created 3 projects
+
+
+@pytest.mark.hot
+@pytest.mark.asyncio
+async def test_list_documents_hot(authenticated_client):
     """Test listing documents via fast HTTP client."""
     result = await authenticated_client.call_tool(
         "entity_tool",

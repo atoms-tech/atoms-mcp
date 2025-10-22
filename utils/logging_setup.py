@@ -1,9 +1,9 @@
 """Atoms MCP logging - direct import from mcp-qa."""
 
-# Direct import from mcp-qa (vendored in pheno_vendor)
+# Direct import from mcp-qa (from pheno-sdk)
 try:
-    from mcp_qa.logging import LogConfig, get_logger
-    from mcp_qa.logging import configure_logging as _configure_logging
+    from pheno.testing.mcp_qa.logging import LogConfig, get_logger
+    from pheno.testing.mcp_qa.logging import configure_logging as _configure_logging
 
     # Backward-compatible wrapper
     def setup_logging(level: str = "INFO", use_color: bool = True, use_timestamps: bool = True, **kwargs):
@@ -39,6 +39,6 @@ except ImportError:
         """Fallback setup_logging."""
         configure_logging(level=level)
 
-    get_logger = logging.getLogger
+    get_logger = logging.getLogger  # type: ignore[assignment]
 
 __all__ = ["configure_logging", "get_logger", "setup_logging"]

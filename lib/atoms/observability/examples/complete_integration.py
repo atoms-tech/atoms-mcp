@@ -16,39 +16,38 @@ Author: Atoms MCP Platform
 
 import asyncio
 import os
-from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 # Observability imports
 from lib.atoms.observability import (
+    ComponentType,
+    ContextPropagationMiddleware,
+    CustomHealthCheck,
+    ErrorTrackingMiddleware,
+    LogContext,
+    PerformanceTrackingMiddleware,
     # Middleware
     RequestTrackingMiddleware,
-    ErrorTrackingMiddleware,
-    PerformanceTrackingMiddleware,
-    ContextPropagationMiddleware,
-    # Logging
-    get_logger,
-    LogContext,
-    # Health checks
-    register_health_check,
-    CustomHealthCheck,
-    ComponentType,
-    HealthStatus,
-    # Decorators
-    observe_tool,
-    log_operation,
-    measure_performance,
-    track_database_operation,
+    WebhookEventType,
     # Webhooks
     configure_vercel_webhook,
-    webhook_manager,
-    WebhookEventType,
-    AlertSeverity,
+    # Logging
+    get_logger,
+    log_operation,
+    measure_performance,
+    # Decorators
+    observe_tool,
+    record_error,
+    # Health checks
+    register_health_check,
     # Metrics
     registry,
-    record_error,
+    track_database_operation,
+    webhook_manager,
+)
+from lib.atoms.observability import (
     # Endpoints
     router as observability_router,
 )
@@ -121,7 +120,7 @@ if config.ENABLE_HEALTH_CHECKS:
     logger.info("Registering health checks")
 
     # Example: Database health check
-    async def check_database() -> bool:
+    async def check_database_async() -> bool:
         """Check database connectivity."""
         try:
             # In production, replace with actual database check
@@ -130,6 +129,14 @@ if config.ENABLE_HEALTH_CHECKS:
             return True
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
+            return False
+
+    def check_database() -> bool:
+        """Sync wrapper for database health check."""
+        try:
+            return asyncio.run(check_database_async())
+        except Exception as e:
+            logger.error(f"Database health check wrapper failed: {e}")
             return False
 
     register_health_check(
@@ -143,7 +150,7 @@ if config.ENABLE_HEALTH_CHECKS:
     )
 
     # Example: Cache health check
-    async def check_cache() -> bool:
+    async def check_cache_async() -> bool:
         """Check cache (Redis) connectivity."""
         try:
             # In production, replace with actual cache check
@@ -152,6 +159,14 @@ if config.ENABLE_HEALTH_CHECKS:
             return True
         except Exception as e:
             logger.error(f"Cache health check failed: {e}")
+            return False
+
+    def check_cache() -> bool:
+        """Sync wrapper for cache health check."""
+        try:
+            return asyncio.run(check_cache_async())
+        except Exception as e:
+            logger.error(f"Cache health check wrapper failed: {e}")
             return False
 
     register_health_check(
@@ -165,7 +180,7 @@ if config.ENABLE_HEALTH_CHECKS:
     )
 
     # Example: External API health check
-    async def check_external_api() -> bool:
+    async def check_external_api_async() -> bool:
         """Check external API availability."""
         try:
             # In production, replace with actual API check
@@ -177,6 +192,14 @@ if config.ENABLE_HEALTH_CHECKS:
             return True
         except Exception as e:
             logger.error(f"External API health check failed: {e}")
+            return False
+
+    def check_external_api() -> bool:
+        """Sync wrapper for external API health check."""
+        try:
+            return asyncio.run(check_external_api_async())
+        except Exception as e:
+            logger.error(f"External API health check wrapper failed: {e}")
             return False
 
     register_health_check(
@@ -241,7 +264,7 @@ api_latency_histogram = registry.register_histogram(
 
 @observe_tool("user_registration", track_performance=True, log_inputs=True)
 @measure_performance("user_registration", threshold_warning_ms=500, threshold_critical_ms=2000)
-async def register_user(username: str, email: str, source: str = "web") -> Dict:
+async def register_user(username: str, email: str, source: str = "web") -> dict:
     """
     Register a new user with full observability.
 
@@ -295,7 +318,7 @@ async def register_user(username: str, email: str, source: str = "web") -> Dict:
 
 @track_database_operation("select")
 @log_operation("get_user_profile")
-async def get_user_profile(user_id: str) -> Dict:
+async def get_user_profile(user_id: str) -> dict:
     """
     Get user profile with database tracking.
 
@@ -317,7 +340,7 @@ async def get_user_profile(user_id: str) -> Dict:
 
 
 @observe_tool("search_users", track_performance=True)
-async def search_users(query: str, limit: int = 10) -> List[Dict]:
+async def search_users(query: str, limit: int = 10) -> list[dict]:
     """
     Search users with monitoring.
 

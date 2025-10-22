@@ -23,9 +23,10 @@ Usage:
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 import pytest
 
@@ -99,7 +100,7 @@ class TestResult:
     test_name: str
     passed: bool
     data: dict[str, Any] = field(default_factory=dict)
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class TestResultRegistry:
@@ -118,7 +119,7 @@ class TestResultRegistry:
         logger.debug(f"Stored result for {test_name}: passed={passed}")
         return result
 
-    def get_result(self, test_name: str) -> Optional[TestResult]:
+    def get_result(self, test_name: str) -> TestResult | None:
         """Get result of a previous test."""
         return self.results.get(test_name)
 

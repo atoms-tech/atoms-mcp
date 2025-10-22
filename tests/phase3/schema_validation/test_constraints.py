@@ -28,9 +28,8 @@ from pydantic import ValidationError
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from schemas.generated.fastapi import schema_public_latest as generated_schema
 from scripts.sync_schema import SchemaSync
-from tests.framework import cascade_flow, FlowPattern, harmful
+from tests.framework import CleanupStrategy, FlowPattern, cascade_flow, harmful
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +53,10 @@ class TestConstraints:
         except Exception as e:
             logger.error(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
+            raise  # This will never be reached, but satisfies type checker
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_not_null_constraints_enforced(
         self,
         schema_sync: SchemaSync,
@@ -80,13 +80,13 @@ class TestConstraints:
             missing_required_test = False
             try:
                 data = {
-                    "id": str(uuid.uuid4()),
+                    "id": uuid.uuid4(),
                     # Missing "name" which is NOT NULL
                     "field_type": "personal",
-                    "owner_id": str(uuid.uuid4()),
+                    "owner_id": uuid.uuid4(),
                     "version": 1
                 }
-                OrganizationBaseSchema(**data)
+                OrganizationBaseSchema(**data)  # type: ignore
             except ValidationError as e:
                 logger.info(f"Expected validation error: {e}")
                 missing_required_test = True
@@ -95,13 +95,13 @@ class TestConstraints:
             explicit_null_test = False
             try:
                 data = {
-                    "id": str(uuid.uuid4()),
+                    "id": uuid.uuid4(),
                     "name": None,  # NOT NULL field
                     "field_type": "personal",
-                    "owner_id": str(uuid.uuid4()),
+                    "owner_id": uuid.uuid4(),
                     "version": 1
                 }
-                OrganizationBaseSchema(**data)
+                OrganizationBaseSchema(**data)  # type: ignore
             except ValidationError:
                 explicit_null_test = True
 
@@ -109,13 +109,13 @@ class TestConstraints:
             valid_data_test = True
             try:
                 data = {
-                    "id": str(uuid.uuid4()),
+                    "id": uuid.uuid4(),
                     "name": "Test Org",
                     "field_type": "personal",
-                    "owner_id": str(uuid.uuid4()),
+                    "owner_id": uuid.uuid4(),
                     "version": 1
                 }
-                org = OrganizationBaseSchema(**data)
+                org = OrganizationBaseSchema(**data)  # type: ignore
                 assert org.name == "Test Org"
             except ValidationError as e:
                 logger.error(f"Valid data failed: {e}")
@@ -137,7 +137,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_nullable_fields_allow_null(
         self,
         schema_sync: SchemaSync,
@@ -158,10 +158,10 @@ class TestConstraints:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
             base_data = {
-                "id": str(uuid.uuid4()),
+                "id": uuid.uuid4(),
                 "name": "Test",
                 "slug": "test",
-                "project_id": str(uuid.uuid4()),
+                "project_id": uuid.uuid4(),
                 "version": 1
             }
 
@@ -170,7 +170,7 @@ class TestConstraints:
             try:
                 data = base_data.copy()
                 data["description"] = None  # Nullable field
-                doc = DocumentBaseSchema(**data)
+                doc = DocumentBaseSchema(**data)  # type: ignore
                 assert doc.description is None
             except ValidationError as e:
                 logger.error(f"Null optional field failed: {e}")
@@ -181,7 +181,7 @@ class TestConstraints:
             try:
                 data = base_data.copy()
                 # description not included at all
-                doc = DocumentBaseSchema(**data)
+                doc = DocumentBaseSchema(**data)  # type: ignore
                 # Should have default or None
             except ValidationError as e:
                 logger.error(f"Omitting optional field failed: {e}")
@@ -194,7 +194,7 @@ class TestConstraints:
                 data["description"] = None
                 data["deleted_at"] = None
                 data["tags"] = None
-                DocumentBaseSchema(**data)
+                DocumentBaseSchema(**data)  # type: ignore
             except ValidationError as e:
                 logger.error(f"Multiple null fields failed: {e}")
                 multiple_null_test = False
@@ -214,7 +214,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_unique_constraints_documented(
         self,
         schema_sync: SchemaSync,
@@ -279,7 +279,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_check_constraints_identified(
         self,
         schema_sync: SchemaSync,
@@ -347,7 +347,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_default_values_identified(
         self,
         schema_sync: SchemaSync,
@@ -409,7 +409,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_pydantic_field_defaults(
         self,
         store_result
@@ -426,10 +426,7 @@ class TestConstraints:
         - Field-level defaults vs model-level defaults
         """
         try:
-            from schemas.generated.fastapi.schema_public_latest import (
-                DocumentBaseSchema,
-                BlockBaseSchema
-            )
+            from schemas.generated.fastapi.schema_public_latest import BlockBaseSchema, DocumentBaseSchema
 
             # Check DocumentBaseSchema defaults
             doc_fields_with_defaults = []
@@ -467,7 +464,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_foreign_key_constraints(
         self,
         schema_sync: SchemaSync,
@@ -537,7 +534,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_version_field_constraints(
         self,
         store_result
@@ -558,10 +555,10 @@ class TestConstraints:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
             base_data = {
-                "id": str(uuid.uuid4()),
+                "id": uuid.uuid4(),
                 "name": "Test",
                 "slug": "test",
-                "project_id": str(uuid.uuid4())
+                "project_id": uuid.uuid4()
             }
 
             # Test valid version
@@ -569,7 +566,7 @@ class TestConstraints:
             try:
                 data = base_data.copy()
                 data["version"] = 1
-                doc = DocumentBaseSchema(**data)
+                doc = DocumentBaseSchema(**data)  # type: ignore
                 assert doc.version == 1
             except ValidationError as e:
                 logger.error(f"Valid version failed: {e}")
@@ -580,7 +577,7 @@ class TestConstraints:
             try:
                 data = base_data.copy()
                 data["version"] = 0
-                DocumentBaseSchema(**data)
+                DocumentBaseSchema(**data)  # type: ignore
             except ValidationError as e:
                 logger.error(f"Zero version failed: {e}")
                 zero_version_test = False
@@ -590,7 +587,7 @@ class TestConstraints:
             try:
                 data = base_data.copy()
                 # version not provided
-                DocumentBaseSchema(**data)
+                DocumentBaseSchema(**data)  # type: ignore
             except ValidationError:
                 missing_version_test = True
 
@@ -599,7 +596,7 @@ class TestConstraints:
             try:
                 data = base_data.copy()
                 data["version"] = -1
-                DocumentBaseSchema(**data)
+                DocumentBaseSchema(**data)  # type: ignore
                 # Pydantic may not enforce >= 0 constraint
             except ValidationError:
                 pass
@@ -620,7 +617,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_soft_delete_constraints(
         self,
         store_result
@@ -641,10 +638,10 @@ class TestConstraints:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
             base_data = {
-                "id": str(uuid.uuid4()),
+                "id": uuid.uuid4(),
                 "name": "Test",
                 "slug": "test",
-                "project_id": str(uuid.uuid4()),
+                "project_id": uuid.uuid4(),
                 "version": 1
             }
 
@@ -655,8 +652,8 @@ class TestConstraints:
                 data["is_deleted"] = False
                 data["deleted_at"] = None
                 data["deleted_by"] = None
-                doc = DocumentBaseSchema(**data)
-                assert doc.is_deleted == False
+                doc = DocumentBaseSchema(**data)  # type: ignore
+                assert not doc.is_deleted
             except ValidationError as e:
                 logger.error(f"Soft delete fields failed: {e}")
                 soft_delete_present_test = False
@@ -667,9 +664,9 @@ class TestConstraints:
                 data = base_data.copy()
                 data["is_deleted"] = True
                 data["deleted_at"] = datetime.datetime.now(datetime.UTC)
-                data["deleted_by"] = str(uuid.uuid4())
-                doc = DocumentBaseSchema(**data)
-                assert doc.is_deleted == True
+                data["deleted_by"] = uuid.uuid4()
+                doc = DocumentBaseSchema(**data)  # type: ignore
+                assert doc.is_deleted
             except ValidationError as e:
                 logger.error(f"Soft deleted state failed: {e}")
                 soft_deleted_test = False
@@ -681,7 +678,7 @@ class TestConstraints:
                 data = base_data.copy()
                 data["is_deleted"] = True
                 data["deleted_at"] = None  # Inconsistent
-                DocumentBaseSchema(**data)
+                DocumentBaseSchema(**data)  # type: ignore
                 # No constraint enforced at Pydantic level
             except ValidationError:
                 pass
@@ -701,7 +698,7 @@ class TestConstraints:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_constraint_validation_summary(
         self,
         test_results,
@@ -721,7 +718,7 @@ class TestConstraints:
         try:
             all_results = test_results.get_all_results()
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_tests": len(all_results),
                 "passed_tests": sum(1 for r in all_results.values() if r.passed),
                 "constraint_types_tested": [

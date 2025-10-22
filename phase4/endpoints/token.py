@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel
 
-from ..services import TokenRefreshService, RevocationService
+from utils.logging_setup import get_logger
+
 from ..middleware import RateLimiter
 from ..models import DeviceInfo
-from utils.logging_setup import get_logger
+from ..services import RevocationService, TokenRefreshService
 
 logger = get_logger(__name__)
 
@@ -20,13 +21,13 @@ router = APIRouter(prefix="/auth/token", tags=["token"])
 class TokenRefreshRequest(BaseModel):
     """Token refresh request model."""
     refresh_token: str
-    session_id: Optional[str] = None
+    session_id: str | None = None
 
 
 class TokenRefreshResponse(BaseModel):
     """Token refresh response model."""
     access_token: str
-    refresh_token: Optional[str] = None
+    refresh_token: str | None = None
     expires_in: int
     token_type: str = "Bearer"
 
@@ -34,8 +35,8 @@ class TokenRefreshResponse(BaseModel):
 class TokenRevokeRequest(BaseModel):
     """Token revocation request model."""
     token: str
-    token_type_hint: Optional[str] = "access_token"
-    reason: Optional[str] = None
+    token_type_hint: str | None = "access_token"
+    reason: str | None = None
 
 
 class TokenRevokeResponse(BaseModel):
@@ -48,7 +49,7 @@ class TokenRevokeResponse(BaseModel):
 async def refresh_token(
     request: TokenRefreshRequest,
     req: Request,
-    user_agent: Optional[str] = Header(None),
+    user_agent: str | None = Header(None),
 ) -> TokenRefreshResponse:
     """Refresh access token using refresh token.
 
@@ -81,9 +82,8 @@ async def refresh_token(
             )
 
         # Parse device info for validation
-        device_info = None
         if user_agent:
-            device_info = DeviceInfo.from_user_agent(user_agent)
+            DeviceInfo.from_user_agent(user_agent)
 
         # Perform token refresh
         try:
@@ -179,8 +179,8 @@ async def revoke_token(
 @router.post("/introspect")
 async def introspect_token(
     token: str,
-    token_type_hint: Optional[str] = "access_token",
-) -> Dict[str, Any]:
+    token_type_hint: str | None = "access_token",
+) -> dict[str, Any]:
     """Introspect token to get metadata.
 
     This endpoint implements RFC 7662 token introspection.

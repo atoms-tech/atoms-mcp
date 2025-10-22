@@ -40,10 +40,10 @@ from .tools import (
     workspace_client,
 )
 
-# OAuth providers are now in pheno_vendor/mcp_qa/oauth/oauth_automation/providers/
+# OAuth providers are now in pheno-sdk/pheno/testing/mcp_qa/oauth/oauth_automation/providers/
 # Import generic DataGenerator from mcp_qa
 try:
-    from mcp_qa.core.data_generators import DataGenerator
+    from pheno.testing.mcp_qa.core.data_generators import DataGenerator
 except ImportError:
     DataGenerator = None
 

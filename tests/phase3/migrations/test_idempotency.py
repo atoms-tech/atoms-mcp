@@ -16,16 +16,15 @@ Coverage areas:
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Dict, List
-from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-
 from pheno_vendor.db_kit.adapters.base import DatabaseAdapter
-from pheno_vendor.db_kit.migrations import Migration, MigrationEngine, MigrationStatus
+from pheno_vendor.db_kit.migrations import MigrationEngine
+
 from tests.framework import harmful
+from tests.framework.harmful import CleanupStrategy
+
 from .test_migration_runner import MockDatabaseAdapter
 
 logger = logging.getLogger(__name__)
@@ -176,8 +175,9 @@ async def migration_engine_idempotency_hot(real_adapter_idempotency):
 async def real_adapter_idempotency():
     """Provide real database adapter for idempotency tests."""
     try:
-        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
         import os
+
+        from pheno_vendor.db_kit.adapters.postgres import PostgresAdapter
 
         db_url = os.getenv("TEST_DATABASE_URL")
         if not db_url:
@@ -312,7 +312,7 @@ class TestIdempotencyCOLD:
 class TestIdempotencyHOT:
     """Test idempotency with real database (HOT mode)."""
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_04_table_creation_idempotency_hot(
         self, migration_engine_idempotency_hot, harmful_tracker
     ):
@@ -356,7 +356,7 @@ class TestIdempotencyHOT:
             logger.error(f"FAIL: Table creation idempotency failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_05_data_insertion_idempotency_hot(
         self, migration_engine_idempotency_hot, harmful_tracker
     ):
@@ -399,7 +399,7 @@ class TestIdempotencyHOT:
             logger.error(f"FAIL: Data insertion idempotency failed: {e}", exc_info=True)
             raise
 
-    @harmful(cleanup_strategy="cascade_delete")
+    @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
     async def test_06_partial_migration_recovery_hot(
         self, migration_engine_idempotency_hot, harmful_tracker
     ):
@@ -545,7 +545,7 @@ class TestIdempotencyEdgeCases:
             )
 
             # Simulate concurrent migration attempts
-            results = await asyncio.gather(
+            await asyncio.gather(
                 migration_engine_idempotency_cold.migrate(),
                 migration_engine_idempotency_cold.migrate(),
                 migration_engine_idempotency_cold.migrate(),

@@ -2,6 +2,8 @@
 
 This guide shows how to integrate the Phase 4 session management system with the existing Atoms AuthKit.
 
+> **Note:** The FastMCP server now relies on AuthKit's remote OAuth flow directly (no custom SessionMiddleware). The legacy middleware remains documented below for historical context only.
+
 ## Architecture Overview
 
 ```

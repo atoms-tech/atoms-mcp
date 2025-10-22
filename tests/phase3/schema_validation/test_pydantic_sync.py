@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from schemas.generated.fastapi import schema_public_latest as generated_schema
 from scripts.sync_schema import SchemaSync
-from tests.framework import cascade_flow, FlowPattern, harmful
+from tests.framework import CleanupStrategy, FlowPattern, cascade_flow, harmful
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,7 @@ class TestPydanticSync:
         except Exception as e:
             logger.error(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
+            raise  # This will never be reached, but satisfies type checker
 
     @pytest.fixture(scope="class")
     def pydantic_models(self) -> dict[str, Any]:
@@ -85,7 +86,7 @@ class TestPydanticSync:
         return models
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_all_tables_have_pydantic_models(
         self,
         schema_sync: SchemaSync,
@@ -140,7 +141,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_field_names_match(
         self,
         schema_sync: SchemaSync,
@@ -206,7 +207,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_primary_key_fields(
         self,
         schema_sync: SchemaSync,
@@ -270,7 +271,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_foreign_key_fields(
         self,
         schema_sync: SchemaSync,
@@ -323,7 +324,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_timestamp_fields(
         self,
         schema_sync: SchemaSync,
@@ -375,7 +376,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_model_inheritance_structure(
         self,
         pydantic_models: dict[str, Any],
@@ -422,7 +423,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_insert_update_models_exist(
         self,
         store_result
@@ -478,7 +479,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_json_fields_properly_typed(
         self,
         schema_sync: SchemaSync,
@@ -539,7 +540,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_enum_fields_properly_typed(
         self,
         schema_sync: SchemaSync,
@@ -611,7 +612,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_nullable_fields_properly_optional(
         self,
         schema_sync: SchemaSync,
@@ -691,7 +692,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_array_fields_properly_typed(
         self,
         schema_sync: SchemaSync,
@@ -751,7 +752,7 @@ class TestPydanticSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_model_completeness_summary(
         self,
         schema_sync: SchemaSync,
@@ -774,7 +775,7 @@ class TestPydanticSync:
             # Aggregate results from previous tests
             all_results = test_results.get_all_results()
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_tests": len(all_results),
                 "passed_tests": sum(1 for r in all_results.values() if r.passed),
                 "failed_tests": sum(1 for r in all_results.values() if not r.passed),

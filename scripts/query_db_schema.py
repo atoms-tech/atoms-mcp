@@ -142,7 +142,7 @@ async def get_table_indexes(project_id: str, table_name: str) -> list[dict[str, 
 
 async def export_schema_to_json(project_id: str, output_file: str):
     """Export full schema to JSON file."""
-    schema = {
+    schema: dict[str, Any] = {
         "tables": {},
         "enums": {},
         "metadata": {

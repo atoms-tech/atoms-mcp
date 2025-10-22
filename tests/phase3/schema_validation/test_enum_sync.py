@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from schemas.generated.fastapi import schema_public_latest as generated_schema
 from scripts.sync_schema import SchemaSync
-from tests.framework import cascade_flow, FlowPattern, harmful
+from tests.framework import CleanupStrategy, FlowPattern, cascade_flow, harmful
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,7 @@ class TestEnumSync:
         except Exception as e:
             logger.error(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
+            raise  # This will never be reached, but satisfies type checker
 
     @pytest.fixture(scope="class")
     def pydantic_enums(self) -> dict[str, Any]:
@@ -75,7 +76,7 @@ class TestEnumSync:
         return enums
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_all_enums_have_pydantic_classes(
         self,
         schema_sync: SchemaSync,
@@ -150,7 +151,7 @@ class TestEnumSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_enum_values_match(
         self,
         schema_sync: SchemaSync,
@@ -213,7 +214,6 @@ class TestEnumSync:
             if "organization_type" in pydantic_enums:
                 org_enum = pydantic_enums["organization_type"]
                 org_values = {e.value for e in org_enum}
-                expected_values = {"personal", "team", "enterprise"}
                 specific_checks["organization_type"] = {
                     "has_personal": "personal" in org_values,
                     "has_team": "team" in org_values,
@@ -251,7 +251,7 @@ class TestEnumSync:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_enum_serialization(
         self,
         pydantic_enums: dict[str, Any],
@@ -328,22 +328,22 @@ class TestEnumSync:
             # Test enum in actual model
             model_integration_test = False
             try:
-                from schemas.generated.fastapi.schema_public_latest import (
-                    OrganizationBaseSchema,
-                    PublicOrganizationTypeEnum
-                )
-
                 # Create organization with enum
                 import uuid
+
+                from schemas.generated.fastapi.schema_public_latest import (
+                    OrganizationBaseSchema,
+                    PublicOrganizationTypeEnum,
+                )
                 org_data = {
-                    "id": str(uuid.uuid4()),
+                    "id": uuid.uuid4(),
                     "name": "Test Org",
                     "field_type": PublicOrganizationTypeEnum.PERSONAL,
-                    "owner_id": str(uuid.uuid4()),
+                    "owner_id": uuid.uuid4(),
                     "version": 1
                 }
 
-                org = OrganizationBaseSchema(**org_data)
+                org = OrganizationBaseSchema(**org_data)  # type: ignore
                 model_integration_test = (org.field_type == PublicOrganizationTypeEnum.PERSONAL)
 
             except Exception as e:
@@ -352,7 +352,7 @@ class TestEnumSync:
             # Generate comprehensive summary
             all_results = test_results.get_all_results()
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_enum_tests": len(all_results),
                 "passed_tests": sum(1 for r in all_results.values() if r.passed),
                 "serialization_tests": serialization_tests,

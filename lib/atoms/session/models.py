@@ -5,11 +5,11 @@ Comprehensive data models for session lifecycle management, token tracking,
 device fingerprinting, and audit logging.
 """
 
+import json
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field, asdict
-import json
+from typing import Any
 from uuid import uuid4
 
 
@@ -67,25 +67,25 @@ class DeviceFingerprint:
     """
 
     fingerprint_id: str = field(default_factory=lambda: str(uuid4()))
-    user_agent: Optional[str] = None
-    accept_language: Optional[str] = None
-    screen_resolution: Optional[str] = None
-    timezone: Optional[str] = None
-    platform: Optional[str] = None
-    device_memory: Optional[int] = None
-    hardware_concurrency: Optional[int] = None
-    color_depth: Optional[int] = None
-    pixel_ratio: Optional[float] = None
+    user_agent: str | None = None
+    accept_language: str | None = None
+    screen_resolution: str | None = None
+    timezone: str | None = None
+    platform: str | None = None
+    device_memory: int | None = None
+    hardware_concurrency: int | None = None
+    color_depth: int | None = None
+    pixel_ratio: float | None = None
     touch_support: bool = False
-    canvas_fingerprint: Optional[str] = None
-    webgl_fingerprint: Optional[str] = None
-    audio_fingerprint: Optional[str] = None
-    fonts: List[str] = field(default_factory=list)
-    plugins: List[str] = field(default_factory=list)
+    canvas_fingerprint: str | None = None
+    webgl_fingerprint: str | None = None
+    audio_fingerprint: str | None = None
+    fonts: list[str] = field(default_factory=list)
+    plugins: list[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_seen: datetime = field(default_factory=datetime.utcnow)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary with datetime serialization."""
         data = asdict(self)
         data["created_at"] = self.created_at.isoformat()
@@ -93,7 +93,7 @@ class DeviceFingerprint:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DeviceFingerprint":
+    def from_dict(cls, data: dict[str, Any]) -> "DeviceFingerprint":
         """Create from dictionary with datetime parsing."""
         if "created_at" in data and isinstance(data["created_at"], str):
             data["created_at"] = datetime.fromisoformat(data["created_at"])
@@ -161,16 +161,16 @@ class TokenRefreshRecord:
     user_id: str = ""
 
     # Token information
-    old_access_token_hash: Optional[str] = None
+    old_access_token_hash: str | None = None
     new_access_token_hash: str = ""
-    old_refresh_token_hash: Optional[str] = None
+    old_refresh_token_hash: str | None = None
     new_refresh_token_hash: str = ""
 
     # Timing
     refreshed_at: datetime = field(default_factory=datetime.utcnow)
-    old_token_expires_at: Optional[datetime] = None
-    new_token_expires_at: Optional[datetime] = None
-    grace_period_ends_at: Optional[datetime] = None
+    old_token_expires_at: datetime | None = None
+    new_token_expires_at: datetime | None = None
+    grace_period_ends_at: datetime | None = None
 
     # Metadata
     refresh_reason: str = "proactive"  # proactive, expired, user_requested, forced
@@ -178,16 +178,16 @@ class TokenRefreshRecord:
     rotation_count: int = 0
 
     # Security
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    device_fingerprint_id: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    device_fingerprint_id: str | None = None
 
     # Status
     is_successful: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
     retry_count: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary with datetime serialization."""
         data = asdict(self)
         data["refreshed_at"] = self.refreshed_at.isoformat()
@@ -200,7 +200,7 @@ class TokenRefreshRecord:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TokenRefreshRecord":
+    def from_dict(cls, data: dict[str, Any]) -> "TokenRefreshRecord":
         """Create from dictionary with datetime parsing."""
         datetime_fields = [
             "refreshed_at", "old_token_expires_at",
@@ -226,40 +226,40 @@ class Session:
 
     # Token storage
     access_token: str = ""
-    refresh_token: Optional[str] = None
-    id_token: Optional[str] = None
+    refresh_token: str | None = None
+    id_token: str | None = None
     token_type: str = "Bearer"
 
     # Token metadata
-    access_token_expires_at: Optional[datetime] = None
-    refresh_token_expires_at: Optional[datetime] = None
-    scopes: List[str] = field(default_factory=list)
+    access_token_expires_at: datetime | None = None
+    refresh_token_expires_at: datetime | None = None
+    scopes: list[str] = field(default_factory=list)
 
     # Session state
     state: SessionState = SessionState.ACTIVE
 
     # Device and security
-    device_fingerprint: Optional[DeviceFingerprint] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    device_fingerprint: DeviceFingerprint | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
 
     # Timing
     created_at: datetime = field(default_factory=datetime.utcnow)
     last_accessed_at: datetime = field(default_factory=datetime.utcnow)
-    last_refreshed_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    last_refreshed_at: datetime | None = None
+    expires_at: datetime | None = None
 
     # Timeout configuration
     idle_timeout_minutes: int = 30
     absolute_timeout_minutes: int = 480  # 8 hours
 
     # Metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     provider: str = "openrouter"
 
     # Refresh tracking
     refresh_count: int = 0
-    last_refresh_record_id: Optional[str] = None
+    last_refresh_record_id: str | None = None
 
     def __post_init__(self):
         """Initialize computed fields."""
@@ -268,7 +268,7 @@ class Session:
                 minutes=self.absolute_timeout_minutes
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary with proper serialization."""
         data = {
             "session_id": self.session_id,
@@ -310,7 +310,7 @@ class Session:
         return data
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Session":
+    def from_dict(cls, data: dict[str, Any]) -> "Session":
         """Create from dictionary with proper parsing."""
         # Parse datetime fields
         datetime_fields = [
@@ -377,7 +377,7 @@ class Session:
 
         return now >= refresh_deadline
 
-    def update_access(self, ip_address: Optional[str] = None):
+    def update_access(self, ip_address: str | None = None):
         """Update last access timestamp and IP."""
         self.last_accessed_at = datetime.utcnow()
         if ip_address:
@@ -407,32 +407,32 @@ class AuditLog:
     action_details: str = ""
 
     # Context
-    session_id: Optional[str] = None
-    user_id: Optional[str] = None
+    session_id: str | None = None
+    user_id: str | None = None
 
     # Security context
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    device_fingerprint_id: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    device_fingerprint_id: str | None = None
 
     # Request context
-    request_id: Optional[str] = None
-    endpoint: Optional[str] = None
-    http_method: Optional[str] = None
+    request_id: str | None = None
+    endpoint: str | None = None
+    http_method: str | None = None
 
     # Result
     is_success: bool = True
-    error_code: Optional[str] = None
-    error_message: Optional[str] = None
+    error_code: str | None = None
+    error_message: str | None = None
 
     # Additional metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     # Security flags
     is_suspicious: bool = False
     risk_score: float = 0.0  # 0.0 - 1.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary with proper serialization."""
         return {
             "log_id": self.log_id,
@@ -456,7 +456,7 @@ class AuditLog:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "AuditLog":
+    def from_dict(cls, data: dict[str, Any]) -> "AuditLog":
         """Create from dictionary with proper parsing."""
         if "timestamp" in data and isinstance(data["timestamp"], str):
             data["timestamp"] = datetime.fromisoformat(data["timestamp"])

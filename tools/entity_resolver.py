@@ -121,7 +121,7 @@ class EntityResolver:
             if RAPIDFUZZ_AVAILABLE:
                 # Use RapidFuzz for high-performance fuzzy matching
                 entity_names = [(e.get("name", ""), e) for e in entities]
-                matches = process.extract(
+                matches: list[tuple[str, float, int]] = process.extract(
                     identifier,
                     [name for name, _ in entity_names],
                     scorer=fuzz.WRatio,  # Weighted ratio for best overall performance
@@ -152,7 +152,7 @@ class EntityResolver:
                             results.append({
                                 "name": name,
                                 "id": entity["id"],
-                                "score": round(score, 1),
+                                "score": float(round(score, 1)),
                                 "created_at": entity.get("created_at")
                             })
 

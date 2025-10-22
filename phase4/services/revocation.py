@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Any
+
+from utils.logging_setup import get_logger
 
 from ..models import TokenMetadata, TokenType
 from ..storage import StorageBackend, get_storage_backend
 from .audit import AuditService
-from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,8 +26,8 @@ class RevocationService:
 
     def __init__(
         self,
-        storage: Optional[StorageBackend] = None,
-        audit_service: Optional[AuditService] = None,
+        storage: StorageBackend | None = None,
+        audit_service: AuditService | None = None,
     ):
         """Initialize revocation service.
 
@@ -41,7 +42,7 @@ class RevocationService:
         self,
         token: str,
         is_refresh: bool = False,
-        reason: Optional[str] = None,
+        reason: str | None = None,
         cascade: bool = True,
     ) -> datetime:
         """Revoke a token immediately.
@@ -116,7 +117,7 @@ class RevocationService:
     async def revoke_session_tokens(
         self,
         session_id: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> int:
         """Revoke all tokens for a session.
 
@@ -163,8 +164,8 @@ class RevocationService:
     async def revoke_user_tokens(
         self,
         user_id: str,
-        reason: Optional[str] = None,
-        except_session: Optional[str] = None,
+        reason: str | None = None,
+        except_session: str | None = None,
     ) -> int:
         """Revoke all tokens for a user.
 
@@ -178,7 +179,8 @@ class RevocationService:
         """
         # Get user sessions
         sessions_key = f"user_sessions:{user_id}"
-        session_ids = await self.storage.get(sessions_key) or []
+        sessions_data: Any = await self.storage.get(sessions_key) or []
+        session_ids: list[str] = sessions_data if isinstance(sessions_data, list) else []
 
         revoked = 0
 
@@ -206,7 +208,7 @@ class RevocationService:
         self,
         limit: int = 100,
         offset: int = 0,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """Get list of revoked tokens.
 
         Args:
@@ -267,7 +269,7 @@ class RevocationService:
     async def _cascade_revocation(
         self,
         session_id: str,
-        reason: Optional[str] = None
+        reason: str | None = None
     ) -> None:
         """Cascade revocation to related tokens and sessions.
 

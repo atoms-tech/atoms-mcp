@@ -4,11 +4,12 @@ Tests for Revocation Service
 Comprehensive test suite for token revocation and cascading.
 """
 
-import pytest
 from datetime import datetime, timedelta
 
-from ..revocation import RevocationService, RevocationRecord
+import pytest
+
 from ..models import Session, SessionState
+from ..revocation import RevocationRecord, RevocationService
 from ..storage.base import InMemoryStorage
 
 

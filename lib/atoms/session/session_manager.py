@@ -8,19 +8,18 @@ device fingerprinting, timeout enforcement, and cleanup.
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Any
 from uuid import uuid4
 
 from .models import (
+    AuditAction,
+    AuditLog,
+    DeviceFingerprint,
     Session,
     SessionState,
-    DeviceFingerprint,
-    AuditLog,
-    AuditAction,
 )
 from .storage.base import StorageBackend
 from .token_manager import TokenManager
-
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,7 @@ class SessionManager:
     def __init__(
         self,
         storage: StorageBackend,
-        token_manager: Optional[TokenManager] = None,
+        token_manager: TokenManager | None = None,
         default_idle_timeout_minutes: int = 30,
         default_absolute_timeout_minutes: int = 480,
         max_sessions_per_user: int = 5,
@@ -95,21 +94,21 @@ class SessionManager:
         self.audit_enabled = audit_enabled
 
         # Background task for cleanup
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
 
     async def create_session(
         self,
         user_id: str,
         access_token: str,
-        refresh_token: Optional[str] = None,
-        id_token: Optional[str] = None,
+        refresh_token: str | None = None,
+        id_token: str | None = None,
         token_type: str = "Bearer",
-        expires_in: Optional[int] = None,
-        scopes: Optional[List[str]] = None,
-        device_fingerprint: Optional[DeviceFingerprint] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        expires_in: int | None = None,
+        scopes: list[str] | None = None,
+        device_fingerprint: DeviceFingerprint | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        metadata: dict[str, Any] | None = None,
         provider: str = "openrouter",
     ) -> Session:
         """
@@ -200,8 +199,8 @@ class SessionManager:
         self,
         session_id: str,
         validate_device: bool = True,
-        device_fingerprint: Optional[DeviceFingerprint] = None,
-        ip_address: Optional[str] = None,
+        device_fingerprint: DeviceFingerprint | None = None,
+        ip_address: str | None = None,
     ) -> Session:
         """
         Get session with optional device validation.
@@ -266,7 +265,7 @@ class SessionManager:
         self,
         user_id: str,
         include_expired: bool = False,
-    ) -> List[Session]:
+    ) -> list[Session]:
         """
         Get all sessions for a user.
 
@@ -323,8 +322,8 @@ class SessionManager:
     async def update_session(
         self,
         session_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        device_fingerprint: Optional[DeviceFingerprint] = None,
+        metadata: dict[str, Any] | None = None,
+        device_fingerprint: DeviceFingerprint | None = None,
     ) -> Session:
         """
         Update session metadata and device fingerprint.
@@ -383,7 +382,7 @@ class SessionManager:
     async def terminate_user_sessions(
         self,
         user_id: str,
-        except_session_id: Optional[str] = None,
+        except_session_id: str | None = None,
         reason: str = "user_logout_all",
     ):
         """
@@ -534,11 +533,11 @@ class SessionManager:
     async def _create_audit_log(
         self,
         action: AuditAction,
-        session: Optional[Session] = None,
+        session: Session | None = None,
         details: str = "",
         is_suspicious: bool = False,
         risk_score: float = 0.0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """Create and store audit log entry."""
         log = AuditLog(

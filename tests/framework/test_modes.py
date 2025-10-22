@@ -29,9 +29,10 @@ Usage:
 
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -258,8 +259,8 @@ class TestModeManager:
     """Manages test mode state during test execution."""
 
     def __init__(self):
-        self.current_mode: Optional[TestMode] = None
-        self.current_config: Optional[TestModeConfig] = None
+        self.current_mode: TestMode | None = None
+        self.current_config: TestModeConfig | None = None
         self.mode_history: list[tuple[TestMode, TestModeConfig]] = []
 
     def set_mode(self, mode: TestMode) -> TestModeConfig:
@@ -270,11 +271,11 @@ class TestModeManager:
         logger.info(f"Test mode set to: {mode.value}")
         return self.current_config
 
-    def get_current_mode(self) -> Optional[TestMode]:
+    def get_current_mode(self) -> TestMode | None:
         """Get the current test mode."""
         return self.current_mode
 
-    def get_current_config(self) -> Optional[TestModeConfig]:
+    def get_current_config(self) -> TestModeConfig | None:
         """Get the current test mode configuration."""
         return self.current_config
 
@@ -305,12 +306,12 @@ def set_test_mode(mode: TestMode) -> TestModeConfig:
     return _mode_manager.set_mode(mode)
 
 
-def get_test_mode() -> Optional[TestMode]:
+def get_test_mode() -> TestMode | None:
     """Get the current global test mode."""
     return _mode_manager.get_current_mode()
 
 
-def get_test_mode_config() -> Optional[TestModeConfig]:
+def get_test_mode_config() -> TestModeConfig | None:
     """Get the current global test mode configuration."""
     return _mode_manager.get_current_config()
 

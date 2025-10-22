@@ -9,6 +9,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Import pheno-sdk port allocation
+try:
+    from pheno.infra.port_allocator import SmartPortAllocator
+    from pheno.infra.port_registry import PortRegistry
+    from pheno.infra.process_cleanup import ProcessCleanupConfig, cleanup_before_startup
+    PHENO_SDK_AVAILABLE = True
+except ImportError:
+    PHENO_SDK_AVAILABLE = False
+
 
 class AtomsServerManager:
     """Atoms MCP specific server manager.
@@ -28,7 +37,31 @@ class AtomsServerManager:
         no_tunnel: bool = False,
         logger=None
     ):
-        self.port = port or self.DEFAULT_PORT
+        # Use pheno-sdk port allocation if no port specified
+        if port is None and PHENO_SDK_AVAILABLE:
+            try:
+                # Perform process cleanup before port allocation
+                cleanup_config = ProcessCleanupConfig(
+                    cleanup_related_services=True,
+                    cleanup_tunnels=True,
+                    grace_period=2.0,
+                )
+                cleanup_stats = cleanup_before_startup("atoms-mcp-server", cleanup_config)
+                if logger:
+                    logger.info(f"🧹 Process cleanup completed: {cleanup_stats}")
+
+                registry = PortRegistry()
+                allocator = SmartPortAllocator(registry)
+                self.port = allocator.allocate_port("atoms-mcp-server")
+                if logger:
+                    logger.info(f"🔧 pheno-sdk allocated port {self.port} for atoms-mcp-server")
+            except Exception as e:
+                if logger:
+                    logger.warning(f"pheno-sdk port allocation failed: {e}, using default port {self.DEFAULT_PORT}")
+                self.port = self.DEFAULT_PORT
+        else:
+            self.port = port or self.DEFAULT_PORT
+
         self.verbose = verbose
         self.no_tunnel = no_tunnel
         self.logger = logger

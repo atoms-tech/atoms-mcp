@@ -7,11 +7,12 @@ import os
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Dict, Any, List
 from enum import Enum
+from typing import Any
+
+from utils.logging_setup import get_logger
 
 from ..storage import StorageBackend, get_storage_backend
-from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -47,11 +48,11 @@ class AuditEvent:
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     event_type: AuditEventType = AuditEventType.SESSION_CREATED
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    details: Dict[str, Any] = field(default_factory=dict)
+    user_id: str | None = None
+    session_id: str | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    details: dict[str, Any] = field(default_factory=dict)
     severity: str = "info"  # info, warning, error, critical
 
 
@@ -67,7 +68,7 @@ class AuditService:
 
     def __init__(
         self,
-        storage: Optional[StorageBackend] = None,
+        storage: StorageBackend | None = None,
     ):
         """Initialize audit service.
 
@@ -81,11 +82,11 @@ class AuditService:
     async def log_event(
         self,
         event_type: AuditEventType,
-        user_id: Optional[str] = None,
-        session_id: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        details: dict[str, Any] | None = None,
         severity: str = "info",
     ) -> str:
         """Log an audit event.
@@ -135,8 +136,8 @@ class AuditService:
         self,
         session_id: str,
         user_id: str,
-        device_info: Optional[Any] = None,
-        ip_address: Optional[str] = None,
+        device_info: Any | None = None,
+        ip_address: str | None = None,
     ) -> str:
         """Log session creation event."""
         details = {}
@@ -155,7 +156,7 @@ class AuditService:
         self,
         session_id: str,
         user_id: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> str:
         """Log session termination event."""
         return await self.log_event(
@@ -194,9 +195,9 @@ class AuditService:
 
     async def log_token_refresh(
         self,
-        session_id: Optional[str] = None,
-        old_token_hash: Optional[str] = None,
-        new_token_hash: Optional[str] = None,
+        session_id: str | None = None,
+        old_token_hash: str | None = None,
+        new_token_hash: str | None = None,
         rotation: bool = False,
     ) -> str:
         """Log token refresh event."""
@@ -212,8 +213,8 @@ class AuditService:
 
     async def log_token_refresh_failure(
         self,
-        session_id: Optional[str] = None,
-        error: Optional[str] = None,
+        session_id: str | None = None,
+        error: str | None = None,
     ) -> str:
         """Log token refresh failure event."""
         return await self.log_event(
@@ -227,9 +228,9 @@ class AuditService:
         self,
         token_hash: str,
         token_type: str,
-        reason: Optional[str] = None,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        reason: str | None = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
     ) -> str:
         """Log token revocation event."""
         return await self.log_event(
@@ -248,7 +249,7 @@ class AuditService:
         self,
         session_id: str,
         reason: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> str:
         """Log suspicious activity event."""
         return await self.log_event(
@@ -279,13 +280,13 @@ class AuditService:
 
     async def get_events(
         self,
-        user_id: Optional[str] = None,
-        session_id: Optional[str] = None,
-        event_type: Optional[AuditEventType] = None,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        event_type: AuditEventType | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Query audit events.
 
         Args:
@@ -339,9 +340,9 @@ class AuditService:
 
     async def get_event_stats(
         self,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-    ) -> Dict[str, int]:
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> dict[str, int]:
         """Get event statistics.
 
         Args:
@@ -357,7 +358,7 @@ class AuditService:
             limit=10000
         )
 
-        stats = {}
+        stats: dict[str, int] = {}
 
         for event in events:
             event_type = event.get("event_type", "unknown")

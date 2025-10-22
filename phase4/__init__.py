@@ -7,10 +7,10 @@ This package provides advanced authentication features including:
 - Security middleware for rate limiting and anti-hijacking
 """
 
-from .models import Session, TokenPair, DeviceInfo
-from .services import TokenRefreshService, SessionManager, RevocationService
+from .middleware import RateLimiter, SecurityMiddleware, SessionValidator
+from .models import DeviceInfo, Session, TokenPair
+from .services import RevocationService, SessionManager, TokenRefreshService
 from .storage import get_storage_backend
-from .middleware import RateLimiter, SessionValidator, SecurityMiddleware
 
 __version__ = "4.0.0"
 

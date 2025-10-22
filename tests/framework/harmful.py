@@ -26,10 +26,11 @@ Usage:
 import asyncio
 import functools
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ class HarmfulStateTracker:
         self.cleanup_strategy = cleanup_strategy
         self.dry_run = dry_run
         self.states: dict[str, TestHarmfulState] = {}
-        self.current_test: Optional[str] = None
+        self.current_test: str | None = None
 
     def start_test(self, test_name: str) -> TestHarmfulState:
         """Start tracking a test."""
@@ -132,7 +133,7 @@ class HarmfulStateTracker:
         logger.debug(f"Tracked entity: {entity.type.name} {entity.id}")
 
     def track_entity(
-        self, entity_type: EntityType, entity_id: str, name: str = "", data: dict = None, test_name: Optional[str] = None
+        self, entity_type: EntityType, entity_id: str, name: str = "", data: dict = None, test_name: str | None = None
     ) -> Entity:
         """Create and track an entity."""
         if test_name is None:
@@ -144,7 +145,7 @@ class HarmfulStateTracker:
         self.add_entity(test_name, entity)
         return entity
 
-    async def cleanup(self, test_name: str, http_client: Optional[Any] = None) -> dict[str, Any]:
+    async def cleanup(self, test_name: str, http_client: Any | None = None) -> dict[str, Any]:
         """Clean up entities created during a test.
 
         Args:
@@ -176,7 +177,7 @@ class HarmfulStateTracker:
         return results
 
     async def _cleanup_entities(
-        self, test_name: str, entity_type: EntityType, entities: set[Entity], http_client: Optional[Any] = None
+        self, test_name: str, entity_type: EntityType, entities: set[Entity], http_client: Any | None = None
     ) -> list[dict[str, Any]]:
         """Clean up a specific type of entity."""
         results = []
@@ -236,7 +237,7 @@ class HarmfulStateTracker:
         }
         return type_to_tool.get(entity_type, "entity_tool")
 
-    def get_state(self, test_name: str) -> Optional[TestHarmfulState]:
+    def get_state(self, test_name: str) -> TestHarmfulState | None:
         """Get the state for a test."""
         return self.states.get(test_name)
 
@@ -258,7 +259,7 @@ _tracker = HarmfulStateTracker()
 
 @asynccontextmanager
 async def harmful_context(
-    test_name: str, cleanup_strategy: CleanupStrategy = CleanupStrategy.CASCADE_DELETE, http_client: Optional[Any] = None
+    test_name: str, cleanup_strategy: CleanupStrategy = CleanupStrategy.CASCADE_DELETE, http_client: Any | None = None
 ):
     """Async context manager for test execution with automatic cleanup.
 
@@ -370,7 +371,7 @@ class TestDataTracker:
         """Track an entity during test."""
         return self.harmful_tracker.track_entity(entity_type, entity_id, name, test_name="current_test")
 
-    async def cleanup_all(self, http_client: Optional[Any] = None) -> dict[str, Any]:
+    async def cleanup_all(self, http_client: Any | None = None) -> dict[str, Any]:
         """Clean up all tracked entities."""
         return await self.harmful_tracker.cleanup("current_test", http_client)
 

@@ -11,14 +11,12 @@ try:
     # Try pheno-sdk if installed
     from pheno.kits.deploy.cloud.types import (
         DeploymentConfig,
-        DeploymentStatus,
     )
 except ImportError:
     try:
         # Fall back to vendored version in atoms-mcp-prod
         from pheno_vendor.deploy_kit.cloud.types import (
             DeploymentConfig,
-            DeploymentStatus,
         )
     except ImportError as e:
         raise ImportError(
@@ -27,7 +25,7 @@ except ImportError:
         ) from e
 
 # Import local Atoms deployment types
-from lib import DeploymentEnvironment, DeploymentResult
+from lib import DeploymentEnvironment, DeploymentResult, HTTPHealthCheckProvider, VercelDeploymentProvider
 
 
 class AtomsDeploymentConfig:
@@ -35,15 +33,15 @@ class AtomsDeploymentConfig:
 
     # Atoms-specific domain mappings
     ENVIRONMENT_DOMAINS = {
-        DeploymentEnvironment.LOCAL: "atomcp.kooshapari.com",
-        DeploymentEnvironment.PREVIEW: "devmcp.atoms.tech",
-        DeploymentEnvironment.PRODUCTION: "atomcp.kooshapari.com",
+        "local": "atomcp.kooshapari.com",
+        "preview": "devmcp.atoms.tech",
+        "production": "atomcp.kooshapari.com",
     }
 
     # Atoms-specific environment files
     ENVIRONMENT_FILES = {
-        DeploymentEnvironment.PREVIEW: ".env.preview",
-        DeploymentEnvironment.PRODUCTION: ".env.production",
+        "preview": ".env.preview",
+        "production": ".env.production",
     }
 
     @classmethod
@@ -65,10 +63,10 @@ class AtomsDeploymentConfig:
             project_root = Path.cwd()
 
         # Get Atoms-specific domain
-        domain = cls.ENVIRONMENT_DOMAINS.get(environment)
+        domain = cls.ENVIRONMENT_DOMAINS.get(str(environment))
 
         # Get Atoms-specific env file
-        env_file_name = cls.ENVIRONMENT_FILES.get(environment)
+        env_file_name = cls.ENVIRONMENT_FILES.get(str(environment))
         env_file = project_root / env_file_name if env_file_name else None
 
         return DeploymentConfig(
@@ -159,7 +157,7 @@ class AtomsVercelDeployer:
         print("\n" + "-"*70)
         print("  Deployment Summary")
         print("-"*70)
-        print(f"  Environment:   {self.environment.value}")
+        print(f"  Environment:   {self.environment}")
         print(f"  Domain:        {self.config.domain}")
         print(f"  URL:           https://{self.config.domain}")
         print(f"  MCP Endpoint:  https://{self.config.domain}/api/mcp")

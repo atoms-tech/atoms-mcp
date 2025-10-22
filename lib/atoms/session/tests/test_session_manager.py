@@ -4,12 +4,12 @@ Tests for Session Manager
 Comprehensive test suite for session lifecycle management.
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
 
-from ..session_manager import SessionManager, SessionError, SessionExpiredError
-from ..models import Session, SessionState, DeviceFingerprint
+import pytest
+
+from ..models import DeviceFingerprint, SessionState
+from ..session_manager import SessionExpiredError, SessionManager
 from ..storage.base import InMemoryStorage
 
 

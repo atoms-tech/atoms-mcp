@@ -288,7 +288,7 @@ class EmbeddingBackfiller:
             }
 
         # Process entities concurrently
-        stats = {
+        stats: dict[str, Any] = {
             "entity_type": entity_type,
             "total": len(entities),
             "processed": 0,
@@ -370,7 +370,7 @@ class EmbeddingBackfiller:
 
         # Process each entity type
         results = []
-        overall_stats = {
+        overall_stats: dict[str, Any] = {
             "total": 0,
             "succeeded": 0,
             "failed": 0,

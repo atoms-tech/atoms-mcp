@@ -17,10 +17,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from fastmcp import FastMCP
-
-from utils.logging_setup import get_logger
+from fastmcp.server.auth.providers.workos import AuthKitProvider
 
 from config.settings import AppSettings, get_settings
+from utils.logging_setup import get_logger
 
 from .auth import RateLimiter
 from .env import get_fastmcp_vars, load_env_files
@@ -77,10 +77,23 @@ class ServerConfig:
         if settings is None:
             settings = get_settings()
 
-        # Convert settings to server kwargs
-        kwargs = settings.to_server_kwargs()
+        # Get environment variables
+        fastmcp_vars = get_fastmcp_vars()
 
-        return cls(**kwargs)
+        # Create instance with settings from fastmcp config
+        config = cls(
+            transport=settings.fastmcp.transport,
+            host=settings.fastmcp.host,
+            port=settings.fastmcp.port,
+            http_path=settings.fastmcp.http_path,
+            base_url=settings.fastmcp.base_url,
+        )
+
+        # Override with environment variables if present
+        if "FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN" in fastmcp_vars:
+            config.authkit_domain = fastmcp_vars["FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN"]
+
+        return config
 
 
 def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
@@ -93,7 +106,8 @@ def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
         RateLimiter instance or None
     """
     try:
-        from observability.rate_limiting.sliding_window import SlidingWindowRateLimiter
+        # Try to use pheno-sdk observability instead
+        from pheno.dev.rate_limiting import SlidingWindowRateLimiter
 
         limiter = SlidingWindowRateLimiter(
             window_seconds=60,
@@ -101,9 +115,23 @@ def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
         )
         logger.info(f"✅ Rate limiter configured: {config.rate_limit_rpm} requests/minute")
         return limiter
-    except ImportError as e:
-        logger.warning(f"Rate limiter not available: {e}")
-        return None
+    except ImportError:
+        try:
+            # Fallback to observability module if available
+            from pheno.dev.rate_limiting import SlidingWindowRateLimiter
+
+            limiter = SlidingWindowRateLimiter(
+                window_seconds=60,
+                max_requests=config.rate_limit_rpm
+            )
+            logger.info(f"✅ Rate limiter configured: {config.rate_limit_rpm} requests/minute")
+            return limiter
+        except ImportError as e:
+            if "observability" in str(e):
+                logger.info("ℹ️  Rate limiter not available (observability module not installed)")
+            else:
+                logger.warning(f"Rate limiter not available: {e}")
+            return None
 
 
 def _create_auth_provider(config: ServerConfig):
@@ -121,20 +149,14 @@ def _create_auth_provider(config: ServerConfig):
     if not config.authkit_domain:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
-    # Use PersistentAuthKitProvider for stateless deployments
-    try:
-        from auth.persistent_authkit_provider import PersistentAuthKitProvider
-    except ImportError:
-        from ..auth.persistent_authkit_provider import PersistentAuthKitProvider
-
-    auth_provider = PersistentAuthKitProvider(
+    auth_provider = AuthKitProvider(
         authkit_domain=config.authkit_domain,
         base_url=config.base_url,
         required_scopes=list(config.authkit_required_scopes) or None,
     )
 
-    logger.info(f"✅ PersistentAuthKitProvider configured: {config.authkit_domain}")
-    print(f"✅ PersistentAuthKitProvider configured: {config.authkit_domain}")
+    logger.info(f"✅ AuthKitProvider configured (remote OAuth): {config.authkit_domain}")
+    print(f"✅ AuthKitProvider configured (remote OAuth): {config.authkit_domain}")
 
     return auth_provider
 
@@ -200,7 +222,7 @@ def create_consolidated_server(config: ServerConfig | None = None) -> FastMCP:
     # Add OAuth discovery endpoints
     _add_oauth_endpoints(mcp, config)
 
-    logger.info("✅ Server created - SessionMiddleware handles JWT extraction")
+    logger.info("✅ Server created - AuthKit remote OAuth is fully stateless")
 
     return mcp
 

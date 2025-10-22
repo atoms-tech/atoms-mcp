@@ -5,16 +5,15 @@ from __future__ import annotations
 import asyncio
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, Dict, Any
 
 import httpx
 import jwt
-from fastmcp.server.dependencies import get_access_token
 
-from ..models import TokenPair, RefreshTokenRotation, TokenMetadata, TokenType
+from utils.logging_setup import get_logger
+
+from ..models import RefreshTokenRotation, TokenMetadata, TokenPair, TokenType
 from ..storage import StorageBackend, get_storage_backend
 from .audit import AuditService
-from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -31,8 +30,8 @@ class TokenRefreshService:
 
     def __init__(
         self,
-        storage: Optional[StorageBackend] = None,
-        audit_service: Optional[AuditService] = None,
+        storage: StorageBackend | None = None,
+        audit_service: AuditService | None = None,
     ):
         """Initialize token refresh service.
 
@@ -54,7 +53,7 @@ class TokenRefreshService:
     async def refresh_token(
         self,
         refresh_token: str,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         force_rotation: bool = False,
     ) -> TokenPair:
         """Refresh access token using refresh token.
@@ -112,8 +111,8 @@ class TokenRefreshService:
         self,
         access_token: str,
         refresh_token: str,
-        session_id: Optional[str] = None,
-    ) -> Optional[TokenPair]:
+        session_id: str | None = None,
+    ) -> TokenPair | None:
         """Proactively refresh token if approaching expiration.
 
         Args:
@@ -140,7 +139,7 @@ class TokenRefreshService:
     async def _validate_refresh_token(
         self,
         refresh_token: str,
-        session_id: Optional[str] = None
+        session_id: str | None = None
     ) -> None:
         """Validate refresh token before use.
 
@@ -219,7 +218,7 @@ class TokenRefreshService:
         self,
         old_refresh_token: str,
         new_tokens: TokenPair,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
     ) -> TokenPair:
         """Handle refresh token rotation.
 
@@ -294,7 +293,7 @@ class TokenRefreshService:
     async def _store_token_metadata(
         self,
         token_pair: TokenPair,
-        session_id: Optional[str] = None
+        session_id: str | None = None
     ) -> None:
         """Store token metadata for tracking.
 

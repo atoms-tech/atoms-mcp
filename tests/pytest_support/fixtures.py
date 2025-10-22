@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 import pytest
 
 # Import from shared mcp-QA library
-from mcp_qa.oauth import UnifiedCredentialBroker
+from pheno.testing.mcp_qa.oauth import UnifiedCredentialBroker
 
 from tests.framework import AtomsMCPClientAdapter
 

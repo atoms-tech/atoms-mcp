@@ -14,10 +14,11 @@ Version: 1.0.0
 
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 from .logging import get_logger
 from .metrics import registry
@@ -52,10 +53,10 @@ class HealthCheckResult:
     status: HealthStatus
     message: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    response_time_ms: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    response_time_ms: float | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "component_name": self.component_name,
@@ -72,12 +73,12 @@ class HealthCheckResult:
 class SystemHealth:
     """Overall system health status."""
     status: HealthStatus
-    components: List[HealthCheckResult]
+    components: list[HealthCheckResult]
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    uptime_seconds: Optional[float] = None
-    version: Optional[str] = None
+    uptime_seconds: float | None = None
+    version: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "status": self.status.value,
@@ -159,7 +160,7 @@ class SupabaseHealthCheck(HealthCheck):
                     response_time_ms=response_time_ms
                 )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return HealthCheckResult(
                 component_name=self.name,
                 component_type=self.component_type,
@@ -179,12 +180,12 @@ class SupabaseHealthCheck(HealthCheck):
         """Test database connection with simple query."""
         try:
             # Execute a simple query
-            result = self.client.table('_health_check').select('*').limit(1).execute()
+            self.client.table('_health_check').select('*').limit(1).execute()
             return True
         except Exception:
             # If table doesn't exist, try a different approach
             # Just testing if we can connect
-            result = self.client.auth.get_session()
+            self.client.auth.get_session()
             return True
 
 
@@ -225,7 +226,7 @@ class AuthKitHealthCheck(HealthCheck):
                 response_time_ms=response_time_ms
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return HealthCheckResult(
                 component_name=self.name,
                 component_type=self.component_type,
@@ -299,7 +300,7 @@ class CustomHealthCheck(HealthCheck):
                 response_time_ms=response_time_ms
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return HealthCheckResult(
                 component_name=self.name,
                 component_type=self.component_type,
@@ -328,7 +329,7 @@ class PerformanceMonitor:
         self.window_size = window_size
         self.warning_threshold_ms = warning_threshold_ms
         self.critical_threshold_ms = critical_threshold_ms
-        self.response_times: List[float] = []
+        self.response_times: list[float] = []
 
     def record_response_time(self, response_time_ms: float) -> None:
         """Record a response time."""
@@ -338,13 +339,13 @@ class PerformanceMonitor:
         if len(self.response_times) > self.window_size:
             self.response_times = self.response_times[-self.window_size:]
 
-    def get_average_response_time(self) -> Optional[float]:
+    def get_average_response_time(self) -> float | None:
         """Get average response time."""
         if not self.response_times:
             return None
         return sum(self.response_times) / len(self.response_times)
 
-    def get_p95_response_time(self) -> Optional[float]:
+    def get_p95_response_time(self) -> float | None:
         """Get 95th percentile response time."""
         if not self.response_times:
             return None
@@ -375,9 +376,9 @@ class HealthMonitor:
     Manages multiple health checks and provides aggregated health status.
     """
 
-    def __init__(self, version: Optional[str] = None):
+    def __init__(self, version: str | None = None):
         self.version = version or "1.0.0"
-        self.health_checks: List[HealthCheck] = []
+        self.health_checks: list[HealthCheck] = []
         self.performance_monitor = PerformanceMonitor()
         self.start_time = time.time()
 
@@ -401,7 +402,7 @@ class HealthMonitor:
         )
 
         # Process results
-        component_results: List[HealthCheckResult] = []
+        component_results: list[HealthCheckResult] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 # Health check raised an exception
@@ -435,7 +436,7 @@ class HealthMonitor:
 
     def _calculate_overall_status(
         self,
-        results: List[HealthCheckResult]
+        results: list[HealthCheckResult]
     ) -> HealthStatus:
         """Calculate overall system health from component results."""
         if not results:
@@ -468,7 +469,7 @@ class HealthMonitor:
 
         return HealthStatus.HEALTHY
 
-    def _update_metrics(self, results: List[HealthCheckResult]) -> None:
+    def _update_metrics(self, results: list[HealthCheckResult]) -> None:
         """Update health check metrics."""
         status_map = {
             HealthStatus.HEALTHY: 1.0,

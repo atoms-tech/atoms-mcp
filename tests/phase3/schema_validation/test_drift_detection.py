@@ -15,8 +15,6 @@ Author: QA Engineering Team
 Date: 2025-10-16
 """
 
-import hashlib
-import json
 import logging
 import sys
 from pathlib import Path
@@ -28,7 +26,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from scripts.sync_schema import SchemaSync
-from tests.framework import cascade_flow, FlowPattern, harmful
+from tests.framework import CleanupStrategy, FlowPattern, cascade_flow, harmful
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +50,10 @@ class TestDriftDetection:
         except Exception as e:
             logger.error(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
+            raise  # This will never be reached, but satisfies type checker
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_no_drift_baseline(
         self,
         schema_sync: SchemaSync,
@@ -108,7 +107,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_detect_new_table_addition(
         self,
         schema_sync: SchemaSync,
@@ -164,7 +163,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_detect_table_removal(
         self,
         schema_sync: SchemaSync,
@@ -215,7 +214,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_detect_column_addition(
         self,
         schema_sync: SchemaSync,
@@ -278,7 +277,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_detect_column_removal(
         self,
         schema_sync: SchemaSync,
@@ -339,7 +338,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_detect_type_changes(
         self,
         schema_sync: SchemaSync,
@@ -397,7 +396,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_schema_hash_calculation(
         self,
         schema_sync: SchemaSync,
@@ -460,7 +459,7 @@ class TestDriftDetection:
             raise
 
     @pytest.mark.hot
-    @harmful(cleanup_strategy="none")
+    @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_drift_detection_summary(
         self,
         schema_sync: SchemaSync,
@@ -485,7 +484,7 @@ class TestDriftDetection:
             # Get current drift state
             differences = schema_sync.compare_schemas()
 
-            summary = {
+            summary: dict[str, Any] = {
                 "total_tests": len(all_results),
                 "passed_tests": sum(1 for r in all_results.values() if r.passed),
                 "current_drift_count": len(differences),

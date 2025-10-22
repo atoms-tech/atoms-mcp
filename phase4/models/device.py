@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Any
+
 from user_agents import parse
 
 
@@ -36,15 +37,15 @@ class DeviceInfo:
     device_type: DeviceType = DeviceType.UNKNOWN
     browser: str = "Unknown"
     os: str = "Unknown"
-    device_id: Optional[str] = None
-    device_family: Optional[str] = None
+    device_id: str | None = None
+    device_family: str | None = None
     is_bot: bool = False
 
     @classmethod
     def from_user_agent(
         cls,
         user_agent: str,
-        device_id: Optional[str] = None
+        device_id: str | None = None
     ) -> DeviceInfo:
         """Parse device info from user agent string.
 
@@ -154,7 +155,7 @@ class DeviceInfo:
 
         return any(suspicious_changes)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary.
 
         Returns:
@@ -172,7 +173,7 @@ class DeviceInfo:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> DeviceInfo:
+    def from_dict(cls, data: dict[str, Any]) -> DeviceInfo:
         """Create from dictionary.
 
         Args:

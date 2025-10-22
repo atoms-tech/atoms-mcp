@@ -84,7 +84,7 @@ def generate_entity_data(entity_type: str, organization_id: str | None = None,
         }
     }
 
-    return entity_data.get(entity_type, {})
+    return dict(entity_data.get(entity_type, {}))
 
 
 def generate_update_data(entity_type: str) -> dict[str, Any]:

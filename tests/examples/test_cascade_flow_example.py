@@ -150,7 +150,7 @@ class TestProjectMinimalCRUD:
     @depends_on("test_read_project")
     async def test_delete_project(self, store_result, test_results):
         """Delete the project."""
-        project_id = test_results.get_data("project_id")
+        test_results.get_data("project_id")
         result = {"success": True}
         store_result("test_delete_project", True)
         assert result["success"]
@@ -182,7 +182,7 @@ class TestWorkspaceHierarchy:
     @depends_on("test_create_children")
     async def test_interact(self, store_result, test_results):
         """Perform interactions between parent and children."""
-        parent_id = test_results.get_data("parent_id")
+        test_results.get_data("parent_id")
         children = test_results.get_data("children")
 
         result = {
@@ -196,7 +196,7 @@ class TestWorkspaceHierarchy:
     @depends_on("test_interact")
     async def test_cleanup(self, store_result, test_results):
         """Cleanup all resources."""
-        all_data = test_results.get_all_data()
+        test_results.get_all_data()
         result = {"success": True}
         store_result("test_cleanup", True)
         assert result["success"]
@@ -214,7 +214,7 @@ class TestDocumentWorkflow:
     @depends_on("test_setup")
     async def test_execute(self, store_result, test_results):
         """Execute: Perform main workflow."""
-        doc_id = test_results.get_data("doc_id")
+        test_results.get_data("doc_id")
         result = {"success": True, "processed": True}
         store_result("test_execute", True, {"result": result})
         assert result["success"]
@@ -244,7 +244,7 @@ class TestConditionalFlow:
     @pytest.mark.skip(reason="Demonstrating optional skip")
     async def test_stage_b_optional(self, store_result, test_results):
         """Optional test that can be skipped."""
-        value = test_results.get_data("value")
+        test_results.get_data("value")
         store_result("test_stage_b_optional", True)
 
     @depends_on("test_stage_a")

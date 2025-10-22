@@ -22,8 +22,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from utils.logging_setup import get_logger
 from config import reset_settings_cache
+from utils.logging_setup import get_logger
 
 logger = get_logger("atoms_fastmcp.env")
 

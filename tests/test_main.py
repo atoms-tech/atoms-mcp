@@ -13,6 +13,7 @@ import asyncio
 import os
 import sys
 from pathlib import Path
+import requests
 
 # Ensure shared mcp_qa library is importable before local packages
 _TESTS_DIR = Path(__file__).resolve().parent
@@ -30,9 +31,9 @@ for _path in _SHARED_QA_PATHS:
 sys.path.insert(0, str(_TESTS_DIR.parent))
 
 # Import from pheno-sdk (mcp_qa)
-from mcp_qa.config.endpoints import EndpointRegistry, MCPProject  # noqa: E402
-from mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings  # noqa: E402
-from mcp_qa.testing.test_cache import TestCache  # noqa: E402
+from pheno.mcp.qa.config.endpoints import EndpointRegistry, MCPProject  # noqa: E402
+from pheno.testing.mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings  # noqa: E402
+from pheno.testing.mcp_qa.testing.test_cache import TestCache  # noqa: E402
 
 # Import test modules to register tests
 # Basic tests (19 tests - tested and working)

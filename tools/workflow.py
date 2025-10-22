@@ -110,9 +110,12 @@ class WorkflowExecutor(ToolBase):
                     if isinstance(doc, Exception):
                         logger.error(f"❌ Document '{params['initial_documents'][i]}' failed: {doc}")
                         results.append({"step": f"create_document_{params['initial_documents'][i]}", "status": "failed", "error": str(doc)})
+                    elif isinstance(doc, dict):
+                        logger.info(f"✅ Document created: {doc.get('name', 'unknown')}")
+                        results.append({"step": f"create_document_{doc.get('name', 'unknown')}", "status": "success", "result": doc})
                     else:
-                        logger.info(f"✅ Document created: {doc['name']}")
-                        results.append({"step": f"create_document_{doc['name']}", "status": "success", "result": doc})
+                        logger.error(f"❌ Document '{params['initial_documents'][i]}' returned unexpected type: {type(doc)}")
+                        results.append({"step": f"create_document_{params['initial_documents'][i]}", "status": "failed", "error": f"Unexpected type: {type(doc)}"})
             except Exception as e:
                 logger.error(f"❌ Step 3 failed: {e}")
                 results.append({"step": "create_documents", "status": "failed", "error": str(e)})
@@ -237,9 +240,9 @@ class WorkflowExecutor(ToolBase):
             doc_requirements = await asyncio.gather(*req_tasks, return_exceptions=True)
 
             # Flatten results
-            requirements = []
+            requirements: list[dict[str, Any]] = []
             for reqs in doc_requirements:
-                if not isinstance(reqs, Exception):
+                if not isinstance(reqs, Exception) and isinstance(reqs, list):
                     requirements.extend(reqs)
         else:
             requirements = []
@@ -327,10 +330,15 @@ class WorkflowExecutor(ToolBase):
                     "step": f"update_{entity_ids[i]}",
                     "error": str(result)
                 })
+            elif isinstance(result, dict):
+                results.append({
+                    "step": f"update_{entity_ids[i]}",
+                    "result": str(result)
+                })
             else:
                 results.append({
                     "step": f"update_{entity_ids[i]}",
-                    "result": result
+                    "error": f"Unexpected result type: {type(result)}"
                 })
                 success_count += 1
 

@@ -7,14 +7,13 @@ and comprehensive audit logging for session security.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any
 
-from .models import Session, DeviceFingerprint, AuditLog, AuditAction
+from .models import AuditAction, AuditLog, DeviceFingerprint, Session
 from .storage.base import StorageBackend
-
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class RateLimitState:
 
     count: int = 0
     window_start: datetime = field(default_factory=datetime.utcnow)
-    backoff_until: Optional[datetime] = None
+    backoff_until: datetime | None = None
     violation_count: int = 0
 
 
@@ -86,11 +85,11 @@ class SecurityService:
         self.audit_enabled = audit_enabled
 
         # Rate limiting state
-        self._rate_limit_states: Dict[str, Dict[str, RateLimitState]] = defaultdict(dict)
+        self._rate_limit_states: dict[str, dict[str, RateLimitState]] = defaultdict(dict)
         self._rate_limit_lock = asyncio.Lock()
 
         # Default rate limit rules
-        self.rate_limit_rules: Dict[str, RateLimitRule] = {
+        self.rate_limit_rules: dict[str, RateLimitRule] = {
             "token_refresh": RateLimitRule(
                 name="token_refresh",
                 max_requests=10,
@@ -227,10 +226,10 @@ class SecurityService:
     async def detect_session_hijacking(
         self,
         session: Session,
-        current_ip: Optional[str] = None,
-        current_fingerprint: Optional[DeviceFingerprint] = None,
-        current_user_agent: Optional[str] = None,
-    ) -> tuple[bool, float, List[str]]:
+        current_ip: str | None = None,
+        current_fingerprint: DeviceFingerprint | None = None,
+        current_user_agent: str | None = None,
+    ) -> tuple[bool, float, list[str]]:
         """
         Detect potential session hijacking.
 
@@ -303,8 +302,8 @@ class SecurityService:
         self,
         user_id: str,
         activity_type: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> tuple[bool, float, List[str]]:
+        metadata: dict[str, Any] | None = None,
+    ) -> tuple[bool, float, list[str]]:
         """
         Detect suspicious activity patterns.
 
@@ -378,11 +377,11 @@ class SecurityService:
     async def log_security_event(
         self,
         event_type: str,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         details: str = "",
         risk_score: float = 0.0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """
         Log a security event.
@@ -423,7 +422,7 @@ class SecurityService:
         self,
         user_id: str,
         hours: int = 24,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get security summary for a user.
 
@@ -474,12 +473,12 @@ class SecurityService:
     async def _create_audit_log(
         self,
         action: AuditAction,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         details: str = "",
         is_suspicious: bool = False,
         risk_score: float = 0.0,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """Create and store audit log entry."""
         log = AuditLog(

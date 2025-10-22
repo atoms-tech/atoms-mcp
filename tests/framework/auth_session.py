@@ -169,7 +169,7 @@ class AuthSessionBroker:
             return await self._extract_credentials_from_oauth(provider)
 
     async def _extract_credentials_from_oauth(self, provider: str) -> AuthCredentials:
-        """Extract credentials after successful OAuth flow using AuthKit Standalone Connect."""
+        """Extract credentials after a successful AuthKit remote OAuth flow."""
 
         # Try OAuth automation first if available
         try:

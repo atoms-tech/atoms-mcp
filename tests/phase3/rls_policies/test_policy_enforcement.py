@@ -7,11 +7,11 @@ Validates policy variables, row-level filtering, and policy logic correctness.
 Run with: pytest tests/phase3/rls_policies/test_policy_enforcement.py -v
 """
 
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timedelta
+from unittest.mock import AsyncMock
+
 import pytest
 
-from schemas import ProjectRole, UserRoleType, Visibility
+from schemas import ProjectRole, UserRoleType
 from schemas.constants import Tables
 from schemas.rls import (
     DocumentPolicy,
@@ -20,11 +20,7 @@ from schemas.rls import (
     PolicyValidator,
     ProfilePolicy,
     ProjectPolicy,
-    get_user_organization_ids,
-    is_project_owner_or_admin,
-    is_super_admin,
 )
-
 
 # =============================================================================
 # FIXTURES

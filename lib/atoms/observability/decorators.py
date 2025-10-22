@@ -15,7 +15,8 @@ Version: 1.0.0
 import asyncio
 import functools
 import time
-from typing import Any, Callable, Optional, TypeVar, cast
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from .logging import PerformanceMetric, get_logger
 from .metrics import (
@@ -30,7 +31,7 @@ F = TypeVar('F', bound=Callable[..., Any])
 
 
 def observe_tool(
-    tool_name: Optional[str] = None,
+    tool_name: str | None = None,
     track_performance: bool = True,
     log_inputs: bool = False,
     log_outputs: bool = False
@@ -212,7 +213,7 @@ def observe_tool(
 
 
 def log_operation(
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
     log_level: str = "INFO",
     log_inputs: bool = False,
     log_outputs: bool = False
@@ -316,7 +317,7 @@ def log_operation(
 
 
 def measure_performance(
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
     threshold_warning_ms: float = 1000.0,
     threshold_critical_ms: float = 5000.0
 ):

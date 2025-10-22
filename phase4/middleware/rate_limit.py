@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+
+from utils.logging_setup import get_logger
 
 from ..storage import StorageBackend, get_storage_backend
-from utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
@@ -21,9 +21,9 @@ class RateLimiter:
 
     def __init__(
         self,
-        storage: Optional[StorageBackend] = None,
-        window_seconds: Optional[int] = None,
-        max_requests: Optional[int] = None,
+        storage: StorageBackend | None = None,
+        window_seconds: int | None = None,
+        max_requests: int | None = None,
     ):
         """Initialize rate limiter.
 
@@ -51,7 +51,7 @@ class RateLimiter:
         self,
         identifier: str,
         operation: str = "token_refresh",
-    ) -> Tuple[bool, Optional[int]]:
+    ) -> tuple[bool, int | None]:
         """Check if operation is within rate limit.
 
         Args:
@@ -202,7 +202,7 @@ class RateLimiter:
         self,
         identifier: str,
         operation: str
-    ) -> Optional[datetime]:
+    ) -> datetime | None:
         """Get backoff expiration time.
 
         Args:
@@ -271,8 +271,8 @@ class GlobalRateLimiter:
 
     def __init__(
         self,
-        storage: Optional[StorageBackend] = None,
-        max_requests_per_second: Optional[int] = None,
+        storage: StorageBackend | None = None,
+        max_requests_per_second: int | None = None,
     ):
         """Initialize global rate limiter.
 

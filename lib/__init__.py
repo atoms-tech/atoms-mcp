@@ -12,27 +12,38 @@ Base and platform layers have been migrated to pheno-sdk/deploy-kit.
 Atoms-specific logic remains in the atoms_mcp-old repository.
 """
 
+# Atoms-specific implementations (stays in atoms_mcp-old)
+
 # Core types (from pheno-sdk/deploy-kit cloud/types)
 try:
     # Try pheno-sdk if installed
     from pheno.kits.deploy.cloud.types import (
         DeploymentConfig,
-        DeploymentStatus,
         DeploymentState,
+        DeploymentStatus,
     )
 except ImportError:
     try:
         # Fall back to vendored version in atoms-mcp-prod
         from pheno_vendor.deploy_kit.cloud.types import (
             DeploymentConfig,
-            DeploymentStatus,
             DeploymentState,
+            DeploymentStatus,
         )
     except ImportError as e:
         raise ImportError(
             "Could not import deployment types from pheno-sdk or vendored deploy_kit. "
             "Make sure pheno-sdk is installed or pheno_vendor directory is in the path."
         ) from e
+
+from .atoms import (
+    AtomsDeploymentConfig,
+    AtomsServerManager,
+    AtomsVercelDeployer,
+    deploy_atoms_to_vercel,
+    start_atoms_server,
+)
+
 
 # Provider configurations (mock interfaces for now - can be extended)
 class DeploymentEnvironment:
@@ -70,14 +81,16 @@ class ConfigurationProvider:
 # Platform implementations (from pheno-sdk/deploy-kit)
 try:
     # Try pheno-sdk if installed
-    from pheno.kits.deploy.platforms.modern.vercel import VercelClient as VercelDeploymentProvider
+    from pheno.kits.deploy.platforms.vercel import VercelClient as _VercelDeploymentProvider1
+    VercelDeploymentProvider = _VercelDeploymentProvider1
     HTTPHealthCheckProvider = object  # Will be defined in atoms layer
     VercelConfigProvider = object  # Will be defined in atoms layer
     AdvancedHealthChecker = object  # Will be defined in atoms layer
 except ImportError:
     try:
         # Fall back to vendored version
-        from pheno_vendor.deploy_kit.platforms.modern.vercel import VercelClient as VercelDeploymentProvider
+        from pheno_vendor.deploy_kit.platforms.modern.vercel import VercelClient as _VercelDeploymentProvider2
+        VercelDeploymentProvider = _VercelDeploymentProvider2
         HTTPHealthCheckProvider = object  # Will be defined in atoms layer
         VercelConfigProvider = object  # Will be defined in atoms layer
         AdvancedHealthChecker = object  # Will be defined in atoms layer
@@ -91,15 +104,6 @@ except ImportError:
             pass
         class AdvancedHealthChecker:
             pass
-
-# Atoms-specific implementations (stays in atoms_mcp-old)
-from .atoms import (
-    AtomsDeploymentConfig,
-    AtomsServerManager,
-    AtomsVercelDeployer,
-    deploy_atoms_to_vercel,
-    start_atoms_server,
-)
 
 __all__ = [
     # Base abstractions (from pheno-sdk/deploy-kit)

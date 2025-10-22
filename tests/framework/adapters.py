@@ -246,7 +246,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         # Create HTTP client if needed, using MCP client's auth
         if self._http_client is None:
             client_kwargs = {
-                "timeout": self.HTTP_TIMEOUT
+                "timeout": httpx.Timeout(connect=self.HTTP_TIMEOUT, read=self.HTTP_TIMEOUT, write=self.HTTP_TIMEOUT, pool=self.HTTP_TIMEOUT)
             }
 
             # Use auth from MCP client if available

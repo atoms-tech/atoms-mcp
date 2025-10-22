@@ -7,8 +7,7 @@ with connection pooling, automatic reconnection, and error handling.
 
 import json
 import logging
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime
 
 try:
     import redis.asyncio as redis
@@ -18,10 +17,9 @@ except ImportError:
     REDIS_AVAILABLE = False
     Redis = None
 
-from .base import StorageBackend
-from ..models import Session, TokenRefreshRecord, AuditLog
+from ..models import AuditLog, Session, TokenRefreshRecord
 from ..revocation import RevocationRecord
-
+from .base import StorageBackend
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +39,7 @@ class RedisStorage(StorageBackend):
     def __init__(
         self,
         redis_url: str = "redis://localhost:6379",
-        redis_client: Optional[Redis] = None,
+        redis_client: Redis | None = None,
         key_prefix: str = "atoms:session:",
         default_ttl_hours: int = 24,
         max_connections: int = 10,
@@ -108,7 +106,7 @@ class RedisStorage(StorageBackend):
 
         logger.debug(f"Saved session {session.session_id} with TTL {ttl}s")
 
-    async def get_session(self, session_id: str) -> Optional[Session]:
+    async def get_session(self, session_id: str) -> Session | None:
         """Get session from Redis."""
         client = await self._get_client()
         key = self._key("session", session_id)
@@ -139,7 +137,7 @@ class RedisStorage(StorageBackend):
 
         logger.debug(f"Deleted session {session_id}")
 
-    async def get_user_sessions(self, user_id: str) -> List[Session]:
+    async def get_user_sessions(self, user_id: str) -> list[Session]:
         """Get all sessions for user from Redis."""
         client = await self._get_client()
         user_key = self._key("user_sessions", user_id)
@@ -158,12 +156,12 @@ class RedisStorage(StorageBackend):
 
         return sessions
 
-    async def get_all_sessions(self, limit: int = 100) -> List[Session]:
+    async def get_all_sessions(self, limit: int = 100) -> list[Session]:
         """Get all sessions from Redis."""
         client = await self._get_client()
 
         # Scan for session keys
-        sessions = []
+        sessions: list[str] = []
         pattern = self._key("session", "*")
 
         cursor = 0
@@ -213,7 +211,7 @@ class RedisStorage(StorageBackend):
         self,
         session_id: str,
         limit: int = 10,
-    ) -> List[TokenRefreshRecord]:
+    ) -> list[TokenRefreshRecord]:
         """Get refresh history from Redis."""
         client = await self._get_client()
         history_key = self._key("refresh_history", session_id)
@@ -262,7 +260,7 @@ class RedisStorage(StorageBackend):
     async def get_revocation_record(
         self,
         token_hash: str,
-    ) -> Optional[RevocationRecord]:
+    ) -> RevocationRecord | None:
         """Get revocation record from Redis."""
         client = await self._get_client()
         key = self._key("revocation", token_hash)
@@ -277,7 +275,7 @@ class RedisStorage(StorageBackend):
     async def get_session_revocations(
         self,
         session_id: str,
-    ) -> List[RevocationRecord]:
+    ) -> list[RevocationRecord]:
         """Get session revocations from Redis."""
         client = await self._get_client()
         session_key = self._key("session_revocations", session_id)
@@ -336,10 +334,10 @@ class RedisStorage(StorageBackend):
 
     async def get_audit_logs(
         self,
-        session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        session_id: str | None = None,
+        user_id: str | None = None,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """Get audit logs from Redis."""
         client = await self._get_client()
 
@@ -372,7 +370,7 @@ class RedisStorage(StorageBackend):
         self,
         user_id: str,
         limit: int = 100,
-    ) -> List[AuditLog]:
+    ) -> list[AuditLog]:
         """Get user audit logs from Redis."""
         return await self.get_audit_logs(user_id=user_id, limit=limit)
 
