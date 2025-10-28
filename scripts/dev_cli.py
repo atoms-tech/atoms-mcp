@@ -142,7 +142,7 @@ async def _verify_authkit_metadata(client: httpx.AsyncClient, domain: str, logge
         data = response.json()
         logger.info("authkit_metadata", issuer=data.get("issuer"), registration=data.get("registration_endpoint"))
     except Exception as exc:
-        logger.error("authkit_metadata_failed", url=url, error=str(exc))
+        logger.exception("authkit_metadata_failed", url=url, error=str(exc))
 
 
 async def _verify_protected_resource(client: httpx.AsyncClient, server_url: str, logger: StructuredLogger) -> None:
@@ -196,7 +196,7 @@ async def _verify_dcr(client: httpx.AsyncClient, domain: str, logger: Structured
         else:
             logger.warning("dcr_failed", status=response.status_code, body=response.text[:200])
     except Exception as exc:
-        logger.error("dcr_error", error=str(exc))
+        logger.exception("dcr_error", error=str(exc))
 
 
 @cli.command("monitor", description="Stream structured logs from the local server")

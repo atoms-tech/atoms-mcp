@@ -48,7 +48,7 @@ class TestDriftDetection:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -185,7 +185,7 @@ class TestDriftDetection:
             modified_db_schema = schema_sync.db_schema.copy()
             # Remove first table from db schema
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 del modified_db_schema["tables"][first_table]
 
                 test_sync = SchemaSync()
@@ -236,7 +236,7 @@ class TestDriftDetection:
             modified_db_schema = schema_sync.db_schema.copy()
 
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 modified_db_schema["tables"][first_table]["columns"].append({
                     "column_name": "test_new_column",
                     "data_type": "text",
@@ -299,7 +299,7 @@ class TestDriftDetection:
             modified_db_schema = schema_sync.db_schema.copy()
 
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 if len(modified_db_schema["tables"][first_table]["columns"]) > 1:
                     # Remove last column
                     removed_col = modified_db_schema["tables"][first_table]["columns"].pop()
@@ -363,7 +363,7 @@ class TestDriftDetection:
             # Modify a column type
             modified_db_schema = schema_sync.db_schema.copy()
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 if modified_db_schema["tables"][first_table]["columns"]:
                     # Change first column's data type
                     modified_db_schema["tables"][first_table]["columns"][0]["data_type"] = "bigint"

@@ -73,29 +73,24 @@ def serialize_to_markdown(
         config = SerializerConfig()
 
     if data is None:
-        return "*No data*"
+        result = "*No data*"
+    elif isinstance(data, str):
+        result = data  # Already a string, bypass serialization
+    elif isinstance(data, bool):
+        result = "✅ Yes" if data else "❌ No"
+    elif isinstance(data, int | float):
+        result = f"`{data}`"
+    elif isinstance(data, dict):
+        result = _dict_to_markdown(data, config=config)
+    elif isinstance(data, list):
+        result = _list_to_markdown(data, config=config)
+    elif hasattr(data, "to_markdown") and callable(data.to_markdown):
+        result = data.to_markdown()
+    else:
+        # Fallback to string representation
+        result = f"```\n{data!s}\n```"
 
-    if isinstance(data, str):
-        return data  # Already a string, bypass serialization
-
-    if isinstance(data, bool):
-        return "✅ Yes" if data else "❌ No"
-
-    if isinstance(data, (int, float)):
-        return f"`{data}`"
-
-    if isinstance(data, dict):
-        return _dict_to_markdown(data, config=config)
-
-    if isinstance(data, list):
-        return _list_to_markdown(data, config=config)
-
-    # Check if object implements Serializable protocol
-    if hasattr(data, "to_markdown") and callable(data.to_markdown):
-        return data.to_markdown()
-
-    # Fallback to string representation
-    return f"```\n{data!s}\n```"
+    return result
 
 
 def _dict_to_markdown(
@@ -255,4 +250,3 @@ __all__ = [
     "markdown_serializer",
     "serialize_to_markdown",
 ]
-

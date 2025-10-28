@@ -16,17 +16,33 @@ try:
 except ImportError:
     from workspace import workspace_operation  # type: ignore
 
+# Type annotation for workspace_operation
+
+def call_workspace_operation(auth_token: str | None, params: dict[str, Any]) -> Any:
+    """Helper function to call workspace_operation with proper parameters."""
+    return workspace_operation(
+        auth_token=auth_token,
+        operation=params["operation"],
+        context_type=params.get("context_type"),
+        entity_id=params.get("entity_id"),
+        limit=params.get("limit"),
+        offset=params.get("offset"),
+        format_type=params.get("format_type", "detailed"),
+        organization_id=params.get("organization_id"),
+        project_id=params.get("project_id")
+    )
+
 
 class WorkspaceToolTester:
     """Test harness for workspace_tool operations."""
 
-    def __init__(self, auth_token: str = None):
+    def __init__(self, auth_token: str | None = None):
         """Initialize tester with optional auth token."""
         self.auth_token = auth_token or os.getenv("TEST_AUTH_TOKEN")
         self.results: list[dict[str, Any]] = []
 
     def log_result(self, operation: str, params: dict[str, Any],
-                   status: str, response: Any, error: str = None):
+                   status: str, response: Any, error: str | None = None):
         """Log test result."""
         result = {
             "timestamp": datetime.now().isoformat(),
@@ -63,7 +79,7 @@ class WorkspaceToolTester:
             return {
                 "type": "list",
                 "length": len(data),
-                "item_types": list(set(type(item).__name__ for item in data))
+                "item_types": list({type(item).__name__ for item in data})
             }
         return {
             "type": type(data).__name__,
@@ -81,9 +97,9 @@ class WorkspaceToolTester:
         }
 
         try:
-            response = await workspace_operation(
+            response = await call_workspace_operation(
                 auth_token=self.auth_token,
-                **params
+                params=params
             )
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
@@ -103,9 +119,9 @@ class WorkspaceToolTester:
         }
 
         try:
-            response = await workspace_operation(
+            response = await call_workspace_operation(
                 auth_token=self.auth_token,
-                **params
+                params=params
             )
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
@@ -156,9 +172,9 @@ class WorkspaceToolTester:
         }
 
         try:
-            response = await workspace_operation(
+            response = await call_workspace_operation(
                 auth_token=self.auth_token,
-                **params
+                params=params
             )
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
@@ -178,9 +194,9 @@ class WorkspaceToolTester:
         }
 
         try:
-            response = await workspace_operation(
+            response = await call_workspace_operation(
                 auth_token=self.auth_token,
-                **params
+                params=params
             )
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
@@ -261,7 +277,7 @@ class WorkspaceToolTester:
         workspaces_response = await self.test_operation_1_list_workspaces()
 
         # Test 2: Get current context
-        _context_response = await self.test_operation_2_get_context()  # noqa: F841
+        _context_response = await self.test_operation_2_get_context()
 
         # Test 3: Create workspace (not supported - documented)
         await self.test_operation_3_create_workspace(timestamp)

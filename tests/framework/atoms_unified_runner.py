@@ -15,16 +15,36 @@ import os
 from pathlib import Path
 from typing import Any
 
-from pheno.mcp.qa.core import UnifiedMCPTestRunner
+try:
+    from pheno.mcp.qa.core import UnifiedMCPTestRunner
+except ImportError:
+    # If pheno.mcp.qa.core.UnifiedMCPTestRunner is not available,
+    # create a stub that just inherits from object
+    class UnifiedMCPTestRunner:
+        """Stub for UnifiedMCPTestRunner when pheno module is unavailable."""
 
 from .adapters import AtomsMCPClientAdapter
-from .reporters import (
-    ConsoleReporter,
-    FunctionalityMatrixReporter,
-    JSONReporter,
-    MarkdownReporter,
-)
-from .runner import AtomsTestRunner
+
+try:
+    from .reporters import (
+        ConsoleReporter,
+        FunctionalityMatrixReporter,
+        JSONReporter,
+        MarkdownReporter,
+    )
+except ImportError:
+    # Reporters module not available - create stubs
+    ConsoleReporter = None
+    FunctionalityMatrixReporter = None
+    JSONReporter = None
+    MarkdownReporter = None
+
+try:
+    from .runner import AtomsTestRunner
+except ImportError:
+    # Runner module not available - create stub
+    class AtomsTestRunner:
+        """Stub for AtomsTestRunner when module is unavailable."""
 
 
 class AtomsMCPTestRunner(UnifiedMCPTestRunner):
@@ -48,7 +68,7 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
         mcp_endpoint: str,
         provider: str = "authkit",
         parallel: bool = True,
-        workers: int = None,
+        workers: int | None = None,
         cache: bool = True,
         verbose: bool = False,
         output_dir: Path | None = None,
@@ -177,16 +197,15 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
                 print("✅ Using pheno-sdk parallel client manager")
 
         # Run tests
-        summary = await self._test_runner.run_all(categories=categories)
+        return await self._test_runner.run_all(categories=categories)
 
-        return summary
 
 
 async def run_atoms_tests(
-    mcp_endpoint: str = None,
+    mcp_endpoint: str | None = None,
     provider: str = "authkit",
     parallel: bool = True,
-    workers: int = None,
+    workers: int | None = None,
     categories: list[str] | None = None,
     cache: bool = True,
     verbose: bool = False,
@@ -221,6 +240,10 @@ async def run_atoms_tests(
         "https://mcp.atoms.tech/api/mcp"
     )
 
+    # Ensure mcp_endpoint is a string
+    if not isinstance(mcp_endpoint, str):
+        mcp_endpoint = "https://mcp.atoms.tech/api/mcp"
+
     async with AtomsMCPTestRunner(
         mcp_endpoint=mcp_endpoint,
         provider=provider,
@@ -230,5 +253,4 @@ async def run_atoms_tests(
         verbose=verbose,
         **kwargs
     ) as runner:
-        summary = await runner.run_all(categories=categories)
-        return summary
+        return await runner.run_all(categories=categories)

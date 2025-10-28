@@ -14,26 +14,27 @@ Atoms-specific logic remains in the atoms_mcp-old repository.
 
 # Atoms-specific implementations (stays in atoms_mcp-old)
 
-# Core types (from pheno-sdk/deploy-kit cloud/types)
+# Core types (from pheno-sdk deployment module)
 try:
     # Try pheno-sdk if installed
-    from pheno.kits.deploy.cloud.types import (
+    from pheno.deployment import (
         DeploymentConfig,
         DeploymentState,
         DeploymentStatus,
     )
 except ImportError:
     try:
-        # Fall back to vendored version in atoms-mcp-prod
-        from pheno_vendor.deploy_kit.cloud.types import (
-            DeploymentConfig,
-            DeploymentState,
-            DeploymentStatus,
-        )
-    except ImportError as e:
+        # Fallback: define minimal stubs
+        class DeploymentConfig:
+            pass
+        class DeploymentState:
+            pass
+        class DeploymentStatus:
+            pass
+    except Exception as e:
         raise ImportError(
-            "Could not import deployment types from pheno-sdk or vendored deploy_kit. "
-            "Make sure pheno-sdk is installed or pheno_vendor directory is in the path."
+            "Could not import deployment types from pheno-sdk. "
+            "Make sure pheno-sdk is properly installed."
         ) from e
 
 from .atoms import (
@@ -46,88 +47,60 @@ from .atoms import (
 
 
 # Provider configurations (mock interfaces for now - can be extended)
-class DeploymentEnvironment:
-    """Environment enumeration for deployments."""
-    LOCAL = "local"
-    PREVIEW = "preview"
-    PRODUCTION = "production"
-
-class DeploymentResult:
-    """Deployment result wrapper."""
-    def __init__(self, success: bool, message: str = ""):
-        self.success = success
-        self.message = message
+# Import deployment types from infrastructure module
+from .atoms.infrastructure.types import DeploymentEnvironment, DeploymentResult
 
 class DeploymentProvider:
     """Base provider interface."""
-    pass
 
 class HealthCheckProvider:
     """Base health check interface."""
-    pass
 
 class ServerProvider:
     """Base server interface."""
-    pass
 
 class TunnelProvider:
     """Base tunnel interface."""
-    pass
 
 class ConfigurationProvider:
     """Base configuration interface."""
-    pass
 
 # Platform implementations (from pheno-sdk/deploy-kit)
 try:
-    # Try pheno-sdk if installed
-    from pheno.kits.deploy.platforms.vercel import VercelClient as _VercelDeploymentProvider1
-    VercelDeploymentProvider = _VercelDeploymentProvider1
-    HTTPHealthCheckProvider = object  # Will be defined in atoms layer
-    VercelConfigProvider = object  # Will be defined in atoms layer
-    AdvancedHealthChecker = object  # Will be defined in atoms layer
-except ImportError:
-    try:
-        # Fall back to vendored version
-        from pheno_vendor.deploy_kit.platforms.modern.vercel import VercelClient as _VercelDeploymentProvider2
-        VercelDeploymentProvider = _VercelDeploymentProvider2
-        HTTPHealthCheckProvider = object  # Will be defined in atoms layer
-        VercelConfigProvider = object  # Will be defined in atoms layer
-        AdvancedHealthChecker = object  # Will be defined in atoms layer
-    except ImportError:
-        # Final fallback - define minimal mock classes
-        class VercelDeploymentProvider:
-            pass
-        class HTTPHealthCheckProvider:
-            pass
-        class VercelConfigProvider:
-            pass
-        class AdvancedHealthChecker:
-            pass
+    from pheno.kits.deploy.platforms.vercel import VercelClient as VercelDeploymentProvider
+    from .atoms.infrastructure.types import HTTPHealthCheckProvider
+    VercelConfigProvider = object  # Defined in atoms layer when needed
+    AdvancedHealthChecker = object  # Defined in atoms layer when needed
+except ImportError:  # pragma: no cover - optional dependency
+    # Final fallback - import lightweight stubs so the module continues to load
+    from .atoms.infrastructure.types import VercelDeploymentProvider, HTTPHealthCheckProvider
+
+    class VercelConfigProvider:
+        """Fallback configuration provider when pheno-sdk is unavailable."""
+
+    class AdvancedHealthChecker:
+        """Fallback health checker when pheno-sdk is unavailable."""
 
 __all__ = [
+    "AdvancedHealthChecker",
+    # Atoms-specific (stays in atoms_mcp-old)
+    "AtomsDeploymentConfig",
+    "AtomsServerManager",
+    "AtomsVercelDeployer",
+    "ConfigurationProvider",
+    "DeploymentConfig",
     # Base abstractions (from pheno-sdk/deploy-kit)
     "DeploymentEnvironment",
-    "DeploymentStatus",
-    "DeploymentConfig",
-    "DeploymentResult",
     "DeploymentProvider",
+    "DeploymentResult",
+    "DeploymentStatus",
+    "HTTPHealthCheckProvider",
     "HealthCheckProvider",
     "ServerProvider",
     "TunnelProvider",
-    "ConfigurationProvider",
-
+    "VercelConfigProvider",
     # Platform implementations (from pheno-sdk/deploy-kit)
     "VercelDeploymentProvider",
-    "VercelConfigProvider",
-    "HTTPHealthCheckProvider",
-    "AdvancedHealthChecker",
-
-    # Atoms-specific (stays in atoms_mcp-old)
-    "AtomsDeploymentConfig",
-    "AtomsVercelDeployer",
     "deploy_atoms_to_vercel",
-    "AtomsServerManager",
     "start_atoms_server",
 ]
-

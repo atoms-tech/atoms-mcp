@@ -133,7 +133,7 @@ class HarmfulStateTracker:
         logger.debug(f"Tracked entity: {entity.type.name} {entity.id}")
 
     def track_entity(
-        self, entity_type: EntityType, entity_id: str, name: str = "", data: dict = None, test_name: str | None = None
+        self, entity_type: EntityType, entity_id: str, name: str = "", data: dict | None = None, test_name: str | None = None
     ) -> Entity:
         """Create and track an entity."""
         if test_name is None:
@@ -208,7 +208,7 @@ class HarmfulStateTracker:
             except Exception as e:
                 result["success"] = False
                 result["reason"] = str(e)
-                logger.error(f"Error deleting {entity_type.name} {entity.id}: {e}")
+                logger.exception(f"Error deleting {entity_type.name} {entity.id}: {e}")
 
             results.append(result)
 
@@ -327,8 +327,7 @@ def harmful(
             kwargs["harmful_tracker"] = tracker
 
             try:
-                result = await func(*args, **kwargs)
-                return result
+                return await func(*args, **kwargs)
             finally:
                 # Extract http_client if available
                 http_client = kwargs.get("fast_http_client") or kwargs.get("mcp_client")
@@ -344,8 +343,7 @@ def harmful(
             kwargs["harmful_tracker"] = tracker
 
             try:
-                result = func(*args, **kwargs)
-                return result
+                return func(*args, **kwargs)
             finally:
                 # For sync functions, cleanup happens synchronously
                 # This is a limitation of the decorator
@@ -354,8 +352,7 @@ def harmful(
         # Determine if function is async
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
@@ -377,14 +374,14 @@ class TestDataTracker:
 
 
 __all__ = [
-    "harmful",
-    "harmful_context",
-    "create_and_track",
-    "HarmfulStateTracker",
-    "TestHarmfulState",
+    "CLEANUP_ORDER",
+    "CleanupStrategy",
     "Entity",
     "EntityType",
-    "CleanupStrategy",
-    "CLEANUP_ORDER",
+    "HarmfulStateTracker",
     "TestDataTracker",
+    "TestHarmfulState",
+    "create_and_track",
+    "harmful",
+    "harmful_context",
 ]

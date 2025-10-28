@@ -116,7 +116,7 @@ async def user_can_access_project(project_id: str, user_id: str, db_adapter) -> 
         return org_member is not None
 
     except Exception as e:
-        logger.error(f"Error checking project access: {e}")
+        logger.exception(f"Error checking project access: {e}")
         return False
 
 
@@ -147,7 +147,7 @@ async def is_project_owner_or_admin(project_id: str, user_id: str, db_adapter) -
         return role in [ProjectRole.OWNER.value, ProjectRole.ADMIN.value]
 
     except Exception as e:
-        logger.error(f"Error checking project ownership: {e}")
+        logger.exception(f"Error checking project ownership: {e}")
         return False
 
 
@@ -174,7 +174,7 @@ async def is_super_admin(user_id: str, db_adapter) -> bool:
         return admin_record is not None
 
     except Exception as e:
-        logger.error(f"Error checking super admin status: {e}")
+        logger.exception(f"Error checking super admin status: {e}")
         return False
 
 
@@ -200,7 +200,7 @@ async def get_user_organization_ids(user_id: str, db_adapter) -> list[str]:
         return [m["organization_id"] for m in memberships if "organization_id" in m]
 
     except Exception as e:
-        logger.error(f"Error getting user organizations: {e}")
+        logger.exception(f"Error getting user organizations: {e}")
         return []
 
 
@@ -229,7 +229,7 @@ async def is_organization_owner_or_admin(org_id: str, user_id: str, db_adapter) 
         return role in [UserRoleType.OWNER.value, UserRoleType.ADMIN.value, UserRoleType.SUPER_ADMIN.value]
 
     except Exception as e:
-        logger.error(f"Error checking organization ownership: {e}")
+        logger.exception(f"Error checking organization ownership: {e}")
         return False
 
 
@@ -819,25 +819,23 @@ class ProjectMemberPolicy(TablePolicy):
 # =============================================================================
 
 __all__ = [
+    "DocumentPolicy",
+    "OrganizationMemberPolicy",
+    "OrganizationPolicy",
     # Exceptions
     "PermissionDeniedError",
-
-    # Helper functions
-    "user_can_access_project",
-    "is_project_owner_or_admin",
-    "is_super_admin",
-    "get_user_organization_ids",
-    "is_organization_owner_or_admin",
-
     # Validators
     "PolicyValidator",
-    "TablePolicy",
-    "OrganizationPolicy",
-    "ProjectPolicy",
-    "DocumentPolicy",
-    "RequirementPolicy",
-    "TestPolicy",
     "ProfilePolicy",
-    "OrganizationMemberPolicy",
     "ProjectMemberPolicy",
+    "ProjectPolicy",
+    "RequirementPolicy",
+    "TablePolicy",
+    "TestPolicy",
+    "get_user_organization_ids",
+    "is_organization_owner_or_admin",
+    "is_project_owner_or_admin",
+    "is_super_admin",
+    # Helper functions
+    "user_can_access_project",
 ]

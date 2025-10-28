@@ -7,15 +7,15 @@ authors = [
     {name = "Atoms Team"},
 ]
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 
 dependencies = [
-    "fastmcp>=2.12.2",
+    "fastmcp>=2.13.0.1",
+    "py-key-value-aio>=0.2.0",
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "supabase>=2.5.0",
     "psycopg2-binary>=2.9.9",
-    "python-dotenv>=1.0.1",
     "google-cloud-aiplatform>=1.49.0",
     "aiohttp>=3.8.0",
     "workos>=1.0.0",
@@ -29,7 +29,9 @@ dependencies = [
     "PyYAML>=6.0",
     "psutil>=5.9.0",
     "typing-extensions>=4.12.2",
+    "playwright>=1.40.0",
     "pheno-sdk @ git+file:///Users/kooshapari/temp-PRODVERCEL/485/kush/pheno-sdk",
+    "sqlalchemy>=2.0.44",
 ]
 
 [project.optional-dependencies]
@@ -78,7 +80,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["lib", "tools", "schemas", "tests", "config", "server", "auth", "utils"]
+packages = ["lib", "tools", "schemas", "tests", "config", "server", "utils", "src"]
 package-dir = {"" = "."}
 
 # ============================================================================
@@ -148,9 +150,9 @@ ignore = [
 ]
 
 # CLI utility scripts
-"lib/vendor_manager.py" = ["T201", "S603", "PLR2004"]
 "lib/deployment_checker.py" = ["T201", "S603", "S607", "PLR2004"]
 "lib/schema_sync.py" = ["T201", "S608", "PLR0912", "PLR0915", "PLR2004"]
+"schemas/sync/core.py" = ["T201", "S608", "PLR0912", "PLR0915", "PLR2004"]
 "scripts/*.py" = ["T201"]
 
 # Init files - allow unused imports (re-exports)
@@ -163,7 +165,7 @@ ignore = [
 "archive/**/*.py" = ["ALL"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["lib", "tools", "config", "server", "auth", "utils", "schemas"]
+known-first-party = ["lib", "tools", "config", "server", "utils", "schemas", "src"]
 section-order = [
     "future",
     "standard-library",
@@ -182,8 +184,7 @@ skip-magic-trailing-comma = false
 # Zuban (MyPy) Configuration - Type Checking
 # ============================================================================
 
-[tool.zuban]
-mode = "mypy"
+[tool.mypy]
 python_version = "3.11"
 warn_return_any = false
 warn_unused_configs = true
@@ -198,14 +199,22 @@ pretty = true
 show_error_codes = true
 exclude = "(schemas/generated|archive|\\.venv|tests/load)"
 
-[[tool.zuban.overrides]]
+[[tool.mypy.overrides]]
 module = "pheno.*"
 ignore_errors = true
 
-[[tool.zuban.overrides]]
+[[tool.mypy.overrides]]
 module = "tests.*"
 allow_untyped_defs = true
 check_untyped_defs = false
+
+# ============================================================================
+# Ty Configuration - Type Checking
+# ============================================================================
+
+[tool.ty]
+src = { include = ["."], exclude = ["tests/load", "archive", ".venv"] }
+environment = { "extra-paths" = ["."] }
 
 # ============================================================================
 # Pytest Configuration
@@ -230,11 +239,10 @@ markers = [
 # ============================================================================
 
 [tool.coverage.run]
-source = ["lib", "tools", "config", "server", "auth", "utils"]
+source = ["lib", "tools", "config", "server", "utils", "schemas", "src"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
-    "pheno_vendor/*",
     "schemas/generated/*",
     "archive/*",
     ".venv/*",
@@ -283,7 +291,7 @@ exclude = '''
 profile = "black"
 line_length = 120
 skip = ["pheno_vendor", "schemas/generated", "archive", ".venv"]
-known_first_party = ["lib", "tools", "config", "server", "auth", "utils", "schemas"]
+known_first_party = ["lib", "tools", "config", "server", "utils", "schemas", "src"]
 
 # ============================================================================
 # Bandit Configuration - Security Linter
@@ -298,7 +306,7 @@ skips = ["B101"]  # Don't flag assert statements
 # ============================================================================
 
 [tool.vulture]
-paths = ["atoms_cli.py", "lib", "config", "server", "scripts"]
+paths = ["atoms_cli.py", "lib", "config", "server", "scripts", "src", "utils"]
 exclude = ["pheno_vendor", "lib-sdks", "archive", ".venv", "tests"]
 min_confidence = 80
 ignore_names = ["main", "cli", "settings"]
@@ -342,3 +350,18 @@ verbose = 1
 quiet = false
 whitelist-regex = []
 color = true
+
+# ============================================================================
+# Pydantic Settings Configuration
+# ============================================================================
+[tool.pydantic-settings]
+# Configuration file settings
+config_file = "config.yaml"
+config_file_encoding = "utf-8"
+env_prefix = "ATOMS_"
+# env_file = null  # Disable .env file usage
+env_file_encoding = "utf-8"
+env_nested_delimiter = "__"
+case_sensitive = false
+env_ignore_empty = true
+env_parse_none_str = "None"

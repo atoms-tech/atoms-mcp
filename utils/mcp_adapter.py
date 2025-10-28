@@ -8,8 +8,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from fastmcp import Client
-
 # Ensure pheno-sdk/mcp-QA is on path when running in isolation
 _repo_root = Path(__file__).resolve().parents[2]
 _mcp_qa_path = _repo_root / "pheno-sdk" / "mcp-QA"
@@ -21,6 +19,7 @@ from typing import TYPE_CHECKING  # noqa: E402
 from pheno.testing.mcp_qa.core import create_enhanced_adapter  # noqa: E402
 
 if TYPE_CHECKING:
+    from fastmcp import Client
     from pheno.testing.mcp_qa.core import EnhancedMCPAdapter
 
 

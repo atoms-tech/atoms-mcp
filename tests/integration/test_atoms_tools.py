@@ -38,7 +38,7 @@ async def test_workspace_tool() -> dict[str, Any]:
     try:
         result = await workspace_operation(
             auth_token=AUTH_TOKEN,
-            operation="list",
+            operation="list_workspaces",
         )
         results["list"] = {"status": "✅", "data": result}
         print(f"   ✅ Success: {json.dumps(result, indent=2)[:200]}...")
@@ -75,7 +75,7 @@ async def test_workspace_tool() -> dict[str, Any]:
     return results
 
 
-async def test_entity_tool() -> dict[str, Any]:
+async def test_entity_tool() -> dict[str, Any]
     """Test all entity_tool operations."""
     results = {}
     test_entity_id = None

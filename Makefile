@@ -194,8 +194,8 @@ deploy-preview: ## Deploy to preview
 deploy-prod: ## Deploy to production
 	./atoms deploy --production
 
-vendor: ## Vendor pheno-sdk packages
-	./atoms vendor setup --clean
+vendor: ## Deprecated: pheno-sdk vendoring is no longer required
+	@echo "Vendoring has been removed. Install pheno-sdk via requirements or local checkout instead."
 
 schema-check: ## Check schema drift
 	./atoms schema check

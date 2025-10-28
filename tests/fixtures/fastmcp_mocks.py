@@ -45,7 +45,7 @@ def create_real_fastmcp_server() -> FastMCP:
                 ],
                 "count": 2
             }
-        elif operation == "create":
+        if operation == "create":
             return {
                 "success": True,
                 "data": {
@@ -54,24 +54,31 @@ def create_real_fastmcp_server() -> FastMCP:
                     "created_at": datetime.now().isoformat() + "Z"
                 }
             }
-        elif operation == "read":
+        if operation == "read":
             return {
                 "success": True,
                 "data": {"id": id, "name": f"Test {entity_type.title()}"}
             }
-        elif operation == "update":
+        if operation == "update":
             return {
                 "success": True,
                 "data": {"id": id, **(data or {})}
             }
-        elif operation == "delete":
+        if operation == "delete":
             return {"success": True}
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
-    def workspace_tool(operation: str, entity_type: str, data: dict | None = None) -> dict[str, Any]:
+    def workspace_tool(operation: str, context_type: str | None = None, entity_id: str | None = None,
+                      entity_type: str | None = None, data: dict | None = None,
+                      limit: int | None = None, offset: int | None = None,
+                      format_type: str = "detailed", organization_id: str | None = None,
+                      project_id: str | None = None, type: str | None = None, id: str | None = None) -> dict[str, Any]:
         """Workspace management tool."""
+        # Support backward compatibility: type -> context_type, id -> entity_id
+        final_context_type = context_type or type
+        final_entity_id = entity_id or id
+
         if operation == "create":
             return {
                 "success": True,
@@ -81,7 +88,7 @@ def create_real_fastmcp_server() -> FastMCP:
                     "created_at": datetime.now().isoformat() + "Z"
                 }
             }
-        elif operation == "list":
+        if operation in {"list", "list_workspaces"}:
             return {
                 "success": True,
                 "data": [
@@ -89,8 +96,44 @@ def create_real_fastmcp_server() -> FastMCP:
                     {"id": f"workspace_{entity_type}_2", "name": "Test Workspace 2"},
                 ]
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        if operation == "get_context":
+            return {
+                "success": True,
+                "data": {
+                    "organization": None,
+                    "project": None,
+                    "document": None
+                }
+            }
+        if operation == "set_context":
+            # Validate context_type - only allow valid types
+            valid_context_types = ["organization", "project", "document"]
+            if not final_context_type:
+                return {"success": False, "error": "context_type is required for set_context"}
+            if final_context_type not in valid_context_types:
+                return {"success": False, "error": f"Invalid context_type '{final_context_type}'. Must be one of: {', '.join(valid_context_types)}"}
+            if not final_entity_id:
+                return {"success": False, "error": "entity_id is required for set_context"}
+
+            return {
+                "success": True,
+                "data": {
+                    "type": final_context_type,
+                    "id": final_entity_id,
+                    "organization_id": organization_id,
+                    "project_id": project_id
+                }
+            }
+        if operation == "get_defaults":
+            return {
+                "success": True,
+                "data": {
+                    "organization_id": None,
+                    "project_id": None,
+                    "document_id": None
+                }
+            }
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
     def query_tool(operation: str, query: str, filters: dict | None = None) -> dict[str, Any]:
@@ -108,8 +151,7 @@ def create_real_fastmcp_server() -> FastMCP:
                     "filters": filters or {}
                 }
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
     def workflow_tool(operation: str, name: str, steps: list[str] | None = None) -> dict[str, Any]:
@@ -125,7 +167,7 @@ def create_real_fastmcp_server() -> FastMCP:
                     "created_at": datetime.now().isoformat() + "Z"
                 }
             }
-        elif operation == "execute":
+        if operation == "execute":
             return {
                 "success": True,
                 "data": {
@@ -135,8 +177,7 @@ def create_real_fastmcp_server() -> FastMCP:
                     "steps_completed": len(steps or [])
                 }
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     return server
 
@@ -158,7 +199,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                 ],
                 "count": 2
             }
-        elif operation == "create":
+        if operation == "create":
             return {
                 "success": True,
                 "data": {
@@ -167,24 +208,31 @@ def create_mock_fastmcp_server() -> FastMCP:
                     "created_at": datetime.now().isoformat() + "Z"
                 }
             }
-        elif operation == "read":
+        if operation == "read":
             return {
                 "success": True,
                 "data": {"id": id, "name": f"Mock {entity_type.title()}"}
             }
-        elif operation == "update":
+        if operation == "update":
             return {
                 "success": True,
                 "data": {"id": id, **(data or {})}
             }
-        elif operation == "delete":
+        if operation == "delete":
             return {"success": True}
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
-    def workspace_tool(operation: str, entity_type: str, data: dict | None = None) -> dict[str, Any]:
+    def workspace_tool(operation: str, context_type: str | None = None, entity_id: str | None = None,
+                      entity_type: str | None = None, data: dict | None = None,
+                      limit: int | None = None, offset: int | None = None,
+                      format_type: str = "detailed", organization_id: str | None = None,
+                      project_id: str | None = None, type: str | None = None, id: str | None = None) -> dict[str, Any]:
         """Mock workspace management tool."""
+        # Support backward compatibility: type -> context_type, id -> entity_id
+        final_context_type = context_type or type
+        final_entity_id = entity_id or id
+
         if operation == "create":
             return {
                 "success": True,
@@ -194,7 +242,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                     "created_at": datetime.now().isoformat() + "Z"
                 }
             }
-        elif operation == "list":
+        if operation in {"list", "list_workspaces"}:
             return {
                 "success": True,
                 "data": [
@@ -202,8 +250,44 @@ def create_mock_fastmcp_server() -> FastMCP:
                     {"id": f"mock_workspace_{entity_type}_2", "name": "Mock Workspace 2"},
                 ]
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        if operation == "get_context":
+            return {
+                "success": True,
+                "data": {
+                    "organization": None,
+                    "project": None,
+                    "document": None
+                }
+            }
+        if operation == "set_context":
+            # Validate context_type - only allow valid types
+            valid_context_types = ["organization", "project", "document"]
+            if not final_context_type:
+                return {"success": False, "error": "context_type is required for set_context"}
+            if final_context_type not in valid_context_types:
+                return {"success": False, "error": f"Invalid context_type '{final_context_type}'. Must be one of: {', '.join(valid_context_types)}"}
+            if not final_entity_id:
+                return {"success": False, "error": "entity_id is required for set_context"}
+
+            return {
+                "success": True,
+                "data": {
+                    "type": final_context_type,
+                    "id": final_entity_id,
+                    "organization_id": organization_id,
+                    "project_id": project_id
+                }
+            }
+        if operation == "get_defaults":
+            return {
+                "success": True,
+                "data": {
+                    "organization_id": None,
+                    "project_id": None,
+                    "document_id": None
+                }
+            }
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
     def query_tool(operation: str, query: str, filters: dict | None = None) -> dict[str, Any]:
@@ -221,8 +305,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                     "filters": filters or {}
                 }
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
     def workflow_tool(operation: str, name: str, steps: list[str] | None = None) -> dict[str, Any]:
@@ -238,7 +321,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                     "created_at": datetime.now().isoformat() + "Z"
                 }
             }
-        elif operation == "execute":
+        if operation == "execute":
             return {
                 "success": True,
                 "data": {
@@ -248,18 +331,17 @@ def create_mock_fastmcp_server() -> FastMCP:
                     "steps_completed": len(steps or [])
                 }
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     return server
 
 
-def create_simulated_fastmcp_server() -> FastMCP:
+def create_simulated_fastmcp_server() -> FastMCP
     """Create a fully simulated FastMCP server for DRY mode testing."""
     server = FastMCP("atoms-simulated-server")
 
     # Simulated in-memory storage
-    simulated_data = {
+    simulated_data: dict[str, dict[str, Any]] = {
         "entities": {},
         "workspaces": {},
         "queries": {},
@@ -268,7 +350,7 @@ def create_simulated_fastmcp_server() -> FastMCP:
     }
 
     @server.tool
-    def entity_tool(entity_type: str, operation: str, id: str | None = None, data: dict | None = None) -> dict[str, Any]:
+    def entity_tool(entity_type: str, operation: str, id: str | None = None, data: dict | None = None) -> dict[str, Any]
         """Simulated entity management tool."""
         if operation == "create":
             entity_id = f"sim_{entity_type}_{len(simulated_data['entities']) + 1}"
@@ -284,39 +366,47 @@ def create_simulated_fastmcp_server() -> FastMCP:
                 "success": True,
                 "data": entity_data
             }
-        elif operation == "read":
+        if operation == "read":
+            if not id:
+                return {"success": False, "error": "missing_id"}
             entity = simulated_data["entities"].get(id)
             if entity:
                 return {"success": True, "data": entity}
-            else:
-                return {"success": False, "error": "not_found"}
-        elif operation == "update":
+            return {"success": False, "error": "not_found"}
+        if operation == "update":
+            if not id:
+                return {"success": False, "error": "missing_id"}
             entity = simulated_data["entities"].get(id)
             if entity:
                 entity.update(data or {})
                 entity["updated_at"] = datetime.now().isoformat() + "Z"
                 return {"success": True, "data": entity}
-            else:
-                return {"success": False, "error": "not_found"}
-        elif operation == "delete":
+            return {"success": False, "error": "not_found"}
+        if operation == "delete":
             if id in simulated_data["entities"]:
                 del simulated_data["entities"][id]
                 return {"success": True}
-            else:
-                return {"success": False, "error": "not_found"}
-        elif operation == "list":
+            return {"success": False, "error": "not_found"}
+        if operation == "list":
             entities = [e for e in simulated_data["entities"].values() if e.get("type") == entity_type]
             return {
                 "success": True,
                 "data": entities,
                 "count": len(entities)
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
-    def workspace_tool(operation: str, entity_type: str, data: dict | None = None) -> dict[str, Any]:
+    def workspace_tool(operation: str, context_type: str | None = None, entity_id: str | None = None,
+                      entity_type: str | None = None, data: dict | None = None,
+                      limit: int | None = None, offset: int | None = None,
+                      format_type: str = "detailed", organization_id: str | None = None,
+                      project_id: str | None = None, type: str | None = None, id: str | None = None) -> dict[str, Any]:
         """Simulated workspace management tool."""
+        # Support backward compatibility: type -> context_type, id -> entity_id
+        final_context_type = context_type or type
+        final_entity_id = entity_id or id
+
         if operation == "create":
             workspace_id = f"sim_workspace_{entity_type}_{len(simulated_data['workspaces']) + 1}"
             workspace_data = {
@@ -330,14 +420,50 @@ def create_simulated_fastmcp_server() -> FastMCP:
                 "success": True,
                 "data": workspace_data
             }
-        elif operation == "list":
+        if operation in {"list", "list_workspaces"}:
             workspaces = [w for w in simulated_data["workspaces"].values() if w.get("entity_type") == entity_type]
             return {
                 "success": True,
                 "data": workspaces
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        if operation == "get_context":
+            return {
+                "success": True,
+                "data": {
+                    "organization": None,
+                    "project": None,
+                    "document": None
+                }
+            }
+        if operation == "set_context":
+            # Validate context_type - only allow valid types
+            valid_context_types = ["organization", "project", "document"]
+            if not final_context_type:
+                return {"success": False, "error": "context_type is required for set_context"}
+            if final_context_type not in valid_context_types:
+                return {"success": False, "error": f"Invalid context_type '{final_context_type}'. Must be one of: {', '.join(valid_context_types)}"}
+            if not final_entity_id:
+                return {"success": False, "error": "entity_id is required for set_context"}
+
+            return {
+                "success": True,
+                "data": {
+                    "type": final_context_type,
+                    "id": final_entity_id,
+                    "organization_id": organization_id,
+                    "project_id": project_id
+                }
+            }
+        if operation == "get_defaults":
+            return {
+                "success": True,
+                "data": {
+                    "organization_id": None,
+                    "project_id": None,
+                    "document_id": None
+                }
+            }
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
     def query_tool(operation: str, query: str, filters: dict | None = None) -> dict[str, Any]:
@@ -363,8 +489,7 @@ def create_simulated_fastmcp_server() -> FastMCP:
                     "filters": filters or {}
                 }
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     @server.tool
     async def workflow_tool(operation: str, name: str, steps: list[str] | None = None) -> dict[str, Any]:
@@ -383,7 +508,7 @@ def create_simulated_fastmcp_server() -> FastMCP:
                 "success": True,
                 "data": workflow_data
             }
-        elif operation == "execute":
+        if operation == "execute":
             workflow_id = f"sim_workflow_{name.lower().replace(' ', '_')}"
             execution_id = f"sim_exec_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
@@ -400,8 +525,7 @@ def create_simulated_fastmcp_server() -> FastMCP:
                     "execution_time": 0.001
                 }
             }
-        else:
-            return {"success": False, "error": "unknown_operation"}
+        return {"success": False, "error": "unknown_operation"}
 
     return server
 
@@ -428,41 +552,98 @@ async def fastmcp_server(atoms_mode_config: TestModeConfig) -> AsyncIterator[Fas
     else:
         raise ValueError(f"Unsupported test mode: {atoms_mode_config.mode}")
 
-    yield server
+    return server
 
 
-@pytest.fixture(scope="session")
-async def fastmcp_client(fastmcp_server: FastMCP) -> AsyncIterator[Client]:
+@pytest.fixture
+async def fastmcp_client(fastmcp_server: FastMCP, atoms_mode_config: TestModeConfig, request) -> AsyncIterator[Client]:
     """Mode-aware FastMCP client fixture.
 
-    Uses in-memory transport for all modes, following FastMCP testing patterns.
+    Uses FastHTTPClient for all modes with proper authentication flow.
     """
-    async with Client(fastmcp_server) as client:
+    import os
+
+    from pheno.testing.mcp_qa.adapters.fast_http_client import FastHTTPClient
+    from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
+
+    # Set different endpoints based on mode
+    if atoms_mode_config.mode == TestMode.HOT:
+        endpoint = "http://atomcp:8000/api/mcp"  # Real server for HOT mode
+    else:
+        endpoint = "http://mcp.atoms:8000/api/mcp"  # Mock endpoint for COLD/DRY modes
+
+    # Get real authentication for all modes
+    mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
+
+    # Use UnifiedCredentialBroker for OAuth (will use cache if available)
+    broker = UnifiedCredentialBroker(
+        mcp_endpoint=mcp_endpoint,
+        provider="authkit",
+    )
+
+    client = None
+    try:
+        # Get authenticated client (uses cache if plugin provided credentials)
+        _mcp_client, credentials = await broker.get_authenticated_client()
+        access_token = credentials.access_token
+
+        # Create re-authentication callback to handle token expiration
+        async def reauthenticate():
+            """Re-authenticate and return fresh access token when current token expires."""
+            _mcp_client, new_creds = await broker.get_authenticated_client()
+            return new_creds.access_token
+
+        client = FastHTTPClient(
+            mcp_endpoint=endpoint,
+            access_token=access_token,
+            debug=True,
+            reauthenticate_callback=reauthenticate
+        )
+        await client.__aenter__()
         yield client
+
+    except Exception as e:
+        # Fallback to test token if authentication fails
+        logger.warning(f"Authentication failed, using test token: {e}")
+        client = FastHTTPClient(
+            mcp_endpoint=endpoint,
+            access_token="test-token",
+            debug=True
+        )
+        await client.__aenter__()
+        yield client
+
+    finally:
+        # Ensure client is properly closed
+        if client:
+            try:
+                await client.__aexit__(None, None, None)
+            except Exception as e:
+                logger.warning(f"Error closing client: {e}")
 
 
 @pytest.fixture(scope="session")
 async def entity_client(fastmcp_client: Client) -> AsyncIterator[Client]:
     """Entity-specific client fixture."""
-    yield fastmcp_client
+    return fastmcp_client
 
 
 @pytest.fixture(scope="session")
 async def workspace_client(fastmcp_client: Client) -> AsyncIterator[Client]:
     """Workspace-specific client fixture."""
-    yield fastmcp_client
+    return fastmcp_client
 
 
 @pytest.fixture(scope="session")
 async def query_client(fastmcp_client: Client) -> AsyncIterator[Client]:
     """Query-specific client fixture."""
-    yield fastmcp_client
+    return fastmcp_client
 
 
 @pytest.fixture(scope="session")
 async def workflow_client(fastmcp_client: Client) -> AsyncIterator[Client]:
     """Workflow-specific client fixture."""
-    yield fastmcp_client
+    return fastmcp_client
 
 
 # ============================================================================

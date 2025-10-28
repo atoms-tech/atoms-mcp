@@ -59,8 +59,7 @@ async def version_timestamp_down(adapter: DatabaseAdapter):
 @pytest_asyncio.fixture
 async def mock_adapter_versioning():
     """Provide mock adapter for versioning tests."""
-    adapter = MockDatabaseAdapter()
-    return adapter
+    return MockDatabaseAdapter()
 
 
 @pytest_asyncio.fixture
@@ -523,6 +522,6 @@ class TestVersioningEdgeCases:
 
 __all__ = [
     "TestVersioningCOLD",
-    "TestVersioningHOT",
     "TestVersioningEdgeCases",
+    "TestVersioningHOT",
 ]

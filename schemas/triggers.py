@@ -67,15 +67,25 @@ def normalize_slug(slug: str) -> str:
     if not slug or not isinstance(slug, str):
         raise ValueError("Slug must be a non-empty string")
 
+    raw_slug = slug.strip()
+    if not raw_slug:
+        raise ValueError("Slug must be a non-empty string")
+
+    # Ensure raw value starts with a letter (matches DB constraint)
+    starts_with_letter = raw_slug[0].isalpha()
+    starts_with_hyphen = raw_slug[0] == "-"
+    ends_with_hyphen = raw_slug.endswith("-")
+
+    if not starts_with_letter:
+        # Allow wrapped hyphens (e.g., "-hello-") so we can trim them away.
+        if not (starts_with_hyphen and ends_with_hyphen):
+            raise ValueError(f"Slug must start with letter, got: '{raw_slug}'")
+
     # Convert to lowercase and replace non-alphanumeric with hyphens
-    normalized = SLUG_PATTERN.sub("-", slug.strip().lower()).strip("-")
+    normalized = SLUG_PATTERN.sub("-", raw_slug.lower()).strip("-")
 
     if not normalized:
         raise ValueError(f"Slug '{slug}' normalizes to empty string")
-
-    # Ensure starts with letter (database constraint)
-    if not normalized[0].isalpha():
-        raise ValueError(f"Slug must start with letter, got: '{normalized}'")
 
     return normalized
 
@@ -261,15 +271,14 @@ def handle_requirement_hierarchy(
     })
 
     # If has parent, inherit all parent's ancestors
-    if parent_id:
-        if existing_closure:
-            for entry in existing_closure:
-                if entry["descendant_id"] == parent_id:
-                    closure_entries.append({
-                        "ancestor_id": entry["ancestor_id"],
-                        "descendant_id": req_id,
-                        "depth": entry["depth"] + 1
-                    })
+    if parent_id and existing_closure:
+        for entry in existing_closure:
+            if entry["descendant_id"] == parent_id:
+                closure_entries.append({
+                    "ancestor_id": entry["ancestor_id"],
+                    "descendant_id": req_id,
+                    "depth": entry["depth"] + 1
+                })
 
     return closure_entries
 
@@ -616,9 +625,8 @@ class TriggerEmulator:
                 result[Fields.IS_DELETED] = False
 
         # Initialize soft delete fields for tables that support it
-        if table not in TABLES_WITHOUT_SOFT_DELETE:
-            if Fields.IS_DELETED not in result:
-                result[Fields.IS_DELETED] = False
+        if table not in TABLES_WITHOUT_SOFT_DELETE and Fields.IS_DELETED not in result:
+            result[Fields.IS_DELETED] = False
 
         return result
 
@@ -690,7 +698,7 @@ class TriggerEmulator:
 
         elif table == Tables.PROFILES:
             # Create personal organization for new user
-            updated_profile, personal_org = handle_new_user(data)
+            _updated_profile, personal_org = handle_new_user(data)
             side_effects.append((Tables.ORGANIZATIONS, personal_org))
             # Note: Profile update would need separate update operation
 
@@ -739,35 +747,28 @@ class TriggerEmulator:
 # =============================================================================
 
 __all__ = [
-    # Slug functions
-    "normalize_slug",
+    # Trigger emulator
+    "TriggerEmulator",
+    "auto_add_org_owner",
     "auto_generate_slug",
-
-    # Timestamp functions
-    "handle_updated_at",
-    "set_created_timestamps",
-
+    # Validation
+    "check_member_limits",
+    "check_requirement_cycle",
+    "check_version_and_update",
     # ID generation
     "generate_external_id",
     "generate_uuid",
-
-    # Requirement functions
-    "sync_requirements_properties",
-    "handle_requirement_hierarchy",
-
     # User/org functions
     "handle_new_user",
-    "auto_add_org_owner",
-
+    "handle_requirement_hierarchy",
+    "handle_restore",
     # Soft delete
     "handle_soft_delete",
-    "handle_restore",
-
-    # Validation
-    "check_member_limits",
-    "check_version_and_update",
-    "check_requirement_cycle",
-
-    # Trigger emulator
-    "TriggerEmulator",
+    # Timestamp functions
+    "handle_updated_at",
+    # Slug functions
+    "normalize_slug",
+    "set_created_timestamps",
+    # Requirement functions
+    "sync_requirements_properties",
 ]

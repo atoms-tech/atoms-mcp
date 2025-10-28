@@ -139,8 +139,7 @@ async def recoverable_migration_up(adapter: DatabaseAdapter):
 @pytest_asyncio.fixture
 async def mock_adapter_idempotency():
     """Provide mock adapter for idempotency tests."""
-    adapter = MockDatabaseAdapter()
-    return adapter
+    return MockDatabaseAdapter()
 
 
 @pytest_asyncio.fixture
@@ -635,6 +634,6 @@ class TestIdempotencyEdgeCases:
 
 __all__ = [
     "TestIdempotencyCOLD",
-    "TestIdempotencyHOT",
     "TestIdempotencyEdgeCases",
+    "TestIdempotencyHOT",
 ]

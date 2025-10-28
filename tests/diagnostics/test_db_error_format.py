@@ -6,7 +6,14 @@ import sys
 
 sys.path.insert(0, "/Users/kooshapari/temp-PRODVERCEL/485/kush/pheno-sdk/mcp-QA")
 
-from mcp_qa.reporters import DetailedErrorReporter
+try:
+    from mcp_qa.reporters import DetailedErrorReporter
+except ImportError:
+    # Module not available - create a stub
+    class DetailedErrorReporter:
+        """Stub for DetailedErrorReporter when mcp_qa is unavailable."""
+        def __init__(self, *args, **kwargs):
+            pass
 
 # Simulate a DB constraint violation test result
 db_constraint_result = {

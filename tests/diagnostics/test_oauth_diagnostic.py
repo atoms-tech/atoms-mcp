@@ -4,6 +4,7 @@ Quick diagnostic for OAuth flow timeout issue.
 """
 
 import asyncio
+import contextlib
 import sys
 
 from fastmcp import Client
@@ -57,10 +58,8 @@ async def test_oauth_init():
 
         # Cancel the auth task
         auth_task.cancel()
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await auth_task
-        except asyncio.CancelledError:
-            pass
 
         return True
     except TimeoutError:
@@ -74,10 +73,8 @@ async def test_oauth_init():
                 pass
         return False
     finally:
-        try:
+        with contextlib.suppress(Exception):
             await client.__aexit__(None, None, None)
-        except Exception:
-            pass
 
 
 if __name__ == "__main__":

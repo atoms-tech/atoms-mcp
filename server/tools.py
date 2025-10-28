@@ -13,12 +13,89 @@ Pythonic Patterns Applied:
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from fastmcp import FastMCP
+from pydantic import BaseModel, Field
 
 from .auth import RateLimiter, apply_rate_limit_if_configured, get_token_string
+
+# Pydantic models for FastMCP v2.13.0.1 input validation
+
+class WorkspaceToolInput(BaseModel):
+    """Input model for workspace_tool."""
+    operation: str = Field(..., description="Operation to perform")
+    context_type: str | None = Field(None, description="Type of context")
+    entity_id: str | None = Field(None, description="Entity ID")
+    limit: int | None = Field(None, description="Result limit")
+    offset: int | None = Field(None, description="Result offset")
+    format_type: str = Field("detailed", description="Output format")
+    organization_id: str | None = Field(None, description="Organization context")
+    project_id: str | None = Field(None, description="Project context")
+    type: str | None = Field(None, deprecated=True, description="Alias for context_type")
+    id: str | None = Field(None, deprecated=True, description="Alias for entity_id")
+
+
+class EntityToolInput(BaseModel):
+    """Input model for entity_tool."""
+    entity_type: str = Field(..., description="Type of entity")
+    operation: str | None = Field(None, description="CRUD operation")
+    data: dict[str, Any] | None = Field(None, description="Entity data")
+    filters: dict[str, Any] | None = Field(None, description="Query filters")
+    entity_id: str | None = Field(None, description="Entity ID")
+    include_relations: bool = Field(False, description="Include relationships")
+    batch: list | None = Field(None, description="Batch operations")
+    search_term: str | None = Field(None, description="Search term")
+    parent_type: str | None = Field(None, description="Parent entity type")
+    parent_id: str | None = Field(None, description="Parent entity ID")
+    limit: int | None = Field(100, description="Result limit")
+    offset: int | None = Field(0, description="Result offset")
+    order_by: str | None = Field(None, description="Sort order")
+    soft_delete: bool = Field(True, description="Use soft delete")
+    format_type: str = Field("detailed", description="Output format")
+
+
+class RelationshipToolInput(BaseModel):
+    """Input model for relationship_tool."""
+    operation: str = Field(..., description="Relationship operation")
+    relationship_type: str = Field(..., description="Type of relationship")
+    source: dict[str, Any] = Field(..., description="Source entity")
+    target: dict[str, Any] | None = Field(None, description="Target entity")
+    metadata: dict[str, Any] | None = Field(None, description="Relationship metadata")
+    filters: dict[str, Any] | None = Field(None, description="Query filters")
+    source_context: str | None = Field(None, description="Source context")
+    soft_delete: bool = Field(True, description="Use soft delete")
+    limit: int = Field(100, description="Result limit")
+    offset: int = Field(0, description="Result offset")
+    format_type: str = Field("detailed", description="Output format")
+
+
+class WorkflowToolInput(BaseModel):
+    """Input model for workflow_tool."""
+    workflow: str = Field(..., description="Workflow name")
+    parameters: dict[str, Any] = Field(..., description="Workflow parameters")
+    transaction_mode: bool = Field(True, description="Use transaction mode")
+    format_type: str = Field("detailed", description="Output format")
+
+
+class QueryToolInput(BaseModel):
+    """Input model for query_tool."""
+    query_type: str = Field(..., description="Type of query")
+    entities: list = Field(..., description="Entity types to query")
+    conditions: dict[str, Any] | None = Field(None, description="Query conditions")
+    projections: list | None = Field(None, description="Query projections")
+    search_term: str | None = Field(None, description="Search term")
+    limit: int | None = Field(None, description="Result limit")
+    format_type: str = Field("detailed", description="Output format")
+    rag_mode: str = Field("auto", description="RAG search mode")
+    similarity_threshold: float = Field(0.7, ge=0.0, le=1.0, description="Similarity threshold")
+    content: str | None = Field(None, description="Content for similarity search")
+    entity_type: str | None = Field(None, description="Entity type for similarity")
+    exclude_id: str | None = Field(None, description="Exclude from results")
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from fastmcp import FastMCP
 
 
 def register_workspace_tool(
@@ -35,16 +112,7 @@ def register_workspace_tool(
     """
     @mcp.tool(tags={"workspace", "context"})
     async def workspace_tool(
-        operation: str,
-        context_type: str | None = None,
-        entity_id: str | None = None,
-        limit: int | None = None,
-        offset: int | None = None,
-        format_type: str = "detailed",
-        organization_id: str | None = None,
-        project_id: str | None = None,
-        type: str | None = None,
-        id: str | None = None,
+        inputs: WorkspaceToolInput
     ) -> dict[str, Any]:
         """Manage workspace context and get smart defaults.
 
@@ -74,22 +142,22 @@ def register_workspace_tool(
             auth_token = get_token_string(bearer_token)
 
             # Support backward compatibility: type -> context_type, id -> entity_id
-            final_context_type = context_type or type
-            final_entity_id = entity_id or id
+            final_context_type = inputs.context_type or inputs.type
+            final_entity_id = inputs.entity_id or inputs.id
 
             return await workspace_operation(
                 auth_token=auth_token,
-                operation=operation,
+                operation=inputs.operation,
                 context_type=final_context_type,
                 entity_id=final_entity_id,
-                limit=limit,
-                offset=offset,
-                format_type=format_type,
-                organization_id=organization_id,
-                project_id=project_id,
+                limit=inputs.limit,
+                offset=inputs.offset,
+                format_type=inputs.format_type,
+                organization_id=inputs.organization_id,
+                project_id=inputs.project_id,
             )
         except Exception as e:
-            return {"success": False, "error": str(e), "operation": operation}
+            return {"success": False, "error": str(e), "operation": inputs.operation}
 
 
 def register_entity_tool(

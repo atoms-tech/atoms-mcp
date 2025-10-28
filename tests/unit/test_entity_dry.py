@@ -39,7 +39,7 @@ class TestEntityDryMode:
             def __init__(self, store: dict[str, dict[str, Any]]):
                 self.store = store
                 self.call_count = 0
-                self.operation_log = []
+                self.operation_log: list[dict[str, Any]] = []
 
             async def call_tool(self, tool_name: str, arguments: dict) -> dict:
                 self.call_count += 1
@@ -51,11 +51,11 @@ class TestEntityDryMode:
 
                 if tool_name == "entity_tool":
                     return await self._handle_entity_operation(arguments)
-                elif tool_name == "relationship_tool":
+                if tool_name == "relationship_tool":
                     return await self._handle_relationship_operation(arguments)
-                elif tool_name == "workflow_tool":
+                if tool_name == "workflow_tool":
                     return await self._handle_workflow_operation(arguments)
-                elif tool_name == "query_tool":
+                if tool_name == "query_tool":
                     return await self._handle_query_operation(arguments)
 
                 return {"success": False, "error": "unknown_tool"}
@@ -66,15 +66,15 @@ class TestEntityDryMode:
                 entity_id = arguments.get("id")
                 data = arguments.get("data", {})
 
-                if operation == "create":
+                if operation == "create" and entity_type:
                     return await self._create_entity(entity_type, data)
-                elif operation == "read":
+                if operation == "read" and entity_type and entity_id:
                     return await self._read_entity(entity_type, entity_id)
-                elif operation == "update":
+                if operation == "update" and entity_type and entity_id:
                     return await self._update_entity(entity_type, entity_id, data)
-                elif operation == "delete":
+                if operation == "delete" and entity_type and entity_id:
                     return await self._delete_entity(entity_type, entity_id)
-                elif operation == "list":
+                if operation == "list" and entity_type:
                     return await self._list_entities(entity_type)
 
                 return {"success": False, "error": "unknown_operation"}
@@ -101,8 +101,7 @@ class TestEntityDryMode:
 
                 if entity:
                     return {"success": True, "data": entity}
-                else:
-                    return {"success": False, "error": "not_found"}
+                return {"success": False, "error": "not_found"}
 
             async def _update_entity(self, entity_type: str, entity_id: str, data: dict) -> dict:
                 entities = self.store.get(f"{entity_type}s", {})
@@ -112,16 +111,14 @@ class TestEntityDryMode:
                     entity.update(data)
                     entity["updated_at"] = datetime.now().isoformat() + "Z"
                     return {"success": True, "data": entity}
-                else:
-                    return {"success": False, "error": "not_found"}
+                return {"success": False, "error": "not_found"}
 
             async def _delete_entity(self, entity_type: str, entity_id: str) -> dict:
                 entities = self.store.get(f"{entity_type}s", {})
                 if entity_id in entities:
                     del entities[entity_id]
                     return {"success": True}
-                else:
-                    return {"success": False, "error": "not_found"}
+                return {"success": False, "error": "not_found"}
 
             async def _list_entities(self, entity_type: str) -> dict:
                 entities = list(self.store.get(f"{entity_type}s", {}).values())
@@ -477,6 +474,8 @@ class TestEntityLogicDry:
                 """Validate project data."""
                 for field in self.rules["required_project_fields"]:
                     if field not in data:
+                        if field == "organization_id":
+                            return False, "Project must belong to an organization"
                         return False, f"Missing required field: {field}"
 
                 if not data.get("organization_id"):

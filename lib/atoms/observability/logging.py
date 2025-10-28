@@ -26,10 +26,10 @@ from typing import Any
 from uuid import uuid4
 
 # Context variables for request tracking
-correlation_id_var: ContextVar[str | None] = ContextVar('correlation_id', default=None)
-user_id_var: ContextVar[str | None] = ContextVar('user_id', default=None)
-session_id_var: ContextVar[str | None] = ContextVar('session_id', default=None)
-request_path_var: ContextVar[str | None] = ContextVar('request_path', default=None)
+correlation_id_var: ContextVar[str | None] = ContextVar("correlation_id", default=None)
+user_id_var: ContextVar[str | None] = ContextVar("user_id", default=None)
+session_id_var: ContextVar[str | None] = ContextVar("session_id", default=None)
+request_path_var: ContextVar[str | None] = ContextVar("request_path", default=None)
 
 
 class LogLevel(str, Enum):
@@ -114,11 +114,11 @@ class StructuredFormatter(logging.Formatter):
             }
 
         # Add custom fields from extra
-        if hasattr(record, 'extra_fields'):
+        if hasattr(record, "extra_fields"):
             log_data.update(record.extra_fields)
 
         # Add performance metrics if present
-        if hasattr(record, 'performance'):
+        if hasattr(record, "performance"):
             log_data["performance"] = record.performance
 
         return json.dumps(log_data, default=str)
@@ -128,10 +128,9 @@ class StructuredFormatter(logging.Formatter):
         dt = datetime.fromtimestamp(created)
         if self.timestamp_format == "iso8601":
             return dt.isoformat()
-        elif self.timestamp_format == "unix":
+        if self.timestamp_format == "unix":
             return str(created)
-        else:
-            return dt.strftime(self.timestamp_format)
+        return dt.strftime(self.timestamp_format)
 
     def _get_context(self) -> dict[str, Any]:
         """Extract context from context variables."""
@@ -191,7 +190,7 @@ class AtomLogger:
             formatter = StructuredFormatter()
         else:
             formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
 
         # Console handler
@@ -230,9 +229,9 @@ class AtomLogger:
         """Internal logging method with extra fields support."""
         extra = {}
         if extra_fields:
-            extra['extra_fields'] = extra_fields
+            extra["extra_fields"] = extra_fields
         if performance:
-            extra['performance'] = performance.to_dict()
+            extra["performance"] = performance.to_dict()
 
         self.logger.log(level, message, exc_info=exc_info, extra=extra)
 
@@ -334,6 +333,7 @@ class LogContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Restore previous context variables."""
+        # Restore context variables (exc_tb is part of Python's context manager protocol)
         correlation_id_var.set(self._prev_correlation_id)
         user_id_var.set(self._prev_user_id)
         session_id_var.set(self._prev_session_id)

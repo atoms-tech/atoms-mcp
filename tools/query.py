@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Literal
+from importlib import import_module
+from typing import Any, Literal, NoReturn
 
 try:
     from .base import ToolBase
 except ImportError:
     from tools.base import ToolBase
+
+from datetime import UTC, datetime, timedelta
 
 from schemas.constants import TABLES_WITHOUT_SOFT_DELETE, Tables
 from schemas.enums import QueryType, RAGMode
@@ -21,6 +24,14 @@ from schemas.rls import (
     RequirementPolicy,
     TestPolicy,
 )
+
+RELATIONSHIP_TABLE_ENTITY_MAP: dict[str, set[str]] = {
+    Tables.ORGANIZATION_MEMBERS: {"organization", "user", "profile"},
+    Tables.PROJECT_MEMBERS: {"project", "user", "profile"},
+    Tables.TRACE_LINKS: {"requirement", "document", "test"},
+    Tables.ASSIGNMENTS: {"requirement", "project", "document", "test"},
+    Tables.REQUIREMENT_TESTS: {"requirement", "test"},
+}
 
 
 class DataQueryEngine(ToolBase):
@@ -72,10 +83,9 @@ class DataQueryEngine(ToolBase):
     def _init_rag_services(self):
         """Initialize RAG services on first use."""
         if self._embedding_service is None:
-            from config.vector import (
-                get_embedding_service,
-                get_enhanced_vector_search_service,
-            )
+            vector_module = import_module("config.vector")
+            get_embedding_service = vector_module.get_embedding_service
+            get_enhanced_vector_search_service = vector_module.get_enhanced_vector_search_service
             self._embedding_service = get_embedding_service()
             self._vector_search_service = get_enhanced_vector_search_service(self.supabase)
 
@@ -163,8 +173,7 @@ class DataQueryEngine(ToolBase):
                     filters["is_deleted"] = False
 
                 # Parallel execution of count queries
-                from datetime import datetime, timedelta, timezone
-                thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+                thirty_days_ago = (datetime.now(UTC) - timedelta(days=30)).isoformat()
                 recent_filters = filters.copy()
                 recent_filters["created_at"] = {"gte": thirty_days_ago}
 
@@ -196,18 +205,21 @@ class DataQueryEngine(ToolBase):
                     for record in status_data:
                         status = record.get("status", "unknown")
                         status_breakdown[status] = status_breakdown.get(status, 0) + 1
-
-                return (entity_type, {
+                result_payload = {
                     "total_count": total_count,
                     "recent_count": recent_count,
                     "status_breakdown": status_breakdown
-                })
+                }
+                if projections:
+                    result_payload["requested_fields"] = projections
 
             except Exception as e:
                 return (entity_type, {
                     "error": str(e),
                     "total_count": 0
                 })
+            else:
+                return (entity_type, result_payload)
 
         # Execute all aggregations in parallel
         agg_tasks = [aggregate_entity(et) for et in entities]
@@ -243,126 +255,28 @@ class DataQueryEngine(ToolBase):
 
                 # Entity-specific analysis
                 if entity_type == "organization":
-                    # Analyze organization metrics with parallel queries
-                    all_orgs = await self._db_query(table, filters=filters)
-                    # Filter organizations through RLS
-                    orgs = await self._filter_results_by_rls(all_orgs, table)
+                    analysis_payload = await self._analyze_organization_metrics(table, filters, total_count)
 
-                    # Parallelize all member/project count queries
-                    async def get_org_stats(org):
-                        member_task = self._db_count(
-                            Tables.ORGANIZATION_MEMBERS,
-                            {"organization_id": org["id"], "status": "active"}
-                        )
-                        project_task = self._db_count(
-                            Tables.PROJECTS,
-                            {"organization_id": org["id"], "is_deleted": False}
-                        )
-                        return await asyncio.gather(member_task, project_task, return_exceptions=True)
+                elif entity_type == "project":
+                    analysis_payload = await self._analyze_project_metrics(table, filters, total_count)
 
-                    org_stats_tasks = [get_org_stats(org) for org in orgs]
-                    all_org_stats = await asyncio.gather(*org_stats_tasks)
+                elif entity_type == "requirement":
+                    analysis_payload = await self._analyze_requirement_metrics(table, filters, total_count)
 
-                    member_counts = [stats[0] for stats in all_org_stats if not isinstance(stats[0], Exception)]
-                    project_counts = [stats[1] for stats in all_org_stats if len(stats) > 1 and not isinstance(stats[1], Exception)]
-
-                    return (entity_type, {
-                        "total_organizations": total_count,
-                        "avg_members_per_org": sum(member_counts) / len(member_counts) if member_counts else 0,
-                        "avg_projects_per_org": sum(project_counts) / len(project_counts) if project_counts else 0,
-                        "member_distribution": {
-                            "min": min(member_counts) if member_counts else 0,
-                            "max": max(member_counts) if member_counts else 0
-                        }
-                    })
-
-                if entity_type == "project":
-                    # Analyze project metrics with massive parallelization
-                    all_projects = await self._db_query(table, filters=filters)
-                    # Filter projects through RLS
-                    projects = await self._filter_results_by_rls(all_projects, table)
-
-                    async def get_project_stats(project):
-                        """Get all stats for a single project in parallel."""
-                        # Get documents first
-                        docs = await self._db_query(
-                            Tables.DOCUMENTS,
-                            select="id",
-                            filters={"project_id": project["id"], "is_deleted": False}
-                        )
-
-                        # Count documents and all requirements in parallel
-                        doc_count = len(docs)
-                        req_tasks = [
-                            self._db_count(Tables.REQUIREMENTS, {"document_id": doc["id"], "is_deleted": False})
-                            for doc in docs
-                        ]
-
-                        req_counts = await asyncio.gather(*req_tasks, return_exceptions=True)
-                        total_reqs = sum(c for c in req_counts if not isinstance(c, Exception))
-
-                        return (doc_count, total_reqs)
-
-                    # Execute all project analyses in parallel
-                    project_tasks = [get_project_stats(p) for p in projects]
-                    all_project_stats = await asyncio.gather(*project_tasks)
-
-                    doc_counts = [stats[0] for stats in all_project_stats]
-                    req_counts = [stats[1] for stats in all_project_stats]
-
-                    return (entity_type, {
-                        "total_projects": total_count,
-                        "avg_documents_per_project": sum(doc_counts) / len(doc_counts) if doc_counts else 0,
-                        "avg_requirements_per_project": sum(req_counts) / len(req_counts) if req_counts else 0,
-                        "complexity_distribution": {
-                            "simple": len([c for c in req_counts if c < 10]),
-                            "medium": len([c for c in req_counts if 10 <= c < 50]),
-                            "complex": len([c for c in req_counts if c >= 50])
-                        }
-                    })
-
-                if entity_type == "requirement":
-                    # Analyze requirements
-                    all_reqs = await self._db_query(table, filters=filters, select="status, priority")
-                    # Filter requirements through RLS
-                    reqs = await self._filter_results_by_rls(all_reqs, table)
-
-                    status_counts: dict[str, int] = {}
-                    priority_counts: dict[str, int] = {}
-
-                    for req in reqs:
-                        status = req.get("status", "unknown")
-                        priority = req.get("priority", "unknown")
-
-                        status_counts[status] = status_counts.get(status, 0) + 1
-                        priority_counts[priority] = priority_counts.get(priority, 0) + 1
-
-                    # Get test coverage
-                    total_reqs = len(reqs)
-                    tested_reqs = await self._db_count(Tables.REQUIREMENT_TESTS)
-                    coverage_percentage = (tested_reqs / total_reqs * 100) if total_reqs > 0 else 0
-
-                    return (entity_type, {
-                        "total_requirements": total_count,
-                        "status_distribution": status_counts,
-                        "priority_distribution": priority_counts,
-                        "test_coverage": {
-                            "tested_requirements": tested_reqs,
-                            "coverage_percentage": round(coverage_percentage, 2)
-                        }
-                    })
-
-                # Basic analysis for other entity types
-                return (entity_type, {
-                    "total_count": total_count,
-                    "analysis": "basic_metrics_only"
-                })
+                else:
+                    # Basic analysis for other entity types
+                    analysis_payload = {
+                        "total_count": total_count,
+                        "analysis": "basic_metrics_only"
+                    }
 
             except Exception as e:
                 return (entity_type, {
                     "error": str(e),
                     "total_count": 0
                 })
+            else:
+                return (entity_type, analysis_payload)
 
         # Execute all analyses in parallel
         analysis_tasks = [analyze_entity(et) for et in entities]
@@ -377,6 +291,122 @@ class DataQueryEngine(ToolBase):
             "analysis": analysis
         }
 
+    async def _analyze_organization_metrics(
+        self,
+        table: str,
+        filters: dict[str, Any],
+        total_count: int,
+    ) -> dict[str, Any]:
+        all_orgs = await self._db_query(table, filters=filters)
+        orgs = await self._filter_results_by_rls(all_orgs, table)
+
+        async def get_org_stats(org):
+            member_task = self._db_count(
+                Tables.ORGANIZATION_MEMBERS,
+                {"organization_id": org["id"], "status": "active"}
+            )
+            project_task = self._db_count(
+                Tables.PROJECTS,
+                {"organization_id": org["id"], "is_deleted": False}
+            )
+            return await asyncio.gather(member_task, project_task, return_exceptions=True)
+
+        org_stats_tasks = [get_org_stats(org) for org in orgs]
+        all_org_stats = await asyncio.gather(*org_stats_tasks) if org_stats_tasks else []
+
+        member_counts = [stats[0] for stats in all_org_stats if not isinstance(stats[0], Exception)]
+        project_counts = [
+            stats[1]
+            for stats in all_org_stats
+            if len(stats) > 1 and not isinstance(stats[1], Exception)
+        ]
+
+        return {
+            "total_organizations": total_count,
+            "avg_members_per_org": sum(member_counts) / len(member_counts) if member_counts else 0,
+            "avg_projects_per_org": sum(project_counts) / len(project_counts) if project_counts else 0,
+            "member_distribution": {
+                "min": min(member_counts) if member_counts else 0,
+                "max": max(member_counts) if member_counts else 0,
+            },
+        }
+
+    async def _analyze_project_metrics(
+        self,
+        table: str,
+        filters: dict[str, Any],
+        total_count: int,
+    ) -> dict[str, Any]:
+        all_projects = await self._db_query(table, filters=filters)
+        projects = await self._filter_results_by_rls(all_projects, table)
+
+        async def get_project_stats(project):
+            docs = await self._db_query(
+                Tables.DOCUMENTS,
+                select="id",
+                filters={"project_id": project["id"], "is_deleted": False},
+            )
+
+            doc_count = len(docs)
+            req_tasks = [
+                self._db_count(Tables.REQUIREMENTS, {"document_id": doc["id"], "is_deleted": False})
+                for doc in docs
+            ]
+
+            req_counts = await asyncio.gather(*req_tasks, return_exceptions=True) if req_tasks else []
+            total_reqs = sum(c for c in req_counts if not isinstance(c, Exception))
+
+            return (doc_count, total_reqs)
+
+        project_tasks = [get_project_stats(p) for p in projects]
+        all_project_stats = await asyncio.gather(*project_tasks) if project_tasks else []
+
+        doc_counts = [stats[0] for stats in all_project_stats]
+        req_counts = [stats[1] for stats in all_project_stats]
+
+        return {
+            "total_projects": total_count,
+            "avg_documents_per_project": sum(doc_counts) / len(doc_counts) if doc_counts else 0,
+            "avg_requirements_per_project": sum(req_counts) / len(req_counts) if req_counts else 0,
+            "complexity_distribution": {
+                "simple": len([c for c in req_counts if c < 10]),
+                "medium": len([c for c in req_counts if 10 <= c < 50]),
+                "complex": len([c for c in req_counts if c >= 50]),
+            },
+        }
+
+    async def _analyze_requirement_metrics(
+        self,
+        table: str,
+        filters: dict[str, Any],
+        total_count: int,
+    ) -> dict[str, Any]:
+        all_reqs = await self._db_query(table, filters=filters, select="status, priority")
+        reqs = await self._filter_results_by_rls(all_reqs, table)
+
+        status_counts: dict[str, int] = {}
+        priority_counts: dict[str, int] = {}
+
+        for req in reqs:
+            status = req.get("status", "unknown")
+            priority = req.get("priority", "unknown")
+            status_counts[status] = status_counts.get(status, 0) + 1
+            priority_counts[priority] = priority_counts.get(priority, 0) + 1
+
+        total_reqs = len(reqs)
+        tested_reqs = await self._db_count(Tables.REQUIREMENT_TESTS)
+        coverage_percentage = (tested_reqs / total_reqs * 100) if total_reqs > 0 else 0
+
+        return {
+            "total_requirements": total_count,
+            "status_distribution": status_counts,
+            "priority_distribution": priority_counts,
+            "test_coverage": {
+                "tested_requirements": tested_reqs,
+                "coverage_percentage": round(coverage_percentage, 2),
+            },
+        }
+
     async def _relationship_query(
         self,
         entities: list[str],
@@ -384,15 +414,24 @@ class DataQueryEngine(ToolBase):
     ) -> dict[str, Any]:
         """Analyze relationships between entities."""
         relationships = {}
+        requested_entities = {entity.lower() for entity in entities}
 
         # Analyze common relationship patterns
-        relationship_tables = [
+        default_tables = [
             Tables.ORGANIZATION_MEMBERS,
             Tables.PROJECT_MEMBERS,
             Tables.TRACE_LINKS,
             Tables.ASSIGNMENTS,
             Tables.REQUIREMENT_TESTS
         ]
+
+        if requested_entities:
+            relationship_tables = [
+                table for table in default_tables
+                if requested_entities & RELATIONSHIP_TABLE_ENTITY_MAP.get(table, set())
+            ] or default_tables
+        else:
+            relationship_tables = default_tables
 
         for rel_table in relationship_tables:
             try:
@@ -451,13 +490,13 @@ class DataQueryEngine(ToolBase):
         """Perform RAG-enabled search across entities."""
         self._init_rag_services()
 
+        def _raise_unsupported_mode(current_mode: str) -> NoReturn:
+            raise ValueError(f"Unsupported search mode: {current_mode}")
+
         # Auto-detect search mode if needed
         if mode == RAGMode.AUTO.value:
             # Simple heuristic: use semantic for longer queries, keyword for short/specific terms
-            if len(query.split()) >= 3:
-                mode = RAGMode.SEMANTIC.value
-            else:
-                mode = RAGMode.KEYWORD.value
+            mode = RAGMode.SEMANTIC.value if len(query.split()) >= 3 else RAGMode.KEYWORD.value
 
         try:
             # Perform the appropriate search
@@ -485,7 +524,7 @@ class DataQueryEngine(ToolBase):
                     filters=conditions
                 )
             else:
-                raise ValueError(f"Unsupported search mode: {mode}")
+                _raise_unsupported_mode(mode)
 
             # Format results and filter through RLS
             formatted_results = []
@@ -637,6 +676,30 @@ async def data_query(
     Returns:
         Dict containing query results and analysis
     """
+    def _raise_value_error(message: str) -> NoReturn:
+        raise ValueError(message)
+
+    def _require_search_term(context: str):
+        if not search_term:
+            _raise_value_error(f"search_term is required for {context} queries")
+
+    def _require_content():
+        if not content:
+            _raise_value_error("content is required for similarity queries")
+
+    def _require_similarity_entity(target_entity: str | None, valid: list[str]) -> str:
+        entity_candidate = target_entity or (valid[0] if valid else None)
+        if not entity_candidate:
+            _raise_value_error("entity_type (singular) or entities (array) is required for similarity queries")
+        return entity_candidate
+
+    def _require_valid_entities(valid: list[str]):
+        if not valid:
+            _raise_value_error("No valid entity types provided")
+
+    def _raise_unknown_query_type(requested_type: str) -> NoReturn:
+        _raise_value_error(f"Unknown query type: {requested_type}")
+
     try:
         # Validate authentication
         await _query_engine._validate_auth(auth_token)
@@ -649,70 +712,57 @@ async def data_query(
                 valid_entities.append(entity)
             except ValueError:
                 # Skip invalid entity types
-                pass
+                continue
 
-        if not valid_entities:
-            raise ValueError("No valid entity types provided")
+        _require_valid_entities(valid_entities)
 
-        # Execute query based on type
-        if query_type == QueryType.SEARCH.value:
-            if not search_term:
-                raise ValueError("search_term is required for search queries")
-            result = await _query_engine._search_query(
-                valid_entities, search_term, conditions, limit
-            )
+        async def _execute_query(selected_entities: list[str]) -> dict[str, Any]:
+            if query_type == QueryType.SEARCH.value:
+                _require_search_term("search")
+                return await _query_engine._search_query(
+                    selected_entities, search_term, conditions, limit
+                )
 
-        elif query_type == QueryType.AGGREGATE.value:
-            result = await _query_engine._aggregate_query(
-                valid_entities, conditions, projections
-            )
+            if query_type == QueryType.AGGREGATE.value:
+                return await _query_engine._aggregate_query(
+                    selected_entities, conditions, projections
+                )
 
-        elif query_type == QueryType.ANALYZE.value:
-            result = await _query_engine._analyze_query(
-                valid_entities, conditions
-            )
+            if query_type == QueryType.ANALYZE.value:
+                return await _query_engine._analyze_query(
+                    selected_entities, conditions
+                )
 
-        elif query_type == QueryType.RELATIONSHIPS.value:
-            result = await _query_engine._relationship_query(
-                valid_entities, conditions
-            )
+            if query_type == QueryType.RELATIONSHIPS.value:
+                return await _query_engine._relationship_query(
+                    selected_entities, conditions
+                )
 
-        elif query_type == QueryType.RAG_SEARCH.value:
-            if not search_term:
-                raise ValueError("search_term is required for rag_search queries")
-            result = await _query_engine._rag_search_query(
-                query=search_term,
-                mode=rag_mode,
-                entities=valid_entities,
-                similarity_threshold=similarity_threshold,
-                limit=limit or 10,
-                conditions=conditions
-            )
+            if query_type == QueryType.RAG_SEARCH.value:
+                _require_search_term("rag_search")
+                return await _query_engine._rag_search_query(
+                    query=search_term or "",
+                    mode=rag_mode,
+                    entities=selected_entities,
+                    similarity_threshold=similarity_threshold,
+                    limit=limit or 10,
+                    conditions=conditions
+                )
 
-        elif query_type == QueryType.SIMILARITY.value:
-            if not content:
-                raise ValueError("content is required for similarity queries")
+            if query_type == QueryType.SIMILARITY.value:
+                _require_content()
+                target_entity_type = _require_similarity_entity(entity_type, selected_entities)
+                return await _query_engine._similarity_analysis(
+                    content=content or "",
+                    entity_type=target_entity_type,
+                    similarity_threshold=similarity_threshold,
+                    limit=limit or 10,
+                    exclude_id=exclude_id
+                )
 
-            # Accept both entity_type (singular) and entities (array) for flexibility
-            target_entity_type = entity_type
-            if not target_entity_type and valid_entities:
-                # Use first valid entity from entities array
-                target_entity_type = valid_entities[0]
+            _raise_unknown_query_type(query_type)
 
-            if not target_entity_type:
-                raise ValueError("entity_type (singular) or entities (array) is required for similarity queries")
-
-            result = await _query_engine._similarity_analysis(
-                content=content,
-                entity_type=target_entity_type,
-                similarity_threshold=similarity_threshold,
-                limit=limit or 10,
-                exclude_id=exclude_id
-            )
-
-        else:
-            raise ValueError(f"Unknown query type: {query_type}")
-
+        result = await _execute_query(valid_entities)
         return _query_engine._format_result(result, format_type)
 
     except Exception as e:

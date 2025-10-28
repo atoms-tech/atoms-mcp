@@ -58,6 +58,7 @@ async def test_set_context(client_adapter):
     })
 
     assert result["success"], f"Failed: {result.get('error')}"
+    return None
 
 
 @pytest.mark.asyncio

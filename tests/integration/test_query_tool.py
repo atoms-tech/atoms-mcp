@@ -335,11 +335,10 @@ class QueryToolTester:
             success = result.get("success", True) and "error" not in result
             print(f"Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results_by_entity" in result:
-                    for entity_type, entity_data in result["results_by_entity"].items():
-                        count = entity_data.get("count", 0)
-                        print(f"  - {entity_type}: {count} results")
+            if success and "results_by_entity" in result:
+                for entity_type, entity_data in result["results_by_entity"].items():
+                    count = entity_data.get("count", 0)
+                    print(f"  - {entity_type}: {count} results")
 
             self.report.add_test(
                 operation="filter_by_entity_type",
@@ -382,11 +381,10 @@ class QueryToolTester:
             success = result.get("success", True) and "error" not in result
             print(f"Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results_by_entity" in result:
-                    for entity_type, entity_data in result["results_by_entity"].items():
-                        count = entity_data.get("count", 0)
-                        print(f"  - {entity_type} (status=active): {count} results")
+            if success and "results_by_entity" in result:
+                for entity_type, entity_data in result["results_by_entity"].items():
+                    count = entity_data.get("count", 0)
+                    print(f"  - {entity_type} (status=active): {count} results")
 
             self.report.add_test(
                 operation="filter_by_properties",
@@ -565,11 +563,10 @@ class QueryToolTester:
             success = result.get("success", True) and "error" not in result
             print(f"Limit Test Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results_by_entity" in result:
-                    for entity_type, entity_data in result["results_by_entity"].items():
-                        count = entity_data.get("count", 0)
-                        print(f"  - {entity_type}: {count} results (limit=2)")
+            if success and "results_by_entity" in result:
+                for entity_type, entity_data in result["results_by_entity"].items():
+                    count = entity_data.get("count", 0)
+                    print(f"  - {entity_type}: {count} results (limit=2)")
 
             self.report.add_test(
                 operation="pagination_with_limit",
@@ -613,13 +610,12 @@ class QueryToolTester:
             success = result.get("success", True) and "error" not in result
             print(f"Aggregate Query Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results" in result:
-                    for entity_type, stats in result["results"].items():
-                        print(f"  - {entity_type}:")
-                        for key, value in stats.items():
-                            if key != "error":
-                                print(f"    - {key}: {value}")
+            if success and "results" in result:
+                for entity_type, stats in result["results"].items():
+                    print(f"  - {entity_type}:")
+                    for key, value in stats.items():
+                        if key != "error":
+                            print(f"    - {key}: {value}")
 
             self.report.add_test(
                 operation="aggregate_query",
@@ -661,11 +657,10 @@ class QueryToolTester:
             success = result.get("success", True) and "error" not in result
             print(f"Relationship Query Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "relationships" in result:
-                    for rel_table, rel_data in result["relationships"].items():
-                        count = rel_data.get("total_count", 0)
-                        print(f"  - {rel_table}: {count} relationships")
+            if success and "relationships" in result:
+                for rel_table, rel_data in result["relationships"].items():
+                    count = rel_data.get("total_count", 0)
+                    print(f"  - {rel_table}: {count} relationships")
 
             self.report.add_test(
                 operation="relationship_query",
@@ -707,13 +702,12 @@ class QueryToolTester:
             success = result.get("success", True) and "error" not in result
             print(f"Analysis Query Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "analysis" in result:
-                    for entity_type, analysis in result["analysis"].items():
-                        print(f"  - {entity_type}:")
-                        for key, value in analysis.items():
-                            if key != "error":
-                                print(f"    - {key}: {value}")
+            if success and "analysis" in result:
+                for entity_type, analysis in result["analysis"].items():
+                    print(f"  - {entity_type}:")
+                    for key, value in analysis.items():
+                        if key != "error":
+                            print(f"    - {key}: {value}")
 
             self.report.add_test(
                 operation="analyze_query",

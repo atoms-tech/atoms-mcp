@@ -5,7 +5,6 @@ from .fixtures import (
     client_adapter,
     oauth_broker,
     oauth_http_client,
-    oauth_token_payload,
     tool_runner,
 )
 
@@ -14,6 +13,5 @@ __all__ = [
     "client_adapter",
     "oauth_broker",
     "oauth_http_client",
-    "oauth_token_payload",
     "tool_runner",
 ]

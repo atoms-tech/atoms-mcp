@@ -30,6 +30,7 @@ logger = get_logger(__name__)
 
 class MetricType(str, Enum):
     """Prometheus metric types."""
+    # Metric types used for Prometheus compatibility
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -84,7 +85,7 @@ class Counter:
     def _get_label_values(self, labels: dict[str, str] | None) -> tuple[str, ...]:
         """Convert label dict to tuple for indexing."""
         if not labels:
-            return tuple()
+            return ()
         return tuple(labels.get(name, "") for name in self.label_names)
 
     def collect(self) -> list[tuple[dict[str, str], float]]:
@@ -92,7 +93,7 @@ class Counter:
         with self._lock:
             result = []
             for label_tuple, value in self._values.items():
-                label_dict = dict(zip(self.label_names, label_tuple))
+                label_dict = dict(zip(self.label_names, label_tuple, strict=False))
                 result.append((label_dict, value))
             return result
 
@@ -139,7 +140,7 @@ class Gauge:
     def _get_label_values(self, labels: dict[str, str] | None) -> tuple[str, ...]:
         """Convert label dict to tuple for indexing."""
         if not labels:
-            return tuple()
+            return ()
         return tuple(labels.get(name, "") for name in self.label_names)
 
     def collect(self) -> list[tuple[dict[str, str], float]]:
@@ -147,7 +148,7 @@ class Gauge:
         with self._lock:
             result = []
             for label_tuple, value in self._values.items():
-                label_dict = dict(zip(self.label_names, label_tuple))
+                label_dict = dict(zip(self.label_names, label_tuple, strict=False))
                 result.append((label_dict, value))
             return result
 
@@ -212,7 +213,7 @@ class Histogram:
         label_values = self._get_label_values(labels)
         with self._lock:
             counts = self._bucket_counts[label_values]
-            return list(zip(self.buckets, counts))
+            return list(zip(self.buckets, counts, strict=False))
 
     def get_sum(self, labels: dict[str, str] | None = None) -> float:
         """Get sum of all observations."""
@@ -229,16 +230,16 @@ class Histogram:
     def _get_label_values(self, labels: dict[str, str] | None) -> tuple[str, ...]:
         """Convert label dict to tuple for indexing."""
         if not labels:
-            return tuple()
+            return ()
         return tuple(labels.get(name, "") for name in self.label_names)
 
     def collect(self) -> list[tuple[dict[str, str], list[tuple[float, int]], float, int]]:
         """Collect all metric values with labels."""
         with self._lock:
             result = []
-            for label_tuple in self._bucket_counts.keys():
-                label_dict = dict(zip(self.label_names, label_tuple))
-                buckets = list(zip(self.buckets, self._bucket_counts[label_tuple]))
+            for label_tuple in self._bucket_counts:
+                label_dict = dict(zip(self.label_names, label_tuple, strict=False))
+                buckets = list(zip(self.buckets, self._bucket_counts[label_tuple], strict=False))
                 sum_value = self._sums[label_tuple]
                 count_value = self._counts[label_tuple]
                 result.append((label_dict, buckets, sum_value, count_value))
@@ -333,9 +334,9 @@ class MetricsRegistry:
         """Get metric type string."""
         if isinstance(metric, Counter):
             return "counter"
-        elif isinstance(metric, Gauge):
+        if isinstance(metric, Gauge):
             return "gauge"
-        elif isinstance(metric, Histogram):
+        if isinstance(metric, Histogram):
             return "histogram"
         return "unknown"
 

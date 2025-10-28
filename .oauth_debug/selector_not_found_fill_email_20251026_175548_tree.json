@@ -1,0 +1,37 @@
+{
+  "role": "WebArea",
+  "name": "Sign in",
+  "children": [
+    {
+      "role": "heading",
+      "name": "Sign in",
+      "level": 1
+    },
+    {
+      "role": "text",
+      "name": "Email"
+    },
+    {
+      "role": "textbox",
+      "name": "Email",
+      "focused": true,
+      "required": true
+    },
+    {
+      "role": "button",
+      "name": "Continue"
+    },
+    {
+      "role": "text",
+      "name": "OR"
+    },
+    {
+      "role": "link",
+      "name": "Continue with Google"
+    },
+    {
+      "role": "link",
+      "name": "Continue with GitHub"
+    }
+  ]
+}

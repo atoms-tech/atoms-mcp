@@ -37,6 +37,7 @@ class HealthStatus(str, Enum):
 class ComponentType(str, Enum):
     """Types of system components."""
     DATABASE = "database"
+    # Component types used for health check categorization
     CACHE = "cache"
     EXTERNAL_API = "external_api"
     AUTH_SERVICE = "auth_service"
@@ -151,14 +152,13 @@ class SupabaseHealthCheck(HealthCheck):
                     message="Supabase connection is healthy",
                     response_time_ms=response_time_ms
                 )
-            else:
-                return HealthCheckResult(
-                    component_name=self.name,
-                    component_type=self.component_type,
-                    status=HealthStatus.UNHEALTHY,
-                    message="Supabase query returned no results",
-                    response_time_ms=response_time_ms
-                )
+            return HealthCheckResult(
+                component_name=self.name,
+                component_type=self.component_type,
+                status=HealthStatus.UNHEALTHY,
+                message="Supabase query returned no results",
+                response_time_ms=response_time_ms
+            )
 
         except TimeoutError:
             return HealthCheckResult(
@@ -168,19 +168,19 @@ class SupabaseHealthCheck(HealthCheck):
                 message=f"Supabase health check timed out after {self.timeout_seconds}s"
             )
         except Exception as e:
-            logger.error(f"Supabase health check failed: {str(e)}", exc_info=True)
+            logger.error(f"Supabase health check failed: {e!s}", exc_info=True)
             return HealthCheckResult(
                 component_name=self.name,
                 component_type=self.component_type,
                 status=HealthStatus.UNHEALTHY,
-                message=f"Supabase error: {str(e)}"
+                message=f"Supabase error: {e!s}"
             )
 
     async def _test_connection(self) -> bool:
         """Test database connection with simple query."""
         try:
             # Execute a simple query
-            self.client.table('_health_check').select('*').limit(1).execute()
+            self.client.table("_health_check").select("*").limit(1).execute()
             return True
         except Exception:
             # If table doesn't exist, try a different approach
@@ -234,12 +234,12 @@ class AuthKitHealthCheck(HealthCheck):
                 message=f"AuthKit health check timed out after {self.timeout_seconds}s"
             )
         except Exception as e:
-            logger.error(f"AuthKit health check failed: {str(e)}", exc_info=True)
+            logger.error(f"AuthKit health check failed: {e!s}", exc_info=True)
             return HealthCheckResult(
                 component_name=self.name,
                 component_type=self.component_type,
                 status=HealthStatus.UNHEALTHY,
-                message=f"AuthKit error: {str(e)}"
+                message=f"AuthKit error: {e!s}"
             )
 
     async def _test_authkit(self) -> bool:
@@ -247,7 +247,7 @@ class AuthKitHealthCheck(HealthCheck):
         try:
             # Simple API call to verify service
             # This would depend on your AuthKit client implementation
-            if hasattr(self.client, 'health_check'):
+            if hasattr(self.client, "health_check"):
                 return await self.client.health_check()
             return True
         except Exception:
@@ -308,12 +308,12 @@ class CustomHealthCheck(HealthCheck):
                 message=f"{self.name} health check timed out after {self.timeout_seconds}s"
             )
         except Exception as e:
-            logger.error(f"{self.name} health check failed: {str(e)}", exc_info=True)
+            logger.error(f"{self.name} health check failed: {e!s}", exc_info=True)
             return HealthCheckResult(
                 component_name=self.name,
                 component_type=self.component_type,
                 status=HealthStatus.UNHEALTHY,
-                message=f"{self.name} error: {str(e)}"
+                message=f"{self.name} error: {e!s}"
             )
 
 
@@ -363,10 +363,9 @@ class PerformanceMonitor:
 
         if p95 >= self.critical_threshold_ms:
             return HealthStatus.UNHEALTHY
-        elif p95 >= self.warning_threshold_ms:
+        if p95 >= self.warning_threshold_ms:
             return HealthStatus.DEGRADED
-        else:
-            return HealthStatus.HEALTHY
+        return HealthStatus.HEALTHY
 
 
 class HealthMonitor:
@@ -412,7 +411,7 @@ class HealthMonitor:
                         component_name=check.name,
                         component_type=check.component_type,
                         status=HealthStatus.UNHEALTHY,
-                        message=f"Health check failed: {str(result)}"
+                        message=f"Health check failed: {result!s}"
                     )
                 )
             else:

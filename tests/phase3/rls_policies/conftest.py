@@ -185,7 +185,7 @@ def configured_db_adapter(test_users, test_organizations, test_projects):
         },
     ]
 
-    def mock_get_single(table: str, filters: dict[str, Any]) -> dict[str, Any] | None:
+    def mock_get_single(table: str, filters: dict[str, Any]) -> dict[str, Any] | None
         """Simulate get_single queries."""
         if table == Tables.ORGANIZATION_MEMBERS:
             for member in org_memberships:
@@ -201,14 +201,14 @@ def configured_db_adapter(test_users, test_organizations, test_projects):
 
         if table == Tables.PROJECTS:
             project_id = filters.get("id")
-            for proj_key, proj_data in test_projects.items():
+            for _proj_key, proj_data in test_projects.items():
                 if proj_data["id"] == project_id:
                     return {**proj_data, "is_deleted": False}
             return None
 
         return None
 
-    def mock_query(table: str, filters: dict[str, Any] = None) -> list[dict[str, Any]]:
+    def mock_query(table: str, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Simulate query (returns multiple records)."""
         filters = filters or {}
 
@@ -244,9 +244,9 @@ def make_membership():
     """Factory fixture for creating membership records."""
     def _make_membership(
         user_id: str,
-        org_id: str = None,
-        project_id: str = None,
-        role: str = None,
+        org_id: str | None = None,
+        project_id: str | None = None,
+        role: str | None = None,
         is_deleted: bool = False,
     ) -> dict[str, Any]:
         """Create a membership record."""

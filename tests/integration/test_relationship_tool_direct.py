@@ -74,7 +74,7 @@ def print_subsection(title: str):
     print("-" * 80)
 
 
-async def main():
+async def main()
     """Execute all relationship tool tests."""
     print_section("ATOMS MCP RELATIONSHIP_TOOL COMPREHENSIVE TEST - DIRECT MODE")
 

@@ -90,8 +90,7 @@ async def migration_failing_down(adapter: DatabaseAdapter):
 @pytest_asyncio.fixture
 async def mock_adapter_rollback():
     """Provide mock adapter with rollback support."""
-    adapter = MockDatabaseAdapter()
-    return adapter
+    return MockDatabaseAdapter()
 
 
 @pytest_asyncio.fixture
@@ -538,6 +537,6 @@ class TestRollbackEdgeCases:
 
 __all__ = [
     "TestRollbackCOLD",
-    "TestRollbackHOT",
     "TestRollbackEdgeCases",
+    "TestRollbackHOT",
 ]

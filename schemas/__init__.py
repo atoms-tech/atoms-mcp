@@ -1,18 +1,19 @@
 """
-Schema module for Atoms MCP.
+Schemas convenience package.
 
-Uses GENERATED schemas from supabase-pydantic as the primary source.
-All Pydantic models and enums are auto-generated from the Supabase database.
+This module re-exports:
+1. Generated models/enums from `schemas.generated.fastapi.schema_public_latest`
+2. Application-level constants/enums
+3. RLS validators and trigger emulators
 
-Manual additions:
-- Constants (Tables, Fields) - for convenience
-- RLS validators - for server-side permission checks
-- Trigger emulators - for client-side data transformation
-- Application-level enums (QueryType, RAGMode, etc.) - not in database
+The generated exports are built dynamically so new tables/enums automatically
+become available without hand-editing this file.
 """
 
-# PRIMARY: Generated Pydantic models and database enums
-# SECONDARY: Manual additions for application logic
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from schemas.constants import (
     ENTITY_TABLE_MAP,
     TABLES_WITHOUT_AUDIT_FIELDS,
@@ -20,8 +21,6 @@ from schemas.constants import (
     Fields,
     Tables,
 )
-
-# Application-level enums (not in database, used by MCP tools)
 from schemas.enums import (
     EntityStatus,
     EntityType,
@@ -31,118 +30,7 @@ from schemas.enums import (
     RAGMode,
     RelationshipType,
 )
-from schemas.generated.fastapi.schema_public_latest import (
-    BlockBaseSchema as BlockRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    Document,
-    DocumentInsert,
-    DocumentUpdate,
-    Organization,
-    # Insert/Update Models (for API validation)
-    OrganizationInsert,
-    OrganizationUpdate,
-    Project,
-    ProjectInsert,
-    ProjectUpdate,
-    PublicAssignmentRoleEnum,
-    PublicAuditEventTypeEnum,
-    PublicAuditSeverityEnum,
-    # Database Enums (23 total - generated from Supabase)
-    PublicEntityTypeEnum,
-    PublicRequirementStatusEnum,
-    PublicResourceTypeEnum,
-    Requirement,
-    RequirementInsert,
-    RequirementUpdate,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    DocumentBaseSchema as DocumentRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    # Base Schemas (use as TypedDict-like for DB queries)
-    OrganizationBaseSchema as OrganizationRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    OrganizationInvitationBaseSchema as OrganizationInvitationRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    OrganizationMemberBaseSchema as OrganizationMemberRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    ProfileBaseSchema as ProfileRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    ProjectBaseSchema as ProjectRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    ProjectMemberBaseSchema as ProjectMemberRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PropertyBaseSchema as PropertyRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicBillingPlanEnum as BillingPlan,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicExecutionStatusEnum as ExecutionStatus,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicInvitationStatusEnum as InvitationStatus,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicPricingPlanIntervalEnum as PricingPlanInterval,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicProjectRoleEnum as ProjectRole,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicProjectStatusEnum as ProjectStatus,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicRequirementLevelEnum as RequirementLevel,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicRequirementPriorityEnum as RequirementPriority,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicSubscriptionStatusEnum as SubscriptionStatus,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicTestMethodEnum as TestMethod,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicTestPriorityEnum as TestPriority,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicTestStatusEnum as TestStatus,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicTestTypeEnum as TestType,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicTraceLinkTypeEnum as TraceLinkType,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicUserRoleTypeEnum as UserRoleType,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicUserStatusEnum as UserStatus,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    PublicVisibilityEnum as Visibility,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    RequirementBaseSchema as RequirementRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    RequirementTestBaseSchema as RequirementTestRow,
-)
-from schemas.generated.fastapi.schema_public_latest import (
-    TestReqBaseSchema as TestRow,
-)
-
-# RLS validators
+from schemas.generated.fastapi import schema_public_latest as generated_schema
 from schemas.rls import (
     DocumentPolicy,
     OrganizationMemberPolicy,
@@ -155,93 +43,122 @@ from schemas.rls import (
     RequirementPolicy,
     TestPolicy,
 )
-
-# Trigger emulators
 from schemas.triggers import TriggerEmulator
 
-__all__ = [
-    # Database Enums (from generated)
-    "PublicEntityTypeEnum",
-    "PublicAssignmentRoleEnum",
-    "PublicRequirementStatusEnum",
-    "PublicAuditEventTypeEnum",
-    "PublicAuditSeverityEnum",
-    "PublicResourceTypeEnum",
-    "UserRoleType",
-    "InvitationStatus",
-    "UserStatus",
-    "BillingPlan",
-    "PricingPlanInterval",
-    "ProjectRole",
-    "Visibility",
-    "ProjectStatus",
-    "ExecutionStatus",
-    "RequirementPriority",
-    "RequirementLevel",
-    "SubscriptionStatus",
-    "TestType",
-    "TestPriority",
-    "TestStatus",
-    "TestMethod",
-    "TraceLinkType",
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
-    # Application Enums (manual)
+GeneratedNames = list[str]
+
+
+def _unique(seq: Iterable[str]) -> list[str]:
+    """Preserve order while removing duplicates."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in seq:
+        if item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
+
+
+def _export_from_generated(source_name: str, alias: str | None = None) -> str:
+    """Attach `source_name` from generated schemas to this module."""
+    export_name = alias or source_name
+    globals()[export_name] = getattr(generated_schema, source_name)
+    return export_name
+
+
+def _build_direct_model_exports() -> GeneratedNames:
+    """Explicit models we want to re-export verbatim."""
+    model_names = [
+        "BlockBaseSchema",  # used for block transform helpers
+        "Document",
+        "DocumentInsert",
+        "DocumentUpdate",
+        "Organization",
+        "OrganizationInsert",
+        "OrganizationUpdate",
+        "Project",
+        "ProjectInsert",
+        "ProjectUpdate",
+        "Requirement",
+        "RequirementInsert",
+        "RequirementUpdate",
+    ]
+    exports: list[str] = []
+    for name in model_names:
+        exports.append(_export_from_generated(name))
+    return exports
+
+
+def _build_enum_exports() -> tuple[GeneratedNames, GeneratedNames]:
+    """Export Public*Enum classes and alias them without the prefix where safe."""
+    enum_exports: list[str] = []
+    alias_exports: list[str] = []
+    for name in sorted(dir(generated_schema)):
+        if not (name.startswith("Public") and name.endswith("Enum")):
+            continue
+
+        enum_exports.append(_export_from_generated(name))
+
+        alias = name.removeprefix("Public").removesuffix("Enum")
+        if not alias or alias in globals():
+            continue
+
+        alias_exports.append(_export_from_generated(name, alias=alias))
+
+    return enum_exports, alias_exports
+
+
+def _build_row_exports() -> GeneratedNames:
+    """Alias *BaseSchema classes to *Row for ergonomic DB usage."""
+    row_exports: list[str] = []
+    for name in sorted(dir(generated_schema)):
+        if not name.endswith("BaseSchema"):
+            continue
+        alias = name.removesuffix("BaseSchema") + "Row"
+        if alias in globals():
+            continue
+        row_exports.append(_export_from_generated(name, alias=alias))
+    return row_exports
+
+
+DIRECT_MODEL_EXPORTS = _build_direct_model_exports()
+ENUM_EXPORTS, ENUM_ALIAS_EXPORTS = _build_enum_exports()
+ROW_EXPORTS = _build_row_exports()
+
+MANUAL_EXPORTS = [
+    "ENTITY_TABLE_MAP",
+    "TABLES_WITHOUT_AUDIT_FIELDS",
+    "TABLES_WITHOUT_SOFT_DELETE",
+    "DocumentPolicy",
     "EntityStatus",
     "EntityType",
+    "Fields",
+    "OrganizationMemberPolicy",
+    "OrganizationPolicy",
     "OrganizationType",
+    "PermissionDeniedError",
+    "PolicyValidator",
     "Priority",
+    "ProfilePolicy",
+    "ProjectMemberPolicy",
+    "ProjectPolicy",
     "QueryType",
     "RAGMode",
     "RelationshipType",
-
-    # Row Schemas (for DB queries)
-    "OrganizationRow",
-    "ProjectRow",
-    "DocumentRow",
-    "RequirementRow",
-    "TestRow",
-    "ProfileRow",
-    "BlockRow",
-    "PropertyRow",
-    "OrganizationMemberRow",
-    "ProjectMemberRow",
-    "RequirementTestRow",
-    "OrganizationInvitationRow",
-
-    # Pydantic Models (for API validation)
-    "OrganizationInsert",
-    "OrganizationUpdate",
-    "Organization",
-    "ProjectInsert",
-    "ProjectUpdate",
-    "Project",
-    "DocumentInsert",
-    "DocumentUpdate",
-    "Document",
-    "RequirementInsert",
-    "RequirementUpdate",
-    "Requirement",
-
-    # Constants
-    "Tables",
-    "Fields",
-    "TABLES_WITHOUT_SOFT_DELETE",
-    "TABLES_WITHOUT_AUDIT_FIELDS",
-    "ENTITY_TABLE_MAP",
-
-    # RLS Validators
-    "PolicyValidator",
-    "PermissionDeniedError",
-    "OrganizationPolicy",
-    "ProjectPolicy",
-    "DocumentPolicy",
     "RequirementPolicy",
+    "Tables",
     "TestPolicy",
-    "ProfilePolicy",
-    "OrganizationMemberPolicy",
-    "ProjectMemberPolicy",
-
-    # Trigger Emulators
     "TriggerEmulator",
 ]
 
+__all__ = _unique(
+    MANUAL_EXPORTS
+    + DIRECT_MODEL_EXPORTS
+    + ENUM_EXPORTS
+    + ENUM_ALIAS_EXPORTS
+    + ROW_EXPORTS
+)

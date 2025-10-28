@@ -176,7 +176,7 @@ class TestDryModePerformance:
         start = time.time()
 
         # Simulate multiple operations
-        for i in range(10):
+        for _i in range(10):
             await conditional_mcp_client.call_tool(
                 "entity_tool",
                 {"operation": "create", "entity_type": "document"}
@@ -237,12 +237,12 @@ class TestModeConfiguration:
 
 
 __all__ = [
-    "TestIntegrationHOT",
-    "TestUnitCOLD",
-    "TestSimulatedDRY",
-    "TestDefaultMode",
     "TestCascadeAcrossModes",
-    "TestModeIsolation",
+    "TestDefaultMode",
     "TestDryModePerformance",
+    "TestIntegrationHOT",
     "TestModeConfiguration",
+    "TestModeIsolation",
+    "TestSimulatedDRY",
+    "TestUnitCOLD",
 ]

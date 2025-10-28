@@ -42,9 +42,7 @@ class AuthCredentials:
         """Check if credentials are still valid."""
         if not self.access_token:
             return False
-        if self.expires_at and datetime.now() >= self.expires_at:
-            return False
-        return True
+        return not (self.expires_at and datetime.now() >= self.expires_at)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -242,8 +240,7 @@ class AuthSessionBroker:
                     "response_type": "code",
                     "scope": "openid profile email"
                 }
-                oauth_url = f"{authkit_domain}/oauth/authorize?" + urllib.parse.urlencode(params)
-                return oauth_url
+                return f"{authkit_domain}/oauth/authorize?" + urllib.parse.urlencode(params)
         except Exception as e:
             logger.warning(f"Failed to construct OAuth URL: {e}")
         return None

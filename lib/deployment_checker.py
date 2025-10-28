@@ -199,14 +199,6 @@ def create_vercel_deployment_checks(project_root: Path | None = None) -> list[De
     checker = DeploymentChecker(project_root)
 
     return [
-        # Vendored packages
-        DeploymentCheck(
-            name="📦 Vendored packages: Directory exists",
-            check_fn=lambda: checker.check_directory_exists("pheno_vendor", "pheno_vendor"),
-            severity="error",
-            fix_hint="Run: ./atoms vendor setup"
-        ),
-
         # Dependencies
         DeploymentCheck(
             name="📄 Dependencies: uv.lock exists",
@@ -226,13 +218,13 @@ def create_vercel_deployment_checks(project_root: Path | None = None) -> list[De
             name="🐍 Python: sitecustomize.py exists",
             check_fn=lambda: checker.check_file_exists("sitecustomize.py", "sitecustomize.py"),
             severity="error",
-            fix_hint="Run: ./atoms vendor setup"
+            fix_hint="Ensure utils/setup/sitecustomize.py is committed"
         ),
         DeploymentCheck(
-            name="🐍 Python: sitecustomize adds pheno_vendor",
-            check_fn=lambda: checker.check_file_contains("sitecustomize.py", "pheno_vendor", "pheno_vendor reference"),
+            name="🐍 Python: sitecustomize adds pheno-sdk",
+            check_fn=lambda: checker.check_file_contains("sitecustomize.py", "pheno-sdk", "pheno-sdk reference"),
             severity="warning",
-            fix_hint="Run: ./atoms vendor setup"
+            fix_hint="Update utils/setup/sitecustomize.py to add ../pheno-sdk/src to sys.path"
         ),
 
         # Vercel config
@@ -262,25 +254,19 @@ def create_vercel_deployment_checks(project_root: Path | None = None) -> list[De
 
         # Environment files
         DeploymentCheck(
-            name="🔐 Environment: .env.preview exists",
-            check_fn=lambda: checker.check_file_exists(".env.preview", ".env.preview"),
-            severity="warning",
-            fix_hint="Create .env.preview for preview deployments"
+            name="🔐 Configuration: config/atoms.config.yaml exists",
+            check_fn=lambda: checker.check_file_exists("config/atoms.config.yaml", "config/atoms.config.yaml"),
+            severity="error",
+            fix_hint="Commit config/atoms.config.yaml with non-sensitive defaults"
         ),
         DeploymentCheck(
-            name="🔐 Environment: .env.production exists",
-            check_fn=lambda: checker.check_file_exists(".env.production", ".env.production"),
+            name="🔐 Configuration: config/atoms.secrets.yaml exists",
+            check_fn=lambda: checker.check_file_exists("config/atoms.secrets.yaml", "config/atoms.secrets.yaml"),
             severity="warning",
-            fix_hint="Create .env.production for production deployments"
+            fix_hint="Ensure a secrets template is present (store real secrets in secret manager)"
         ),
 
         # Git tracking
-        DeploymentCheck(
-            name="📝 Git: pheno_vendor tracked",
-            check_fn=lambda: checker.check_git_tracked("pheno_vendor", "pheno_vendor"),
-            severity="error",
-            fix_hint="Run: git add pheno_vendor/"
-        ),
         DeploymentCheck(
             name="📝 Git: requirements-prod.txt tracked",
             check_fn=lambda: checker.check_git_tracked("requirements-prod.txt", "requirements-prod.txt"),
@@ -320,9 +306,9 @@ def main():
         print()
         return 0
     print("Fix errors before deploying:")
-    print("   ./atoms vendor setup          # Setup vendoring")
-    print("   git add pheno_vendor/ requirements-prod.txt sitecustomize.py")
-    print("   git commit -m 'Add vendored packages'")
+    print("   Review config/atoms.config.yaml and config/atoms.secrets.yaml")
+    print("   git add requirements-prod.txt sitecustomize.py")
+    print("   git commit -m 'Prepare deployment assets'")
     print()
     return 1
 

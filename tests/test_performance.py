@@ -89,7 +89,7 @@ class PerformanceMetrics:
             "threshold_violations": []
         }
 
-        for operation, durations in self.measurements.items():
+        for operation, _durations in self.measurements.items():
             stats = self.get_stats(operation)
             report["operations"][operation] = stats
 
@@ -275,7 +275,7 @@ class TestEntityToolPerformance:
             return result
 
         start_time = time.time()
-        _results = await asyncio.gather(*[create_project(i) for i in range(10)])  # noqa: F841
+        _results = await asyncio.gather(*[create_project(i) for i in range(10)])
         concurrent_duration = time.time() - start_time
 
         print(f"  Concurrent (10 projects): {concurrent_duration:.3f}s ({concurrent_duration/10:.3f}s avg)")
@@ -305,7 +305,7 @@ class TestWorkspaceToolPerformance:
         print(f"  List Workspaces: {duration:.3f}s")
 
         # Get defaults
-        result, duration = await mcp_client("workspace_tool", {
+        _result, duration = await mcp_client("workspace_tool", {
             "operation": "get_defaults"
         })
 
@@ -338,7 +338,7 @@ class TestQueryToolPerformance:
         print(f"  Aggregate:      {duration:.3f}s")
 
         # RAG search (if available)
-        result, duration = await mcp_client("query_tool", {
+        _result, duration = await mcp_client("query_tool", {
             "query_type": "rag_search",
             "entities": ["requirement"],
             "search_term": "authentication security",
@@ -413,7 +413,7 @@ class TestLoadPerformance:
 
         # Perform 50 concurrent reads
         async def read_org():
-            result, duration = await mcp_client("entity_tool", {
+            _result, duration = await mcp_client("entity_tool", {
                 "operation": "read",
                 "entity_type": "organization",
                 "entity_id": org_id

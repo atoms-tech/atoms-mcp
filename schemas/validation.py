@@ -30,7 +30,7 @@ class SchemaValidator:
     """Validates data against database schema."""
 
     @staticmethod
-    def validate_organization(data: dict[str, Any], operation: str = "create") -> list[str]:
+    def validate_organization(data: dict[str, Any], operation: str = "create") -> list[str]
         """
         Validate organization data against schema.
 

@@ -5,7 +5,7 @@ Tests list_workspaces, get_context, set_context, and get_defaults operations.
 
 import pytest
 
-from tests.framework import DataGenerator, mcp_test, validators
+from tests.framework import DataGenerator, ResponseValidator, mcp_test
 
 # ============================================================================
 # LIST_WORKSPACES TESTS (6 tests)
@@ -23,14 +23,14 @@ async def test_list_workspaces_default_pagination(client_adapter):
     })
 
     assert result["success"], "Operation should succeed"
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         result["response"],
         ["organizations", "workspaces", "items", "data"]
     ), "Response should contain workspace data"
 
     # Check for pagination fields if present
     if "pagination" in result["response"]:
-        assert validators.ResponseValidator.has_fields(
+        assert ResponseValidator.has_fields(
             result["response"]["pagination"],
             ["total", "limit", "offset"]
         ), "Pagination should have required fields"
@@ -58,7 +58,7 @@ async def test_list_workspaces_custom_limit(client_adapter):
         assert response["pagination"].get("limit") == 50, "Limit should be 50"
 
     # Check data structure
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["organizations", "workspaces", "items", "data"]
     ), "Response should contain workspace data"
@@ -99,7 +99,7 @@ async def test_list_workspaces_with_offset(client_adapter):
         assert pagination.get("offset") == 25, "Offset should be 25"
 
     # Check data structure
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["organizations", "workspaces", "items", "data"]
     ), "Response should contain workspace data"
@@ -143,7 +143,7 @@ async def test_list_workspaces_exceeds_max_limit(client_adapter):
                 assert actual_limit in [100, 200, 500], f"Limit capped to unexpected value: {actual_limit}"
 
         # Verify data structure
-        assert validators.ResponseValidator.has_any_fields(
+        assert ResponseValidator.has_any_fields(
             response,
             ["organizations", "workspaces", "items", "data"]
         ), "Response should contain workspace data"
@@ -172,7 +172,7 @@ async def test_list_workspaces_with_data_check(client_adapter):
     response = result["response"]
 
     # Check that response includes comprehensive information
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["organizations", "workspaces", "items", "data"]
     ), "Response should contain workspace data"
@@ -214,7 +214,7 @@ async def test_list_workspaces_consistency_check(client_adapter):
         response = result["response"]
 
         # All calls should have consistent data structure
-        assert validators.ResponseValidator.has_any_fields(
+        assert ResponseValidator.has_any_fields(
             response,
             ["organizations", "workspaces", "items", "data"]
         ), f"Response should contain workspace data on iteration {i+1}"
@@ -252,7 +252,7 @@ async def test_get_context_basic(client_adapter):
     # Check for context fields
     context_fields = ["organization", "project", "document", "workspace",
                      "current_context", "active_context", "context"]
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         context_fields
     ), "Response should contain context information"
@@ -266,7 +266,7 @@ async def test_get_context_basic(client_adapter):
 
     if context_data and isinstance(context_data, dict):
         # Context should have type information
-        assert validators.ResponseValidator.has_any_fields(
+        assert ResponseValidator.has_any_fields(
             context_data,
             ["type", "id", "name", "organization_id", "project_id"]
         ), "Context should have identification fields"
@@ -292,7 +292,7 @@ async def test_get_context_structure(client_adapter):
     context_fields = ["organization", "project", "document", "workspace",
                      "current_context", "active_context", "context", "active_organization",
                      "active_project", "active_document"]
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         context_fields
     ), "Response should contain context information"
@@ -333,7 +333,7 @@ async def test_set_context_organization(client_adapter):
     response = result["response"]
 
     # Verify context was set
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["success", "context", "updated", "organization"]
     ), "Response should confirm context update"
@@ -371,7 +371,7 @@ async def test_set_context_project(client_adapter):
     response = result["response"]
 
     # Verify context was set
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["success", "context", "updated", "project"]
     ), "Response should confirm context update"
@@ -414,7 +414,7 @@ async def test_set_context_document(client_adapter):
     response = result["response"]
 
     # Verify context was set
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["success", "context", "updated", "document"]
     ), "Response should confirm context update"
@@ -481,7 +481,7 @@ async def test_get_defaults_basic(client_adapter):
     response = result["response"]
 
     # Check for default settings
-    assert validators.ResponseValidator.has_any_fields(
+    assert ResponseValidator.has_any_fields(
         response,
         ["defaults", "settings", "preferences", "configuration"]
     ), "Response should contain default settings"

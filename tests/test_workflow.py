@@ -48,6 +48,7 @@ async def test_setup_project(client_adapter):
 
     response = result["response"]
     assert "project" in response or "project_id" in response, "Missing project in workflow response"
+    return None
 
 
 @skip_if(lambda: True, reason="Needs document_id and requirements parameters")

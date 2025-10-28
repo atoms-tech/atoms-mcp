@@ -1,0 +1,44 @@
+# Atoms MCP Server - Configuration Settings
+# This file contains non-sensitive configurable settings
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: "${ATOMS_PORT:-50002}"  # Default to 50002 if not set
+  debug: "${ATOMS_DEBUG:-false}"
+  telemetry: "${ATOMS_TELEMETRY:-true}"
+  
+# Tunnel configuration
+tunnel:
+  enabled: "${ATOMS_TUNNEL:-true}"
+  hostname: "${ATOMS_TUNNEL_HOSTNAME:-atomcp.kooshapari.com}"
+  health_interval: "${ATOMS_HEALTH_INTERVAL:-30}"
+  
+# FastMCP configuration
+fastmcp:
+  transport: "${ATOMS_MCP_TRANSPORT:-stdio}"
+  host: "${ATOMS_MCP_HOST:-127.0.0.1}"
+  port: "${ATOMS_MCP_PORT:-8000}"
+  http_path: "${ATOMS_MCP_HTTP_PATH:-/api/mcp}"
+  base_url: "${FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL:-http://127.0.0.1:8000}"
+  tools: ["entity", "query", "workflow"]
+  authkit_domain: "${FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN:-https://your-project-12345.authkit.app}" 
+  authkit_required_scopes: "${FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_REQUIRED_SCOPES:-openid,profile,email}"
+  
+# Resource limits
+resources:
+  max_memory_mb: "${ATOMS_MAX_MEMORY_MB:-512}"
+  max_connections: "${ATOMS_MAX_CONNECTIONS:-100}"
+  timeout_seconds: "${ATOMS_TIMEOUT_SECONDS:-30}"
+  
+# Logging configuration
+logging:
+  level: "${ATOMS_LOG_LEVEL:-INFO}"
+  format: "json"
+  max_file_size_mb: "${ATOMS_LOG_MAX_SIZE_MB:-100}"
+  
+# Health check configuration
+health:
+  endpoint: "${ATOMS_HEALTH_ENDPOINT:-/health}"
+  timeout_seconds: "${ATOMS_HEALTH_TIMEOUT:-5}"
+  retry_attempts: "${ATOMS_HEALTH_RETRIES:-3}"

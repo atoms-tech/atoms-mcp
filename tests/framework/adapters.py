@@ -14,7 +14,20 @@ from datetime import datetime
 from typing import Any
 
 import httpx
-from mcp_qa.core.base import BaseClientAdapter
+
+try:
+    from pheno.testing.base.client_adapter import BaseClientAdapter
+except ImportError:
+    # Fallback to old import path if pheno.testing.base not available
+    try:
+        from mcp_qa.core.base import BaseClientAdapter
+    except ImportError:
+        # Create a minimal stub if neither is available
+        class BaseClientAdapter:
+            """Minimal stub for BaseClientAdapter when pheno modules are unavailable."""
+            def __init__(self, client, verbose_on_fail=False):
+                self.client = client
+                self.verbose_on_fail = verbose_on_fail
 
 from utils.logging_setup import get_logger
 
@@ -162,7 +175,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
             # Log where the failure occurred
             error_type = type(e).__name__
-            logger.error(
+            logger.exception(
                 f"❌ [ERROR] {name} failed after {duration:.2f}s\n"
                 f"   Error type: {error_type}\n"
                 f"   Error: {str(e)[:200]}\n"
@@ -206,7 +219,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             logger.warning(f"Failed to extract auth from MCP client: {e}")
             return None
 
-    async def _call_tool_http(self, name: str, params: dict[str, Any]) -> Any:
+    async def _call_tool_http(self, name: str, params: dict[str, Any]) -> Any
         """
         Make direct HTTP call to MCP tool endpoint using proper MCP HTTP protocol.
 
@@ -245,22 +258,24 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
         # Create HTTP client if needed, using MCP client's auth
         if self._http_client is None:
-            client_kwargs = {
-                "timeout": httpx.Timeout(connect=self.HTTP_TIMEOUT, read=self.HTTP_TIMEOUT, write=self.HTTP_TIMEOUT, pool=self.HTTP_TIMEOUT)
-            }
+            timeout = httpx.Timeout(
+                connect=self.HTTP_TIMEOUT,
+                read=self.HTTP_TIMEOUT,
+                write=self.HTTP_TIMEOUT,
+                pool=self.HTTP_TIMEOUT
+            )
 
             # Use auth from MCP client if available
             if self._auth_handler:
-                client_kwargs["auth"] = self._auth_handler
+                self._http_client = httpx.AsyncClient(timeout=timeout, auth=self._auth_handler)
                 logger.debug("Using auth handler from MCP client")
             # Fallback to access token if provided
             elif self.access_token:
                 # Don't set headers here - set them per-request below
-                pass
+                self._http_client = httpx.AsyncClient(timeout=timeout)
             else:
                 logger.warning("No authentication available - requests may fail")
-
-            self._http_client = httpx.AsyncClient(**client_kwargs)
+                self._http_client = httpx.AsyncClient(timeout=timeout)
 
         try:
             # Make JSON-RPC 2.0 call to MCP endpoint
@@ -339,7 +354,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             return await self._call_tool_mcp(name, params)
 
         except TimeoutError:
-            logger.error(
+            logger.exception(
                 f"⏱️  [TIMEOUT] Direct HTTP call to {name} exceeded {self.HTTP_TIMEOUT}s timeout\n"
                 f"   Falling back to MCP client protocol..."
             )

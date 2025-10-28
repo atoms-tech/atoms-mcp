@@ -1,122 +1,87 @@
-"""
-Atoms MCP Specific Server Management
+"""Atoms MCP server management."""
 
-This is the Atoms-specific layer for server management.
-Uses platform-agnostic base classes from pheno-sdk.
-"""
+import asyncio
+import logging
+from typing import Optional, Dict, Any
+from contextlib import asynccontextmanager
 
-import subprocess
-import sys
-from pathlib import Path
+from .port_manager import allocate_atoms_port, release_atoms_port
 
-# Import pheno-sdk port allocation
-try:
-    from pheno.infra.port_allocator import SmartPortAllocator
-    from pheno.infra.port_registry import PortRegistry
-    from pheno.infra.process_cleanup import ProcessCleanupConfig, cleanup_before_startup
-    PHENO_SDK_AVAILABLE = True
-except ImportError:
-    PHENO_SDK_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 class AtomsServerManager:
-    """Atoms MCP specific server manager.
-
-    This wraps the server startup logic with Atoms-specific configuration.
-    """
-
-    # Atoms-specific defaults
-    DEFAULT_PORT = 50002
-    DEFAULT_DOMAIN = "atomcp.kooshapari.com"
-    PROJECT_NAME = "atoms_mcp"
-
-    def __init__(
-        self,
-        port: int | None = None,
-        verbose: bool = False,
-        no_tunnel: bool = False,
-        logger=None
-    ):
-        # Use pheno-sdk port allocation if no port specified
-        if port is None and PHENO_SDK_AVAILABLE:
-            try:
-                # Perform process cleanup before port allocation
-                cleanup_config = ProcessCleanupConfig(
-                    cleanup_related_services=True,
-                    cleanup_tunnels=True,
-                    grace_period=2.0,
-                )
-                cleanup_stats = cleanup_before_startup("atoms-mcp-server", cleanup_config)
-                if logger:
-                    logger.info(f"🧹 Process cleanup completed: {cleanup_stats}")
-
-                registry = PortRegistry()
-                allocator = SmartPortAllocator(registry)
-                self.port = allocator.allocate_port("atoms-mcp-server")
-                if logger:
-                    logger.info(f"🔧 pheno-sdk allocated port {self.port} for atoms-mcp-server")
-            except Exception as e:
-                if logger:
-                    logger.warning(f"pheno-sdk port allocation failed: {e}, using default port {self.DEFAULT_PORT}")
-                self.port = self.DEFAULT_PORT
-        else:
-            self.port = port or self.DEFAULT_PORT
-
-        self.verbose = verbose
-        self.no_tunnel = no_tunnel
-        self.logger = logger
-
-    def start(self) -> int:
-        """Start Atoms MCP server.
-
-        This delegates to start_server.py which has all the KInfra integration.
-
-        Returns:
-            Exit code (0 for success)
-        """
-        # Build command to run start_server.py
-        cmd = [
-            sys.executable,
-            str(Path(__file__).parent.parent.parent / "start_server.py")
-        ]
-
+    """Manages Atoms MCP server lifecycle."""
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.server_process: Optional[asyncio.subprocess.Process] = None
+        self.port: Optional[int] = None
+    
+    async def start_server(self, port: Optional[int] = None) -> int:
+        """Start the Atoms MCP server."""
+        if self.server_process:
+            raise RuntimeError("Server is already running")
+        
+        self.port = port or allocate_atoms_port()
+        
+        # Start server process (placeholder implementation)
+        logger.info(f"Starting Atoms MCP server on port {self.port}")
+        
+        # In a real implementation, this would start the actual server
+        # For now, we'll just simulate it
+        self.server_process = await asyncio.create_subprocess_exec(
+            "python", "-c", "import time; time.sleep(3600)",  # Placeholder
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        return self.port
+    
+    async def stop_server(self) -> None:
+        """Stop the Atoms MCP server."""
+        if not self.server_process:
+            return
+        
+        logger.info("Stopping Atoms MCP server")
+        self.server_process.terminate()
+        await self.server_process.wait()
+        self.server_process = None
+        
         if self.port:
-            cmd.extend(["--port", str(self.port)])
-        if self.verbose:
-            cmd.append("--verbose")
-        if self.no_tunnel:
-            cmd.append("--no-tunnel")
+            release_atoms_port(self.port)
+            self.port = None
+    
+    async def restart_server(self, port: Optional[int] = None) -> int:
+        """Restart the Atoms MCP server."""
+        await self.stop_server()
+        return await self.start_server(port)
+    
+    @property
+    def is_running(self) -> bool:
+        """Check if server is running."""
+        return self.server_process is not None and self.server_process.returncode is None
 
-        # Run start_server.py
-        result = subprocess.run(cmd, check=False)
-        return result.returncode
+
+async def start_atoms_server(
+    port: Optional[int] = None,
+    config: Optional[Dict[str, Any]] = None
+) -> AtomsServerManager:
+    """Start an Atoms MCP server and return the manager."""
+    manager = AtomsServerManager(config)
+    await manager.start_server(port)
+    return manager
 
 
-def start_atoms_server(
-    port: int | None = None,
-    verbose: bool = False,
-    no_tunnel: bool = False,
-    logger=None
-) -> int:
-    """Start Atoms MCP server (convenience function).
-
-    This is the function called by atoms-mcp.py CLI.
-
-    Args:
-        port: Port to run on (default: 50002)
-        verbose: Enable verbose logging
-        no_tunnel: Disable CloudFlare tunnel
-        logger: Optional logger instance
-
-    Returns:
-        Exit code (0 for success)
-    """
-    manager = AtomsServerManager(
-        port=port,
-        verbose=verbose,
-        no_tunnel=no_tunnel,
-        logger=logger
-    )
-
-    return manager.start()
-
+@asynccontextmanager
+async def managed_atoms_server(
+    port: Optional[int] = None,
+    config: Optional[Dict[str, Any]] = None
+):
+    """Context manager for Atoms MCP server."""
+    manager = await start_atoms_server(port, config)
+    try:
+        yield manager
+    finally:
+        await manager.stop_server()

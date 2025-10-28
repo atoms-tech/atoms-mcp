@@ -8,8 +8,21 @@ A comprehensive schema synchronization system has been implemented to keep Pytho
 
 ### Core Scripts
 
-#### 1. `/scripts/sync_schema.py` (25KB)
-Main CLI tool for schema synchronization.
+#### 1. `/schemas/sync/core.py` (~25KB)
+Shared engine that powers every schema sync surface (CLI, library helpers, tests).
+
+**Features:**
+- Schema fetching, diffing, enum/table code generation
+- Version tracking + hash calculation
+- Snapshot pruning + Supabase connection management
+- Public API (`SchemaSync`, `resolve_db_url`, `Colors`, `main`) for reuse in tools/tests
+
+This module is now the single source of truth. All imports should prefer
+`from schemas.sync.core import SchemaSync`.
+
+#### 2. `/scripts/sync_schema.py` (CLI shim)
+User-facing command that delegates to the shared core while keeping the legacy
+entrypoint stable.
 
 **Features:**
 - Query Supabase database schema via MCP tools
@@ -35,7 +48,7 @@ python scripts/sync_schema.py --report   # Generate markdown report
 - `generate_table_row_code()` - Create TypedDict code
 - `calculate_schema_hash()` - SHA256 hash for version tracking
 
-#### 2. `/scripts/mcp_schema_query.py` (17KB)
+#### 3. `/scripts/mcp_schema_query.py` (17KB)
 Advanced MCP-based schema querying and documentation.
 
 **Features:**
@@ -60,10 +73,10 @@ python scripts/mcp_schema_query.py --list-enums
 - Overview with metrics
 - Constraint and index details
 
-#### 3. `/scripts/query_db_schema.py` (5KB)
+#### 4. `/scripts/query_db_schema.py` (5KB)
 Helper script for database schema queries (simpler version).
 
-#### 4. `/scripts/pre-commit-schema-check.sh` (1KB)
+#### 5. `/scripts/pre-commit-schema-check.sh` (1KB)
 Pre-commit hook for automated drift detection.
 
 **Installation:**

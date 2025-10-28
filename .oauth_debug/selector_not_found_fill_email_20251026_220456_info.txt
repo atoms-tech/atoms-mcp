@@ -1,0 +1,4 @@
+URL: https://decent-hymn-17-staging.authkit.app/?redirect_uri=http%3A%2F%2Flocalhost%3A63317%2Fcallback&state=Qxyusxl4bjirOx5soFPQmcqTpI_NHYNJScaG9WHsoa0&authorization_session_id=01K8J0W1NZTCWK15BA17834DRE
+Error: Page.wait_for_selector: Timeout 2000ms exceeded.
+Call log:
+  - waiting for locator("#email") to be visible

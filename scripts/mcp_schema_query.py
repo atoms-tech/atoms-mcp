@@ -37,7 +37,7 @@ class MCPSchemaQuery:
             print(f"Error executing SQL: {e}")
             return []
 
-    async def list_tables(self, schemas: list[str] = None) -> list[dict[str, Any]]:
+    async def list_tables(self, schemas: list[str] | None = None) -> list[dict[str, Any]]:
         """List all tables using MCP list_tables tool."""
         if schemas is None:
             schemas = ["public"]
@@ -55,8 +55,7 @@ class MCPSchemaQuery:
                 ORDER BY table_name;
             """
 
-            result = await self.execute_sql(query)
-            return result
+            return await self.execute_sql(query)
         except Exception as e:
             print(f"Error listing tables: {e}")
             return []
@@ -298,7 +297,7 @@ class MCPSchemaQuery:
 
         print(f"\n✓ Schema documentation exported to {output_path}")
 
-    def _generate_table_markdown(
+    def _generate_table_markdown(  # noqa: PLR0912, PLR0915
         self,
         table_name: str,
         schema: dict[str, Any],

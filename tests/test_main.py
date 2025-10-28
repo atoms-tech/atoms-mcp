@@ -13,7 +13,6 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-import requests
 
 # Ensure shared mcp_qa library is importable before local packages
 _TESTS_DIR = Path(__file__).resolve().parent
@@ -42,7 +41,7 @@ from tests import (  # noqa: F401, E402
     test_entity,
     test_query,
     test_relationship,
-    test_user_stories,  # noqa: F401, E402
+    test_user_stories,
     test_workflow,
     test_workspace,
 )
@@ -133,17 +132,16 @@ def _check_preview_server_health() -> tuple[bool, str | None]:
         response = requests.get(health_url, timeout=5)
         if response.status_code == 200:
             return True, None
-        else:
-            return False, f"Preview server returned status {response.status_code}"
+        return False, f"Preview server returned status {response.status_code}"
     except requests.exceptions.Timeout:
         return False, "Preview server health check timed out"
     except requests.exceptions.ConnectionError:
         return False, "Cannot connect to preview server"
     except Exception as e:
-        return False, f"Preview server health check failed: {str(e)}"
+        return False, f"Preview server health check failed: {e!s}"
 
 
-async def main():
+async def main()
     """Main test runner."""
     import argparse
 
@@ -232,10 +230,9 @@ Examples:
 
     # Clear OAuth cache if requested
     oauth_cache_file = Path.home() / ".atoms_mcp_test_cache" / "credentials.json"
-    if args.clear_oauth:
-        if oauth_cache_file.exists():
-            oauth_cache_file.unlink()
-            print("✅ OAuth cache cleared")
+    if args.clear_oauth and oauth_cache_file.exists():
+        oauth_cache_file.unlink()
+        print("✅ OAuth cache cleared")
 
     # Clear all caches if requested
     if args.clear_cache:
@@ -298,7 +295,7 @@ Examples:
             print(f"Command: {' '.join(pytest_args)}\n")
 
         # Run pytest - auth plugin handles authentication automatically
-        result = subprocess.run(pytest_args, cwd=Path(__file__).parent.parent)
+        result = subprocess.run(pytest_args, check=False, cwd=Path(__file__).parent.parent)
         return result.returncode
 
     except TimeoutError:

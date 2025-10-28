@@ -285,7 +285,7 @@ class TestEntityCOLDMode:
         start_time = time.time()
 
         # Perform multiple operations
-        for i in range(20):
+        for _i in range(20):
             await fastmcp_client.call_tool(
                 "entity_tool",
                 {

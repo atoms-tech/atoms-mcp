@@ -14,14 +14,17 @@ Pythonic Patterns Applied:
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from fastmcp.server.dependencies import get_access_token
 
+from tools.base import ToolBase
 from utils.logging_setup import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 logger = get_logger("atoms_fastmcp.auth")
 
@@ -199,7 +202,6 @@ async def apply_rate_limit_if_configured(
     if bearer_token and rate_limiter:
         # Extract user_id from token without full validation (tools will validate)
         try:
-            from tools.base import ToolBase
             tool_base = ToolBase()
             await tool_base._validate_auth(bearer_token.token)
             user_id = tool_base._get_user_id()
@@ -243,4 +245,3 @@ __all__ = [
     "get_token_string",
     "rate_limited_operation",
 ]
-

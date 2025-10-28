@@ -101,7 +101,7 @@ async def call_mcp(tool_name: str, params: dict[str, Any], jwt_token: str) -> di
     return {"success": False, "error": body.get("error", "Unknown error")}
 
 
-async def main():
+async def main()
     """Execute all relationship tool tests."""
     print("=" * 80)
     print("ATOMS MCP RELATIONSHIP_TOOL COMPREHENSIVE TEST")

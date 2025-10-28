@@ -79,7 +79,7 @@ def generate_document_names(count: int) -> list[str]:
 
     # Generate additional names if needed
     names = templates.copy()
-    for i in range(count - len(templates)):
+    for _i in range(count - len(templates)):
         names.append(f"Document {uuid.uuid4().hex[:8]}")
 
     return names

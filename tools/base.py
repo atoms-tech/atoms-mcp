@@ -6,9 +6,15 @@ from typing import Any
 
 from utils.logging_setup import get_logger
 
+try:  # Optional fallback client import
+    from supabase_client import get_supabase as _get_supabase_client
+except ImportError:  # pragma: no cover - optional dependency
+    _get_supabase_client = None
+
 # Support both package and standalone imports
 try:
     from errors import normalize_error
+
     from infrastructure.factory import get_adapters
     from schemas.constants import ENTITY_TABLE_MAP
 except ImportError:
@@ -65,13 +71,13 @@ class ToolBase:
             if access_token := user_info.get("access_token"):
                 adapters["database"].set_access_token(access_token)
 
+        except Exception as e:
+            error: Exception = normalize_error(e, "Authentication failed")
+            raise error from e
+        else:
             # Cache user context for this operation
             self._user_context = user_info
             return user_info
-
-        except Exception as e:
-            error: Exception = normalize_error(e, "Authentication failed")
-            raise error
 
     def _get_user_id(self) -> str:
         """Get current user ID from context."""
@@ -90,12 +96,17 @@ class ToolBase:
             # Use the _get_client method from SupabaseDatabaseAdapter
             return db_adapter._get_client()
         except Exception:
-            # Fallback: try to get it directly from supabase_client module
-            try:
-                from supabase_client import get_supabase
-                return get_supabase()
-            except Exception as e:
-                raise RuntimeError(f"Could not get Supabase client: {e}")
+            return self._get_supabase_client_fallback()
+
+    def _get_supabase_client_fallback(self):
+        """Return Supabase client using fallback loader."""
+        if _get_supabase_client is None:
+            raise RuntimeError("supabase_client fallback unavailable")
+
+        try:
+            return _get_supabase_client()
+        except Exception as exc:  # pragma: no cover - defensive logging
+            raise RuntimeError(f"Could not get Supabase client: {exc}") from exc
 
     async def _db_query(self, table: str, **kwargs) -> list:
         """Execute database query."""
@@ -104,7 +115,7 @@ class ToolBase:
             return await adapters["database"].query(table, **kwargs)
         except Exception as e:
             error: Exception = normalize_error(e, f"Database query failed for table {table}")
-            raise error
+            raise error from e
 
     async def _db_get_single(self, table: str, **kwargs) -> dict[str, Any] | None:
         """Get single record from database."""
@@ -113,7 +124,7 @@ class ToolBase:
             return await adapters["database"].get_single(table, **kwargs)
         except Exception as e:
             error: Exception = normalize_error(e, f"Database get_single failed for table {table}")
-            raise error
+            raise error from e
 
     async def _db_insert(self, table: str, data: Any, **kwargs) -> Any:
         """Insert record(s) into database."""
@@ -122,7 +133,7 @@ class ToolBase:
             return await adapters["database"].insert(table, data, **kwargs)
         except Exception as e:
             error: Exception = normalize_error(e, f"Database insert failed for table {table}")
-            raise error
+            raise error from e
 
     async def _db_update(self, table: str, data: dict[str, Any], filters: dict[str, Any], **kwargs) -> Any:
         """Update record(s) in database."""
@@ -131,7 +142,7 @@ class ToolBase:
             return await adapters["database"].update(table, data, filters, **kwargs)
         except Exception as e:
             error: Exception = normalize_error(e, f"Database update failed for table {table}")
-            raise error
+            raise error from e
 
     async def _db_delete(self, table: str, filters: dict[str, Any]) -> int:
         """Delete record(s) from database."""
@@ -139,7 +150,8 @@ class ToolBase:
             adapters = self._get_adapters()
             return await adapters["database"].delete(table, filters)
         except Exception as e:
-            raise normalize_error(e, f"Database delete failed for table {table}")
+            error = normalize_error(e, f"Database delete failed for table {table}")
+            raise error from e
 
     async def _db_count(self, table: str, filters: dict[str, Any] | None = None) -> int:
         """Count records in database table."""
@@ -147,7 +159,8 @@ class ToolBase:
             adapters = self._get_adapters()
             return await adapters["database"].count(table, filters)
         except Exception as e:
-            raise normalize_error(e, f"Database count failed for table {table}")
+            error = normalize_error(e, f"Database count failed for table {table}")
+            raise error from e
 
     def _resolve_entity_table(self, entity_type: str) -> str:
         """Map entity type to database table name."""
@@ -192,7 +205,7 @@ class ToolBase:
                 continue
 
             # Include primitives and small values
-            if isinstance(value, (str, int, float, bool)):
+            if isinstance(value, str | int | float | bool):
                 # Limit string length more aggressively
                 if isinstance(value, str) and len(value) > 80:
                     sanitized[key] = value[:80] + "..."

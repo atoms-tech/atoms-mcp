@@ -51,7 +51,7 @@ class TestConstraints:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -118,7 +118,7 @@ class TestConstraints:
                 org = OrganizationBaseSchema(**data)  # type: ignore
                 assert org.name == "Test Org"
             except ValidationError as e:
-                logger.error(f"Valid data failed: {e}")
+                logger.exception(f"Valid data failed: {e}")
                 valid_data_test = False
 
             store_result("test_not_null_constraints_enforced", True, {
@@ -173,7 +173,7 @@ class TestConstraints:
                 doc = DocumentBaseSchema(**data)  # type: ignore
                 assert doc.description is None
             except ValidationError as e:
-                logger.error(f"Null optional field failed: {e}")
+                logger.exception(f"Null optional field failed: {e}")
                 null_optional_test = False
 
             # Test omitting optional field
@@ -184,7 +184,7 @@ class TestConstraints:
                 doc = DocumentBaseSchema(**data)  # type: ignore
                 # Should have default or None
             except ValidationError as e:
-                logger.error(f"Omitting optional field failed: {e}")
+                logger.exception(f"Omitting optional field failed: {e}")
                 omit_optional_test = False
 
             # Test multiple null fields
@@ -196,7 +196,7 @@ class TestConstraints:
                 data["tags"] = None
                 DocumentBaseSchema(**data)  # type: ignore
             except ValidationError as e:
-                logger.error(f"Multiple null fields failed: {e}")
+                logger.exception(f"Multiple null fields failed: {e}")
                 multiple_null_test = False
 
             store_result("test_nullable_fields_allow_null", True, {
@@ -494,10 +494,7 @@ class TestConstraints:
                         ref_table = col_name[:-3]  # Remove "_id"
 
                         # Pluralize to get likely table name
-                        if ref_table.endswith("y"):
-                            ref_table_plural = ref_table[:-1] + "ies"
-                        else:
-                            ref_table_plural = ref_table + "s"
+                        ref_table_plural = ref_table[:-1] + "ies" if ref_table.endswith("y") else ref_table + "s"
 
                         # Check if referenced table exists
                         ref_table_exists = (
@@ -569,7 +566,7 @@ class TestConstraints:
                 doc = DocumentBaseSchema(**data)  # type: ignore
                 assert doc.version == 1
             except ValidationError as e:
-                logger.error(f"Valid version failed: {e}")
+                logger.exception(f"Valid version failed: {e}")
                 valid_version_test = False
 
             # Test zero version
@@ -579,7 +576,7 @@ class TestConstraints:
                 data["version"] = 0
                 DocumentBaseSchema(**data)  # type: ignore
             except ValidationError as e:
-                logger.error(f"Zero version failed: {e}")
+                logger.exception(f"Zero version failed: {e}")
                 zero_version_test = False
 
             # Test missing version (required field)
@@ -655,7 +652,7 @@ class TestConstraints:
                 doc = DocumentBaseSchema(**data)  # type: ignore
                 assert not doc.is_deleted
             except ValidationError as e:
-                logger.error(f"Soft delete fields failed: {e}")
+                logger.exception(f"Soft delete fields failed: {e}")
                 soft_delete_present_test = False
 
             # Test soft deleted state
@@ -668,7 +665,7 @@ class TestConstraints:
                 doc = DocumentBaseSchema(**data)  # type: ignore
                 assert doc.is_deleted
             except ValidationError as e:
-                logger.error(f"Soft deleted state failed: {e}")
+                logger.exception(f"Soft deleted state failed: {e}")
                 soft_deleted_test = False
 
             # Test inconsistent state (deleted but no timestamp)

@@ -268,7 +268,7 @@ class TestUserOrgTriggers:
             "email": "john@example.com"
         }
 
-        updated_profile, personal_org = handle_new_user(user_data)
+        _updated_profile, personal_org = handle_new_user(user_data)
 
         assert personal_org["name"] == "john's Workspace"
         assert personal_org["slug"].startswith("john-personal")

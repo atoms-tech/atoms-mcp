@@ -5,7 +5,6 @@ from typing import Any
 
 class ValidationError(Exception):
     """Validation error exception."""
-    pass
 
 
 def validate_before_create(table: str, data: dict[str, Any]) -> dict[str, Any]:

@@ -3,16 +3,18 @@
 import sys
 import time
 import traceback
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mcp_qa.core.base import BaseTestRunner
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 try:
     from mcp_qa.integration.workflows import WorkflowTester as TestWorkflowManager
 except ImportError:
     # Fallback: create a simple workflow manager
-    class TestWorkflowManager:
+    class _FallbackTestWorkflowManager:
         def __init__(self, concurrency=4):
             self.concurrency = concurrency
 
@@ -26,6 +28,8 @@ except ImportError:
                 "metadata": metadata or {},
                 "duration": duration,
             }
+
+    TestWorkflowManager = _FallbackTestWorkflowManager
 
 
 class AtomsTestRunner(BaseTestRunner):
@@ -48,7 +52,7 @@ class AtomsTestRunner(BaseTestRunner):
         """Preferred execution order for Atoms test categories."""
         return ["core", "entity", "query", "relationship", "workflow", "integration"]
 
-    async def _run_single_test(
+    async def _run_single_test(  # noqa: PLR0912, PLR0915
         self,
         test_name: str,
         test_info: dict[str, Any],
@@ -159,7 +163,7 @@ class AtomsTestRunner(BaseTestRunner):
                     error = "AssertionError: (assertion failed without message)"
             else:
                 # For other exceptions, use the exception message or type name
-                error = error_msg if error_msg and error_msg.strip() else f"{exc_type.__name__}: (no error message)"
+                error = error_msg if error_msg and error_msg.strip() else f"{exc_type.__name__ if exc_type else 'Unknown'}: (no error message)"
 
             result = {
                 "test_name": test_name,

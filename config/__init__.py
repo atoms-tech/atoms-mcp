@@ -1,50 +1,58 @@
-"""
-Atoms MCP Configuration
+"""Atoms MCP configuration package."""
 
-Project-specific configuration that uses pheno-sdk generic components.
+from __future__ import annotations
 
-This module provides factory functions for all infrastructure components:
-- Database, Storage, Realtime (from pheno-sdk/db-kit)
-- Auth (Atoms-specific)
-- Rate Limiting (from pheno-sdk/observability-kit)
-- Session Management (from pheno-sdk/authkit-client)
-- Vector Search & Embeddings (from pheno-sdk/vector-kit)
-"""
+from typing import Tuple
 
-from .infrastructure import (
-    get_auth_adapter,
-    get_database_adapter,
-    get_rate_limiter,
-    get_realtime_adapter,
-    get_storage_adapter,
-)
-from .session import get_session_manager
-from .settings import AppSettings, get_settings, reset_settings_cache
-from .vector import (
-    get_embedding_service,
-    get_enhanced_vector_search_service,
-    get_progressive_embedding_service,
-    get_vector_search_service,
-)
+from . import settings as _settings
 
 __all__ = [
-    # Infrastructure
-    "get_database_adapter",
-    "get_auth_adapter",
-    "get_storage_adapter",
-    "get_realtime_adapter",
-    "get_rate_limiter",
-
-    # Session
-    "get_session_manager",
-
-    # Vector & Embeddings
-    "get_embedding_service",
-    "get_vector_search_service",
-    "get_enhanced_vector_search_service",
-    "get_progressive_embedding_service",
-    # Settings
-    "AppSettings",
+    "app_config",
+    "get_config_summary",
     "get_settings",
+    "load_config",
     "reset_settings_cache",
+    "secrets_config",
 ]
+
+
+def _sync_settings(app_settings, secret_settings) -> Tuple[object, object]:
+    """Keep module-level and settings module globals aligned."""
+
+    _settings.app_config = app_settings
+    _settings.secrets_config = secret_settings
+    globals()["app_config"] = app_settings
+    globals()["secrets_config"] = secret_settings
+    return app_settings, secret_settings
+
+
+def load_config() -> tuple[_settings.AppConfig, _settings.SecretsConfig]:
+    """Reload configuration from disk and update exported state."""
+
+    app_settings, secret_settings = _settings.load_config()
+    return _sync_settings(app_settings, secret_settings)
+
+
+def get_config_summary(
+    app_settings: _settings.AppConfig,
+    secret_settings: _settings.SecretsConfig,
+) -> str:
+    return _settings.get_config_summary(app_settings, secret_settings)
+
+
+def get_settings() -> _settings.AppConfig:
+    """Legacy helper retained for backwards compatibility."""
+
+    return globals()["app_config"]
+
+
+def reset_settings_cache() -> None:
+    """Backward-compatible cache reset; forces reload from YAML files."""
+
+    load_config()
+
+
+# Initialize module-level exports
+app_config, secrets_config = _sync_settings(
+    _settings.app_config, _settings.secrets_config
+)

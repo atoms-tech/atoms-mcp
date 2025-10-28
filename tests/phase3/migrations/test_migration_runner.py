@@ -75,7 +75,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
         return []
 
     async def insert(
-        self, table: str, data: Any, *, returning: str = None
+        self, table: str, data: Any, *, returning: str | None = None
     ) -> dict[str, Any]:
         """Insert data into mock table."""
         if table not in self.tables:
@@ -83,10 +83,9 @@ class MockDatabaseAdapter(DatabaseAdapter):
 
         if isinstance(data, list):
             self.tables[table].extend(data)
-            return data
-        else:
-            self.tables[table].append(data)
-            return data
+            return {"inserted_count": len(data)}
+        self.tables[table].append(data)
+        return {"inserted_count": 1}
 
     async def query(self, table: str, **kwargs) -> list[dict[str, Any]]:
         """Query mock table."""
@@ -112,7 +111,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
         """Upsert into mock table."""
         return data
 
-    async def count(self, table: str, filters: dict = None) -> int:
+    async def count(self, table: str, filters: dict | None = None) -> int:
         """Count rows in mock table."""
         return len(self.tables.get(table, []))
 
@@ -125,8 +124,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
 @pytest_asyncio.fixture
 async def mock_adapter():
     """Provide mock database adapter for COLD mode tests."""
-    adapter = MockDatabaseAdapter()
-    return adapter
+    return MockDatabaseAdapter()
 
 
 @pytest_asyncio.fixture
@@ -697,6 +695,6 @@ class TestMigrationRunnerEdgeCases:
 
 __all__ = [
     "TestMigrationRunnerCOLD",
-    "TestMigrationRunnerHOT",
     "TestMigrationRunnerEdgeCases",
+    "TestMigrationRunnerHOT",
 ]

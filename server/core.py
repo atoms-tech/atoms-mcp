@@ -14,22 +14,81 @@ Pythonic Patterns Applied:
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
+import json
+import shlex
+import sys
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING
 
+# Ensure project root is on sys.path when loaded via fastmcp FileSystemSource
+if __package__ in (None, ""):
+    project_root = Path(__file__).resolve().parents[1]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+import httpx
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.workos import AuthKitProvider
+from starlette.responses import JSONResponse
 
-from config.settings import AppSettings, get_settings
+from config import get_settings
+from config.settings import AppConfig, app_config
 from utils.logging_setup import get_logger
 
-from .auth import RateLimiter
-from .env import get_fastmcp_vars, load_env_files
+from server.env import get_fastmcp_vars, load_env_files
+from server.tools import (
+    register_entity_tool,
+    register_query_tool,
+    register_relationship_tool,
+    register_workflow_tool,
+    register_workspace_tool,
+)
+
+if TYPE_CHECKING:
+    from server.auth import RateLimiter
 
 logger = get_logger("atoms_fastmcp.core")
 
 
-# Global rate limiter instance (will be set during server creation)
-_rate_limiter: RateLimiter | None = None
+@asynccontextmanager
+async def _server_lifespan(app: FastMCP) -> AsyncIterator[None]:
+    """Server lifespan for FastMCP v2.13.0.1.
+
+    This function provides initialization and cleanup hooks that run
+    once per server instance instead of per client session.
+
+    Yields:
+        None: Control is passed to FastMCP server
+    """
+    _ = app  # Lifespan handlers receive the server instance; not used yet.
+
+    logger.info("🚀 Starting Atoms FastMCP server lifespan")
+
+    # Initialization phase - runs once per server startup
+    try:
+        # Initialize global resources here
+        # (e.g., database connections, background tasks, etc.)
+        logger.info("✅ Server initialization complete")
+    except Exception:
+        logger.exception("❌ Server initialization failed")
+        raise
+
+    yield  # FastMCP server runs here
+
+    # Cleanup phase - runs once per server shutdown
+    try:
+        # Cleanup global resources here
+        logger.info("✅ Server cleanup complete")
+    except Exception:
+        logger.exception("❌ Server cleanup failed")
+        raise
+
+    logger.info("🛑 Server lifespan complete")
 
 
 @dataclass
@@ -72,10 +131,10 @@ class ServerConfig:
         return cls.from_settings(settings)
 
     @classmethod
-    def from_settings(cls, settings: AppSettings | None = None) -> ServerConfig:
-        """Create configuration from an AppSettings instance."""
+    def from_settings(cls, settings: AppConfig | None = None) -> ServerConfig:
+        """Create configuration from an AppConfig instance."""
         if settings is None:
-            settings = get_settings()
+            settings = app_config
 
         # Get environment variables
         fastmcp_vars = get_fastmcp_vars()
@@ -87,11 +146,26 @@ class ServerConfig:
             port=settings.fastmcp.port,
             http_path=settings.fastmcp.http_path,
             base_url=settings.fastmcp.base_url,
+            authkit_domain=settings.fastmcp.authkit_domain,
+            authkit_required_scopes=tuple(
+                scope.strip()
+                for scope in (settings.fastmcp.authkit_required_scopes or [])
+                if scope and scope.strip()
+            ),
         )
 
         # Override with environment variables if present
-        if "FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN" in fastmcp_vars:
-            config.authkit_domain = fastmcp_vars["FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN"]
+        domain = fastmcp_vars.get("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
+        if domain:
+            config.authkit_domain = domain
+
+        base_url = fastmcp_vars.get("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
+        if base_url:
+            config.base_url = base_url
+
+        scopes = fastmcp_vars.get("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_REQUIRED_SCOPES")
+        if scopes is not None:
+            config.authkit_required_scopes = _parse_scopes(scopes)
 
         return config
 
@@ -105,33 +179,67 @@ def _initialize_rate_limiter(config: ServerConfig) -> RateLimiter | None:
     Returns:
         RateLimiter instance or None
     """
-    try:
-        # Try to use pheno-sdk observability instead
-        from pheno.dev.rate_limiting import SlidingWindowRateLimiter
+    module_candidates = (
+        "pheno.dev.rate_limiting",
+        "pheno.observability.rate_limiting",
+    )
 
-        limiter = SlidingWindowRateLimiter(
-            window_seconds=60,
-            max_requests=config.rate_limit_rpm
-        )
-        logger.info(f"✅ Rate limiter configured: {config.rate_limit_rpm} requests/minute")
-        return limiter
-    except ImportError:
+    for module_path in module_candidates:
         try:
-            # Fallback to observability module if available
-            from pheno.dev.rate_limiting import SlidingWindowRateLimiter
+            rate_module = importlib.import_module(module_path)
+        except ImportError as exc:
+            if module_path == module_candidates[-1]:
+                message = "Rate limiter not available"
+                if "observability" in str(exc):
+                    logger.info("Rate limiter not available (observability module not installed)")
+                else:
+                    logger.warning(f"{message}: {exc}")
+            continue
 
-            limiter = SlidingWindowRateLimiter(
-                window_seconds=60,
-                max_requests=config.rate_limit_rpm
-            )
-            logger.info(f"✅ Rate limiter configured: {config.rate_limit_rpm} requests/minute")
-            return limiter
-        except ImportError as e:
-            if "observability" in str(e):
-                logger.info("ℹ️  Rate limiter not available (observability module not installed)")
-            else:
-                logger.warning(f"Rate limiter not available: {e}")
-            return None
+        limiter = rate_module.SlidingWindowRateLimiter(  # type: ignore[attr-defined]
+            window_seconds=60,
+            max_requests=config.rate_limit_rpm,
+        )
+        logger.info("Rate limiter configured: %s requests/minute", config.rate_limit_rpm)
+        return limiter
+
+    logger.info("Rate limiter not configured; continuing without rate limiting")
+    return None
+
+
+def _parse_scopes(value: str | None) -> tuple[str, ...]:
+    """Parse OAuth scopes from configuration."""
+    if not value:
+        return ()
+
+    candidate = value.strip()
+    if not candidate:
+        return ()
+
+    # Attempt JSON parsing first
+    try:
+        parsed = json.loads(candidate)
+    except json.JSONDecodeError:
+        parsed = None
+
+    if isinstance(parsed, list):
+        return tuple(str(scope).strip() for scope in parsed if str(scope).strip())
+    if isinstance(parsed, str):
+        parsed = parsed.strip()
+        return (parsed,) if parsed else ()
+
+    # Handle comma-separated values
+    if "," in candidate:
+        parts = [part.strip() for part in candidate.split(",")]
+        return tuple(part for part in parts if part)
+
+    # Fall back to whitespace-separated using shlex for quoted values
+    try:
+        tokens = shlex.split(candidate)
+    except ValueError:
+        tokens = candidate.split()
+
+    return tuple(token.strip() for token in tokens if token.strip())
 
 
 def _create_auth_provider(config: ServerConfig):
@@ -146,8 +254,9 @@ def _create_auth_provider(config: ServerConfig):
     Raises:
         ValueError: If AuthKit domain is not configured
     """
+    # Return None if auth not configured
     if not config.authkit_domain:
-        raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
+        return None
 
     auth_provider = AuthKitProvider(
         authkit_domain=config.authkit_domain,
@@ -197,13 +306,12 @@ def create_consolidated_server(config: ServerConfig | None = None) -> FastMCP:
     print(f"🌐 AUTH BASE URL -> {config.base_url}")
 
     # Initialize rate limiter
-    global _rate_limiter
-    _rate_limiter = _initialize_rate_limiter(config)
+    rate_limiter = _initialize_rate_limiter(config)
 
     # Create auth provider
     auth_provider = _create_auth_provider(config)
 
-    # Create FastMCP server
+    # Create FastMCP server with v2.13.0.1 features
     mcp = FastMCP(
         name=config.name,
         instructions=(
@@ -214,10 +322,18 @@ def create_consolidated_server(config: ServerConfig | None = None) -> FastMCP:
             "and query_tool for data exploration including RAG search."
         ),
         auth=auth_provider,
+        # Enable Pydantic input validation for better type safety
+        # strict_input_validation=True,  # Not supported in this FastMCP version
+        # Add server icon for richer UX  
+        # icons=[
+        #     {"url": "https://atoms.ai/icon.png", "media_type": "image/png"}
+        # ],  # Not supported in this FastMCP version
+        # Server lifespan for proper initialization/cleanup
+        lifespan=_server_lifespan,
     )
 
     # Register tools (imported from tools module)
-    _register_tools(mcp)
+    _register_tools(mcp, rate_limiter)
 
     # Add OAuth discovery endpoints
     _add_oauth_endpoints(mcp, config)
@@ -227,17 +343,13 @@ def create_consolidated_server(config: ServerConfig | None = None) -> FastMCP:
     return mcp
 
 
-def _register_tools(mcp: FastMCP) -> None:
+def _register_tools(mcp: FastMCP, rate_limiter: RateLimiter | None) -> None:
     """Register all MCP tools.
 
     Args:
         mcp: FastMCP server instance
     """
     # Import tool operations using importlib to avoid conflicts with pheno-sdk/adapter-kit/tools
-    import importlib.util
-    import sys
-    from pathlib import Path
-
     # Get the path to the local tools package
     atoms_mcp_root = Path(__file__).parent.parent
     tools_init_path = atoms_mcp_root / "tools" / "__init__.py"
@@ -258,21 +370,12 @@ def _register_tools(mcp: FastMCP) -> None:
     workflow_execute = atoms_tools.workflow_execute
     data_query = atoms_tools.data_query
 
-    # Import tool registration functions
-    from .tools import (
-        register_entity_tool,
-        register_query_tool,
-        register_relationship_tool,
-        register_workflow_tool,
-        register_workspace_tool,
-    )
-
     # Register each tool
-    register_workspace_tool(mcp, workspace_operation, _rate_limiter)
-    register_entity_tool(mcp, entity_operation, _rate_limiter)
-    register_relationship_tool(mcp, relationship_operation, _rate_limiter)
-    register_workflow_tool(mcp, workflow_execute, _rate_limiter)
-    register_query_tool(mcp, data_query, _rate_limiter)
+    register_workspace_tool(mcp, workspace_operation, rate_limiter)
+    register_entity_tool(mcp, entity_operation, rate_limiter)
+    register_relationship_tool(mcp, relationship_operation, rate_limiter)
+    register_workflow_tool(mcp, workflow_execute, rate_limiter)
+    register_query_tool(mcp, data_query, rate_limiter)
 
     logger.info("✅ All tools registered")
 
@@ -285,16 +388,11 @@ def _add_oauth_endpoints(mcp: FastMCP, config: ServerConfig) -> None:
         config: Server configuration
     """
     async def _oauth_protected_resource_handler(request):
-        from starlette.responses import JSONResponse
-
         # Determine resource URL from request headers
         scheme = request.headers.get("x-forwarded-proto", "https")
         host = request.headers.get("x-forwarded-host") or request.headers.get("host")
 
-        if host:
-            resource = f"{scheme}://{host}"
-        else:
-            resource = config.base_url or "http://localhost:8000"
+        resource = f"{scheme}://{host}" if host else config.base_url or "http://localhost:8000"
 
         return JSONResponse({
             "resource": resource,
@@ -302,10 +400,7 @@ def _add_oauth_endpoints(mcp: FastMCP, config: ServerConfig) -> None:
             "bearer_methods_supported": ["header"],
         })
 
-    async def _oauth_authorization_server_handler(request):
-        import httpx
-        from starlette.responses import JSONResponse
-
+    async def _oauth_authorization_server_handler(_request):
         if not config.authkit_domain:
             return JSONResponse({"error": "AuthKit not configured"}, status_code=404)
 

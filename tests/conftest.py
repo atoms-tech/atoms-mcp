@@ -6,7 +6,7 @@
 
 # Load Phase 2 test infrastructure plugins
 # These plugins provide test mode support, cascade flow ordering, and conditional fixtures
-pytest_plugins = ["tests.framework.pytest_atoms_modes"]
+pytest_plugins = ["tests.framework.pytest_atoms_modes", "tests.fixtures.fastmcp_mocks"]
 
 import os  # noqa: E402
 import sys  # noqa: E402
@@ -24,8 +24,14 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv()
 load_dotenv(".env.local", override=True)
 
-# Import endpoint configuration from pheno-sdk
-from pheno.mcp.qa.config.endpoints import EndpointRegistry, Environment, MCPProject  # noqa: E402
+# Import endpoint configuration from pheno-sdk (optional - for production fallback)
+try:
+    from pheno.mcp.qa.config.endpoints import EndpointRegistry, Environment, MCPProject
+except ImportError:
+    # Module not available - will use environment variables instead
+    EndpointRegistry = None
+    Environment = None
+    MCPProject = None
 
 # Import pheno-sdk kits for testing (optional)
 try:
@@ -275,7 +281,12 @@ async def mcp_client(request, local_server_config):
         # Get endpoint from environment (set by test_main.py or default to prod)
         mcp_endpoint = os.getenv("MCP_ENDPOINT")
         if not mcp_endpoint:
-            mcp_endpoint = EndpointRegistry.get_endpoint(project=MCPProject.ATOMS, environment=Environment.PRODUCTION)
+            # Try to get endpoint from registry if available, otherwise use default
+            if EndpointRegistry is not None:
+                mcp_endpoint = EndpointRegistry.get_endpoint(project=MCPProject.ATOMS, environment=Environment.PRODUCTION)
+            else:
+                # Fallback to environment variable or hardcoded production endpoint
+                mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech")
         print(f"Using MCP server: {mcp_endpoint}")
 
     # Get cached credentials from auth plugin (if available)
@@ -283,7 +294,7 @@ async def mcp_client(request, local_server_config):
     if hasattr(request.session.config, "_mcp_credentials"):
         credentials = request.session.config._mcp_credentials
         # Validate credentials before use - avoid expired tokens
-        if credentials and hasattr(credentials, 'is_valid'):
+        if credentials and hasattr(credentials, "is_valid"):
             if not credentials.is_valid():
                 print("⚠️  Cached credentials expired, will re-authenticate")
                 credentials = None  # Force fresh authentication
@@ -383,33 +394,38 @@ def test_cache():
 
 def pytest_collection_modifyitems(session, config, items):
     """Convert @mcp_test decorated functions to pytest tests."""
-    from pheno.testing.mcp_qa.core import get_test_registry
+    try:
+        from pheno.testing.mcp_qa.core import get_test_registry
 
-    registry = get_test_registry()
-    registered_tests = registry.get_tests()
+        registry = get_test_registry()
+        registered_tests = registry.get_tests()
 
-    # Add pytest markers to registered tests
-    for item in items:
-        test_name = item.name
+        # Add pytest markers to registered tests
+        for item in items:
+            test_name = item.name
 
-        # Check if this test is registered in our framework
-        if test_name in registered_tests:
-            test_info = registered_tests[test_name]
+            # Check if this test is registered in our framework
+            if test_name in registered_tests:
+                test_info = registered_tests[test_name]
 
-            # Add category marker
-            _category = test_info.get("category", "functional")  # noqa: F841
-            item.add_marker(pytest.mark.tool)
+                # Add category marker
+                _category = test_info.get("category", "functional")
+                item.add_marker(pytest.mark.tool)
 
-            # Add priority as metadata
-            priority = test_info.get("priority", 5)
-            item.user_properties.append(("priority", priority))
+                # Add priority as metadata
+                priority = test_info.get("priority", 5)
+                item.user_properties.append(("priority", priority))
 
-            # Add auth marker if needed
-            if test_info.get("requires_auth", False):
-                item.add_marker(pytest.mark.auth)
+                # Add auth marker if needed
+                if test_info.get("requires_auth", False):
+                    item.add_marker(pytest.mark.auth)
 
-            # Mark as parallel-safe by default (MCP HTTP calls are isolated)
-            item.add_marker(pytest.mark.parallel)
+                # Mark as parallel-safe by default (MCP HTTP calls are isolated)
+                item.add_marker(pytest.mark.parallel)
+    except (ImportError, ModuleNotFoundError):
+        # Test registry not available - skip test metadata collection
+        # Tests will still run normally, just without special markers
+        pass
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

@@ -4,7 +4,7 @@ Atoms MCP Specific Implementations
 This stays in atoms_mcp-old and uses the base/platform classes.
 """
 
-from .deployment import (
+from .infrastructure.deployment import (
     AtomsDeploymentConfig,
     AtomsVercelDeployer,
     deploy_atoms_to_vercel,
@@ -24,18 +24,16 @@ from .server import (
 __all__ = [
     # Deployment
     "AtomsDeploymentConfig",
-    "AtomsVercelDeployer",
-    "deploy_atoms_to_vercel",
-
-    # Server
-    "AtomsServerManager",
-    "start_atoms_server",
-
     # Port Management
     "AtomsPortManager",
+    # Server
+    "AtomsServerManager",
+    "AtomsVercelDeployer",
     "allocate_atoms_port",
+    "deploy_atoms_to_vercel",
     "get_atoms_port",
-    "release_atoms_port",
     "get_port_manager",
+    "release_atoms_port",
+    "start_atoms_server",
 ]
 

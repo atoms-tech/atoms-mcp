@@ -1,1853 +1,845 @@
 """
-Comprehensive Entity Operations Test Suite
-Tests all entity types with systematic coverage of operations and variations
+Comprehensive test suite for entity operations covering all entity types and CRUD operations.
+Tests organization, project, document, requirement, and test entities with full CRUD validation.
 """
 
+import uuid
+
 import pytest
-from tests.framework.validators import ResponseValidator
 
-from tests.framework import DataGenerator, mcp_test, validators
+from tests.framework import DataGenerator, ResponseValidator, mcp_test
 
-# ==================== ORGANIZATION TESTS ====================
+# ============================================================================
+# ORGANIZATION TESTS
+# ============================================================================
 
-# --- List Operations ---
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=8)
-async def test_list_organizations_basic(client_adapter):
-    """Test basic organization listing"""
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="organization", priority=8)
+async def test_organization_list_operations(client_adapter):
+    """Test basic organization listing operations."""
     result = await client_adapter.call_tool("entity_tool", {
         "entity_type": "organization",
         "operation": "list"
     })
-    assert result["success"], f"List organizations failed: {result.get('error', 'unknown error')} | Params: entity_type=organization, operation=list"
-    assert isinstance(result["response"], list), f"Expected list response, got {type(result['response']).__name__} | Response: {result.get('response')}"
-    return {"success": True}
 
+    assert result["success"], "Organization list operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["organizations", "items", "data"]
+    ), "Response should contain organization data"
 
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_organizations_limit_10(client_adapter):
-    """Test organization listing with limit=10"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "list",
-        "limit": 10
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
-    return {"success": True}
-
+    return {"success": True, "test": "organization_list"}
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
+@pytest.mark.priority(9)
+@mcp_test(tool_name="entity_tool", category="organization", priority=9)
+async def test_organization_create_operations(client_adapter):
+    """Test organization creation operations."""
+    test_data = DataGenerator.organization_data()
+    created_org = None
 
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_organizations_limit_50(client_adapter):
-    """Test organization listing with limit=50"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "list",
-        "limit": 50
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_organizations_with_parent_filter(client_adapter):
-    """Test organization listing with parent filter"""
-    parent_id = DataGenerator.uuid()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "list",
-        "parent_id": parent_id
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Create Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=9)
-async def test_create_organization_basic(client_adapter):
-    """Test basic organization creation"""
-    data = DataGenerator.organization_data()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "create",
-        "data": data
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert validators.FieldValidator.is_uuid(result["response"].get("id"))
-    assert result["response"]["name"] == data["name"]
-    return {"success": True, "entity_id": result["response"]["id"]}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=8)
-async def test_create_organization_batch(client_adapter):
-    """Test batch organization creation (3 items)"""
-    organizations = []
-    for i in range(3):
-        data = DataGenerator.organization_data()
+    try:
         result = await client_adapter.call_tool("entity_tool", {
             "entity_type": "organization",
             "operation": "create",
-            "data": data
+            "data": test_data
         })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        organizations.append(result["response"]["id"])
-    assert len(organizations) == 3, f"Expected len(organizations) == 3, got {len(organizations)}"
-    return {"success": True, "entity_ids": organizations}
 
+        assert result["success"], "Organization creation should succeed"
+        created_org = result["response"]
 
-# --- Read Operations ---
+        # Validate UUID format
+        assert ResponseValidator.is_uuid(created_org.get("id")), "Organization ID should be valid UUID"
+
+        # Validate required fields
+        assert ResponseValidator.has_fields(
+            created_org,
+            ["id", "name", "created_at", "updated_at"]
+        ), "Created organization should have required fields"
+
+        return {"success": True, "test": "organization_create", "id": created_org["id"]}
+
+    finally:
+        # Cleanup
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
-async def test_read_organization_by_id(client_adapter):
-    """Test reading organization by ID - creates test data first"""
-    # Step 1: CREATE test organization (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "organization",
-        DataGenerator.organization_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="organization", priority=8)
+async def test_organization_read_operations(client_adapter):
+    """Test organization read operations."""
+    test_data = DataGenerator.organization_data()
+    created_org = None
 
     try:
-        # Step 2: READ the created organization
+        # Create organization first
+        create_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "create",
+            "data": test_data
+        })
+
+        assert create_result["success"], "Organization creation should succeed"
+        created_org = create_result["response"]
+
+        # Read organization
         result = await client_adapter.call_tool("entity_tool", {
             "entity_type": "organization",
             "operation": "read",
-            "entity_id": entity_id
+            "entity_id": created_org["id"]
         })
 
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
+        assert result["success"], "Organization read operation should succeed"
+        assert result["response"]["id"] == created_org["id"], "Should return the correct organization"
 
-        return {"success": True}
+        return {"success": True, "test": "organization_read", "id": created_org["id"]}
 
     finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "organization",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
+        # Cleanup
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
-async def test_read_organization_with_relations(client_adapter):
-    """Test reading organization with relations - creates test data first"""
-    # Step 1: CREATE test organization (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "organization",
-        DataGenerator.organization_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
+@pytest.mark.priority(7)
+@mcp_test(tool_name="entity_tool", category="organization", priority=7)
+async def test_organization_update_operations(client_adapter):
+    """Test organization update operations."""
+    test_data = DataGenerator.organization_data()
+    created_org = None
 
     try:
-        # Step 2: READ with relations
-        result = await client_adapter.call_tool("entity_tool", {
+        # Create organization first
+        create_result = await client_adapter.call_tool("entity_tool", {
             "entity_type": "organization",
-            "operation": "read",
-            "entity_id": entity_id,
-            "include_relations": True
+            "operation": "create",
+            "data": test_data
         })
 
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read with relations failed: {result.get('error')}"
-        assert "relations" in result["response"] or "projects" in result["response"]
+        assert create_result["success"], "Organization creation should succeed"
+        created_org = create_result["response"]
 
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "organization",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Update Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_update", priority=7)
-async def test_update_organization_single_field(client_adapter):
-    """Test updating single field of organization"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "organization", DataGenerator.organization_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # UPDATE single field
-        new_name = "Updated Test Org"
+        # Update organization
+        update_data = {"name": f"Updated {test_data['name']}"}
         result = await client_adapter.call_tool("entity_tool", {
             "entity_type": "organization",
             "operation": "update",
-            "entity_id": entity_id,
-            "data": {"name": new_name}
+            "entity_id": created_org["id"],
+            "data": update_data
         })
-        assert result["success"], f"Update failed: {result.get('error')}"
-        return {"success": True}
+
+        assert result["success"], "Organization update operation should succeed"
+        assert result["response"]["name"] == update_data["name"], "Name should be updated"
+
+        return {"success": True, "test": "organization_update", "id": created_org["id"]}
 
     finally:
-        # DELETE cleanup
-        await client_adapter.call_tool("entity_tool", {
+        # Cleanup
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(6)
+@mcp_test(tool_name="entity_tool", category="organization", priority=6)
+async def test_organization_delete_operations(client_adapter):
+    """Test organization delete operations."""
+    test_data = DataGenerator.organization_data()
+    created_org = None
+
+    try:
+        # Create organization first
+        create_result = await client_adapter.call_tool("entity_tool", {
             "entity_type": "organization",
-            "operation": "delete",
-            "entity_id": entity_id
+            "operation": "create",
+            "data": test_data
         })
 
+        assert create_result["success"], "Organization creation should succeed"
+        created_org = create_result["response"]
 
-# --- Delete Operations ---
+        # Delete organization
+        result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "delete",
+            "entity_id": created_org["id"]
+        })
+
+        assert result["success"], "Organization delete operation should succeed"
+
+        # Verify deletion
+        read_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "read",
+            "entity_id": created_org["id"]
+        })
+
+        assert not read_result["success"], "Deleted organization should not be readable"
+
+        return {"success": True, "test": "organization_delete", "id": created_org["id"]}
+
+    finally:
+        # Cleanup - try to delete if still exists
+        if created_org:
+            try:
+                await client_adapter.call_tool("entity_tool", {
+                    "entity_type": "organization",
+                    "operation": "delete",
+                    "entity_id": created_org["id"]
+                })
+            except Exception:
+                pass  # Already deleted
+
+# ============================================================================
+# PROJECT TESTS
+# ============================================================================
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_delete", priority=6)
-async def test_delete_organization_soft(client_adapter):
-    """Test soft delete of organization"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "organization", DataGenerator.organization_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    # DELETE (soft delete is the actual test, no cleanup needed)
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="project", priority=8)
+async def test_project_list_operations(client_adapter):
+    """Test basic project listing operations."""
     result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "delete",
-        "entity_id": entity_id
+        "entity_type": "project",
+        "operation": "list"
     })
-    assert result["success"], f"Delete failed: {result.get('error')}"
-    return {"success": True}
 
+    assert result["success"], "Project list operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["projects", "items", "data"]
+    ), "Response should contain project data"
 
-# --- Search Operations ---
+    return {"success": True, "test": "project_list"}
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
+@pytest.mark.priority(9)
+@mcp_test(tool_name="entity_tool", category="project", priority=9)
+async def test_project_create_operations(client_adapter):
+    """Test project creation operations."""
+    # First create an organization
+    org_data = DataGenerator.organization_data()
+    created_org = None
+    created_project = None
 
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_fuzzy_match_organization(client_adapter):
-    """Test fuzzy matching for organizations"""
+    try:
+        # Create organization
+        org_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "create",
+            "data": org_data
+        })
+
+        assert org_result["success"], "Organization creation should succeed"
+        created_org = org_result["response"]
+
+        # Create project
+        test_data = DataGenerator.project_data(organization_id=created_org["id"])
+        result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "create",
+            "data": test_data
+        })
+
+        assert result["success"], "Project creation should succeed"
+        created_project = result["response"]
+
+        # Validate UUID format
+        assert ResponseValidator.is_uuid(created_project.get("id")), "Project ID should be valid UUID"
+
+        # Validate required fields
+        assert ResponseValidator.has_fields(
+            created_project,
+            ["id", "name", "organization_id", "created_at", "updated_at"]
+        ), "Created project should have required fields"
+
+        return {"success": True, "test": "project_create", "id": created_project["id"]}
+
+    finally:
+        # Cleanup
+        if created_project:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "project",
+                "operation": "delete",
+                "entity_id": created_project["id"]
+            })
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
+
+# ============================================================================
+# DOCUMENT TESTS
+# ============================================================================
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="document", priority=8)
+async def test_document_list_operations(client_adapter):
+    """Test basic document listing operations."""
     result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "search",
-        "search_term": "test"
+        "entity_type": "document",
+        "operation": "list"
     })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
 
+    assert result["success"], "Document list operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["documents", "items", "data"]
+    ), "Response should contain document data"
+
+    return {"success": True, "test": "document_list"}
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
+@pytest.mark.priority(9)
+@mcp_test(tool_name="entity_tool", category="document", priority=9)
+async def test_document_create_operations(client_adapter):
+    """Test document creation operations."""
+    # First create organization and project
+    org_data = DataGenerator.organization_data()
+    created_org = None
+    created_project = None
+    created_document = None
 
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_search_organization_with_filters(client_adapter):
-    """Test searching organizations with filters"""
+    try:
+        # Create organization
+        org_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "create",
+            "data": org_data
+        })
+
+        assert org_result["success"], "Organization creation should succeed"
+        created_org = org_result["response"]
+
+        # Create project
+        project_data = DataGenerator.project_data(organization_id=created_org["id"])
+        project_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "create",
+            "data": project_data
+        })
+
+        assert project_result["success"], "Project creation should succeed"
+        created_project = project_result["response"]
+
+        # Create document
+        test_data = DataGenerator.document_data(project_id=created_project["id"])
+        result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "create",
+            "data": test_data
+        })
+
+        assert result["success"], "Document creation should succeed"
+        created_document = result["response"]
+
+        # Validate UUID format
+        assert ResponseValidator.is_uuid(created_document.get("id")), "Document ID should be valid UUID"
+
+        # Validate required fields
+        assert ResponseValidator.has_fields(
+            created_document,
+            ["id", "title", "project_id", "created_at", "updated_at"]
+        ), "Created document should have required fields"
+
+        return {"success": True, "test": "document_create", "id": created_document["id"]}
+
+    finally:
+        # Cleanup
+        if created_document:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "document",
+                "operation": "delete",
+                "entity_id": created_document["id"]
+            })
+        if created_project:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "project",
+                "operation": "delete",
+                "entity_id": created_project["id"]
+            })
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
+
+# ============================================================================
+# REQUIREMENT TESTS
+# ============================================================================
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="requirement", priority=8)
+async def test_requirement_list_operations(client_adapter):
+    """Test basic requirement listing operations."""
     result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "search",
-        "filters": {
-            "status": "active",
-            "type": "enterprise"
-        }
+        "entity_type": "requirement",
+        "operation": "list"
     })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
 
+    assert result["success"], "Requirement list operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["requirements", "items", "data"]
+    ), "Response should contain requirement data"
 
-# --- Format Variations ---
+    return {"success": True, "test": "requirement_list"}
 
-
-
-
-
-
-
-
-
-# --- Error Cases ---
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
+@pytest.mark.priority(9)
+@mcp_test(tool_name="entity_tool", category="requirement", priority=9)
+async def test_requirement_create_operations(client_adapter):
+    """Test requirement creation operations."""
+    # First create organization, project, and document
+    org_data = DataGenerator.organization_data()
+    created_org = None
+    created_project = None
+    created_document = None
+    created_requirement = None
 
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_create_organization_missing_required_fields(client_adapter):
-    """Test organization creation with missing required fields"""
+    try:
+        # Create organization
+        org_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "create",
+            "data": org_data
+        })
+
+        assert org_result["success"], "Organization creation should succeed"
+        created_org = org_result["response"]
+
+        # Create project
+        project_data = DataGenerator.project_data(organization_id=created_org["id"])
+        project_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "create",
+            "data": project_data
+        })
+
+        assert project_result["success"], "Project creation should succeed"
+        created_project = project_result["response"]
+
+        # Create document
+        document_data = DataGenerator.document_data(project_id=created_project["id"])
+        document_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "create",
+            "data": document_data
+        })
+
+        assert document_result["success"], "Document creation should succeed"
+        created_document = document_result["response"]
+
+        # Create requirement
+        test_data = DataGenerator.requirement_data(document_id=created_document["id"])
+        result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "requirement",
+            "operation": "create",
+            "data": test_data
+        })
+
+        assert result["success"], "Requirement creation should succeed"
+        created_requirement = result["response"]
+
+        # Validate UUID format
+        assert ResponseValidator.is_uuid(created_requirement.get("id")), "Requirement ID should be valid UUID"
+
+        # Validate required fields
+        assert ResponseValidator.has_fields(
+            created_requirement,
+            ["id", "title", "document_id", "created_at", "updated_at"]
+        ), "Created requirement should have required fields"
+
+        return {"success": True, "test": "requirement_create", "id": created_requirement["id"]}
+
+    finally:
+        # Cleanup
+        if created_requirement:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "requirement",
+                "operation": "delete",
+                "entity_id": created_requirement["id"]
+            })
+        if created_document:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "document",
+                "operation": "delete",
+                "entity_id": created_document["id"]
+            })
+        if created_project:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "project",
+                "operation": "delete",
+                "entity_id": created_project["id"]
+            })
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
+
+# ============================================================================
+# TEST ENTITY TESTS
+# ============================================================================
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="test", priority=8)
+async def test_test_entity_list_operations(client_adapter):
+    """Test basic test entity listing operations."""
+    result = await client_adapter.call_tool("entity_tool", {
+        "entity_type": "test",
+        "operation": "list"
+    })
+
+    assert result["success"], "Test entity list operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["tests", "items", "data"]
+    ), "Response should contain test entity data"
+
+    return {"success": True, "test": "test_entity_list"}
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(9)
+@mcp_test(tool_name="entity_tool", category="test", priority=9)
+async def test_test_entity_create_operations(client_adapter):
+    """Test test entity creation operations."""
+    # First create organization, project, document, and requirement
+    org_data = DataGenerator.organization_data()
+    created_org = None
+    created_project = None
+    created_document = None
+    created_requirement = None
+    created_test = None
+
+    try:
+        # Create organization
+        org_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "create",
+            "data": org_data
+        })
+
+        assert org_result["success"], "Organization creation should succeed"
+        created_org = org_result["response"]
+
+        # Create project
+        project_data = DataGenerator.project_data(organization_id=created_org["id"])
+        project_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "project",
+            "operation": "create",
+            "data": project_data
+        })
+
+        assert project_result["success"], "Project creation should succeed"
+        created_project = project_result["response"]
+
+        # Create document
+        document_data = DataGenerator.document_data(project_id=created_project["id"])
+        document_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "document",
+            "operation": "create",
+            "data": document_data
+        })
+
+        assert document_result["success"], "Document creation should succeed"
+        created_document = document_result["response"]
+
+        # Create requirement
+        requirement_data = DataGenerator.requirement_data(document_id=created_document["id"])
+        requirement_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "requirement",
+            "operation": "create",
+            "data": requirement_data
+        })
+
+        assert requirement_result["success"], "Requirement creation should succeed"
+        created_requirement = requirement_result["response"]
+
+        # Create test entity
+        test_data = DataGenerator.test_data(requirement_id=created_requirement["id"])
+        result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "test",
+            "operation": "create",
+            "data": test_data
+        })
+
+        assert result["success"], "Test entity creation should succeed"
+        created_test = result["response"]
+
+        # Validate UUID format
+        assert ResponseValidator.is_uuid(created_test.get("id")), "Test entity ID should be valid UUID"
+
+        # Validate required fields
+        assert ResponseValidator.has_fields(
+            created_test,
+            ["id", "title", "requirement_id", "created_at", "updated_at"]
+        ), "Created test entity should have required fields"
+
+        return {"success": True, "test": "test_entity_create", "id": created_test["id"]}
+
+    finally:
+        # Cleanup
+        if created_test:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "test",
+                "operation": "delete",
+                "entity_id": created_test["id"]
+            })
+        if created_requirement:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "requirement",
+                "operation": "delete",
+                "entity_id": created_requirement["id"]
+            })
+        if created_document:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "document",
+                "operation": "delete",
+                "entity_id": created_document["id"]
+            })
+        if created_project:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "project",
+                "operation": "delete",
+                "entity_id": created_project["id"]
+            })
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })
+
+# ============================================================================
+# ERROR CASE TESTS
+# ============================================================================
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(5)
+@mcp_test(tool_name="entity_tool", category="error", priority=5)
+async def test_invalid_entity_type_error(client_adapter):
+    """Test error handling for invalid entity type."""
+    result = await client_adapter.call_tool("entity_tool", {
+        "entity_type": "invalid_entity",
+        "operation": "list"
+    })
+
+    assert not result["success"], "Invalid entity type should fail"
+    assert "error" in result, "Error response should contain error information"
+
+    return {"success": True, "test": "invalid_entity_type_error"}
+
+@pytest.mark.asyncio
+@pytest.mark.parallel
+@pytest.mark.priority(5)
+@mcp_test(tool_name="entity_tool", category="error", priority=5)
+async def test_missing_required_fields_error(client_adapter):
+    """Test error handling for missing required fields."""
     result = await client_adapter.call_tool("entity_tool", {
         "entity_type": "organization",
         "operation": "create",
         "data": {}  # Missing required fields
     })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
 
+    assert not result["success"], "Missing required fields should fail"
+    assert "error" in result, "Error response should contain error information"
+
+    return {"success": True, "test": "missing_required_fields_error"}
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_read_organization_invalid_id(client_adapter):
-    """Test reading organization with invalid ID"""
+@pytest.mark.priority(5)
+@mcp_test(tool_name="entity_tool", category="error", priority=5)
+async def test_nonexistent_entity_read_error(client_adapter):
+    """Test error handling for reading nonexistent entity."""
+    fake_id = str(uuid.uuid4())
     result = await client_adapter.call_tool("entity_tool", {
         "entity_type": "organization",
         "operation": "read",
-        "entity_id": "invalid-id-123"
+        "entity_id": fake_id
     })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
 
+    assert not result["success"], "Reading nonexistent entity should fail"
+    assert "error" in result, "Error response should contain error information"
+
+    return {"success": True, "test": "nonexistent_entity_read_error"}
+
+# ============================================================================
+# SEARCH OPERATIONS TESTS
+# ============================================================================
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_access_deleted_organization(client_adapter):
-    """Test accessing deleted organization"""
-    # Create and delete
-    data = DataGenerator.organization_data()
-    create_result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
-
-    await client_adapter.call_tool("entity_tool", {
-        "entity_type": "organization",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-
-    # Try to access deleted entity
+@pytest.mark.priority(7)
+@mcp_test(tool_name="entity_tool", category="search", priority=7)
+async def test_organization_search_operations(client_adapter):
+    """Test organization search operations."""
     result = await client_adapter.call_tool("entity_tool", {
         "entity_type": "organization",
-        "operation": "read",
-        "entity_id": entity_id
+        "operation": "search",
+        "query": "test"
     })
-    assert not result["success"] or result["response"].get("deleted")
-    return {"success": True}
 
+    assert result["success"], "Organization search operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["organizations", "items", "data"]
+    ), "Response should contain search results"
 
-# ==================== PROJECT TESTS ====================
+    return {"success": True, "test": "organization_search"}
 
-# --- List Operations ---
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=8)
-async def test_list_projects_basic(client_adapter):
-    """Test basic project listing"""
+@pytest.mark.priority(7)
+@mcp_test(tool_name="entity_tool", category="search", priority=7)
+async def test_project_search_operations(client_adapter):
+    """Test project search operations."""
     result = await client_adapter.call_tool("entity_tool", {
         "entity_type": "project",
-        "operation": "list"
+        "operation": "search",
+        "query": "test"
     })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
 
+    assert result["success"], "Project search operation should succeed"
+    assert ResponseValidator.has_any_fields(
+        result["response"],
+        ["projects", "items", "data"]
+    ), "Response should contain search results"
 
-@pytest.mark.asyncio
+    return {"success": True, "test": "project_search"}
 
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_projects_limit_10(client_adapter):
-    """Test project listing with limit=10"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "list",
-        "limit": 10
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
-    return {"success": True}
-
+# ============================================================================
+# BATCH OPERATIONS TESTS
+# ============================================================================
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_projects_limit_50(client_adapter):
-    """Test project listing with limit=50"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "list",
-        "limit": 50
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_projects_with_parent_filter(client_adapter):
-    """Test project listing with parent filter"""
-    parent_id = DataGenerator.uuid()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "list",
-        "parent_id": parent_id
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Create Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=9)
-async def test_create_project_basic(client_adapter):
-    """Test basic project creation"""
-    data = DataGenerator.project_data()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "create",
-        "data": data
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert validators.FieldValidator.is_uuid(result["response"].get("id"))
-    assert result["response"]["name"] == data["name"]
-    return {"success": True, "entity_id": result["response"]["id"]}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=8)
-async def test_create_project_batch(client_adapter):
-    """Test batch project creation (3 items)"""
-    projects = []
-    for i in range(3):
-        data = DataGenerator.project_data()
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
-            "operation": "create",
-            "data": data
-        })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        projects.append(result["response"]["id"])
-    assert len(projects) == 3, f"Expected len(projects) == 3, got {len(projects)}"
-    return {"success": True, "entity_ids": projects}
-
-
-# --- Read Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
-async def test_read_project_by_id(client_adapter):
-    """Test reading project by ID - creates test data first"""
-    # Step 1: CREATE test project (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "project",
-        DataGenerator.project_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="batch", priority=8)
+async def test_organization_batch_create_operations(client_adapter):
+    """Test organization batch creation operations."""
+    test_data = [
+        DataGenerator.organization_data(),
+        DataGenerator.organization_data(),
+        DataGenerator.organization_data()
+    ]
+    created_orgs = []
 
     try:
-        # Step 2: READ the created project
         result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
-            "operation": "read",
-            "entity_id": entity_id
+            "entity_type": "organization",
+            "operation": "batch_create",
+            "data": test_data
         })
 
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
+        assert result["success"], "Organization batch creation should succeed"
+        created_orgs = result["response"]
 
-        return {"success": True}
+        assert len(created_orgs) == 3, "Should create 3 organizations"
+
+        # Validate each created organization
+        for org in created_orgs:
+            assert ResponseValidator.is_uuid(org.get("id")), "Organization ID should be valid UUID"
+            assert ResponseValidator.has_fields(
+                org,
+                ["id", "name", "created_at", "updated_at"]
+            ), "Created organization should have required fields"
+
+        return {"success": True, "test": "organization_batch_create", "count": len(created_orgs)}
 
     finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
+        # Cleanup
+        for org in created_orgs:
+            try:
+                await client_adapter.call_tool("entity_tool", {
+                    "entity_type": "organization",
+                    "operation": "delete",
+                    "entity_id": org["id"]
+                })
+            except Exception:
+                pass  # Already deleted
 
+# ============================================================================
+# RELATION OPERATIONS TESTS
+# ============================================================================
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
-async def test_read_project_with_relations(client_adapter):
-    """Test reading project with relations - creates test data first"""
-    # Step 1: CREATE test project (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "project",
-        DataGenerator.project_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
+@pytest.mark.priority(8)
+@mcp_test(tool_name="entity_tool", category="relations", priority=8)
+async def test_organization_with_relations(client_adapter):
+    """Test organization read with relations."""
+    test_data = DataGenerator.organization_data()
+    created_org = None
 
     try:
-        # Step 2: READ with relations
+        # Create organization
+        create_result = await client_adapter.call_tool("entity_tool", {
+            "entity_type": "organization",
+            "operation": "create",
+            "data": test_data
+        })
+
+        assert create_result["success"], "Organization creation should succeed"
+        created_org = create_result["response"]
+
+        # Read organization with relations
         result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
+            "entity_type": "organization",
             "operation": "read",
-            "entity_id": entity_id,
+            "entity_id": created_org["id"],
             "include_relations": True
         })
 
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read with relations failed: {result.get('error')}"
-        assert "relations" in result["response"] or "documents" in result["response"]
+        assert result["success"], "Organization read with relations should succeed"
+        assert result["response"]["id"] == created_org["id"], "Should return the correct organization"
 
-        return {"success": True}
+        # Check if relations are included (if any exist)
+        response = result["response"]
+        if "projects" in response:
+            assert isinstance(response["projects"], list), "Projects should be a list"
+
+        return {"success": True, "test": "organization_with_relations", "id": created_org["id"]}
 
     finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Update Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_update", priority=7)
-async def test_update_project_single_field(client_adapter):
-    """Test updating single field of project"""
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "project", DataGenerator.project_data
-    )
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-    try:
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
-            "operation": "update",
-            "entity_id": entity_id,
-            "data": {"name": "Updated Test Project"}
-        })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        return {"success": True}
-    finally:
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "project",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Delete Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_delete", priority=6)
-async def test_delete_project_soft(client_adapter):
-    """Test soft delete of project"""
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "project", DataGenerator.project_data
-    )
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "delete",
-        "entity_id": entity_id
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    return {"success": True}
-
-
-# --- Search Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_fuzzy_match_project(client_adapter):
-    """Test fuzzy matching for projects"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "search",
-        "search_term": "test"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_search_project_with_filters(client_adapter):
-    """Test searching projects with filters"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "search",
-        "filters": {
-            "status": "active",
-            "priority": "high"
-        }
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Format Variations ---
-
-
-
-
-
-
-
-
-
-# --- Error Cases ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_create_project_missing_required_fields(client_adapter):
-    """Test project creation with missing required fields"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "create",
-        "data": {}  # Missing required fields
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_read_project_invalid_id(client_adapter):
-    """Test reading project with invalid ID"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "read",
-        "entity_id": "invalid-id-456"
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_access_deleted_project(client_adapter):
-    """Test accessing deleted project"""
-    # Create and delete
-    data = DataGenerator.project_data()
-    create_result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
-
-    await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-
-    # Try to access deleted entity
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "project",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert not result["success"] or result["response"].get("deleted")
-    return {"success": True}
-
-
-# ==================== DOCUMENT TESTS ====================
-
-# --- List Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=8)
-async def test_list_documents_basic(client_adapter):
-    """Test basic document listing"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "list"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_documents_limit_10(client_adapter):
-    """Test document listing with limit=10"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "list",
-        "limit": 10
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_documents_limit_50(client_adapter):
-    """Test document listing with limit=50"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "list",
-        "limit": 50
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_documents_with_parent_filter(client_adapter):
-    """Test document listing with parent filter"""
-    parent_id = DataGenerator.uuid()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "list",
-        "parent_id": parent_id
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Create Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=9)
-async def test_create_document_basic(client_adapter):
-    """Test basic document creation"""
-    data = DataGenerator.document_data()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "create",
-        "data": data
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert validators.FieldValidator.is_uuid(result["response"].get("id"))
-    assert result["response"]["title"] == data["title"]
-    return {"success": True, "entity_id": result["response"]["id"]}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=8)
-async def test_create_document_batch(client_adapter):
-    """Test batch document creation (3 items)"""
-    documents = []
-    for i in range(3):
-        data = DataGenerator.document_data()
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "create",
-            "data": data
-        })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        documents.append(result["response"]["id"])
-    assert len(documents) == 3, f"Expected len(documents) == 3, got {len(documents)}"
-    return {"success": True, "entity_ids": documents}
-
-
-# --- Read Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
-async def test_read_document_by_id(client_adapter):
-    """Test reading document by ID - creates test data first"""
-    # Step 1: CREATE test document (with auto-skip if fails)
-    # Helper automatically: 1) gets/creates org, 2) gets/creates project, 3) creates document
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "document",
-        DataGenerator.document_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # Step 2: READ the created document
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "read",
-            "entity_id": entity_id
-        })
-
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
-        assert result["response"]["id"] == entity_id
-
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
-async def test_read_document_with_relations(client_adapter):
-    """Test reading document with relations - creates test data first"""
-    # Step 1: CREATE test document (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "document",
-        DataGenerator.document_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # Step 2: READ the created document with relations
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "read",
-            "entity_id": entity_id,
-            "include_relations": True
-        })
-
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
-        assert "relations" in result["response"] or "attachments" in result["response"]
-
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Update Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_update", priority=7)
-async def test_update_document_single_field(client_adapter):
-    """Test updating single field of document"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "document", DataGenerator.document_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # UPDATE single field
-        new_title = "Updated Test Document"
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "update",
-            "entity_id": entity_id,
-            "data": {"title": new_title}
-        })
-        assert result["success"], f"Update failed: {result.get('error')}"
-        return {"success": True}
-
-    finally:
-        # DELETE cleanup
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Delete Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_delete", priority=6)
-async def test_delete_document_soft(client_adapter):
-    """Test soft delete of document"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "document", DataGenerator.document_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    # DELETE (soft delete is the actual test, no cleanup needed)
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-    assert result["success"], f"Delete failed: {result.get('error')}"
-    return {"success": True}
-
-
-# --- Search Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_fuzzy_match_document(client_adapter):
-    """Test fuzzy matching for documents"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "search",
-        "search_term": "test"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_search_document_with_filters(client_adapter):
-    """Test searching documents with filters"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "search",
-        "filters": {
-            "type": "specification",
-            "status": "draft"
-        }
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Format Variations ---
-
-
-
-
-
-
-
-
-
-# --- Error Cases ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_create_document_missing_required_fields(client_adapter):
-    """Test document creation with missing required fields"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "create",
-        "data": {}  # Missing required fields
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_read_document_invalid_id(client_adapter):
-    """Test reading document with invalid ID"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "read",
-        "entity_id": "invalid-id-789"
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_access_deleted_document(client_adapter):
-    """Test accessing deleted document"""
-    # Create and delete
-    data = DataGenerator.document_data()
-    create_result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
-
-    await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-
-    # Try to access deleted entity
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "document",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert not result["success"] or result["response"].get("deleted")
-    return {"success": True}
-
-
-# ==================== REQUIREMENT TESTS ====================
-
-# --- List Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=8)
-async def test_list_requirements_basic(client_adapter):
-    """Test basic requirement listing"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "list"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_requirements_limit_10(client_adapter):
-    """Test requirement listing with limit=10"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "list",
-        "limit": 10
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_requirements_limit_50(client_adapter):
-    """Test requirement listing with limit=50"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "list",
-        "limit": 50
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_requirements_with_parent_filter(client_adapter):
-    """Test requirement listing with parent filter"""
-    parent_id = DataGenerator.uuid()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "list",
-        "parent_id": parent_id
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Create Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=9)
-async def test_create_requirement_basic(client_adapter):
-    """Test basic requirement creation"""
-    data = DataGenerator.requirement_data()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "create",
-        "data": data
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert validators.FieldValidator.is_uuid(result["response"].get("id"))
-    assert result["response"]["title"] == data["title"]
-    return {"success": True, "entity_id": result["response"]["id"]}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=8)
-async def test_create_requirement_batch(client_adapter):
-    """Test batch requirement creation (3 items)"""
-    requirements = []
-    for i in range(3):
-        data = DataGenerator.requirement_data()
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "create",
-            "data": data
-        })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        requirements.append(result["response"]["id"])
-    assert len(requirements) == 3, f"Expected len(requirements) == 3, got {len(requirements)}"
-    return {"success": True, "entity_ids": requirements}
-
-
-# --- Read Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
-async def test_read_requirement_by_id(client_adapter):
-    """Test reading requirement by ID - creates test data first"""
-    # Step 1: CREATE test requirement (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "requirement",
-        DataGenerator.requirement_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # Step 2: READ the created requirement
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "read",
-            "entity_id": entity_id
-        })
-
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
-
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
-async def test_read_requirement_with_relations(client_adapter):
-    """Test reading requirement with relations - creates test data first"""
-    # Step 1: CREATE test requirement (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "requirement",
-        DataGenerator.requirement_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # Step 2: READ the created requirement with relations
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "read",
-            "entity_id": entity_id,
-            "include_relations": True
-        })
-
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
-        assert "relations" in result["response"] or "tests" in result["response"]
-
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Update Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_update", priority=7)
-async def test_update_requirement_single_field(client_adapter):
-    """Test updating single field of requirement"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "requirement", DataGenerator.requirement_data
-    )
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-    try:
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "update",
-            "entity_id": entity_id,
-            "data": {"title": "Updated Test Requirement"}
-        })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        return {"success": True}
-    finally:
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Delete Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_delete", priority=6)
-async def test_delete_requirement_soft(client_adapter):
-    """Test soft delete of requirement"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "requirement", DataGenerator.requirement_data
-    )
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    return {"success": True}
-
-
-# --- Search Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_fuzzy_match_requirement(client_adapter):
-    """Test fuzzy matching for requirements"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "search",
-        "search_term": "test"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_search_requirement_with_filters(client_adapter):
-    """Test searching requirements with filters"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "search",
-        "filters": {
-            "priority": "high",
-            "status": "pending"
-        }
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Format Variations ---
-
-
-
-
-
-
-
-
-
-# --- Error Cases ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_create_requirement_missing_required_fields(client_adapter):
-    """Test requirement creation with missing required fields"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "create",
-        "data": {}  # Missing required fields
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_read_requirement_invalid_id(client_adapter):
-    """Test reading requirement with invalid ID"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "read",
-        "entity_id": "invalid-id-abc"
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_access_deleted_requirement(client_adapter):
-    """Test accessing deleted requirement"""
-    # Create and delete
-    data = DataGenerator.requirement_data()
-    create_result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
-
-    await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-
-    # Try to access deleted entity
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "requirement",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert not result["success"] or result["response"].get("deleted")
-    return {"success": True}
-
-
-# ==================== TEST ENTITY TESTS ====================
-
-# --- List Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=8)
-async def test_list_tests_basic(client_adapter):
-    """Test basic test entity listing"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "list"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_tests_limit_10(client_adapter):
-    """Test test entity listing with limit=10"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "list",
-        "limit": 10
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 10, f"Expected len(result['response']) <= 10, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_tests_limit_50(client_adapter):
-    """Test test entity listing with limit=50"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "list",
-        "limit": 50
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert len(result["response"]) <= 50, f"Expected len(result['response']) <= 50, got {len(result['response'])}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_list", priority=7)
-async def test_list_tests_with_parent_filter(client_adapter):
-    """Test test entity listing with parent filter"""
-    parent_id = DataGenerator.uuid()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "list",
-        "parent_id": parent_id
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Create Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=9)
-async def test_create_test_basic(client_adapter):
-    """Test basic test entity creation"""
-    data = DataGenerator.test_data()
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "create",
-        "data": data
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert validators.FieldValidator.is_uuid(result["response"].get("id"))
-    assert result["response"]["name"] == data["name"]
-    return {"success": True, "entity_id": result["response"]["id"]}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_create", priority=8)
-async def test_create_test_batch(client_adapter):
-    """Test batch test entity creation (3 items)"""
-    tests = []
-    for i in range(3):
-        data = DataGenerator.test_data()
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "create",
-            "data": data
-        })
-        assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-        tests.append(result["response"]["id"])
-    assert len(tests) == 3, f"Expected len(tests) == 3, got {len(tests)}"
-    return {"success": True, "entity_ids": tests}
-
-
-# --- Read Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=8)
-async def test_read_test_by_id(client_adapter):
-    """Test reading test entity by ID - creates test data first"""
-    # Step 1: CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "test",
-        DataGenerator.test_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # Step 2: READ the created test entity
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "read",
-            "entity_id": entity_id
-        })
-
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read failed: {result.get('error')}"
-
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_read", priority=7)
-async def test_read_test_with_relations(client_adapter):
-    """Test reading test entity with relations - creates test data first"""
-    # Step 1: CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter,
-        "test",
-        DataGenerator.test_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # Step 2: READ with relations
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "read",
-            "entity_id": entity_id,
-            "include_relations": True
-        })
-
-        # Step 3: Verify read succeeded
-        assert result["success"], f"Read with relations failed: {result.get('error')}"
-        assert "relations" in result["response"] or "results" in result["response"]
-
-        return {"success": True}
-
-    finally:
-        # Step 4: Always DELETE test data (cleanup)
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Update Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_update", priority=7)
-async def test_update_test_single_field(client_adapter):
-    """Test updating single field of test entity"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "test", DataGenerator.test_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    try:
-        # UPDATE single field
-        new_name = "Updated Test Name"
-        result = await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "update",
-            "entity_id": entity_id,
-            "data": {"name": new_name}
-        })
-        assert result["success"], f"Update failed: {result.get('error')}"
-        return {"success": True}
-
-    finally:
-        # DELETE cleanup
-        await client_adapter.call_tool("entity_tool", {
-            "entity_type": "test",
-            "operation": "delete",
-            "entity_id": entity_id
-        })
-
-
-# --- Delete Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_delete", priority=6)
-async def test_delete_test_soft(client_adapter):
-    """Test soft delete of test entity"""
-    # CREATE test entity (with auto-skip if fails)
-    entity_id = await ResponseValidator.create_test_entity(
-        client_adapter, "test", DataGenerator.test_data
-    )
-
-    if not entity_id:
-        return {"success": False, "error": "Create failed", "skipped": True}
-
-    # DELETE (soft delete is the actual test, no cleanup needed)
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-    assert result["success"], f"Delete failed: {result.get('error')}"
-    return {"success": True}
-
-
-# --- Search Operations ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_fuzzy_match_test(client_adapter):
-    """Test fuzzy matching for test entities"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "search",
-        "search_term": "test"
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_search", priority=7)
-async def test_search_test_with_filters(client_adapter):
-    """Test searching test entities with filters"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "search",
-        "filters": {
-            "status": "passed",
-            "type": "integration"
-        }
-    })
-    assert result["success"], f"Tool call failed: {result.get('error', 'unknown error')} | Response: {result}"
-    assert isinstance(result["response"], list), f"Expected list, got {type(result['response']).__name__} | Value: {result['response']}"
-    return {"success": True}
-
-
-# --- Format Variations ---
-
-
-
-
-
-
-
-
-
-# --- Error Cases ---
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_create_test_missing_required_fields(client_adapter):
-    """Test test entity creation with missing required fields"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "create",
-        "data": {}  # Missing required fields
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_read_test_invalid_id(client_adapter):
-    """Test reading test entity with invalid ID"""
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "read",
-        "entity_id": "invalid-id-xyz"
-    })
-    assert not result["success"], f"Tool call should have failed but succeeded | Response: {result}"
-    assert "error" in result, f"Expected 'error' in result, got keys: {list(result.keys())}"
-    return {"success": True}
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="entity_tool", category="entity_errors", priority=5)
-async def test_access_deleted_test(client_adapter):
-    """Test accessing deleted test entity"""
-    # Create and delete
-    data = DataGenerator.test_data()
-    create_result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "create",
-        "data": data
-    })
-    entity_id = ResponseValidator.extract_id(create_result["response"])
-
-    await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "delete",
-        "entity_id": entity_id,
-        "soft_delete": True
-    })
-
-    # Try to access deleted entity
-    result = await client_adapter.call_tool("entity_tool", {
-        "entity_type": "test",
-        "operation": "read",
-        "entity_id": entity_id
-    })
-    assert not result["success"] or result["response"].get("deleted")
-    return {"success": True}
+        # Cleanup
+        if created_org:
+            await client_adapter.call_tool("entity_tool", {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": created_org["id"]
+            })

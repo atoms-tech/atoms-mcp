@@ -455,7 +455,7 @@ async def test_update_organization(authenticated_client):
             pytest.skip(f"Insufficient permissions to update organization: {error}")
         else:
             # Unexpected error - fail the test
-            assert False, f"Unexpected error updating organization: {error}"
+            raise AssertionError(f"Unexpected error updating organization: {error}")
     else:
         # If update succeeds, validate response - FastHTTPClient extracts structuredContent
         assert "data" in result, f"Expected 'data' in result, got keys: {list(result.keys())}"

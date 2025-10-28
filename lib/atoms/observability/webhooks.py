@@ -136,36 +136,34 @@ class WebhookClient:
         # Attempt sending with retries
         for attempt in range(self.config.retry_attempts):
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        url,
-                        data=data,
-                        headers=headers,
-                        timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds)
-                    ) as response:
-                        if response.status >= 200 and response.status < 300:
-                            logger.info(
-                                f"Webhook sent successfully: {self.config.name}",
-                                extra_fields={
-                                    "webhook_name": self.config.name,
-                                    "event_type": payload.event_type.value,
-                                    "status_code": response.status,
-                                    "attempt": attempt + 1
-                                }
-                            )
-                            return True
-                        else:
-                            response_text = await response.text()
-                            logger.warning(
-                                f"Webhook failed with status {response.status}: {self.config.name}",
-                                extra_fields={
-                                    "webhook_name": self.config.name,
-                                    "event_type": payload.event_type.value,
-                                    "status_code": response.status,
-                                    "response": response_text,
-                                    "attempt": attempt + 1
-                                }
-                            )
+                async with aiohttp.ClientSession() as session, session.post(
+                    url,
+                    data=data,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.config.timeout_seconds)
+                ) as response:
+                    if response.status >= 200 and response.status < 300:
+                        logger.info(
+                            f"Webhook sent successfully: {self.config.name}",
+                            extra_fields={
+                                "webhook_name": self.config.name,
+                                "event_type": payload.event_type.value,
+                                "status_code": response.status,
+                                "attempt": attempt + 1
+                            }
+                        )
+                        return True
+                    response_text = await response.text()
+                    logger.warning(
+                        f"Webhook failed with status {response.status}: {self.config.name}",
+                        extra_fields={
+                            "webhook_name": self.config.name,
+                            "event_type": payload.event_type.value,
+                            "status_code": response.status,
+                            "response": response_text,
+                            "attempt": attempt + 1
+                        }
+                    )
 
             except TimeoutError:
                 logger.warning(
@@ -254,7 +252,7 @@ class WebhookManager:
 
         # Build results dict
         results_dict = {}
-        for webhook, result in zip(self.webhooks, results):
+        for webhook, result in zip(self.webhooks, results, strict=False):
             if isinstance(result, Exception):
                 logger.error(
                     f"Webhook exception: {webhook.config.name}",

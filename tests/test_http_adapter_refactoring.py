@@ -15,24 +15,20 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tests.framework.adapters import AtomsMCPClientAdapter
 from tests.framework.oauth_session import OAuthSessionBroker
 from tests.framework.parallel_clients import ParallelClientManager
-
-from tests.framework.adapters import AtomsMCPClientAdapter
 
 MCP_URL = "https://mcp.atoms.tech/api/mcp"
 
 
 async def test_oauth_token_capture():
     """Test 1: Verify we can capture OAuth token."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 1: OAuth Token Capture")
-    print("="*80)
+    print("=" * 80)
 
-    broker = OAuthSessionBroker(
-        mcp_url=MCP_URL,
-        client_name="Refactoring Test"
-    )
+    broker = OAuthSessionBroker(mcp_url=MCP_URL, client_name="Refactoring Test")
 
     try:
         # This should trigger OAuth flow and capture token
@@ -56,23 +52,15 @@ async def test_oauth_token_capture():
 
 async def test_http_adapter_single(broker, access_token):
     """Test 2: Verify single HTTP adapter works."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 2: Single HTTP Adapter")
-    print("="*80)
+    print("=" * 80)
 
-    adapter = AtomsMCPClientAdapter(
-        mcp_endpoint=MCP_URL,
-        access_token=access_token,
-        use_direct_http=True,
-        debug=True
-    )
+    adapter = AtomsMCPClientAdapter(mcp_endpoint=MCP_URL, access_token=access_token, use_direct_http=True, debug=True)
 
     try:
         print("→ Calling workspace_tool via HTTP...")
-        result = await adapter.call_tool(
-            "workspace_tool",
-            {"operation": "get_context", "format_type": "summary"}
-        )
+        result = await adapter.call_tool("workspace_tool", {"operation": "get_context", "format_type": "summary"})
 
         print("✅ HTTP call succeeded")
         print(f"   Success: {result.get('success')}")
@@ -93,21 +81,22 @@ async def test_http_adapter_single(broker, access_token):
 
 async def test_parallel_http_adapters(access_token):
     """Test 3: Verify parallel HTTP adapters work."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 3: Parallel HTTP Adapters")
-    print("="*80)
+    print("=" * 80)
 
     manager = ParallelClientManager(
         endpoint=MCP_URL,
         client_name="Refactoring Test Parallel",
         num_clients=4,
         access_token=access_token,  # Pre-provide token
-        use_direct_http=True
+        use_direct_http=True,
     )
 
     try:
         print("→ Initializing parallel adapters (should be instant)...")
         import time
+
         start = time.time()
         await manager.initialize()
         duration = time.time() - start
@@ -126,8 +115,7 @@ async def test_parallel_http_adapters(access_token):
             adapter = await manager.acquire()
             try:
                 result = await adapter.call_tool(
-                    "workspace_tool",
-                    {"operation": "get_context", "format_type": "summary"}
+                    "workspace_tool", {"operation": "get_context", "format_type": "summary"}
                 )
                 return adapter_id, result.get("success", False)
             finally:
@@ -155,9 +143,9 @@ async def test_parallel_http_adapters(access_token):
 
 async def test_fallback_to_mcp(broker):
     """Test 4: Verify MCP client fallback works."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST 4: MCP Client Fallback")
-    print("="*80)
+    print("=" * 80)
 
     # Get MCP client from broker
     client = await broker.ensure_client()
@@ -165,15 +153,12 @@ async def test_fallback_to_mcp(broker):
     adapter = AtomsMCPClientAdapter(
         client=client,
         use_direct_http=False,  # Use MCP client
-        debug=True
+        debug=True,
     )
 
     try:
         print("→ Calling workspace_tool via MCP client...")
-        result = await adapter.call_tool(
-            "workspace_tool",
-            {"operation": "get_context", "format_type": "summary"}
-        )
+        result = await adapter.call_tool("workspace_tool", {"operation": "get_context", "format_type": "summary"})
 
         print("✅ MCP call succeeded")
         print(f"   Success: {result.get('success')}")
@@ -192,9 +177,9 @@ async def test_fallback_to_mcp(broker):
 
 async def main():
     """Run all tests."""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("HTTP ADAPTER REFACTORING TEST SUITE")
-    print("="*80)
+    print("=" * 80)
 
     broker = None
     access_token = None
@@ -215,9 +200,9 @@ async def main():
         except Exception as e:
             print(f"   Skipping MCP fallback test: {e}")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("✅ ALL TESTS COMPLETED")
-        print("="*80)
+        print("=" * 80)
         print("\nREFACTORING SUMMARY:")
         print("  ✅ OAuth token capture working")
         print("  ✅ HTTP adapter single calls working")
@@ -226,11 +211,12 @@ async def main():
         print("\n🎉 Refactoring successful! Tests can now use HTTP adapters.")
 
     except Exception as e:
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("❌ TEST SUITE FAILED")
-        print("="*80)
+        print("=" * 80)
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:

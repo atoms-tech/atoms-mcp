@@ -17,13 +17,21 @@ Pythonic Patterns Applied:
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from config import reset_settings_cache
 from utils.logging_setup import get_logger
+
+try:  # pragma: no cover - optional dependency
+    from dotenv import dotenv_values  # type: ignore
+except ImportError:  # pragma: no cover - handled gracefully at runtime
+    dotenv_values = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 logger = get_logger("atoms_fastmcp.env")
 
@@ -70,10 +78,10 @@ def parse_env_file(file_path: Path) -> Iterator[tuple[str, str]]:
         return
 
     try:
-        with open(file_path, encoding="utf-8") as f:
-            for line_num, line in enumerate(f, 1):
+        with file_path.open(encoding="utf-8") as file_handle:
+            for line_num, raw_line in enumerate(file_handle, 1):
                 # Skip comments and empty lines
-                line = line.strip()
+                line = raw_line.strip()
                 if not line or line.startswith("#"):
                     continue
 
@@ -94,9 +102,18 @@ def parse_env_file(file_path: Path) -> Iterator[tuple[str, str]]:
 
                 if key:
                     yield key, value
-    except Exception as e:
-        logger.error(f"Error parsing {file_path}: {e}")
-        raise EnvLoadError(f"Failed to parse {file_path}: {e}") from e
+    except Exception as exc:
+        logger.exception("Error parsing %s", file_path)
+        raise EnvLoadError(f"Failed to parse {file_path}: {exc}") from exc
+
+
+def _load_env_file(file_path: Path, use_dotenv: bool) -> dict[str, str]:
+    """Load environment variables from a single file."""
+    if use_dotenv and dotenv_values is not None:
+        values = dotenv_values(file_path)
+        return {k: v for k, v in values.items() if v is not None} if values else {}
+
+    return dict(parse_env_file(file_path))
 
 
 def load_env_files(config: EnvConfig | None = None) -> dict[str, str]:
@@ -122,17 +139,11 @@ def load_env_files(config: EnvConfig | None = None) -> dict[str, str]:
     if config is None:
         config = EnvConfig()
 
-    # Try to import python-dotenv for better parsing
-    try:
-        from dotenv import dotenv_values  # type: ignore
-        use_dotenv = True
-    except ImportError:
-        use_dotenv = False
-        if any((config.base_dir / f).exists() for f in config.env_files):
-            logger.info(
-                "python-dotenv not installed; using basic parser. "
-                "Install python-dotenv for better .env file support."
-            )
+    use_dotenv = dotenv_values is not None
+    if not use_dotenv and any((config.base_dir / f).exists() for f in config.env_files):
+        logger.info(
+            "python-dotenv not installed; using basic parser. Install python-dotenv for better .env file support."
+        )
 
     merged: dict[str, str] = {}
 
@@ -145,22 +156,13 @@ def load_env_files(config: EnvConfig | None = None) -> dict[str, str]:
             continue
 
         try:
-            if use_dotenv:
-                # Use python-dotenv for parsing
-                values = dotenv_values(file_path)
-                if values:
-                    merged.update({
-                        k: v for k, v in values.items()
-                        if v is not None
-                    })
-                    logger.info(f"Loaded {len(values)} variables from {env_file}")
-            else:
-                # Use basic parser
-                values = dict(parse_env_file(file_path))
-                merged.update(values)
-                logger.info(f"Loaded {len(values)} variables from {env_file}")
-        except Exception as e:
-            logger.warning(f"Failed loading {env_file}: {e}")
+            values = _load_env_file(file_path, use_dotenv)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.warning("Failed loading %s: %s", env_file, exc)
+            continue
+
+        merged.update(values)
+        logger.info("Loaded %s variables from %s", len(values), env_file)
 
     # Apply to environment
     applied_count = 0

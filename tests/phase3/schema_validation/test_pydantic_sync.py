@@ -52,7 +52,7 @@ class TestPydanticSync:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -76,10 +76,7 @@ class TestPydanticSync:
 
                     # Pluralize
                     if not table_name.endswith("s"):
-                        if table_name.endswith("y"):
-                            table_name = table_name[:-1] + "ies"
-                        else:
-                            table_name = table_name + "s"
+                        table_name = table_name[:-1] + "ies" if table_name.endswith("y") else table_name + "s"
 
                     models[table_name] = obj
 
@@ -247,7 +244,7 @@ class TestPydanticSync:
                     # Check if there's any field that looks like a primary key
                     has_pk = any(
                         "id" in fname or fname.endswith("_id")
-                        for fname in model.model_fields.keys()
+                        for fname in model.model_fields
                     )
                     if not has_pk:
                         missing_pk.append(table_name)
@@ -500,7 +497,7 @@ class TestPydanticSync:
         try:
             json_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -561,7 +558,7 @@ class TestPydanticSync:
         try:
             enum_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -575,10 +572,7 @@ class TestPydanticSync:
                         # Get actual field name (could be aliased)
                         actual_field = None
                         for fname, finfo in model.model_fields.items():
-                            if hasattr(finfo, "alias") and finfo.alias == col_name:
-                                actual_field = fname
-                                break
-                            elif fname == col_name:
+                            if (hasattr(finfo, "alias") and finfo.alias == col_name) or fname == col_name:
                                 actual_field = fname
                                 break
 
@@ -633,7 +627,7 @@ class TestPydanticSync:
         try:
             nullable_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -647,10 +641,7 @@ class TestPydanticSync:
                     # Get actual field name (could be aliased)
                     actual_field = None
                     for fname, finfo in model.model_fields.items():
-                        if hasattr(finfo, "alias") and finfo.alias == col_name:
-                            actual_field = fname
-                            break
-                        elif fname == col_name:
+                        if (hasattr(finfo, "alias") and finfo.alias == col_name) or fname == col_name:
                             actual_field = fname
                             break
 
@@ -713,7 +704,7 @@ class TestPydanticSync:
         try:
             array_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 

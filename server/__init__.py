@@ -26,10 +26,19 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
+import importlib.util
 import os
+import socket
+import sys
+import threading
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
-from config import get_settings
+from starlette.responses import JSONResponse, PlainTextResponse
+
+from config import app_config
 from utils.logging_setup import get_logger
 
 from .auth import (
@@ -61,60 +70,209 @@ from .serializers import (
 
 logger = get_logger("atoms_fastmcp")
 
-# KINFRA Integration
-_kinfra_enabled = False
-_kinfra_instance = None
-_service_manager = None
+SERVICE_NAME = "atoms-mcp"
+DEFAULT_PORT = 8000
+DEFAULT_DOMAIN = "atomcp.kooshapari.com"
 
-try:
-    from kinfra_setup import cleanup_kinfra, get_allocated_port, health_check, setup_kinfra
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PHENO_SRC = PROJECT_ROOT.parent / "pheno-sdk" / "src"
+if PHENO_SRC.exists():  # pragma: no branch - development convenience
+    sys.path.insert(0, str(PHENO_SRC))
+
+_kinfra_enabled = False
+
+try:  # pragma: no branch - import guard
+    from pheno.infra.tunneling import (  # type: ignore[import-untyped]
+        AsyncTunnelManager,
+        TunnelConfig,
+        TunnelInfo,
+        TunnelProtocol,
+        TunnelStatus,
+        TunnelType,
+    )
+
     _kinfra_enabled = True
-    logger.info("✅ KINFRA integration available")
-except ImportError as e:
-    logger.warning(f"⚠️  KINFRA integration not available: {e}")
-    # Define stub functions for when KINFRA is not available
-    def setup_kinfra(*args, **kwargs):
-        return None, None
-    def cleanup_kinfra(*args, **kwargs):
-        pass
-    def get_allocated_port(*args, **kwargs):
+    logger.info("✅ pheno-sdk tunneling integration available")
+except Exception as direct_import_exc:  # pragma: no cover - optional dependency
+    try:
+        tunneling_path = PHENO_SRC / "pheno" / "infra" / "tunneling.py"
+        if not tunneling_path.exists():
+            import pheno  # type: ignore
+            tunneling_path = Path(pheno.__file__).parent / "infra" / "tunneling.py"
+
+        spec = importlib.util.spec_from_file_location("atoms.pheno_tunneling", tunneling_path)
+        if not spec or not spec.loader:  # pragma: no cover - safety check
+            raise ImportError("Unable to resolve pheno.infra.tunneling module")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+
+        AsyncTunnelManager = module.AsyncTunnelManager  # type: ignore[attr-defined]
+        TunnelConfig = module.TunnelConfig  # type: ignore[attr-defined]
+        TunnelInfo = module.TunnelInfo  # type: ignore[attr-defined]
+        TunnelProtocol = module.TunnelProtocol  # type: ignore[attr-defined]
+        TunnelStatus = module.TunnelStatus  # type: ignore[attr-defined]
+        TunnelType = module.TunnelType  # type: ignore[attr-defined]
+
+        _kinfra_enabled = True
+        logger.info("✅ pheno-sdk tunneling loaded via direct module path")
+    except Exception as dynamic_import_exc:  # pragma: no cover - optional dependency
+        _kinfra_enabled = False
+        logger.warning(
+            "⚠️  pheno-sdk tunneling not available: %s",
+            dynamic_import_exc if 'dynamic_import_exc' in locals() else direct_import_exc,
+        )
+        AsyncTunnelManager = None  # type: ignore[assignment]
+        TunnelConfig = TunnelInfo = TunnelProtocol = TunnelStatus = TunnelType = None  # type: ignore[assignment]
+
+
+def _find_free_port(preferred: Optional[int]) -> int:
+    candidates = ([preferred] if preferred else []) + [0]
+    last_error: Optional[OSError] = None
+    for port in candidates:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.bind(("127.0.0.1", port))
+                sock.listen(1)
+                return sock.getsockname()[1]
+        except OSError as exc:
+            last_error = exc
+            continue
+    fallback = preferred or DEFAULT_PORT
+    if last_error:
+        logger.debug("Falling back to port %s after bind error: %s", fallback, last_error)
+    return fallback
+
+
+@dataclass(slots=True)
+class _ServiceState:
+    port: int
+    tunnel: Optional[TunnelInfo] = None
+
+
+class _KinfraRuntime:
+    def __init__(self, domain: str, enable_tunnel: bool) -> None:
+        self.domain = domain
+        self.enable_tunnel = enable_tunnel and _kinfra_enabled
+        self._manager: Optional[AsyncTunnelManager] = AsyncTunnelManager() if self.enable_tunnel else None
+        self._state: dict[str, _ServiceState] = {}
+
+    def allocate_port(self, service_name: str, preferred: Optional[int]) -> int:
+        if service_name in self._state:
+            return self._state[service_name].port
+        port = _find_free_port(preferred)
+        self._state[service_name] = _ServiceState(port=port)
+        logger.info("Allocated port %s for %s", port, service_name)
+        return port
+
+    def start_tunnel(self, service_name: str, port: int) -> Optional[TunnelInfo]:
+        if not self.enable_tunnel or not self._manager:
+            return None
+        config = TunnelConfig(
+            name=self.domain,
+            tunnel_type=TunnelType.CLOUDFLARE,
+            protocol=TunnelProtocol.HTTPS,
+            local_host="127.0.0.1",
+            local_port=port,
+            metadata={"service": service_name},
+        )
+        try:
+            info = asyncio.run(self._manager.create_tunnel(config))
+            self._state[service_name].tunnel = info
+            logger.info("Tunnel established at %s", info.public_url)
+            return info
+        except Exception as exc:  # pragma: no cover - tunnel failures deferred
+            logger.warning("Failed to establish tunnel: %s", exc)
+            return None
+
+    def get_port(self, service_name: str) -> Optional[int]:
+        state = self._state.get(service_name)
+        return state.port if state else None
+
+    def health(self, service_name: str) -> dict[str, object]:
+        state = self._state.get(service_name)
+        if not state:
+            return {"service": service_name, "healthy": False, "status": "not_allocated"}
+        tunnel_status = (
+            state.tunnel.status.value if state.tunnel else TunnelStatus.CLOSED.value
+        )
+        return {
+            "service": service_name,
+            "healthy": True,
+            "status": "allocated",
+            "port": state.port,
+            "tunnel_status": tunnel_status,
+        }
+
+    def cleanup(self, service_name: str) -> None:
+        state = self._state.pop(service_name, None)
+        if not state or not state.tunnel or not self._manager:
+            return
+        try:
+            asyncio.run(self._manager.destroy_tunnel(state.tunnel.tunnel_id))
+            logger.info("Tunnel %s closed", state.tunnel.public_url)
+        except Exception as exc:  # pragma: no cover - cleanup best effort
+            logger.warning("Tunnel cleanup failed: %s", exc)
+
+
+_kinfra_runtime: Optional[_KinfraRuntime] = None
+_cleanup_registered = False
+
+
+def _init_kinfra(kinfra_settings, preferred_port: Optional[int]) -> Optional[int]:
+    global _kinfra_runtime, _cleanup_registered
+
+    domain = getattr(kinfra_settings, "domain", DEFAULT_DOMAIN)
+    enable_tunnel = getattr(kinfra_settings, "enable_tunnel", True)
+    runtime = _KinfraRuntime(domain, enable_tunnel)
+    port = runtime.allocate_port(SERVICE_NAME, preferred_port)
+    runtime.start_tunnel(SERVICE_NAME, port)
+    _kinfra_runtime = runtime
+
+    if not _cleanup_registered and threading.current_thread() is threading.main_thread():
+        atexit.register(cleanup_kinfra)
+        signal.signal(signal.SIGTERM, _cleanup_on_signal)  # type: ignore[arg-type]
+        signal.signal(signal.SIGINT, _cleanup_on_signal)  # type: ignore[arg-type]
+        _cleanup_registered = True
+
+    return port
+
+
+def get_allocated_port(service_name: str = SERVICE_NAME) -> Optional[int]:
+    if not _kinfra_runtime:
         return None
-    def health_check(*args, **kwargs):
-        return {"status": "kinfra_not_available"}
+    return _kinfra_runtime.get_port(service_name)
+
+
+def health_check(service_name: str = SERVICE_NAME) -> dict[str, object]:
+    if not _kinfra_runtime:
+        return {"service": service_name, "healthy": False, "status": "not_initialised"}
+    return _kinfra_runtime.health(service_name)
+
+
+def cleanup_kinfra(service_name: str = SERVICE_NAME) -> None:
+    if _kinfra_runtime:
+        _kinfra_runtime.cleanup(service_name)
+
+
+def _cleanup_on_signal(_signum, _frame) -> None:  # pragma: no cover - signal path
+    cleanup_kinfra()
 
 
 def main() -> None:
     """CLI runner for the consolidated server.
 
     This is the main entry point for running the server from the command line.
-    It loads environment configuration and starts the server with the
-    appropriate transport (stdio or HTTP).
-
-    Environment Variables:
-        ATOMS_FASTMCP_TRANSPORT: Transport type (stdio or http)
-        ATOMS_FASTMCP_HOST: Host for HTTP transport (default: 127.0.0.1)
-        ATOMS_FASTMCP_PORT: Port for HTTP transport (default: 8000)
-        ATOMS_FASTMCP_HTTP_PATH: Path for HTTP transport (default: /api/mcp)
-        ENABLE_KINFRA: Enable KINFRA integration (default: true)
-
-    Examples:
-        Run with stdio transport:
-        >>> ATOMS_FASTMCP_TRANSPORT=stdio python -m server
-
-        Run with HTTP transport:
-        >>> ATOMS_FASTMCP_TRANSPORT=http ATOMS_FASTMCP_PORT=8080 python -m server
-
-        Run with KINFRA port allocation:
-        >>> ENABLE_KINFRA=true ATOMS_FASTMCP_TRANSPORT=http python -m server
+    It loads environment configuration and starts the server with the desired
+    transport (stdio or HTTP).
     """
-    global _kinfra_instance, _service_manager
 
     # Load env files early
     load_env_files()
 
     # Debug environment loading
     fastmcp_vars = get_fastmcp_vars()
-    settings = get_settings()
+    settings = app_config
     print(f"🚀 MAIN DEBUG: FASTMCP environment variables: {fastmcp_vars}")
     print(f"🚀 MAIN DEBUG: Resolved base URL: {settings.fastmcp.base_url}")
     print(f"🚀 MAIN DEBUG: Transport: {settings.fastmcp.transport}, HTTP path: {settings.fastmcp.http_path}")
@@ -123,26 +281,25 @@ def main() -> None:
     config = ServerConfig.from_settings(settings)
 
     # Initialize KINFRA if enabled
-    enable_kinfra = os.getenv("ENABLE_KINFRA", "true").lower() in ("true", "1", "yes")
+    kinfra_settings = getattr(settings, "kinfra", None)
     allocated_port = None
 
-    if _kinfra_enabled and enable_kinfra and config.transport == "http":
+    if (
+        _kinfra_enabled
+        and kinfra_settings
+        and getattr(kinfra_settings, "enabled", True)
+        and config.transport == "http"
+    ):
         try:
-            logger.info("🚀 Initializing KINFRA...")
-            _kinfra_instance, _service_manager = setup_kinfra(
-                project_name="atoms-mcp",
-                preferred_port=config.port,
-                enable_tunnel=False,  # Local only
-                enable_fallback=False,  # No fallback for MCP server
-            )
-            allocated_port = get_allocated_port("atoms-mcp")
+            logger.info("🚀 Initializing pheno-sdk infrastructure...")
+            allocated_port = _init_kinfra(kinfra_settings, config.port)
             if allocated_port:
-                logger.info(f"✅ KINFRA allocated port: {allocated_port}")
-                config.port = allocated_port  # Override config port with KINFRA allocation
+                logger.info(f"✅ Infrastructure allocated port: {allocated_port}")
+                config.port = allocated_port
             else:
-                logger.warning("⚠️  KINFRA port allocation returned None, using config port")
-        except Exception as e:
-            logger.error(f"❌ KINFRA initialization failed: {e}")
+                logger.warning("⚠️  Infrastructure port allocation returned None, using config port")
+        except Exception:
+            logger.exception("❌ Infrastructure initialization failed")
             logger.info("⏩ Continuing without KINFRA...")
 
     # Create server
@@ -152,17 +309,16 @@ def main() -> None:
     if config.transport == "http":
         @server.custom_route("/health", methods=["GET"])  # type: ignore[attr-defined]
         async def _health(_request):  # pragma: no cover
-            from starlette.responses import JSONResponse, PlainTextResponse
-
-            # Include KINFRA health status if available
-            if _kinfra_enabled and _kinfra_instance:
-                kinfra_health = health_check("atoms-mcp")
-                return JSONResponse({
-                    "status": "healthy",
-                    "service": "atoms-mcp",
-                    "port": allocated_port or config.port,
-                    "kinfra": kinfra_health
-                })
+            if _kinfra_enabled and _kinfra_runtime:
+                kinfra_health = health_check(SERVICE_NAME)
+                return JSONResponse(
+                    {
+                        "status": "healthy",
+                        "service": SERVICE_NAME,
+                        "port": allocated_port or config.port,
+                        "kinfra": kinfra_health,
+                    }
+                )
             return PlainTextResponse("OK")
 
         logger.info(f"Starting HTTP server on {config.host}:{config.port}{config.http_path}")
@@ -184,51 +340,43 @@ def main() -> None:
                 path=config.http_path
             )
         finally:
-            # Cleanup KINFRA on server shutdown
-            if _kinfra_enabled and _kinfra_instance:
+            if _kinfra_enabled and _kinfra_runtime:
                 logger.info("🧹 Cleaning up KINFRA...")
-                cleanup_kinfra(_kinfra_instance, _service_manager)
+                cleanup_kinfra()
     else:
         logger.info("Starting stdio server")
         server.run(transport="stdio")
 
 
 __all__ = [
-    # Main functions
-    "create_consolidated_server",
-    "main",
-
-    # Configuration
-    "ServerConfig",
-    "EnvConfig",
-    "SerializerConfig",
-
     # Auth
     "BearerToken",
-    "RateLimiter",
+    "EnvConfig",
+    "EnvLoadError",
     "RateLimitExceeded",
-    "extract_bearer_token",
-    "check_rate_limit",
+    "RateLimiter",
+    "Serializable",
+    "SerializerConfig",
+    # Configuration
+    "ServerConfig",
     "apply_rate_limit_if_configured",
-    "rate_limited_operation",
-    "get_token_string",
-
-    # Environment
-    "load_env_files",
-    "parse_env_file",
-    "temporary_env",
+    "check_rate_limit",
+    "cleanup_kinfra",
+    # Main functions
+    "create_consolidated_server",
+    "extract_bearer_token",
+    "get_allocated_port",
     "get_env_var",
     "get_fastmcp_vars",
-    "EnvLoadError",
-
+    "get_token_string",
+    "health_check",
+    # Environment
+    "load_env_files",
+    "main",
+    "markdown_serializer",
+    "parse_env_file",
+    "rate_limited_operation",
     # Serialization
     "serialize_to_markdown",
-    "markdown_serializer",
-    "Serializable",
-
-    # KINFRA Integration (available if kinfra_setup is installed)
-    "setup_kinfra",
-    "cleanup_kinfra",
-    "get_allocated_port",
-    "health_check",
+    "temporary_env",
 ]

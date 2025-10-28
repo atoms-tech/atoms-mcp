@@ -9,110 +9,54 @@ import pytest
 
 from .framework import mcp_test
 
+SEARCH_CASES = [
+    pytest.param(["project"], "test", id="projects"),
+    pytest.param(["document"], "requirement", id="documents"),
+    pytest.param(["project", "document", "requirement"], "system", id="multi-entity"),
+]
+
+AGGREGATE_CASES = [
+    pytest.param(["organization", "project", "document", "requirement"], id="all"),
+    pytest.param(["project"], id="projects"),
+]
+
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
+@pytest.mark.parametrize(("entities", "search_term"), SEARCH_CASES)
 @mcp_test(tool_name="query_tool", category="query", priority=10)
-async def test_search_projects(client_adapter):
-    """Test keyword search for projects."""
+async def test_search_entities(client_adapter, entities, search_term):
+    """Exercise keyword search across multiple entity combinations."""
     result = await client_adapter.call_tool(
         "query_tool",
         {
             "query_type": "search",
-            "entities": ["project"],
-            "search_term": "test",
+            "entities": entities,
+            "search_term": search_term,
         },
     )
 
-    assert result["success"], f"Failed: {result.get('error')}"
+    assert result["success"], f"Failed ({entities}): {result.get('error')}"
 
     response = result["response"]
     assert "results" in response or "data" in response, "Missing results in search response"
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
+@pytest.mark.parametrize("entities", AGGREGATE_CASES)
 @mcp_test(tool_name="query_tool", category="query", priority=10)
-async def test_search_documents(client_adapter):
-    """Test keyword search for documents."""
-    result = await client_adapter.call_tool(
-        "query_tool",
-        {
-            "query_type": "search",
-            "entities": ["document"],
-            "search_term": "requirement",
-        },
-    )
-
-    assert result["success"], f"Failed: {result.get('error')}"
-
-    response = result["response"]
-    assert "results" in response or "data" in response, "Missing results in search response"
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="query_tool", category="query", priority=10)
-async def test_search_multi_entity(client_adapter):
-    """Test multi-entity keyword search."""
-    result = await client_adapter.call_tool(
-        "query_tool",
-        {
-            "query_type": "search",
-            "entities": ["project", "document", "requirement"],
-            "search_term": "system",
-        },
-    )
-
-    assert result["success"], f"Failed: {result.get('error')}"
-
-    response = result["response"]
-    assert "results" in response or "data" in response, "Missing results in search response"
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="query_tool", category="query", priority=10)
-async def test_aggregate_all(client_adapter):
-    """Test aggregating statistics across all entity types."""
+async def test_aggregate_entities(client_adapter, entities):
+    """Validate aggregate queries for different entity scopes."""
     result = await client_adapter.call_tool(
         "query_tool",
         {
             "query_type": "aggregate",
-            "entities": ["organization", "project", "document", "requirement"],
+            "entities": entities,
         },
     )
 
-    assert result["success"], f"Failed: {result.get('error')}"
-
-    response = result["response"]
-    assert "aggregates" in response or "summary" in response or "data" in response, "Missing aggregates in response"
-
-
-@pytest.mark.asyncio
-
-@pytest.mark.parallel
-
-@mcp_test(tool_name="query_tool", category="query", priority=10)
-async def test_aggregate_projects(client_adapter):
-    """Test aggregating project statistics."""
-    result = await client_adapter.call_tool(
-        "query_tool",
-        {
-            "query_type": "aggregate",
-            "entities": ["project"],
-        },
-    )
-
-    assert result["success"], f"Failed: {result.get('error')}"
+    assert result["success"], f"Failed ({entities}): {result.get('error')}"
 
     response = result["response"]
     assert "aggregates" in response or "summary" in response or "data" in response, "Missing aggregates in response"
@@ -146,6 +90,7 @@ async def test_rag_search_semantic(client_adapter):
             }
 
     assert result["success"], f"Failed: {result.get('error')}"
+    return None
 
 
 @pytest.mark.asyncio

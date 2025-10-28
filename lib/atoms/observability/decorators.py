@@ -27,7 +27,7 @@ from .metrics import (
 
 logger = get_logger(__name__)
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def observe_tool(
@@ -57,7 +57,7 @@ def observe_tool(
             return f"Result: {arg1} {arg2}"
     """
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> F
         name = tool_name or func.__name__
 
         @functools.wraps(func)
@@ -205,16 +205,15 @@ def observe_tool(
                 raise
 
         if asyncio.iscoroutinefunction(func):
-            return cast(F, async_wrapper)
-        else:
-            return cast(F, sync_wrapper)
+            return cast("F", async_wrapper)
+        return cast("F", sync_wrapper)
 
     return decorator
 
 
 def log_operation(
     operation_name: str | None = None,
-    log_level: str = "INFO",
+    log_level: str = "INFO",  # Used for setting log level in decorator
     log_inputs: bool = False,
     log_outputs: bool = False
 ):
@@ -309,9 +308,8 @@ def log_operation(
                 raise
 
         if asyncio.iscoroutinefunction(func):
-            return cast(F, async_wrapper)
-        else:
-            return cast(F, sync_wrapper)
+            return cast("F", async_wrapper)
+        return cast("F", sync_wrapper)
 
     return decorator
 
@@ -419,9 +417,8 @@ def measure_performance(
                 raise
 
         if asyncio.iscoroutinefunction(func):
-            return cast(F, async_wrapper)
-        else:
-            return cast(F, sync_wrapper)
+            return cast("F", async_wrapper)
+        return cast("F", sync_wrapper)
 
     return decorator
 
@@ -503,8 +500,7 @@ def track_database_operation(operation_type: str):
                 raise
 
         if asyncio.iscoroutinefunction(func):
-            return cast(F, async_wrapper)
-        else:
-            return cast(F, sync_wrapper)
+            return cast("F", async_wrapper)
+        return cast("F", sync_wrapper)
 
     return decorator

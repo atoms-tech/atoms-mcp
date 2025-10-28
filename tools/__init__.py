@@ -1,18 +1,7 @@
 """Consolidated, agent-optimized tools for atoms_fastmcp."""
 
-# Support both package and standalone imports
-try:
-    from .entity import entity_operation
-    from .query import data_query
-    from .relationship import relationship_operation
-    from .workflow import workflow_execute
-    from .workspace import workspace_operation
-except ImportError:
-    from tools.entity import entity_operation
-    from tools.query import data_query
-    from tools.relationship import relationship_operation
-    from tools.workflow import workflow_execute
-    from tools.workspace import workspace_operation
+# Try to import tool functions with fallback for missing modules
+import contextlib
 
 __all__ = [
     "data_query",
@@ -21,3 +10,26 @@ __all__ = [
     "workflow_execute",
     "workspace_operation"
 ]
+
+# Initialize functions to None for graceful fallback
+data_query = None
+entity_operation = None
+relationship_operation = None
+workflow_execute = None
+workspace_operation = None
+
+# Try to import each tool module independently
+with contextlib.suppress(ImportError):
+    from .entity import entity_operation
+
+with contextlib.suppress(ImportError):
+    from .query import data_query
+
+with contextlib.suppress(ImportError):
+    from .relationship import relationship_operation
+
+with contextlib.suppress(ImportError):
+    from .workflow import workflow_execute
+
+with contextlib.suppress(ImportError):
+    from .workspace import workspace_operation

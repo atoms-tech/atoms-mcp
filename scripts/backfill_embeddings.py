@@ -404,7 +404,7 @@ class EmbeddingBackfiller:
         }
 
 
-async def main():
+async def main()
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="Backfill embeddings for existing entities",
@@ -414,7 +414,7 @@ async def main():
 
     parser.add_argument(
         "--entity-type",
-        choices=EmbeddingBackfiller.ENTITY_TYPES + ["all"],
+        choices=[*EmbeddingBackfiller.ENTITY_TYPES, "all"],
         default="all",
         help="Entity type to backfill (default: all)"
     )

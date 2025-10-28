@@ -49,7 +49,7 @@ class TestEnumSync:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -202,9 +202,9 @@ class TestEnumSync:
                 logger.warning("Enum value mismatches found:")
                 for mismatch in mismatches[:5]:  # Log first 5
                     logger.warning(f"  {mismatch['enum']}:")
-                    if mismatch['missing_in_pydantic']:
+                    if mismatch["missing_in_pydantic"]:
                         logger.warning(f"    Missing: {mismatch['missing_in_pydantic']}")
-                    if mismatch['extra_in_pydantic']:
+                    if mismatch["extra_in_pydantic"]:
                         logger.warning(f"    Extra: {mismatch['extra_in_pydantic']}")
 
             # Check some specific enums for detailed validation
@@ -347,7 +347,7 @@ class TestEnumSync:
                 model_integration_test = (org.field_type == PublicOrganizationTypeEnum.PERSONAL)
 
             except Exception as e:
-                logger.error(f"Model integration test failed: {e}")
+                logger.exception(f"Model integration test failed: {e}")
 
             # Generate comprehensive summary
             all_results = test_results.get_all_results()
