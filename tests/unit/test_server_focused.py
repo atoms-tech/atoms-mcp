@@ -74,7 +74,7 @@ class TestServerFocused:
                 message="Parameter validation failed",
                 status_code=400,
                 error_code="PARAM_ERROR",
-                details={"param": "name", "issue": "required"}
+                details={"param": "name", "issue": "required"},
             )
             assert param_error.message == "Parameter validation failed"
             assert param_error.status_code == 400
@@ -114,7 +114,6 @@ class TestServerFocused:
                 get_registered_tools,
                 health_check,
                 register_tool,
-                start_server,
             )
 
             # Test server configuration
@@ -122,12 +121,7 @@ class TestServerFocused:
             assert config is not None
 
             try:
-                config = ServerConfig(
-                    host="0.0.0.0",
-                    port=8000,
-                    debug=True,
-                    workers=4
-                )
+                config = ServerConfig(host="0.0.0.0", port=8000, debug=True, workers=4)
                 assert config.host == "0.0.0.0"
                 assert config.port == 8000
                 assert config.debug is True
@@ -149,7 +143,7 @@ class TestServerFocused:
                 assert isinstance(metrics, dict)
                 # May contain performance metrics
                 if "request_count" in metrics:
-                    assert isinstance(metrics["request_count"], (int, float))
+                    assert isinstance(metrics["request_count"], int | float)
             except Exception:
                 # May not be implemented
                 pass
@@ -160,10 +154,7 @@ class TestServerFocused:
 
             try:
                 register_tool(
-                    name="test_tool",
-                    function=mock_tool_function,
-                    description="Test tool",
-                    schema={"type": "object"}
+                    name="test_tool", function=mock_tool_function, description="Test tool", schema={"type": "object"}
                 )
 
                 # Test registration retrieval
@@ -191,7 +182,7 @@ class TestServerFocused:
                     database_url="postgresql://test",
                     redis_url="redis://test",
                     jwt_secret="test-secret",
-                    environment="test"
+                    environment="test",
                 )
                 assert config.database_url == "postgresql://test"
                 assert config.redis_url == "redis://test"
@@ -212,12 +203,15 @@ class TestServerFocused:
 
             # Test environment configuration retrieval
             try:
-                with patch.dict("os.environ", {
-                    "DATABASE_URL": "postgresql://env-test",
-                    "REDIS_URL": "redis://env-test",
-                    "JWT_SECRET": "env-secret",
-                    "ENVIRONMENT": "env-test"
-                }):
+                with patch.dict(
+                    "os.environ",
+                    {
+                        "DATABASE_URL": "postgresql://env-test",
+                        "REDIS_URL": "redis://env-test",
+                        "JWT_SECRET": "env-secret",
+                        "ENVIRONMENT": "env-test",
+                    },
+                ):
                     env_config = get_environment_config()
                     assert env_config is not None
             except Exception:
@@ -233,11 +227,7 @@ class TestServerFocused:
             from server.serializers import format_response, serialize_error, serialize_response, validate_and_serialize
 
             # Test response serialization
-            test_data = {
-                "message": "Success",
-                "data": {"id": 1, "name": "Test"},
-                "status": "ok"
-            }
+            test_data = {"message": "Success", "data": {"id": 1, "name": "Test"}, "status": "ok"}
 
             result = serialize_response(test_data)
             assert result is not None
@@ -249,6 +239,7 @@ class TestServerFocused:
 
             # Test error serialization
             from server.errors import ApiError
+
             error = ApiError("Test error", 400, "TEST_ERROR")
 
             error_result = serialize_error(error)
@@ -264,9 +255,7 @@ class TestServerFocused:
             # Test response formatting
             try:
                 formatted_response = format_response(
-                    data={"result": "success"},
-                    status=200,
-                    message="Operation completed"
+                    data={"result": "success"}, status=200, message="Operation completed"
                 )
                 assert formatted_response is not None
                 assert isinstance(formatted_response, dict)
@@ -279,11 +268,8 @@ class TestServerFocused:
             try:
                 test_schema = {
                     "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "value": {"type": "integer"}
-                    },
-                    "required": ["name"]
+                    "properties": {"name": {"type": "string"}, "value": {"type": "integer"}},
+                    "required": ["name"],
                 }
 
                 valid_data = {"name": "test", "value": 42}
@@ -312,12 +298,9 @@ class TestServerFocused:
                     description="Mock MCP tool",
                     schema={
                         "type": "object",
-                        "properties": {
-                            "param1": {"type": "string"},
-                            "param2": {"type": "integer", "default": 10}
-                        },
-                        "required": ["param1"]
-                    }
+                        "properties": {"param1": {"type": "string"}, "param2": {"type": "integer", "default": 10}},
+                        "required": ["param1"],
+                    },
                 )
 
                 # Test registration retrieval
@@ -331,9 +314,7 @@ class TestServerFocused:
             # Test tool execution
             try:
                 result = execute_tool(
-                    tool_name="test_tool",
-                    function=mock_mcp_function,
-                    arguments={"param1": "hello", "param2": 5}
+                    tool_name="test_tool", function=mock_mcp_function, arguments={"param1": "hello", "param2": 5}
                 )
                 assert result is not None
                 assert isinstance(result, dict)
@@ -349,9 +330,9 @@ class TestServerFocused:
                     "type": "object",
                     "properties": {
                         "name": {"type": "string", "minLength": 1},
-                        "age": {"type": "integer", "minimum": 0}
+                        "age": {"type": "integer", "minimum": 0},
                     },
-                    "required": ["name"]
+                    "required": ["name"],
                 }
 
                 # Valid parameters
@@ -404,7 +385,7 @@ class TestServerFocused:
                     allowed_origins=["http://localhost:3000"],
                     allowed_methods=["GET", "POST"],
                     allowed_headers=["Content-Type", "Authorization"],
-                    allow_credentials=True
+                    allow_credentials=True,
                 )
                 assert cors_config is not None
             except Exception:
@@ -419,11 +400,7 @@ class TestServerFocused:
                 assert isinstance(secure_headers, dict)
 
                 # Should contain security headers
-                expected_headers = [
-                    "X-Content-Type-Options",
-                    "X-Frame-Options",
-                    "X-XSS-Protection"
-                ]
+                expected_headers = ["X-Content-Type-Options", "X-Frame-Options", "X-XSS-Protection"]
 
                 for header in expected_headers:
                     if header in secure_headers:
@@ -457,7 +434,7 @@ class TestServerFocused:
                 ApiError("Unauthorized", 401, "UNAUTHORIZED"),
                 ApiError("Validation failed", 400, "VALIDATION_ERROR"),
                 ApiError("Server error", 500, "INTERNAL_ERROR"),
-                ApiError("Rate limit exceeded", 429, "RATE_LIMIT")
+                ApiError("Rate limit exceeded", 429, "RATE_LIMIT"),
             ]
 
             for error in errors:
@@ -478,6 +455,7 @@ class TestServerFocused:
 
             # Test error propagation
             try:
+
                 def failing_function():
                     raise ApiError("Function failed", 500, "FUNCTION_ERROR")
 
@@ -531,7 +509,7 @@ class TestServerFocused:
         try:
             from server.auth import extract_bearer_token
             from server.core import handle_request
-            from server.errors import ApiError, create_api_error_unauthorized
+            from server.errors import create_api_error_unauthorized
             from server.serializers import serialize_response
 
             # Test request authentication integration
@@ -563,7 +541,7 @@ class TestServerFocused:
                     "method": "GET",
                     "path": "/api/test",
                     "headers": {"Authorization": auth_header},
-                    "body": None
+                    "body": None,
                 }
 
                 response = handle_request(request)

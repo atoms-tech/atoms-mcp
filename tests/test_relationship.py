@@ -16,8 +16,7 @@ async def test_entities(client_adapter):
     # Create organization
     org_data = EntityFactory.organization()
     org_result = await client_adapter.call_tool(
-        "entity_tool",
-        {"entity_type": "organization", "operation": "create", "data": org_data}
+        "entity_tool", {"entity_type": "organization", "operation": "create", "data": org_data}
     )
 
     if not org_result["success"]:
@@ -28,8 +27,7 @@ async def test_entities(client_adapter):
     # Create project
     project_data = EntityFactory.project(organization_id=org_id)
     project_result = await client_adapter.call_tool(
-        "entity_tool",
-        {"entity_type": "project", "operation": "create", "data": project_data}
+        "entity_tool", {"entity_type": "project", "operation": "create", "data": project_data}
     )
 
     if not project_result["success"]:
@@ -40,8 +38,7 @@ async def test_entities(client_adapter):
     # Create document
     doc_data = EntityFactory.document(project_id=project_id)
     doc_result = await client_adapter.call_tool(
-        "entity_tool",
-        {"entity_type": "document", "operation": "create", "data": doc_data}
+        "entity_tool", {"entity_type": "document", "operation": "create", "data": doc_data}
     )
 
     if not doc_result["success"]:
@@ -49,11 +46,7 @@ async def test_entities(client_adapter):
 
     doc_id = doc_result["response"]["document"]["id"]
 
-    return {
-        "organization_id": org_id,
-        "project_id": project_id,
-        "document_id": doc_id
-    }
+    return {"organization_id": org_id, "project_id": project_id, "document_id": doc_id}
 
 
 @pytest.mark.asyncio

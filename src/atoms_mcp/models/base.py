@@ -24,11 +24,7 @@ class BaseEntity(BaseModel):
 
     # Pydantic configuration (used for serialization)
     model_config = ConfigDict(
-        use_enum_values=True,
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: lambda v: str(v)
-        }
+        use_enum_values=True, json_encoders={datetime: lambda v: v.isoformat(), UUID: lambda v: str(v)}
     )
 
 

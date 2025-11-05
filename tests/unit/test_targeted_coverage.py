@@ -18,7 +18,7 @@ class TestTargetedCoverage:
             config = InfrastructureConfig(
                 database_url="postgresql://localhost:5432/test",
                 redis_url="redis://localhost:6379/0",
-                environment="development"
+                environment="development",
             )
 
             # Execute methods to get coverage
@@ -40,11 +40,7 @@ class TestTargetedCoverage:
             from config.python.session import JWTConfig, SessionConfig
 
             # Create and use JWT configuration
-            jwt_config = JWTConfig(
-                secret="test-secret-key",
-                algorithm="HS256",
-                expire_hours=24
-            )
+            jwt_config = JWTConfig(secret="test-secret-key", algorithm="HS256", expire_hours=24)
 
             # Execute JWT config methods
             assert hasattr(jwt_config, "secret")
@@ -56,11 +52,7 @@ class TestTargetedCoverage:
             assert jwt_config.expire_hours == 24
 
             # Create and use session configuration
-            session_config = SessionConfig(
-                jwt=jwt_config,
-                cookie_domain="localhost",
-                secure=False
-            )
+            session_config = SessionConfig(jwt=jwt_config, cookie_domain="localhost", secure=False)
 
             # Execute session config methods
             assert hasattr(session_config, "jwt")
@@ -80,10 +72,7 @@ class TestTargetedCoverage:
 
             # Create and use embedding configuration
             embedding_config = EmbeddingConfig(
-                provider="openai",
-                model="text-embedding-ada-002",
-                api_key="test-api-key",
-                dimension=1536
+                provider="openai", model="text-embedding-ada-002", api_key="test-api-key", dimension=1536
             )
 
             # Execute embedding config methods
@@ -98,9 +87,7 @@ class TestTargetedCoverage:
 
             # Create and use vector configuration
             vector_config = VectorConfig(
-                embedding=embedding_config,
-                database_url="postgresql://localhost:5432/vector",
-                index_name="documents"
+                embedding=embedding_config, database_url="postgresql://localhost:5432/vector", index_name="documents"
             )
 
             # Execute vector config methods
@@ -120,13 +107,7 @@ class TestTargetedCoverage:
             from config.python.settings import AppSettings, DatabaseSettings
 
             # Create and use app settings
-            app_settings = AppSettings(
-                name="Test App",
-                version="1.0.0",
-                debug=True,
-                port=8000,
-                host="localhost"
-            )
+            app_settings = AppSettings(name="Test App", version="1.0.0", debug=True, port=8000, host="localhost")
 
             # Execute app settings methods
             assert hasattr(app_settings, "name")
@@ -143,10 +124,7 @@ class TestTargetedCoverage:
 
             # Create and use database settings
             db_settings = DatabaseSettings(
-                url="postgresql://localhost:5432/testdb",
-                pool_size=10,
-                max_overflow=20,
-                pool_timeout=30
+                url="postgresql://localhost:5432/testdb", pool_size=10, max_overflow=20, pool_timeout=30
             )
 
             # Execute database settings methods
@@ -186,7 +164,7 @@ class TestTargetedCoverage:
                 message="Parameter error",
                 status_code=400,
                 error_code="PARAM_ERROR",
-                details={"field": "name", "value": ""}
+                details={"field": "name", "value": ""},
             )
             assert param_error.message == "Parameter error"
             assert param_error.status_code == 400
@@ -227,7 +205,6 @@ class TestTargetedCoverage:
         """Execute server errors functions."""
         try:
             from server.errors import (
-                ApiError,
                 create_api_error_internal,
                 create_api_error_not_found,
                 create_api_error_unauthorized,
@@ -281,11 +258,7 @@ class TestTargetedCoverage:
 
             # Try configuration with parameters
             try:
-                config = ServerConfig(
-                    host="0.0.0.0",
-                    port=8000,
-                    debug=True
-                )
+                config = ServerConfig(host="0.0.0.0", port=8000, debug=True)
                 assert config.host == "0.0.0.0"
                 assert config.port == 8000
                 assert config.debug is True
@@ -320,11 +293,7 @@ class TestTargetedCoverage:
 
             # Try configuration with parameters
             try:
-                config = EnvConfig(
-                    database_url="postgresql://test",
-                    redis_url="redis://test",
-                    jwt_secret="test-secret"
-                )
+                config = EnvConfig(database_url="postgresql://test", redis_url="redis://test", jwt_secret="test-secret")
                 assert config.database_url == "postgresql://test"
                 assert config.redis_url == "redis://test"
                 assert config.jwt_secret == "test-secret"
@@ -344,11 +313,7 @@ class TestTargetedCoverage:
             from server.serializers import serialize_error, serialize_response
 
             # Execute response serialization
-            test_data = {
-                "message": "Success",
-                "data": {"id": 1, "name": "Test"},
-                "status": "ok"
-            }
+            test_data = {"message": "Success", "data": {"id": 1, "name": "Test"}, "status": "ok"}
 
             result = serialize_response(test_data)
             assert result is not None
@@ -381,29 +346,14 @@ class TestTargetedCoverage:
 
             # Create integrated configuration
             infra_config = InfrastructureConfig(
-                database_url="postgresql://localhost/test",
-                redis_url="redis://localhost/0",
-                environment="test"
+                database_url="postgresql://localhost/test", redis_url="redis://localhost/0", environment="test"
             )
 
-            jwt_config = JWTConfig(
-                secret="integration-secret",
-                algorithm="HS256",
-                expire_hours=12
-            )
+            jwt_config = JWTConfig(secret="integration-secret", algorithm="HS256", expire_hours=12)
 
-            session_config = SessionConfig(
-                jwt=jwt_config,
-                cookie_domain="test.local",
-                secure=False
-            )
+            session_config = SessionConfig(jwt=jwt_config, cookie_domain="test.local", secure=False)
 
-            app_settings = AppSettings(
-                name="Integration Test App",
-                version="1.0.0",
-                debug=True,
-                port=8000
-            )
+            app_settings = AppSettings(name="Integration Test App", version="1.0.0", debug=True, port=8000)
 
             # Verify integration
             assert infra_config.environment == "test"
@@ -418,7 +368,6 @@ class TestTargetedCoverage:
         """Test edge cases and error handling."""
         try:
             from config.python.infrastructure import InfrastructureConfig
-            from server.errors import create_api_error_internal
             from tools.base import ApiError
 
             # Test empty configuration
@@ -433,7 +382,7 @@ class TestTargetedCoverage:
             special_config = InfrastructureConfig(
                 database_url="postgresql://user:p@ss@host:5432/db",
                 redis_url="redis://user:p@ss@host:6379/0",
-                environment="special-env-123"
+                environment="special-env-123",
             )
             assert special_config is not None
             assert "@" in special_config.database_url

@@ -35,10 +35,7 @@ async def main():
 
     # Authenticate
     print("🔐 Authenticating...")
-    broker = UnifiedCredentialBroker(
-        mcp_endpoint=mcp_endpoint,
-        provider="authkit"
-    )
+    broker = UnifiedCredentialBroker(mcp_endpoint=mcp_endpoint, provider="authkit")
 
     try:
         client, credentials = await broker.get_authenticated_client()
@@ -46,11 +43,7 @@ async def main():
 
         # Validate auth
         result = await validate_auth(
-            client=client,
-            credentials=credentials,
-            mcp_endpoint=mcp_endpoint,
-            verbose=True,
-            retry_on_failure=True
+            client=client, credentials=credentials, mcp_endpoint=mcp_endpoint, verbose=True, retry_on_failure=True
         )
 
         print("")
@@ -77,6 +70,7 @@ async def main():
         print("")
         print(f"❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
     finally:

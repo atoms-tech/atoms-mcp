@@ -192,7 +192,7 @@ async def call_entity_tool(auth_token: str, operation: str, entity_type: str,
         return {"success": False, "error": str(e)}, duration_ms
 
 
-async def run_comprehensive_tests()
+async def run_comprehensive_tests():
     """Run all comprehensive tests."""
     report = TestReport()
 

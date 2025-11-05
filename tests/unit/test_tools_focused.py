@@ -32,7 +32,7 @@ class TestToolsFocused:
                 message="Validation failed",
                 status_code=400,
                 error_code="VALIDATION_ERROR",
-                details={"field": "name", "value": ""}
+                details={"field": "name", "value": ""},
             )
             assert param_error.message == "Validation failed"
             assert param_error.status_code == 400
@@ -63,9 +63,7 @@ class TestToolsFocused:
             mock_client.table.return_value.update.return_value.execute.return_value = Mock(
                 data=[{"id": "1", "name": "Updated Project"}]
             )
-            mock_client.table.return_value.delete.return_value.execute.return_value = Mock(
-                data=[{"id": "1"}]
-            )
+            mock_client.table.return_value.delete.return_value.execute.return_value = Mock(data=[{"id": "1"}])
 
             # Test read operation
             read_result = asyncio.run(manager.read("project", "1"))
@@ -112,7 +110,7 @@ class TestToolsFocused:
             mock_client.table.return_value.select.return_value.or_.return_value.execute.return_value = Mock(
                 data=[
                     {"id": "1", "content": "Search result 1", "type": "document"},
-                    {"id": "2", "content": "Search result 2", "type": "project"}
+                    {"id": "2", "content": "Search result 2", "type": "project"},
                 ]
             )
 
@@ -126,10 +124,7 @@ class TestToolsFocused:
 
             # Mock aggregate response
             mock_client.rpc.return_value.execute.return_value = Mock(
-                data=[
-                    {"entity_type": "project", "count": 10},
-                    {"entity_type": "document", "count": 25}
-                ]
+                data=[{"entity_type": "project", "count": 10}, {"entity_type": "document", "count": 25}]
             )
 
             # Test aggregate operation
@@ -141,11 +136,7 @@ class TestToolsFocused:
 
             # Mock analyze response
             mock_client.rpc.return_value.execute.return_value = Mock(
-                data={
-                    "total_entities": 100,
-                    "active_projects": 15,
-                    "recent_documents": 30
-                }
+                data={"total_entities": 100, "active_projects": 15, "recent_documents": 30}
             )
 
             # Test analyze operation
@@ -173,14 +164,12 @@ class TestToolsFocused:
             mock_client.table.return_value.select.return_value.execute.return_value = Mock(
                 data=[
                     {"source": "user-1", "target": "project-1", "relationship": "member"},
-                    {"source": "user-1", "target": "project-2", "relationship": "member"}
+                    {"source": "user-1", "target": "project-2", "relationship": "member"},
                 ]
             )
 
             # Test relationship query
-            relationship_result = asyncio.run(
-                manager.relationships("user", "project", {"role": "member"})
-            )
+            relationship_result = asyncio.run(manager.relationships("user", "project", {"role": "member"}))
             assert relationship_result is not None
             assert isinstance(relationship_result, dict)
             assert relationship_result["success"] is True
@@ -193,9 +182,7 @@ class TestToolsFocused:
             )
 
             # Test relationship creation
-            create_result = asyncio.run(
-                manager.create_relationship("user-1", "project-3", "member")
-            )
+            create_result = asyncio.run(manager.create_relationship("user-1", "project-3", "member"))
             assert create_result is not None
             assert create_result["success"] is True
             assert create_result["relationship"]["source"] == "user-1"
@@ -226,13 +213,11 @@ class TestToolsFocused:
                 "steps": [
                     {"name": "validate", "type": "validation"},
                     {"name": "execute", "type": "action"},
-                    {"name": "finalize", "type": "completion"}
-                ]
+                    {"name": "finalize", "type": "completion"},
+                ],
             }
 
-            workflow_result = asyncio.run(
-                executor.execute("test_workflow", workflow_params)
-            )
+            workflow_result = asyncio.run(executor.execute("test_workflow", workflow_params))
             assert workflow_result is not None
             assert isinstance(workflow_result, dict)
             assert workflow_result["success"] is True
@@ -259,11 +244,7 @@ class TestToolsFocused:
             )
 
             # Test workspace creation
-            workspace_data = {
-                "name": "Test Workspace",
-                "type": "team",
-                "description": "Test workspace description"
-            }
+            workspace_data = {"name": "Test Workspace", "type": "team", "description": "Test workspace description"}
 
             workspace_result = asyncio.run(manager.create_workspace(workspace_data))
             assert workspace_result is not None
@@ -292,7 +273,7 @@ class TestToolsFocused:
                 ApiError("Not found", 404, "NOT_FOUND"),
                 ApiError("Unauthorized", 401, "UNAUTHORIZED"),
                 ApiError("Validation failed", 400, "VALIDATION_ERROR"),
-                ApiError("Server error", 500, "INTERNAL_ERROR")
+                ApiError("Server error", 500, "INTERNAL_ERROR"),
             ]
 
             for error in errors:
@@ -323,8 +304,6 @@ class TestToolsFocused:
     def test_tools_performance_complete(self):
         """Test tools performance completely."""
         try:
-            import time
-
             from tools.entity.entity import EntityManager
             from tools.query import DataQueryEngine
 
@@ -388,14 +367,14 @@ class TestToolsFocused:
             mock_client.table.return_value.select.return_value.execute.return_value = Mock(
                 data=[
                     {"id": "1", "name": "Test Project", "owner_id": "user-1"},
-                    {"id": "2", "name": "Second Project", "owner_id": "user-1"}
+                    {"id": "2", "name": "Second Project", "owner_id": "user-1"},
                 ]
             )
 
             mock_client.table.return_value.select.return_value.or_.return_value.execute.return_value = Mock(
                 data=[
                     {"id": "1", "content": "Project documentation", "project_id": "1"},
-                    {"id": "2", "content": "Second project docs", "project_id": "2"}
+                    {"id": "2", "content": "Second project docs", "project_id": "2"},
                 ]
             )
 
@@ -416,9 +395,7 @@ class TestToolsFocused:
             assert len(search_result["results"]) == 2
 
             # 3. Get project relationships
-            relationships_result = asyncio.run(
-                relationship_manager.relationships("user-1", "project")
-            )
+            relationships_result = asyncio.run(relationship_manager.relationships("user-1", "project"))
             assert relationships_result is not None
 
             # All operations should be consistent
@@ -431,7 +408,6 @@ class TestToolsFocused:
     def test_tools_edge_cases_complete(self):
         """Test tools edge cases completely."""
         try:
-            from tools.base import ApiError
             from tools.entity.entity import EntityManager
 
             # Test empty data handling
@@ -455,10 +431,7 @@ class TestToolsFocused:
                 pass
 
             # Test very long strings
-            long_data = {
-                "name": "A" * 1000,
-                "description": "B" * 5000
-            }
+            long_data = {"name": "A" * 1000, "description": "B" * 5000}
 
             mock_client.table.return_value.insert.return_value.execute.return_value = Mock(
                 data=[{"id": "1", **long_data}]
@@ -473,10 +446,7 @@ class TestToolsFocused:
                 pass
 
             # Test special characters
-            special_data = {
-                "name": "Project @#$%&*()",
-                "description": "Description with émoji: 🚀 🎯 📊"
-            }
+            special_data = {"name": "Project @#$%&*()", "description": "Description with émoji: 🚀 🎯 📊"}
 
             mock_client.table.return_value.insert.return_value.execute.return_value = Mock(
                 data=[{"id": "2", **special_data}]

@@ -68,7 +68,7 @@ def main():
         "check_mcp_sessions_table.sql",
         "create_mcp_sessions_table.sql",
         "create_session_rls_policies.sql",
-        "test_session_operations.sql"
+        "test_session_operations.sql",
     ]
 
     for script in scripts:

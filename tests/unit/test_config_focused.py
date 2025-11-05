@@ -13,34 +13,29 @@ class TestConfigPythonFocused:
         """Test infrastructure configuration completely."""
         try:
             from config.python.infrastructure import (
-                DatabaseConfig,
                 InfrastructureConfig,
-                RedisConfig,
                 get_infrastructure_config,
                 validate_infrastructure_config,
             )
 
             # Test configuration creation
             config = InfrastructureConfig(
-                database_url="postgresql://test",
-                redis_url="redis://test",
-                environment="test"
+                database_url="postgresql://test", redis_url="redis://test", environment="test"
             )
             assert config.database_url == "postgresql://test"
             assert config.redis_url == "redis://test"
 
             # Test configuration validation
             valid_config = InfrastructureConfig(
-                database_url="postgresql://localhost:5432/test",
-                redis_url="redis://localhost:6379/0"
+                database_url="postgresql://localhost:5432/test", redis_url="redis://localhost:6379/0"
             )
             assert validate_infrastructure_config(valid_config) is True
 
             # Test configuration retrieval
-            with patch("config.python.infrastructure.ENV_CONFIG", {
-                "DATABASE_URL": "postgresql://env-test",
-                "REDIS_URL": "redis://env-test"
-            }):
+            with patch(
+                "config.python.infrastructure.ENV_CONFIG",
+                {"DATABASE_URL": "postgresql://env-test", "REDIS_URL": "redis://env-test"},
+            ):
                 env_config = get_infrastructure_config()
                 assert env_config.database_url == "postgresql://env-test"
                 assert env_config.redis_url == "redis://env-test"
@@ -55,9 +50,7 @@ class TestConfigPythonFocused:
             # Note: Some config modules may have enum dependencies that aren't fully implemented
             try:
                 from config.python.infra_config import (
-                    InfraConfig,
                     VercelConfig,
-                    get_deployment_settings,
                     get_vercel_config,
                     validate_vercel_config,
                 )
@@ -65,27 +58,19 @@ class TestConfigPythonFocused:
                 pytest.skip("Infra config not available due to missing enum values")
 
             # Test Vercel configuration
-            vercel_config = VercelConfig(
-                team_id="team-123",
-                project_id="project-456",
-                access_token="token-abc"
-            )
+            vercel_config = VercelConfig(team_id="team-123", project_id="project-456", access_token="token-abc")
             assert vercel_config.team_id == "team-123"
             assert vercel_config.project_id == "project-456"
 
             # Test configuration validation
-            valid_vercel = VercelConfig(
-                team_id="valid-team",
-                project_id="valid-project",
-                access_token="valid-token"
-            )
+            valid_vercel = VercelConfig(team_id="valid-team", project_id="valid-project", access_token="valid-token")
             assert validate_vercel_config(valid_vercel) is True
 
             # Test configuration retrieval
-            with patch("config.python.infra_config.ENV_VERCEL", {
-                "VERCEL_TEAM_ID": "env-team",
-                "VERCEL_PROJECT_ID": "env-project"
-            }):
+            with patch(
+                "config.python.infra_config.ENV_VERCEL",
+                {"VERCEL_TEAM_ID": "env-team", "VERCEL_PROJECT_ID": "env-project"},
+            ):
                 env_vercel = get_vercel_config()
                 assert env_vercel.team_id == "env-team"
                 assert env_vercel.project_id == "env-project"
@@ -99,27 +84,18 @@ class TestConfigPythonFocused:
             from config.python.session import (
                 JWTConfig,
                 SessionConfig,
-                configure_jwt,
                 get_session_config,
                 validate_session_config,
             )
 
             # Test JWT configuration
-            jwt_config = JWTConfig(
-                secret="test-secret",
-                algorithm="HS256",
-                expire_hours=24
-            )
+            jwt_config = JWTConfig(secret="test-secret", algorithm="HS256", expire_hours=24)
             assert jwt_config.secret == "test-secret"
             assert jwt_config.algorithm == "HS256"
             assert jwt_config.expire_hours == 24
 
             # Test session configuration
-            session_config = SessionConfig(
-                jwt=jwt_config,
-                cookie_domain="example.com",
-                secure=True
-            )
+            session_config = SessionConfig(jwt=jwt_config, cookie_domain="example.com", secure=True)
             assert session_config.jwt.secret == "test-secret"
             assert session_config.cookie_domain == "example.com"
             assert session_config.secure is True
@@ -128,10 +104,7 @@ class TestConfigPythonFocused:
             assert validate_session_config(session_config) is True
 
             # Test configuration retrieval
-            with patch("config.python.session.ENV_SESSION", {
-                "JWT_SECRET": "env-secret",
-                "JWT_ALGORITHM": "HS256"
-            }):
+            with patch("config.python.session.ENV_SESSION", {"JWT_SECRET": "env-secret", "JWT_ALGORITHM": "HS256"}):
                 env_session = get_session_config()
                 assert env_session.jwt.secret == "env-secret"
 
@@ -144,17 +117,13 @@ class TestConfigPythonFocused:
             from config.python.vector import (
                 EmbeddingConfig,
                 VectorConfig,
-                configure_embedding,
                 get_vector_config,
                 validate_vector_config,
             )
 
             # Test embedding configuration
             embedding_config = EmbeddingConfig(
-                provider="openai",
-                model="text-embedding-ada-002",
-                api_key="test-api-key",
-                dimension=1536
+                provider="openai", model="text-embedding-ada-002", api_key="test-api-key", dimension=1536
             )
             assert embedding_config.provider == "openai"
             assert embedding_config.model == "text-embedding-ada-002"
@@ -162,9 +131,7 @@ class TestConfigPythonFocused:
 
             # Test vector configuration
             vector_config = VectorConfig(
-                embedding=embedding_config,
-                database_url="postgresql://localhost/vector-db",
-                index_name="documents"
+                embedding=embedding_config, database_url="postgresql://localhost/vector-db", index_name="documents"
             )
             assert vector_config.embedding.provider == "openai"
             assert vector_config.database_url == "postgresql://localhost/vector-db"
@@ -173,10 +140,9 @@ class TestConfigPythonFocused:
             assert validate_vector_config(vector_config) is True
 
             # Test configuration retrieval
-            with patch("config.python.vector.ENV_VECTOR", {
-                "EMBEDDING_PROVIDER": "env-openai",
-                "EMBEDDING_MODEL": "env-model"
-            }):
+            with patch(
+                "config.python.vector.ENV_VECTOR", {"EMBEDDING_PROVIDER": "env-openai", "EMBEDDING_MODEL": "env-model"}
+            ):
                 env_vector = get_vector_config()
                 assert env_vector.embedding.provider == "env-openai"
 
@@ -189,29 +155,19 @@ class TestConfigPythonFocused:
             from config.python.settings import (
                 AppSettings,
                 DatabaseSettings,
-                get_settings,
                 load_from_env,
                 validate_settings,
             )
 
             # Test app settings
-            app_settings = AppSettings(
-                name="Test App",
-                version="1.0.0",
-                debug=True,
-                port=8000
-            )
+            app_settings = AppSettings(name="Test App", version="1.0.0", debug=True, port=8000)
             assert app_settings.name == "Test App"
             assert app_settings.version == "1.0.0"
             assert app_settings.debug is True
             assert app_settings.port == 8000
 
             # Test database settings
-            db_settings = DatabaseSettings(
-                url="postgresql://localhost:5432/test",
-                pool_size=10,
-                max_overflow=20
-            )
+            db_settings = DatabaseSettings(url="postgresql://localhost:5432/test", pool_size=10, max_overflow=20)
             assert db_settings.url == "postgresql://localhost:5432/test"
             assert db_settings.pool_size == 10
             assert db_settings.max_overflow == 20
@@ -221,11 +177,9 @@ class TestConfigPythonFocused:
             assert validate_settings(db_settings) is True
 
             # Test environment loading
-            with patch.dict("os.environ", {
-                "APP_NAME": "Env App",
-                "APP_VERSION": "2.0.0",
-                "DATABASE_URL": "postgresql://env/test"
-            }):
+            with patch.dict(
+                "os.environ", {"APP_NAME": "Env App", "APP_VERSION": "2.0.0", "DATABASE_URL": "postgresql://env/test"}
+            ):
                 env_settings = load_from_env()
                 assert env_settings.name == "Env App"
                 assert env_settings.version == "2.0.0"
@@ -244,32 +198,21 @@ class TestConfigPythonFocused:
             infra_config = InfrastructureConfig(
                 database_url="postgresql://localhost:5432/testdb",
                 redis_url="redis://localhost:6379/0",
-                environment="development"
+                environment="development",
             )
 
-            jwt_config = JWTConfig(
-                secret="integration-secret",
-                algorithm="HS256",
-                expire_hours=12
-            )
+            jwt_config = JWTConfig(secret="integration-secret", algorithm="HS256", expire_hours=12)
 
-            session_config = SessionConfig(
-                jwt=jwt_config,
-                cookie_domain="test.local",
-                secure=False
-            )
+            session_config = SessionConfig(jwt=jwt_config, cookie_domain="test.local", secure=False)
 
             embedding_config = EmbeddingConfig(
-                provider="openai",
-                model="text-embedding-ada-002",
-                api_key="integration-key",
-                dimension=1536
+                provider="openai", model="text-embedding-ada-002", api_key="integration-key", dimension=1536
             )
 
             vector_config = VectorConfig(
                 embedding=embedding_config,
                 database_url="postgresql://localhost:5432/vectordb",
-                index_name="integration-index"
+                index_name="integration-index",
             )
 
             # Verify all configurations are valid
@@ -296,7 +239,7 @@ class TestConfigPythonFocused:
             # Test invalid infrastructure config
             invalid_infra = Mock()
             invalid_infra.database_url = ""  # Invalid
-            invalid_infra.redis_url = ""     # Invalid
+            invalid_infra.redis_url = ""  # Invalid
 
             try:
                 result = validate_infrastructure_config(invalid_infra)
@@ -335,12 +278,10 @@ class TestConfigPythonFocused:
         try:
             from config.python.infrastructure import InfrastructureConfig
             from config.python.session import SessionConfig
-            from config.python.vector import VectorConfig
 
             # Test minimal configurations
             minimal_infra = InfrastructureConfig(
-                database_url="postgresql://localhost/test",
-                redis_url="redis://localhost:6379"
+                database_url="postgresql://localhost/test", redis_url="redis://localhost:6379"
             )
             assert minimal_infra.database_url is not None
             assert minimal_infra.redis_url is not None
@@ -351,15 +292,14 @@ class TestConfigPythonFocused:
                 cookie_domain="very.long.subdomain.example.com",
                 secure=True,
                 http_only=True,
-                same_site="strict"
+                same_site="strict",
             )
             assert max_session.jwt.secret == "max-secret"
             assert max_session.cookie_domain is not None
 
             # Test special characters
             special_infra = InfrastructureConfig(
-                database_url="postgresql://user:pass@host:5432/db",
-                redis_url="redis://user:pass@host:6379/0"
+                database_url="postgresql://user:pass@host:5432/db", redis_url="redis://user:pass@host:6379/0"
             )
             assert special_infra.database_url is not None
             assert special_infra.redis_url is not None

@@ -110,7 +110,9 @@ class TestResultRegistry:
         self.results: dict[str, TestResult] = {}
         self.shared_data: dict[str, Any] = {}
 
-    def store_result(self, test_name: str, passed: bool, data: dict | None = None, error: str | None = None) -> TestResult:
+    def store_result(
+        self, test_name: str, passed: bool, data: dict | None = None, error: str | None = None
+    ) -> TestResult:
         """Store result of a test."""
         result = TestResult(test_name=test_name, passed=passed, data=data or {}, error=error)
         self.results[test_name] = result
@@ -183,9 +185,7 @@ def depends_on(*test_names: str) -> Callable:
     return decorator
 
 
-def flow_stage(
-    stage_name: str, entity_type: str = "", required_data: list[str] | None = None
-) -> Callable:
+def flow_stage(stage_name: str, entity_type: str = "", required_data: list[str] | None = None) -> Callable:
     """Decorator for a stage in a flow.
 
     Args:
@@ -242,8 +242,7 @@ def cascade_flow(pattern: str = "crud", entity_type: str = "") -> Callable:
                 # Get dependencies for this stage
                 depends_on_stages = flow_def["dependencies"].get(stage_name, [])
                 depends_on_tests = [
-                    f"{stage}" if stage.startswith("test_") else f"test_{stage}"
-                    for stage in depends_on_stages
+                    f"{stage}" if stage.startswith("test_") else f"test_{stage}" for stage in depends_on_stages
                 ]
 
                 # Mark with pytest.mark.dependency

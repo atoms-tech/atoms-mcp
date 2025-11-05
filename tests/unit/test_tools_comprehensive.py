@@ -22,6 +22,7 @@ class TestExistingToolsComplete:
         # Test that tools module can be imported without errors
         try:
             import tools
+
             assert tools is not None
             # Should have the functions we fixed in __init__.py
             assert hasattr(tools, "data_query")
@@ -66,11 +67,12 @@ class TestToolsBaseComplete:
         """Test tools base import."""
         try:
             from tools.base import ToolBase
+
             assert ToolBase is not None
         except ImportError:
             pytest.skip("ToolBase not available")
 
-    def test_base_tool_creation(self, mock_tools_base):
+    def test_base_tool_creation(self, _mock_tools_base):
         """Test base tool creation."""
         try:
             from tools.base import ToolBase
@@ -83,21 +85,17 @@ class TestToolsBaseComplete:
         except ImportError:
             pytest.skip("ToolBase not available")
 
-    def test_base_tool_error_handling(self, mock_tools_base):
+    def test_base_tool_error_handling(self, _mock_tools_base):
         """Test base tool error handling."""
         try:
-            from tools.base import ApiError, ToolBase
+            from tools.base import ApiError
 
             # Test error creation
             error = ApiError("Test error message")
             assert error.message == "Test error message"
 
             # Test error with parameters
-            error = ApiError(
-                message="Validation failed",
-                status_code=400,
-                error_code="VALIDATION_ERROR"
-            )
+            error = ApiError(message="Validation failed", status_code=400, error_code="VALIDATION_ERROR")
             assert error.message == "Validation failed"
             assert error.status_code == 400
             assert error.error_code == "VALIDATION_ERROR"
@@ -130,13 +128,14 @@ class TestToolsEntityComplete:
                 "org": org,
                 "project": project,
                 "document": document,
-                "requirement": requirement
+                "requirement": requirement,
             }
 
     def test_entity_import(self):
         """Test entity module import."""
         try:
             import tools.entity
+
             assert tools.entity is not None
         except ImportError:
             pytest.skip("tools.entity not available")
@@ -199,9 +198,7 @@ class TestToolsEntityComplete:
             projects_table = services["supabase"].table("projects")
 
             # Search for specific project
-            search_response = projects_table.select("*").or_(
-                "name.ilike.%Test%"
-            ).execute()
+            search_response = projects_table.select("*").or_("name.ilike.%Test%").execute()
 
             assert search_response.data is not None
             assert len(search_response.data) > 0
@@ -224,16 +221,13 @@ class TestToolsQueryComplete:
             # Create diverse test data
             scenario = factory.create_project_with_docs_and_requirements()
 
-            return {
-                "services": services,
-                "factory": factory,
-                "scenario": scenario
-            }
+            return {"services": services, "factory": factory, "scenario": scenario}
 
     def test_query_import(self):
         """Test query module import."""
         try:
             import tools.query
+
             assert tools.query is not None
         except ImportError:
             pytest.skip("tools.query not available")
@@ -244,12 +238,14 @@ class TestToolsQueryComplete:
             services = mock_query_environment["services"]
 
             # Mock search functionality
-            mock_rpc = AsyncMock(return_value={
-                "data": [
-                    {"id": "1", "content": "Search result 1", "type": "document"},
-                    {"id": "2", "content": "Search result 2", "type": "project"}
-                ]
-            })
+            mock_rpc = AsyncMock(
+                return_value={
+                    "data": [
+                        {"id": "1", "content": "Search result 1", "type": "document"},
+                        {"id": "2", "content": "Search result 2", "type": "project"},
+                    ]
+                }
+            )
 
             services["supabase"].rpc = mock_rpc
 
@@ -267,13 +263,15 @@ class TestToolsQueryComplete:
             services = mock_query_environment["services"]
 
             # Mock aggregate functionality
-            mock_aggregate = AsyncMock(return_value={
-                "data": [
-                    {"entity_type": "project", "count": 2},
-                    {"entity_type": "document", "count": 3},
-                    {"entity_type": "requirement", "count": 2}
-                ]
-            })
+            mock_aggregate = AsyncMock(
+                return_value={
+                    "data": [
+                        {"entity_type": "project", "count": 2},
+                        {"entity_type": "document", "count": 3},
+                        {"entity_type": "requirement", "count": 2},
+                    ]
+                }
+            )
 
             services["supabase"].rpc = mock_aggregate
 
@@ -291,14 +289,11 @@ class TestToolsQueryComplete:
             services = mock_query_environment["services"]
 
             # Mock analyze functionality
-            mock_analyze = AsyncMock(return_value={
-                "data": {
-                    "total_entities": 7,
-                    "active_projects": 1,
-                    "total_documents": 2,
-                    "completion_rate": 0.8
+            mock_analyze = AsyncMock(
+                return_value={
+                    "data": {"total_entities": 7, "active_projects": 1, "total_documents": 2, "completion_rate": 0.8}
                 }
-            })
+            )
 
             services["supabase"].rpc = mock_analyze
 
@@ -326,18 +321,13 @@ class TestToolsRelationshipComplete:
             org = factory.create_organization(owner_id=user["id"])
             project = factory.create_project(owner_id=user["id"])
 
-            return {
-                "services": services,
-                "factory": factory,
-                "user": user,
-                "org": org,
-                "project": project
-            }
+            return {"services": services, "factory": factory, "user": user, "org": org, "project": project}
 
     def test_relationship_import(self):
         """Test relationship module import."""
         try:
             import tools.relationship
+
             assert tools.relationship is not None
         except ImportError:
             pytest.skip("tools.relationship not available")
@@ -351,12 +341,7 @@ class TestToolsRelationshipComplete:
 
             # Create relationship in mock
             relationship_table = services["supabase"].table("organization_members")
-            relationship = {
-                "user_id": user["id"],
-                "organization_id": org["id"],
-                "role": "member",
-                "status": "active"
-            }
+            relationship = {"user_id": user["id"], "organization_id": org["id"], "role": "member", "status": "active"}
 
             # Test relationship creation
             response = relationship_table.insert(relationship).execute()
@@ -380,7 +365,7 @@ class TestToolsRelationshipComplete:
             doc_table = services["supabase"].table("documents")
             docs = [
                 {"id": "doc1", "title": "Doc 1", "project_id": project["id"]},
-                {"id": "doc2", "title": "Doc 2", "project_id": project["id"]}
+                {"id": "doc2", "title": "Doc 2", "project_id": project["id"]},
             ]
 
             # Add documents
@@ -410,18 +395,13 @@ class TestToolsWorkflowComplete:
             user = factory.create_user()
             project = factory.create_project()
 
-            return {
-                "services": services,
-                "factory": factory,
-                "org": org,
-                "user": user,
-                "project": project
-            }
+            return {"services": services, "factory": factory, "org": org, "user": user, "project": project}
 
     def test_workflow_import(self):
         """Test workflow module import."""
         try:
             import tools.workflow
+
             assert tools.workflow is not None
         except ImportError:
             pytest.skip("tools.workflow not available")
@@ -433,22 +413,17 @@ class TestToolsWorkflowComplete:
             project = mock_workflow_environment["project"]
 
             # Mock workflow execution
-            mock_workflow = AsyncMock(return_value={
-                "success": True,
-                "workflow_id": "workflow-123",
-                "status": "completed",
-                "results": {
-                    "project_created": True,
-                    "permissions_set": True,
-                    "notifications_sent": True
+            mock_workflow = AsyncMock(
+                return_value={
+                    "success": True,
+                    "workflow_id": "workflow-123",
+                    "status": "completed",
+                    "results": {"project_created": True, "permissions_set": True, "notifications_sent": True},
                 }
-            })
+            )
 
             # Test workflow execution
-            result = mock_workflow(
-                workflow_name="project_setup",
-                parameters={"project_id": project["id"]}
-            )
+            result = mock_workflow(workflow_name="project_setup", parameters={"project_id": project["id"]})
 
             assert result is not None
 
@@ -461,17 +436,12 @@ class TestToolsWorkflowComplete:
             mock_workflow_environment["services"]
 
             # Mock failing workflow
-            mock_failing_workflow = AsyncMock(return_value={
-                "success": False,
-                "error": "Workflow validation failed",
-                "error_code": "VALIDATION_ERROR"
-            })
+            mock_failing_workflow = AsyncMock(
+                return_value={"success": False, "error": "Workflow validation failed", "error_code": "VALIDATION_ERROR"}
+            )
 
             # Test failing workflow
-            result = mock_failing_workflow(
-                workflow_name="invalid_workflow",
-                parameters={}
-            )
+            result = mock_failing_workflow(workflow_name="invalid_workflow", parameters={})
 
             assert result is not None
 
@@ -487,7 +457,7 @@ class TestToolsWorkflowComplete:
             steps = [
                 AsyncMock(return_value={"step": "validate", "success": True}),
                 AsyncMock(return_value={"step": "execute", "success": True}),
-                AsyncMock(return_value={"step": "finalize", "success": True})
+                AsyncMock(return_value={"step": "finalize", "success": True}),
             ]
 
             # Execute steps in sequence
@@ -514,22 +484,15 @@ class TestToolsWorkspaceComplete:
             factory = TestDataFactory(services["supabase"])
 
             # Create workspace scenario
-            workspace_data = {
-                "name": "Test Workspace",
-                "type": "team",
-                "status": "active"
-            }
+            workspace_data = {"name": "Test Workspace", "type": "team", "status": "active"}
 
-            return {
-                "services": services,
-                "factory": factory,
-                "workspace_data": workspace_data
-            }
+            return {"services": services, "factory": factory, "workspace_data": workspace_data}
 
     def test_workspace_import(self):
         """Test workspace module import."""
         try:
             import tools.workspace
+
             assert tools.workspace is not None
         except ImportError:
             pytest.skip("tools.workspace not available")
@@ -628,7 +591,9 @@ class TestToolsPerformanceComplete:
             def create_entities():
                 try:
                     for i in range(10):
-                        project = factory.create_project(name=f"Concurrent Project {threading.current_thread().ident}-{i}")
+                        project = factory.create_project(
+                            name=f"Concurrent Project {threading.current_thread().ident}-{i}"
+                        )
                         results.append(project)
                         time.sleep(0.001)  # Small delay to simulate real work
                 except Exception as e:
@@ -708,13 +673,7 @@ class TestToolsIntegrationComplete:
             org = factory.create_organization()
             user = factory.create_user()
 
-            return {
-                "services": services,
-                "factory": factory,
-                "scenario": scenario,
-                "org": org,
-                "user": user
-            }
+            return {"services": services, "factory": factory, "scenario": scenario, "org": org, "user": user}
 
     def test_complete_user_workflow(self, mock_integration_environment):
         """Test complete user workflow."""
@@ -769,11 +728,9 @@ class TestToolsIntegrationComplete:
             # Create relationship
             user = factory.create_user()
             relationship_table = services["supabase"].table("project_members")
-            relationship = relationship_table.insert({
-                "user_id": user["id"],
-                "project_id": project["id"],
-                "role": "member"
-            }).execute()
+            relationship = relationship_table.insert(
+                {"user_id": user["id"], "project_id": project["id"], "role": "member"}
+            ).execute()
 
             # All operations should be consistent
             assert len(query_result.data) > 0
@@ -831,7 +788,7 @@ class TestToolsEdgeCasesComplete:
             for i in range(1000):
                 project = factory.create_project(
                     name=f"Large Dataset Project {i}",
-                    description=f"Description for project {i} with additional content to test memory usage and performance characteristics"
+                    description=f"Description for project {i} with additional content to test memory usage and performance characteristics",
                 )
                 large_projects.append(project)
 
@@ -873,7 +830,9 @@ class TestToolsEdgeCasesComplete:
                         if len(result.data) > 0:
                             project = result.data[0]
                             project["access_count"] = project.get("access_count", 0) + 1
-                            projects_table.update({"access_count": project["access_count"]}).eq("id", shared_project_id).execute()
+                            projects_table.update({"access_count": project["access_count"]}).eq(
+                                "id", shared_project_id
+                            ).execute()
 
                     results.append({"thread_id": thread_id, "success": True})
 
@@ -937,13 +896,11 @@ class TestToolsEdgeCasesComplete:
 
             # Test Unicode content
             unicode_project = factory.create_project(
-                name="Tëst Prøjëct with ünicöde",
-                description="Dëscrïptïön with spëcïal chäräctërs: ñ, ü, ö, ä, é"
+                name="Tëst Prøjëct with ünicöde", description="Dëscrïptïön with spëcïal chäräctërs: ñ, ü, ö, ä, é"
             )
 
             unicode_document = factory.create_document(
-                title="Ünicöde Döcümënt",
-                content="Cöntënt with emoji: 🚀, 🎯, 📊 and special chars: @#$%^&*()"
+                title="Ünicöde Döcümënt", content="Cöntënt with emoji: 🚀, 🎯, 📊 and special chars: @#$%^&*()"
             )
 
             # Verify Unicode handling
@@ -975,17 +932,15 @@ class TestToolsEdgeCasesComplete:
 
             # Test extremely large data
             very_long_description = "B" * 10000
-            long_doc = factory.create_document(
-                title="Long Document",
-                content=very_long_description
-            )
+            long_doc = factory.create_document(title="Long Document", content=very_long_description)
 
             # Test empty/None values handling
             empty_project = factory.create_project(name="")
 
             # Test boundary dates
-            from datetime import datetime, timedelta, timezone
-            datetime.now(UTC) + timedelta(days=365*100)
+            from datetime import datetime, timedelta
+
+            datetime.now(UTC) + timedelta(days=365 * 100)
 
             # All boundary conditions should be handled gracefully
             assert long_project is not None

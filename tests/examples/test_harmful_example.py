@@ -50,11 +50,14 @@ class TestHarmfulDecorator:
         2. Cleans them up in reverse dependency order on test completion
         3. Handles errors gracefully
         """
-        result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {"name": "Test Org", "domain": "test.example.com"}
-        })
+        result = await fast_http_client.call_tool(
+            "workspace_tool",
+            {
+                "operation": "create",
+                "entity_type": "organization",
+                "data": {"name": "Test Org", "domain": "test.example.com"},
+            },
+        )
 
         assert result["success"], "Failed to create organization"
         org_id = result.get("id")
@@ -68,22 +71,20 @@ class TestHarmfulDecorator:
     async def test_create_workspace(self, fast_http_client, harmful_tracker):
         """Example test that creates a workspace under an organization."""
         # First create the parent organization
-        org_result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {"name": "Parent Org"}
-        })
+        org_result = await fast_http_client.call_tool(
+            "workspace_tool", {"operation": "create", "entity_type": "organization", "data": {"name": "Parent Org"}}
+        )
         create_and_track(harmful_tracker, EntityType.ORGANIZATION, org_result, "Parent Org")
 
         # Then create the workspace
-        ws_result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "workspace",
-            "data": {
-                "name": "Test Workspace",
-                "parent_id": org_result.get("id")
-            }
-        })
+        ws_result = await fast_http_client.call_tool(
+            "workspace_tool",
+            {
+                "operation": "create",
+                "entity_type": "workspace",
+                "data": {"name": "Test Workspace", "parent_id": org_result.get("id")},
+            },
+        )
 
         assert ws_result["success"]
         # Track the workspace
@@ -98,41 +99,27 @@ class TestHarmfulContext:
 
     async def test_create_with_context_manager(self, fast_http_client):
         """Example test using harmful_context for automatic cleanup."""
-        async with harmful_context(
-            "test_create_with_context",
-            http_client=fast_http_client
-        ) as tracker:
+        async with harmful_context("test_create_with_context", http_client=fast_http_client) as tracker:
             # Create organization
-            org_result = await fast_http_client.call_tool("workspace_tool", {
-                "operation": "create",
-                "entity_type": "organization",
-                "data": {"name": "Context Test Org"}
-            })
-
-            org_entity = create_and_track(
-                tracker,
-                EntityType.ORGANIZATION,
-                org_result,
-                "Context Test Org"
+            org_result = await fast_http_client.call_tool(
+                "workspace_tool",
+                {"operation": "create", "entity_type": "organization", "data": {"name": "Context Test Org"}},
             )
+
+            org_entity = create_and_track(tracker, EntityType.ORGANIZATION, org_result, "Context Test Org")
             assert org_entity.id
 
             # Create project
-            project_result = await fast_http_client.call_tool("workspace_tool", {
-                "operation": "create",
-                "entity_type": "project",
-                "data": {
-                    "name": "Test Project",
-                    "organization_id": org_result.get("id")
-                }
-            })
-
-            create_and_track(
-                tracker,
-                EntityType.PROJECT,
-                project_result,
-                "Test Project"
+            project_result = await fast_http_client.call_tool(
+                "workspace_tool",
+                {
+                    "operation": "create",
+                    "entity_type": "project",
+                    "data": {"name": "Test Project", "organization_id": org_result.get("id")},
+                },
             )
+
+            create_and_track(tracker, EntityType.PROJECT, project_result, "Test Project")
 
             # Automatic cleanup on exit:
             # Cleans up PROJECT before ORGANIZATION
@@ -145,45 +132,38 @@ class TestCascadeCleanup:
     async def test_full_entity_hierarchy(self, fast_http_client, harmful_tracker):
         """Test creating full entity hierarchy with proper cleanup order."""
         # Create top-level organization
-        org_result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {"name": "Hierarchy Test"}
-        })
+        org_result = await fast_http_client.call_tool(
+            "workspace_tool", {"operation": "create", "entity_type": "organization", "data": {"name": "Hierarchy Test"}}
+        )
         org = create_and_track(harmful_tracker, EntityType.ORGANIZATION, org_result)
 
         # Create workspace
-        ws_result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "workspace",
-            "data": {
-                "name": "Test Workspace",
-                "organization_id": org.id
-            }
-        })
+        ws_result = await fast_http_client.call_tool(
+            "workspace_tool",
+            {
+                "operation": "create",
+                "entity_type": "workspace",
+                "data": {"name": "Test Workspace", "organization_id": org.id},
+            },
+        )
         ws = create_and_track(harmful_tracker, EntityType.WORKSPACE, ws_result)
 
         # Create project
-        proj_result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "project",
-            "data": {
-                "name": "Test Project",
-                "workspace_id": ws.id
-            }
-        })
+        proj_result = await fast_http_client.call_tool(
+            "workspace_tool",
+            {"operation": "create", "entity_type": "project", "data": {"name": "Test Project", "workspace_id": ws.id}},
+        )
         proj = create_and_track(harmful_tracker, EntityType.PROJECT, proj_result)
 
         # Create document
-        doc_result = await fast_http_client.call_tool("entity_tool", {
-            "operation": "create",
-            "entity_type": "document",
-            "data": {
-                "name": "Test Doc",
-                "project_id": proj.id,
-                "content": "Test content"
-            }
-        })
+        doc_result = await fast_http_client.call_tool(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "document",
+                "data": {"name": "Test Doc", "project_id": proj.id, "content": "Test content"},
+            },
+        )
         doc = create_and_track(harmful_tracker, EntityType.DOCUMENT, doc_result)
 
         assert org.id
@@ -204,11 +184,7 @@ class TestHarmfulWithMocks:
         """Example test with mocked dependencies."""
         # In COLD mode, this would use mocked HTTP client
         # @harmful still tracks and cleans up properly
-        result = {
-            "success": True,
-            "id": "mock_org_123",
-            "name": "Mock Org"
-        }
+        result = {"success": True, "id": "mock_org_123", "name": "Mock Org"}
 
         entity = create_and_track(harmful_tracker, EntityType.ORGANIZATION, result)
         assert entity.id == "mock_org_123"
@@ -222,11 +198,9 @@ class TestHarmfulErrorHandling:
     async def test_entity_creation_failure_cleanup(self, fast_http_client, harmful_tracker):
         """Test that cleanup still happens even if test fails."""
         # Create a valid entity
-        org_result = await fast_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {"name": "Error Test"}
-        })
+        org_result = await fast_http_client.call_tool(
+            "workspace_tool", {"operation": "create", "entity_type": "organization", "data": {"name": "Error Test"}}
+        )
 
         create_and_track(harmful_tracker, EntityType.ORGANIZATION, org_result)
 

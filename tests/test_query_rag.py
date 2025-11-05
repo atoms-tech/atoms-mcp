@@ -34,7 +34,7 @@ async def server_with_test_data():
         name="TechCorp",
         description="Leading technology company focused on AI and cloud solutions",
         created_at=datetime.now(UTC),
-        metadata={"industry": "technology", "size": "large", "region": "global"}
+        metadata={"industry": "technology", "size": "large", "region": "global"},
     )
 
     org2 = Organization(
@@ -42,7 +42,7 @@ async def server_with_test_data():
         name="DataSystems",
         description="Data management and analytics company",
         created_at=datetime.now(UTC),
-        metadata={"industry": "data", "size": "medium", "region": "north-america"}
+        metadata={"industry": "data", "size": "medium", "region": "north-america"},
     )
 
     # Create projects
@@ -52,7 +52,7 @@ async def server_with_test_data():
         description="Next-generation AI platform for enterprise applications",
         organization_id=org1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "ai", "priority": "high", "status": "active"}
+        metadata={"type": "ai", "priority": "high", "status": "active"},
     )
 
     project2 = Project(
@@ -61,7 +61,7 @@ async def server_with_test_data():
         description="Real-time data processing pipeline",
         organization_id=org2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "data", "priority": "medium", "status": "planning"}
+        metadata={"type": "data", "priority": "medium", "status": "planning"},
     )
 
     # Create requirements
@@ -73,7 +73,7 @@ async def server_with_test_data():
         priority=RequirementPriority.HIGH,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "medium"}
+        metadata={"type": "functional", "complexity": "medium"},
     )
 
     req2 = Requirement(
@@ -84,7 +84,7 @@ async def server_with_test_data():
         priority=RequirementPriority.MEDIUM,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "low"}
+        metadata={"type": "functional", "complexity": "low"},
     )
 
     # Create tests
@@ -95,7 +95,7 @@ async def server_with_test_data():
         project_id=project1.id,
         status=TestStatus.PASSED,
         created_at=datetime.now(UTC),
-        metadata={"type": "unit", "coverage": "high"}
+        metadata={"type": "unit", "coverage": "high"},
     )
 
     test2 = Test(
@@ -105,7 +105,7 @@ async def server_with_test_data():
         project_id=project2.id,
         status=TestStatus.FAILED,
         created_at=datetime.now(UTC),
-        metadata={"type": "integration", "coverage": "medium"}
+        metadata={"type": "integration", "coverage": "medium"},
     )
 
     # Create documents
@@ -115,7 +115,7 @@ async def server_with_test_data():
         content="Comprehensive API documentation for the AI platform",
         project_id=project1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "documentation", "format": "markdown"}
+        metadata={"type": "documentation", "format": "markdown"},
     )
 
     doc2 = Document(
@@ -124,7 +124,7 @@ async def server_with_test_data():
         content="Data schema definitions and validation rules",
         project_id=project2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "schema", "format": "json"}
+        metadata={"type": "schema", "format": "json"},
     )
 
     # Store all entities
@@ -149,9 +149,7 @@ class TestQueryRAG:
     async def test_rag_semantic_mode_organizations(self, server_with_test_data):
         """Test RAG in semantic mode for organizations."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization"],
-            search_query="technology company",
-            rag_mode=RAGMode.SEMANTIC
+            entity_types=["Organization"], search_query="technology company", rag_mode=RAGMode.SEMANTIC
         )
 
         assert result is not None
@@ -166,9 +164,7 @@ class TestQueryRAG:
     async def test_rag_keyword_mode_projects(self, server_with_test_data):
         """Test RAG in keyword mode for projects."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project"],
-            search_query="AI platform",
-            rag_mode=RAGMode.KEYWORD
+            entity_types=["Project"], search_query="AI platform", rag_mode=RAGMode.KEYWORD
         )
 
         assert result is not None
@@ -183,9 +179,7 @@ class TestQueryRAG:
     async def test_rag_hybrid_mode_requirements(self, server_with_test_data):
         """Test RAG in hybrid mode for requirements."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Requirement"],
-            search_query="user authentication system",
-            rag_mode=RAGMode.HYBRID
+            entity_types=["Requirement"], search_query="user authentication system", rag_mode=RAGMode.HYBRID
         )
 
         assert result is not None
@@ -200,9 +194,7 @@ class TestQueryRAG:
     async def test_rag_neural_mode_tests(self, server_with_test_data):
         """Test RAG in neural mode for tests."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            search_query="authentication testing",
-            rag_mode=RAGMode.NEURAL
+            entity_types=["Test"], search_query="authentication testing", rag_mode=RAGMode.NEURAL
         )
 
         assert result is not None
@@ -217,9 +209,7 @@ class TestQueryRAG:
     async def test_rag_semantic_mode_documents(self, server_with_test_data):
         """Test RAG in semantic mode for documents."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Document"],
-            search_query="API documentation",
-            rag_mode=RAGMode.SEMANTIC
+            entity_types=["Document"], search_query="API documentation", rag_mode=RAGMode.SEMANTIC
         )
 
         assert result is not None
@@ -234,9 +224,7 @@ class TestQueryRAG:
     async def test_rag_keyword_mode_multiple_entities(self, server_with_test_data):
         """Test RAG in keyword mode across multiple entity types."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project", "Requirement", "Test"],
-            search_query="data validation",
-            rag_mode=RAGMode.KEYWORD
+            entity_types=["Project", "Requirement", "Test"], search_query="data validation", rag_mode=RAGMode.KEYWORD
         )
 
         assert result is not None
@@ -254,7 +242,7 @@ class TestQueryRAG:
             entity_types=["Test"],
             search_query="test functionality",
             rag_mode=RAGMode.HYBRID,
-            filters={"metadata.type": "unit"}
+            filters={"metadata.type": "unit"},
         )
 
         assert result is not None
@@ -272,7 +260,7 @@ class TestQueryRAG:
             entity_types=["Document"],
             search_query="technical documentation",
             rag_mode=RAGMode.NEURAL,
-            similarity_threshold=0.7
+            similarity_threshold=0.7,
         )
 
         assert result is not None
@@ -284,10 +272,7 @@ class TestQueryRAG:
     async def test_rag_semantic_mode_low_threshold(self, server_with_test_data):
         """Test RAG in semantic mode with low similarity threshold."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization"],
-            search_query="company",
-            rag_mode=RAGMode.SEMANTIC,
-            similarity_threshold=0.1
+            entity_types=["Organization"], search_query="company", rag_mode=RAGMode.SEMANTIC, similarity_threshold=0.1
         )
 
         assert result is not None
@@ -302,10 +287,7 @@ class TestQueryRAG:
     async def test_rag_keyword_mode_high_threshold(self, server_with_test_data):
         """Test RAG in keyword mode with high similarity threshold."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project"],
-            search_query="AI Platform",
-            rag_mode=RAGMode.KEYWORD,
-            similarity_threshold=0.9
+            entity_types=["Project"], search_query="AI Platform", rag_mode=RAGMode.KEYWORD, similarity_threshold=0.9
         )
 
         assert result is not None
@@ -319,7 +301,7 @@ class TestQueryRAG:
         result = await server_with_test_data.query_entities(
             entity_types=["Organization", "Project", "Requirement", "Test", "Document"],
             search_query="technology",
-            rag_mode=RAGMode.HYBRID
+            rag_mode=RAGMode.HYBRID,
         )
 
         assert result is not None
@@ -336,7 +318,7 @@ class TestQueryRAG:
         result = await server_with_test_data.query_entities(
             entity_types=["Requirement", "Test"],
             search_query="implement secure authentication system testing",
-            rag_mode=RAGMode.NEURAL
+            rag_mode=RAGMode.NEURAL,
         )
 
         assert result is not None

@@ -40,10 +40,7 @@ class EntityToolTester:
             raise ValueError("Supabase credentials not configured")
 
         client = create_client(url, key)
-        auth_response = client.auth.sign_in_with_password({
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
+        auth_response = client.auth.sign_in_with_password({"email": TEST_EMAIL, "password": TEST_PASSWORD})
 
         session = getattr(auth_response, "session", None)
         if not session or not getattr(session, "access_token", None):
@@ -60,11 +57,7 @@ class EntityToolTester:
             "Content-Type": "application/json",
         }
 
-        params = {
-            "operation": operation,
-            "entity_type": entity_type,
-            **kwargs
-        }
+        params = {"operation": operation, "entity_type": entity_type, **kwargs}
 
         payload = {
             "jsonrpc": "2.0",
@@ -78,27 +71,20 @@ class EntityToolTester:
                 response = await client.post(base_url, json=payload, headers=headers)
 
             if response.status_code != 200:
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}: {response.text}"
-                }
+                return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
 
             response_data = response.json()
 
             if "result" in response_data:
                 return response_data["result"]
             if "error" in response_data:
-                return {
-                    "success": False,
-                    "error": response_data["error"].get("message", str(response_data["error"]))
-                }
+                return {"success": False, "error": response_data["error"].get("message", str(response_data["error"]))}
             return {"success": False, "error": "Invalid response format"}
 
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def record_result(self, operation: str, entity_type: str, success: bool,
-                     response: dict[str, Any], notes: str = ""):
+    def record_result(self, operation: str, entity_type: str, success: bool, response: dict[str, Any], notes: str = ""):
         """Record test result."""
         result = {
             "operation": operation,
@@ -107,7 +93,7 @@ class EntityToolTester:
             "timestamp": datetime.now(UTC).isoformat(),
             "notes": notes,
             "response_keys": list(response.keys()) if isinstance(response, dict) else [],
-            "error": response.get("error") if not success else None
+            "error": response.get("error") if not success else None,
         }
         self.results.append(result)
 
@@ -118,9 +104,9 @@ class EntityToolTester:
 
     async def test_create_entity(self):
         """Test 1: CREATE operation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST 1: CREATE ENTITY")
-        print("="*60)
+        print("=" * 60)
 
         # Create a test entity
         test_data = {
@@ -128,17 +114,10 @@ class EntityToolTester:
             "type": "test_entity",
             "description": "Testing entity_tool create operation",
             "status": "active",
-            "properties": {
-                "test_mode": True,
-                "created_by": "entity_tool_tester"
-            }
+            "properties": {"test_mode": True, "created_by": "entity_tool_tester"},
         }
 
-        response = await self.call_entity_tool(
-            operation="create",
-            entity_type="test_entity",
-            data=test_data
-        )
+        response = await self.call_entity_tool(operation="create", entity_type="test_entity", data=test_data)
 
         success = response.get("success", True) and "id" in response
         if success and "id" in response:
@@ -156,16 +135,13 @@ class EntityToolTester:
 
     async def test_read_entity(self, entity_id: str):
         """Test 2: READ operation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST 2: READ ENTITY")
-        print("="*60)
+        print("=" * 60)
 
         # Test without relations
         response = await self.call_entity_tool(
-            operation="read",
-            entity_type="test_entity",
-            entity_id=entity_id,
-            include_relations=False
+            operation="read", entity_type="test_entity", entity_id=entity_id, include_relations=False
         )
 
         success = response.get("success", True) and response.get("id") == entity_id
@@ -178,32 +154,24 @@ class EntityToolTester:
 
         # Test with relations
         response_with_relations = await self.call_entity_tool(
-            operation="read",
-            entity_type="test_entity",
-            entity_id=entity_id,
-            include_relations=True
+            operation="read", entity_type="test_entity", entity_id=entity_id, include_relations=True
         )
 
         success_rel = response_with_relations.get("success", True)
         notes_rel = "Retrieved with relations" if success_rel else "Failed with relations"
 
-        self.record_result("read_with_relations", "test_entity", success_rel,
-                          response_with_relations, notes_rel)
+        self.record_result("read_with_relations", "test_entity", success_rel, response_with_relations, notes_rel)
 
         return response
 
     async def test_list_entities(self):
         """Test 3: LIST operation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST 3: LIST ENTITIES")
-        print("="*60)
+        print("=" * 60)
 
         # Test basic list
-        response = await self.call_entity_tool(
-            operation="list",
-            entity_type="test_entity",
-            limit=10
-        )
+        response = await self.call_entity_tool(operation="list", entity_type="test_entity", limit=10)
 
         success = response.get("success", True) and isinstance(response.get("data"), list)
         count = len(response.get("data", [])) if success else 0
@@ -220,16 +188,13 @@ class EntityToolTester:
 
     async def test_search_entities(self):
         """Test 4: SEARCH operation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST 4: SEARCH ENTITIES")
-        print("="*60)
+        print("=" * 60)
 
         # Search with filters
         response = await self.call_entity_tool(
-            operation="search",
-            entity_type="test_entity",
-            filters={"status": "active"},
-            limit=10
+            operation="search", entity_type="test_entity", filters={"status": "active"}, limit=10
         )
 
         success = response.get("success", True) and isinstance(response.get("data"), list)
@@ -240,18 +205,14 @@ class EntityToolTester:
 
         # Search with term
         response_term = await self.call_entity_tool(
-            operation="search",
-            entity_type="test_entity",
-            search_term="test",
-            limit=10
+            operation="search", entity_type="test_entity", search_term="test", limit=10
         )
 
         success_term = response_term.get("success", True)
         count_term = len(response_term.get("data", [])) if success_term else 0
         notes_term = f"Found {count_term} entities with search term"
 
-        self.record_result("search_with_term", "test_entity", success_term,
-                          response_term, notes_term)
+        self.record_result("search_with_term", "test_entity", success_term, response_term, notes_term)
 
         print(f"\nFilter Search: {count} results")
         print(f"Term Search: {count_term} results")
@@ -260,25 +221,18 @@ class EntityToolTester:
 
     async def test_update_entity(self, entity_id: str):
         """Test 5: UPDATE operation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST 5: UPDATE ENTITY")
-        print("="*60)
+        print("=" * 60)
 
         update_data = {
             "name": f"Updated Test Entity {uuid.uuid4().hex[:8]}",
             "status": "updated",
-            "properties": {
-                "test_mode": True,
-                "updated_by": "entity_tool_tester",
-                "update_count": 1
-            }
+            "properties": {"test_mode": True, "updated_by": "entity_tool_tester", "update_count": 1},
         }
 
         response = await self.call_entity_tool(
-            operation="update",
-            entity_type="test_entity",
-            entity_id=entity_id,
-            data=update_data
+            operation="update", entity_type="test_entity", entity_id=entity_id, data=update_data
         )
 
         success = response.get("success", True) and response.get("id") == entity_id
@@ -293,16 +247,13 @@ class EntityToolTester:
 
     async def test_delete_entity(self, entity_id: str):
         """Test 6: DELETE operation."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("TEST 6: DELETE ENTITY")
-        print("="*60)
+        print("=" * 60)
 
         # Test soft delete
         response = await self.call_entity_tool(
-            operation="delete",
-            entity_type="test_entity",
-            entity_id=entity_id,
-            soft_delete=True
+            operation="delete", entity_type="test_entity", entity_id=entity_id, soft_delete=True
         )
 
         success = response.get("success", False)
@@ -317,9 +268,9 @@ class EntityToolTester:
 
     async def run_all_tests(self):
         """Run all entity_tool tests."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(" ENTITY_TOOL COMPREHENSIVE TEST SUITE")
-        print("="*80)
+        print("=" * 80)
 
         try:
             # Authenticate
@@ -354,13 +305,14 @@ class EntityToolTester:
         except Exception as e:
             print(f"\n❌ Test suite failed with error: {e}")
             import traceback
+
             traceback.print_exc()
 
     def generate_report(self):
         """Generate comprehensive test report."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(" TEST REPORT")
-        print("="*80)
+        print("=" * 80)
 
         total = len(self.results)
         passed = sum(1 for r in self.results if r["success"])
@@ -370,7 +322,7 @@ class EntityToolTester:
         print(f"  Total Tests: {total}")
         print(f"  Passed: {passed} ✅")
         print(f"  Failed: {failed} ❌")
-        print(f"  Pass Rate: {(passed/total*100) if total > 0 else 0:.1f}%")
+        print(f"  Pass Rate: {(passed / total * 100) if total > 0 else 0:.1f}%")
 
         print("\n\nDetailed Results:")
         print("-" * 80)
@@ -384,20 +336,25 @@ class EntityToolTester:
                 print(f"  Error: {result['error']}")
             print(f"  Response Keys: {', '.join(result['response_keys'])}")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
 
         # Save to file
-        report_file = f"entity_tool_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_file = f"entity_tool_test_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
         with open(report_file, "w") as f:
-            json.dump({
-                "summary": {
-                    "total": total,
-                    "passed": passed,
-                    "failed": failed,
-                    "pass_rate": (passed/total*100) if total > 0 else 0
+            json.dump(
+                {
+                    "summary": {
+                        "total": total,
+                        "passed": passed,
+                        "failed": failed,
+                        "pass_rate": (passed / total * 100) if total > 0 else 0,
+                    },
+                    "results": self.results,
                 },
-                "results": self.results
-            }, f, indent=2, default=str)
+                f,
+                indent=2,
+                default=str,
+            )
 
         print(f"\n📝 Full report saved to: {report_file}")
 

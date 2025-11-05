@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -14,10 +14,7 @@ def sample_workspace_data() -> dict[str, Any]:
     return {
         "name": f"Test Workspace {uuid.uuid4().hex[:8]}",
         "description": "Test workspace created by automated tests",
-        "settings": {
-            "privacy": "private",
-            "collaboration_enabled": True
-        }
+        "settings": {"privacy": "private", "collaboration_enabled": True},
     }
 
 
@@ -30,9 +27,9 @@ def sample_entity_data() -> dict[str, Any]:
         "entity_type": "document",
         "metadata": {
             "created_by": "test_user",
-            "created_at": datetime.now().isoformat(),
-            "tags": ["test", "automated"]
-        }
+            "created_at": datetime.now(UTC).isoformat(),
+            "tags": ["test", "automated"],
+        },
     }
 
 
@@ -40,11 +37,7 @@ def sample_entity_data() -> dict[str, Any]:
 def sample_user_data() -> dict[str, Any]:
     """Sample Atoms user data for testing."""
     unique_id = uuid.uuid4().hex[:8]
-    return {
-        "email": f"test.user.{unique_id}@example.com",
-        "name": f"Test User {unique_id}",
-        "role": "member"
-    }
+    return {"email": f"test.user.{unique_id}@example.com", "name": f"Test User {unique_id}", "role": "member"}
 
 
 @pytest.fixture
@@ -56,6 +49,7 @@ def test_data_factory() -> Callable[[str], dict[str, Any]]:
             entity_data = test_data_factory("entity")
             # Use entity_data in test
     """
+
     def create_test_data(data_type: str) -> dict[str, Any]:
         unique_id = uuid.uuid4().hex[:8]
 
@@ -63,33 +57,30 @@ def test_data_factory() -> Callable[[str], dict[str, Any]]:
             return {
                 "name": f"Test Workspace {unique_id}",
                 "description": f"Automated test workspace {unique_id}",
-                "settings": {"privacy": "private"}
+                "settings": {"privacy": "private"},
             }
 
         if data_type == "entity":
             return {
                 "title": f"Test Entity {unique_id}",
                 "content": f"Test content {unique_id}",
-                "entity_type": "document"
+                "entity_type": "document",
             }
 
         if data_type == "user":
-            return {
-                "email": f"test.user.{unique_id}@example.com",
-                "name": f"Test User {unique_id}",
-                "role": "member"
-            }
+            return {"email": f"test.user.{unique_id}@example.com", "name": f"Test User {unique_id}", "role": "member"}
 
         if data_type == "project":
             return {
                 "name": f"Test Project {unique_id}",
                 "description": f"Automated test project {unique_id}",
-                "status": "active"
+                "status": "active",
             }
 
         if data_type == "organization":
             # Atoms-specific organization data
             import re
+
             unique_slug = str(uuid.uuid4())[:8]
             unique_slug = re.sub(r"[^a-z0-9-]", "", unique_slug.lower())
             if not unique_slug or not unique_slug[0].isalpha():
@@ -98,7 +89,7 @@ def test_data_factory() -> Callable[[str], dict[str, Any]]:
                 "name": f"Test Organization {unique_id}",
                 "slug": unique_slug,
                 "description": f"Automated test organization {unique_id}",
-                "type": "team"
+                "type": "team",
             }
 
         return {"id": unique_id, "type": data_type}
@@ -115,9 +106,11 @@ def bulk_test_data() -> Callable[[str, int], list[dict[str, Any]]]:
             entities = bulk_test_data("entity", 10)
             # Process 10 test entities
     """
+
     def create_bulk_data(data_type: str, count: int) -> list[dict[str, Any]]:
         # Use the test_data_factory from this module
         from .atoms_data import test_data_factory
+
         factory = test_data_factory()
         return [factory(data_type) for _ in range(count)]
 
@@ -130,7 +123,7 @@ def persistent_test_workspace() -> dict[str, Any]:
     return {
         "name": f"Persistent Test Workspace {uuid.uuid4().hex[:8]}",
         "description": "Persistent workspace for session-scoped tests",
-        "created_for_session": True
+        "created_for_session": True,
     }
 
 
@@ -190,8 +183,8 @@ def realistic_document_data() -> dict[str, Any]:
             "priority": "high",
             "status": "draft",
             "reviewers": ["product-team", "engineering-team"],
-            "due_date": "2024-03-31"
-        }
+            "due_date": "2024-03-31",
+        },
     }
 
 
@@ -201,23 +194,19 @@ def realistic_workspace_structure() -> dict[str, Any]:
     return {
         "workspace": {
             "name": "Acme Corp Product Development",
-            "description": "Main workspace for product development activities"
+            "description": "Main workspace for product development activities",
         },
         "projects": [
-            {
-                "name": "Q1 Product Release",
-                "description": "Major product release for Q1 2024",
-                "status": "in_progress"
-            },
+            {"name": "Q1 Product Release", "description": "Major product release for Q1 2024", "status": "in_progress"},
             {
                 "name": "Customer Research",
                 "description": "Ongoing customer research and feedback collection",
-                "status": "active"
-            }
+                "status": "active",
+            },
         ],
         "members": [
             {"email": "product.manager@acme.com", "role": "admin"},
             {"email": "engineer@acme.com", "role": "member"},
-            {"email": "designer@acme.com", "role": "member"}
-        ]
+            {"email": "designer@acme.com", "role": "member"},
+        ],
     }

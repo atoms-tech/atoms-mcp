@@ -26,9 +26,11 @@ import asyncio
 import logging
 import os
 import sys
+import time
+import traceback
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from tqdm.asyncio import tqdm
 
@@ -45,8 +47,11 @@ os.environ["GRPC_TRACE"] = ""
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from dotenv import load_dotenv  # noqa: E402
-from supabase import Client, create_client  # noqa: E402
+from dotenv import load_dotenv
+from supabase import Client, create_client
+
+# Import config after environment variables are loaded
+from config.vector import get_embedding_service, get_progressive_embedding_service
 
 # Load environment variables
 # Load .env first (has correct Supabase URL), then .env.production for other vars
@@ -58,7 +63,7 @@ class EmbeddingBackfiller:
     """Service to backfill embeddings for existing entities."""
 
     # Entity types that support embeddings
-    ENTITY_TYPES = [
+    ENTITY_TYPES: ClassVar[list[str]] = [
         "organization",
         "project",
         "document",
@@ -66,7 +71,7 @@ class EmbeddingBackfiller:
     ]
 
     # Map entity type to table name
-    TABLE_MAP = {
+    TABLE_MAP: ClassVar[dict[str, str]] = {
         "organization": "organizations",
         "project": "projects",
         "document": "documents",
@@ -82,7 +87,7 @@ class EmbeddingBackfiller:
         self._semaphore = None
         self._pbar_lock = None
         # Timing statistics
-        self._timing_stats = {
+        self._timing_stats: dict[str, list[float]] = {
             "embedding": [],
             "db_update": [],
             "total": []
@@ -91,11 +96,6 @@ class EmbeddingBackfiller:
     def _init_services(self):
         """Lazy init embedding components."""
         if self._embedding_service is None:
-            from config.vector import (
-                get_embedding_service,
-                get_progressive_embedding_service,
-            )
-
             self._embedding_service = get_embedding_service()
             self._progressive_service = get_progressive_embedding_service(
                 self.supabase,
@@ -146,7 +146,7 @@ class EmbeddingBackfiller:
                 .order("created_at", desc=True)\
                 .limit(limit)
             result = query.execute()
-            return result.data or []
+            return list(result.data) if result.data else []
 
         # No limit specified - fetch ALL records using pagination
         # Supabase has max 1000 per page
@@ -184,8 +184,13 @@ class EmbeddingBackfiller:
         pbar: tqdm = None
     ):
         """Process a single entity with semaphore concurrency control."""
-        import time
         start_time = time.time()
+
+        # Ensure services are initialized
+        if self._semaphore is None or self._progressive_service is None:
+            self._init_services()
+        assert self._semaphore is not None
+        assert self._progressive_service is not None
 
         async with self._semaphore:
             entity_id = entity["id"]
@@ -298,7 +303,6 @@ class EmbeddingBackfiller:
         }
 
         # Create progress bar with file object to control output
-        import sys
         pbar = tqdm(
             total=len(entities),
             desc=f"{entity_type.capitalize():<15}",
@@ -404,7 +408,7 @@ class EmbeddingBackfiller:
         }
 
 
-async def main()
+async def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="Backfill embeddings for existing entities",
@@ -465,7 +469,6 @@ async def main()
 
     # Check embedding service
     try:
-        from config.vector import get_embedding_service
         service = get_embedding_service()
         print(f"✅ Embedding service initialized: {service.__class__.__name__}")
     except Exception as e:
@@ -484,10 +487,7 @@ async def main()
     )
 
     # Determine entity types to process
-    if args.entity_type == "all":
-        entity_types = None  # Process all
-    else:
-        entity_types = [args.entity_type]
+    entity_types = None if args.entity_type == "all" else [args.entity_type]
 
     # Run backfill
     try:
@@ -505,7 +505,6 @@ async def main()
         sys.exit(130)
     except Exception as e:
         print(f"\n❌ Fatal error: {e}")
-        import traceback
         traceback.print_exc()
         sys.exit(1)
 

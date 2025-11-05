@@ -15,7 +15,7 @@ from typing import Any
 try:
     # Simulate pheno-sdk components for testing
     class MockPlaywrightOAuthAdapter:
-        async def authenticate(self, provider, credentials):
+        async def authenticate(self, _provider, _credentials):
             return {
                 "success": True,
                 "tokens": {"access_token": "mock_hot_token", "refresh_token": "mock_refresh"},
@@ -39,7 +39,7 @@ try:
             pass
 
     class MockCredentialBroker:
-        async def get_credential(self, name, default=None):
+        async def get_credential(self, _name, _default=None):
             return {"username": "test", "password": "test"}
 
     PlaywrightOAuthAdapter = MockPlaywrightOAuthAdapter
@@ -70,7 +70,7 @@ try:
             # Simulate disconnection delay
             await asyncio.sleep(0.05)
 
-        async def call_tool(self, tool_name, params)
+        async def call_tool(self, tool_name, params):
             self.call_count += 1
 
             # Simulate realistic tool execution times based on transport type

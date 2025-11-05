@@ -78,11 +78,14 @@ async def test_workspace_operation_local_server(fast_http_client, local_server_c
     - No impact on production data
     """
     # Create test workspace (would actually create if not skipped)
-    result = await fast_http_client.call_tool("workspace_operation", {
-        "action": "create",
-        "name": f"Local Test Workspace {os.getpid()}",
-        "description": "Created by local test server"
-    })
+    result = await fast_http_client.call_tool(
+        "workspace_operation",
+        {
+            "action": "create",
+            "name": f"Local Test Workspace {os.getpid()}",
+            "description": "Created by local test server",
+        },
+    )
 
     # Verify result
     assert result.get("success") is True
@@ -143,7 +146,7 @@ async def test_server_performance_local_vs_production(fast_http_client, local_se
 
     # Show results
     server_type = "local" if local_server_config else "production"
-    print(f"\n{server_type.title()} server health check: {duration*1000:.2f}ms")
+    print(f"\n{server_type.title()} server health check: {duration * 1000:.2f}ms")
 
     # Local server should typically be faster
     if local_server_config:
@@ -152,7 +155,7 @@ async def test_server_performance_local_vs_production(fast_http_client, local_se
         print("Fast local response confirmed")
     else:
         # Production may be slower due to network
-        print(f"Production response time: {duration*1000:.2f}ms")
+        print(f"Production response time: {duration * 1000:.2f}ms")
 
 
 @pytest.mark.unit
@@ -193,6 +196,7 @@ def test_smart_infra_manager_config():
 
     # Show config
     import json
+
     print(f"\nCurrent config:\n{json.dumps(config, indent=2)}")
 
     # If server is running, config should have port info

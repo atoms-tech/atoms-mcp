@@ -29,13 +29,7 @@ class TestHOTModePerformance:
         operations = []
         for _i in range(10):
             operations.append(
-                authenticated_client.call_tool(
-                    "entity_tool",
-                    {
-                        "entity_type": "organization",
-                        "operation": "list"
-                    }
-                )
+                authenticated_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
             )
 
         # Execute all operations
@@ -63,9 +57,9 @@ class TestHOTModePerformance:
                 "data": {
                     "name": "Performance Test Org",
                     "type": "test",
-                    "description": "Created for performance testing"
-                }
-            }
+                    "description": "Created for performance testing",
+                },
+            },
         )
 
         assert create_result.get("success"), f"Failed to create organization: {create_result.get('error')}"
@@ -73,12 +67,7 @@ class TestHOTModePerformance:
 
         # Read it back (real database operation)
         read_result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "read",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "read", "id": org_id}
         )
 
         assert read_result.get("success"), f"Failed to read organization: {read_result.get('error')}"
@@ -86,12 +75,7 @@ class TestHOTModePerformance:
 
         # Clean up
         delete_result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "delete",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "delete", "id": org_id}
         )
 
         assert delete_result.get("success"), f"Failed to delete organization: {delete_result.get('error')}"
@@ -111,13 +95,7 @@ class TestCOLDModePerformance:
         operations = []
         for _i in range(100):
             operations.append(
-                fastmcp_client.call_tool(
-                    "entity_tool",
-                    {
-                        "entity_type": "organization",
-                        "operation": "list"
-                    }
-                )
+                fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
             )
 
         # Execute all operations
@@ -147,8 +125,8 @@ class TestCOLDModePerformance:
                     {
                         "entity_type": "organization",
                         "operation": "create",
-                        "data": {"name": f"Parallel Org {i}", "type": "test"}
-                    }
+                        "data": {"name": f"Parallel Org {i}", "type": "test"},
+                    },
                 )
             )
 
@@ -169,13 +147,7 @@ class TestCOLDModePerformance:
         # Multiple calls should return consistent results
         results = []
         for _i in range(10):
-            result = await fastmcp_client.call_tool(
-                "entity_tool",
-                {
-                    "entity_type": "organization",
-                    "operation": "list"
-                }
-            )
+            result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
             results.append(result)
 
         # All results should be identical (mocked)
@@ -203,8 +175,8 @@ class TestDRYModePerformance:
                     {
                         "entity_type": "organization",
                         "operation": "create",
-                        "data": {"name": f"Sim Org {i}", "type": "test"}
-                    }
+                        "data": {"name": f"Sim Org {i}", "type": "test"},
+                    },
                 )
             )
 
@@ -235,8 +207,8 @@ class TestDRYModePerformance:
                     {
                         "entity_type": "document",
                         "operation": "create",
-                        "data": {"title": f"Massive Doc {i}", "content": f"Content {i}"}
-                    }
+                        "data": {"title": f"Massive Doc {i}", "content": f"Content {i}"},
+                    },
                 )
             )
 
@@ -266,9 +238,9 @@ class TestDRYModePerformance:
                         "name": f"Accuracy Test Org {i}",
                         "type": "test",
                         "index": i,
-                        "description": f"Test organization {i}"
-                    }
-                }
+                        "description": f"Test organization {i}",
+                    },
+                },
             )
             assert result.get("success")
             created_entities.append(result["data"]["id"])
@@ -276,12 +248,7 @@ class TestDRYModePerformance:
         # Verify all entities exist and have correct data
         for i, entity_id in enumerate(created_entities):
             result = await fastmcp_client.call_tool(
-                "entity_tool",
-                {
-                    "entity_type": "organization",
-                    "operation": "read",
-                    "id": entity_id
-                }
+                "entity_tool", {"entity_type": "organization", "operation": "read", "id": entity_id}
             )
             assert result.get("success")
             entity = result["data"]
@@ -293,6 +260,7 @@ class TestDRYModePerformance:
 # ============================================================================
 # Cross-Mode Performance Comparison
 # ============================================================================
+
 
 class TestPerformanceComparison:
     """Compare performance characteristics across test modes."""
@@ -332,10 +300,7 @@ class TestPerformanceComparison:
         operations = []
         for _i in range(50):
             operations.append(
-                fastmcp_client.call_tool(
-                    "entity_tool",
-                    {"entity_type": "organization", "operation": "list"}
-                )
+                fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
             )
 
         results = await asyncio.gather(*operations)
@@ -363,8 +328,8 @@ class TestPerformanceComparison:
                     {
                         "entity_type": "organization",
                         "operation": "create",
-                        "data": {"name": f"Ultra Fast Org {i}", "type": "test"}
-                    }
+                        "data": {"name": f"Ultra Fast Org {i}", "type": "test"},
+                    },
                 )
             )
 
@@ -382,6 +347,7 @@ class TestPerformanceComparison:
 # ============================================================================
 # Memory and Resource Usage Tests
 # ============================================================================
+
 
 @pytest.mark.dry
 class TestResourceUsageDRY:
@@ -407,16 +373,18 @@ class TestResourceUsageDRY:
                     "operation": "create",
                     "data": {
                         "title": f"Memory Test Doc {i}",
-                        "content": f"Content {i}" * 100  # Large content
-                    }
-                }
+                        "content": f"Content {i}" * 100,  # Large content
+                    },
+                },
             )
 
         final_memory = process.memory_info().rss
         memory_increase = final_memory - initial_memory
 
         # Memory increase should be reasonable (under 100MB)
-        assert memory_increase < 100 * 1024 * 1024, f"Memory increased by {memory_increase / 1024 / 1024:.1f}MB (expected < 100MB)"
+        assert memory_increase < 100 * 1024 * 1024, (
+            f"Memory increased by {memory_increase / 1024 / 1024:.1f}MB (expected < 100MB)"
+        )
 
     @pytest.mark.dry
     @pytest.mark.asyncio
@@ -438,8 +406,8 @@ class TestResourceUsageDRY:
                 {
                     "entity_type": "organization",
                     "operation": "create",
-                    "data": {"name": f"CPU Test Org {i}", "type": "test"}
-                }
+                    "data": {"name": f"CPU Test Org {i}", "type": "test"},
+                },
             )
 
             # Sample CPU usage every 50 operations

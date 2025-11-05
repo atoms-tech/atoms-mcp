@@ -10,12 +10,7 @@ from typing import Any
 class UserStoryPattern:
     """Pattern for testing multi-step user workflows."""
 
-    def __init__(
-        self,
-        story_name: str,
-        steps: list[dict[str, Any]],
-        context: dict[str, Any] | None = None
-    ):
+    def __init__(self, story_name: str, steps: list[dict[str, Any]], context: dict[str, Any] | None = None):
         """Initialize a user story pattern.
 
         Args:
@@ -53,7 +48,7 @@ class UserStoryPattern:
                     "tool": step["tool"],
                     "description": step.get("description", ""),
                     "result": result,
-                    "success": result.get("success", False)
+                    "success": result.get("success", False),
                 }
 
                 # Run validation if provided
@@ -85,16 +80,14 @@ class UserStoryPattern:
                     "description": step.get("description", ""),
                     "result": None,
                     "success": False,
-                    "error": str(e)
+                    "error": str(e),
                 }
                 results.append(step_result)
                 break
 
         # Calculate overall success
         all_successful = all(step.get("success", False) for step in results)
-        all_validations_passed = all(
-            step.get("validation_passed", True) for step in results
-        )
+        all_validations_passed = all(step.get("validation_passed", True) for step in results)
 
         return {
             "story_name": self.story_name,
@@ -102,14 +95,10 @@ class UserStoryPattern:
             "steps": results,
             "context": current_context,
             "total_steps": len(self.steps),
-            "completed_steps": len(results)
+            "completed_steps": len(results),
         }
 
-    def _resolve_context_variables(
-        self,
-        params: dict[str, Any],
-        context: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _resolve_context_variables(self, params: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
         """Resolve context variables in parameters.
 
         Args:

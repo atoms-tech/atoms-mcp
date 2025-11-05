@@ -53,9 +53,7 @@ async def migration_with_data_up(adapter: DatabaseAdapter):
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    await adapter.execute(
-        "INSERT INTO rollback_test (value) VALUES ('test_data_1'), ('test_data_2')"
-    )
+    await adapter.execute("INSERT INTO rollback_test (value) VALUES ('test_data_1'), ('test_data_2')")
 
 
 async def migration_with_data_down(adapter: DatabaseAdapter):
@@ -162,9 +160,7 @@ class TestRollbackCOLD:
 
         try:
             # Apply migration
-            migration_engine_rollback_cold.register(
-                "001", "test", migration_001_up, migration_001_down
-            )
+            migration_engine_rollback_cold.register("001", "test", migration_001_up, migration_001_down)
             await migration_engine_rollback_cold.migrate()
 
             # Verify migration was applied
@@ -196,15 +192,9 @@ class TestRollbackCOLD:
 
         try:
             # Apply multiple migrations
-            migration_engine_rollback_cold.register(
-                "001", "first", migration_001_up, migration_001_down
-            )
-            migration_engine_rollback_cold.register(
-                "002", "second", migration_002_up, migration_002_down
-            )
-            migration_engine_rollback_cold.register(
-                "003", "third", migration_003_up, migration_003_down
-            )
+            migration_engine_rollback_cold.register("001", "first", migration_001_up, migration_001_down)
+            migration_engine_rollback_cold.register("002", "second", migration_002_up, migration_002_down)
+            migration_engine_rollback_cold.register("003", "third", migration_003_up, migration_003_down)
             await migration_engine_rollback_cold.migrate()
 
             # Rollback last 2 migrations
@@ -226,9 +216,7 @@ class TestRollbackCOLD:
             logger.error(f"FAIL: Multi-step rollback failed: {e}", exc_info=True)
             raise
 
-    async def test_03_rollback_without_down_function_cold(
-        self, migration_engine_rollback_cold
-    ):
+    async def test_03_rollback_without_down_function_cold(self, migration_engine_rollback_cold):
         """Test rollback behavior when down function is missing.
 
         Given: Migration applied without down function
@@ -240,9 +228,7 @@ class TestRollbackCOLD:
 
         try:
             # Register migration without down function
-            migration_engine_rollback_cold.register(
-                "001", "no_down", migration_001_up, down=None
-            )
+            migration_engine_rollback_cold.register("001", "no_down", migration_001_up, down=None)
             await migration_engine_rollback_cold.migrate()
 
             # Attempt rollback (should skip with warning)
@@ -262,9 +248,7 @@ class TestRollbackCOLD:
             logger.error(f"FAIL: Rollback without down test failed: {e}", exc_info=True)
             raise
 
-    async def test_04_rollback_order_verification_cold(
-        self, migration_engine_rollback_cold
-    ):
+    async def test_04_rollback_order_verification_cold(self, migration_engine_rollback_cold):
         """Test that rollbacks happen in reverse order.
 
         Given: Migrations with dependencies applied
@@ -296,8 +280,7 @@ class TestRollbackCOLD:
             await migration_engine_rollback_cold.rollback(steps=3)
 
             # Verify reverse order
-            assert rollback_order == ["003", "002", "001"], \
-                f"Expected [003, 002, 001], got {rollback_order}"
+            assert rollback_order == ["003", "002", "001"], f"Expected [003, 002, 001], got {rollback_order}"
 
             logger.info("PASS: Rollback order correct (COLD)")
         except Exception as e:
@@ -316,9 +299,7 @@ class TestRollbackHOT:
     """Test rollback functionality with real database (HOT mode)."""
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_05_rollback_preserves_data_hot(
-        self, migration_engine_rollback_hot, harmful_tracker
-    ):
+    async def test_05_rollback_preserves_data_hot(self, migration_engine_rollback_hot, _harmful_tracker):
         """Test that rollback can preserve data when needed.
 
         Given: Migration creates table with data
@@ -330,15 +311,11 @@ class TestRollbackHOT:
 
         try:
             # Apply migration with data
-            migration_engine_rollback_hot.register(
-                "001", "with_data", migration_with_data_up, migration_with_data_down
-            )
+            migration_engine_rollback_hot.register("001", "with_data", migration_with_data_up, migration_with_data_down)
             await migration_engine_rollback_hot.migrate()
 
             # Verify data exists
-            result = await migration_engine_rollback_hot.adapter.execute(
-                "SELECT COUNT(*) as count FROM rollback_test"
-            )
+            result = await migration_engine_rollback_hot.adapter.execute("SELECT COUNT(*) as count FROM rollback_test")
             assert result[0]["count"] == 2, "Data was not inserted"
 
             # Rollback
@@ -346,8 +323,7 @@ class TestRollbackHOT:
 
             # Verify table is dropped (as per down function)
             result = await migration_engine_rollback_hot.adapter.execute(
-                "SELECT COUNT(*) FROM information_schema.tables "
-                "WHERE table_name = 'rollback_test'"
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'rollback_test'"
             )
             assert result[0]["count"] == 0, "Table was not dropped"
 
@@ -357,9 +333,7 @@ class TestRollbackHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_06_rollback_complex_migration_hot(
-        self, migration_engine_rollback_hot, harmful_tracker
-    ):
+    async def test_06_rollback_complex_migration_hot(self, migration_engine_rollback_hot, _harmful_tracker):
         """Test rollback of complex migration with multiple operations.
 
         Given: Complex migration with table, index, and data
@@ -371,9 +345,7 @@ class TestRollbackHOT:
 
         try:
             # Apply complex migration
-            migration_engine_rollback_hot.register(
-                "001", "complex", migration_complex_up, migration_complex_down
-            )
+            migration_engine_rollback_hot.register("001", "complex", migration_complex_up, migration_complex_down)
             await migration_engine_rollback_hot.migrate()
 
             # Verify all operations were applied
@@ -387,8 +359,7 @@ class TestRollbackHOT:
 
             # Verify table is dropped
             result = await migration_engine_rollback_hot.adapter.execute(
-                "SELECT COUNT(*) FROM information_schema.tables "
-                "WHERE table_name = 'rollback_complex'"
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'rollback_complex'"
             )
             assert result[0]["count"] == 0
 
@@ -398,9 +369,7 @@ class TestRollbackHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_07_rollback_updates_status_hot(
-        self, migration_engine_rollback_hot, harmful_tracker
-    ):
+    async def test_07_rollback_updates_status_hot(self, migration_engine_rollback_hot, _harmful_tracker):
         """Test that rollback updates migration status correctly.
 
         Given: Applied migration
@@ -412,9 +381,7 @@ class TestRollbackHOT:
 
         try:
             # Apply migration
-            migration_engine_rollback_hot.register(
-                "001", "test", migration_001_up, migration_001_down
-            )
+            migration_engine_rollback_hot.register("001", "test", migration_001_up, migration_001_down)
             await migration_engine_rollback_hot.migrate()
 
             # Rollback
@@ -432,9 +399,7 @@ class TestRollbackHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_08_failed_rollback_handling_hot(
-        self, migration_engine_rollback_hot, harmful_tracker
-    ):
+    async def test_08_failed_rollback_handling_hot(self, migration_engine_rollback_hot, _harmful_tracker):
         """Test handling of failed rollback operations.
 
         Given: Migration with failing down function
@@ -446,9 +411,7 @@ class TestRollbackHOT:
 
         try:
             # Apply migration with failing down
-            migration_engine_rollback_hot.register(
-                "001", "fail_down", migration_001_up, migration_failing_down
-            )
+            migration_engine_rollback_hot.register("001", "fail_down", migration_001_up, migration_failing_down)
             await migration_engine_rollback_hot.migrate()
 
             # Attempt rollback (should fail)
@@ -487,9 +450,7 @@ class TestRollbackEdgeCases:
 
         logger.info("PASS: Rollback with no migrations handled")
 
-    async def test_rollback_more_steps_than_available(
-        self, migration_engine_rollback_cold
-    ):
+    async def test_rollback_more_steps_than_available(self, migration_engine_rollback_cold):
         """Test rollback with more steps than available migrations.
 
         Given: Only one migration applied
@@ -500,9 +461,7 @@ class TestRollbackEdgeCases:
         logger.info("TEST: Rollback more steps than available")
 
         # Apply one migration
-        migration_engine_rollback_cold.register(
-            "001", "test", migration_001_up, migration_001_down
-        )
+        migration_engine_rollback_cold.register("001", "test", migration_001_up, migration_001_down)
         await migration_engine_rollback_cold.migrate()
 
         # Try to rollback 5 steps
@@ -523,9 +482,7 @@ class TestRollbackEdgeCases:
         """
         logger.info("TEST: Rollback zero steps")
 
-        migration_engine_rollback_cold.register(
-            "001", "test", migration_001_up, migration_001_down
-        )
+        migration_engine_rollback_cold.register("001", "test", migration_001_up, migration_001_down)
         await migration_engine_rollback_cold.migrate()
 
         # Rollback 0 steps

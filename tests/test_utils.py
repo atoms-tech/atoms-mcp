@@ -64,7 +64,6 @@ class AssertionHelpers:
         return isinstance(data[field_name], expected_type)
 
 
-
 class PerformanceAnalyzer:
     """Analyzer for test performance metrics."""
 
@@ -144,7 +143,7 @@ class PerformanceAnalyzer:
                     "total": sum(times),
                     "average": sum(times) / len(times),
                     "min": min(times),
-                    "max": max(times)
+                    "max": max(times),
                 }
         return summary
 

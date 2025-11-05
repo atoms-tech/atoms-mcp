@@ -175,11 +175,7 @@ class TestTimestampHandling:
         """Test setting timestamps when both exist."""
         created_time = datetime.now(UTC)
         updated_time = datetime.now(UTC)
-        data = {
-            "name": "test",
-            "created_at": created_time,
-            "updated_at": updated_time
-        }
+        data = {"name": "test", "created_at": created_time, "updated_at": updated_time}
 
         result = set_created_timestamps(data)
 
@@ -254,10 +250,7 @@ class TestTriggerIntegration:
     def test_complete_record_creation(self):
         """Test complete record creation workflow."""
         # Start with basic data
-        data = {
-            "name": "Test Project",
-            "description": "A test project"
-        }
+        data = {"name": "Test Project", "description": "A test project"}
 
         # Apply all trigger functions in order
         data["slug"] = auto_generate_slug(data["name"])
@@ -283,7 +276,7 @@ class TestTriggerIntegration:
             "name": "Updated Project",
             "description": "Updated description",
             "created_at": created_time,
-            "updated_at": created_time
+            "updated_at": created_time,
         }
 
         # Apply update triggers
@@ -328,6 +321,7 @@ class TestTriggerIntegration:
 
         # Wait a tiny bit to ensure different timestamps
         import time
+
         time.sleep(0.001)
 
         # Update timestamps
@@ -410,7 +404,7 @@ class TestTriggerEdgeCases:
         assert result["updated_at"].tzinfo is not None
 
         # Test with timezone-naive timestamps
-        naive_time = datetime.now()
+        naive_time = datetime.now(UTC)
         data = {"name": "test", "updated_at": naive_time}
         result = handle_updated_at(data)
 
@@ -439,10 +433,7 @@ class TestTriggerEdgeCases:
         # Test with large dataset
         large_data = []
         for i in range(100):
-            data = {
-                "name": f"Test Project {i}",
-                "description": f"Description for project {i}"
-            }
+            data = {"name": f"Test Project {i}", "description": f"Description for project {i}"}
             data["slug"] = auto_generate_slug(data["name"])
             data = set_created_timestamps(data)
             data[Fields.EXTERNAL_ID] = generate_external_id("project")

@@ -13,15 +13,13 @@ class TestServerAuthComplete:
     def test_bearer_token_creation(self):
         """Test bearer token creation."""
         try:
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             from server.auth import BearerToken
 
             # Test valid token creation
             token = BearerToken(
-                access_token="test-access-token",
-                refresh_token="test-refresh-token",
-                expires_at=datetime.now(UTC)
+                access_token="test-access-token", refresh_token="test-refresh-token", expires_at=datetime.now(UTC)
             )
 
             # Check if token object was created
@@ -36,6 +34,7 @@ class TestServerAuthComplete:
             # Test with correct signature
             try:
                 from server.auth import BearerToken
+
                 # Let's see what parameters it actually accepts
                 token = BearerToken("test-access-token")
                 assert token is not None
@@ -45,17 +44,13 @@ class TestServerAuthComplete:
     def test_bearer_token_expiration(self):
         """Test bearer token expiration logic."""
         try:
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             from server.auth import BearerToken
 
             # Test expired token
             past_time = datetime.now(UTC) - timedelta(hours=1)
-            token = BearerToken(
-                access_token="expired-token",
-                refresh_token="expired-refresh",
-                expires_at=past_time
-            )
+            token = BearerToken(access_token="expired-token", refresh_token="expired-refresh", expires_at=past_time)
 
             # Check expiration method if exists
             if hasattr(token, "is_expired"):
@@ -63,11 +58,7 @@ class TestServerAuthComplete:
 
             # Test valid token
             future_time = datetime.now(UTC) + timedelta(hours=1)
-            valid_token = BearerToken(
-                access_token="valid-token",
-                refresh_token="valid-refresh",
-                expires_at=future_time
-            )
+            valid_token = BearerToken(access_token="valid-token", refresh_token="valid-refresh", expires_at=future_time)
 
             if hasattr(valid_token, "is_expired"):
                 assert valid_token.is_expired() is False
@@ -92,8 +83,6 @@ class TestServerAuthComplete:
     def test_rate_limiter_functionality(self):
         """Test rate limiter functionality."""
         try:
-            import time
-
             from server.auth import RateLimiter
 
             limiter = RateLimiter(max_requests=3, window_seconds=1)
@@ -147,10 +136,7 @@ class TestServerErrorsComplete:
 
             # Test error with all parameters
             error = ApiError(
-                message="Validation failed",
-                status_code=400,
-                error_code="VALIDATION_ERROR",
-                details={"field": "name"}
+                message="Validation failed", status_code=400, error_code="VALIDATION_ERROR", details={"field": "name"}
             )
 
             assert error.message == "Validation failed"
@@ -185,7 +171,7 @@ class TestServerErrorsComplete:
                 create_api_error_internal("Database error"),
                 ApiError("Not found", 404, "NOT_FOUND"),
                 ApiError("Unauthorized", 401, "UNAUTHORIZED"),
-                ApiError("Validation failed", 400, "VALIDATION_ERROR")
+                ApiError("Validation failed", 400, "VALIDATION_ERROR"),
             ]
 
             for error in errors:
@@ -208,11 +194,7 @@ class TestServerEnvComplete:
             from server.env import EnvConfig
 
             # Test config creation
-            config = EnvConfig(
-                database_url="postgresql://test",
-                redis_url="redis://test",
-                jwt_secret="test-secret"
-            )
+            config = EnvConfig(database_url="postgresql://test", redis_url="redis://test", jwt_secret="test-secret")
 
             assert config is not None
             assert config.database_url == "postgresql://test"
@@ -246,11 +228,10 @@ class TestServerEnvComplete:
             from server.env import EnvConfig
 
             # Mock environment variables
-            with patch.dict(os.environ, {
-                "DATABASE_URL": "postgresql://env-test",
-                "REDIS_URL": "redis://env-test",
-                "JWT_SECRET": "env-secret"
-            }):
+            with patch.dict(
+                os.environ,
+                {"DATABASE_URL": "postgresql://env-test", "REDIS_URL": "redis://env-test", "JWT_SECRET": "env-secret"},
+            ):
                 config = EnvConfig()
 
                 # Should load from environment
@@ -295,11 +276,7 @@ class TestServerCoreComplete:
             from server.core import ServerConfig
 
             # Test configuration creation
-            config = ServerConfig(
-                host="0.0.0.0",
-                port=5000,
-                debug=True
-            )
+            config = ServerConfig(host="0.0.0.0", port=5000, debug=True)
 
             assert config.host == "0.0.0.0"
             assert config.port == 5000
@@ -336,11 +313,7 @@ class TestServerSerializersComplete:
         try:
             from server.serializers import SerializerConfig
 
-            config = SerializerConfig(
-                max_depth=10,
-                max_array_length=100,
-                pretty_print=True
-            )
+            config = SerializerConfig(max_depth=10, max_array_length=100, pretty_print=True)
 
             assert config.max_depth == 10
             assert config.max_array_length == 100
@@ -363,6 +336,7 @@ class TestServerSerializersComplete:
 
             # Should be valid JSON
             import json
+
             parsed = json.loads(result)
             assert parsed == data
 
@@ -408,7 +382,7 @@ class TestServerToolsComplete:
                 name="test_tool",
                 function=mock_tool_function,
                 description="Test tool for testing",
-                schema={"type": "object"}
+                schema={"type": "object"},
             )
 
             # Verify registration
@@ -433,9 +407,7 @@ class TestServerToolsComplete:
 
             # Execute tool
             result = execute_tool(
-                tool_name="test_tool",
-                function=test_function,
-                arguments={"param1": "test", "param2": 10}
+                tool_name="test_tool", function=test_function, arguments={"param1": "test", "param2": 10}
             )
 
             assert result["success"] is True
@@ -454,11 +426,7 @@ class TestServerToolsComplete:
                 raise ValueError("Tool execution failed")
 
             # Execute failing tool
-            result = execute_tool(
-                tool_name="failing_tool",
-                function=failing_function,
-                arguments={}
-            )
+            result = execute_tool(tool_name="failing_tool", function=failing_function, arguments={})
 
             assert result["success"] is False
             assert "error" in result
@@ -498,9 +466,7 @@ class TestServerSecurityComplete:
 
             # Test CORS configuration
             cors_config = configure_cors(
-                allowed_origins=["http://localhost:3000"],
-                allowed_methods=["GET", "POST"],
-                allow_credentials=True
+                allowed_origins=["http://localhost:3000"], allowed_methods=["GET", "POST"], allow_credentials=True
             )
 
             assert cors_config is not None
@@ -564,7 +530,7 @@ class TestServerPerformanceComplete:
             expected_metrics = ["request_count", "response_time", "error_rate"]
             for metric in expected_metrics:
                 if metric in metrics:  # May not be implemented
-                    assert isinstance(metrics[metric], (int, float))
+                    assert isinstance(metrics[metric], int | float)
 
         except ImportError:
             pytest.skip("Metrics collection not available")
@@ -575,12 +541,7 @@ class TestServerPerformanceComplete:
             from server.core import log_request
 
             # Test request logging
-            request_data = {
-                "method": "GET",
-                "path": "/api/test",
-                "status": 200,
-                "response_time": 0.1
-            }
+            request_data = {"method": "GET", "path": "/api/test", "status": 200, "response_time": 0.1}
 
             # Should not raise exception
             log_request(request_data)
@@ -707,18 +668,14 @@ class TestServerConfigValidationComplete:
             valid_config = {
                 "database_url": "postgresql://localhost:5432/test",
                 "redis_url": "redis://localhost:6379",
-                "jwt_secret": "test-secret-key"
+                "jwt_secret": "test-secret-key",
             }
 
             result = validate_config(valid_config)
             assert result is True
 
             # Test invalid configuration
-            invalid_config = {
-                "database_url": "invalid-url",
-                "redis_url": "",
-                "jwt_secret": ""
-            }
+            invalid_config = {"database_url": "invalid-url", "redis_url": "", "jwt_secret": ""}
 
             result = validate_config(invalid_config)
             assert result is False

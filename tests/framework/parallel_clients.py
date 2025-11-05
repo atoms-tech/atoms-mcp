@@ -36,7 +36,7 @@ class ParallelClientManager:
                 "client": client,
                 "created_at": time.time(),
                 "last_used": time.time(),
-                "active": True
+                "active": True,
             }
 
     async def get_client(self, client_id: str) -> Any | None:
@@ -122,8 +122,7 @@ class ParallelClientManager:
 
         # Create tasks for each client
         client_coroutines = [
-            execute_client_tasks(client_id, client_task_list)
-            for client_id, client_task_list in client_tasks.items()
+            execute_client_tasks(client_id, client_task_list) for client_id, client_task_list in client_tasks.items()
         ]
 
         # Execute all client tasks concurrently
@@ -187,10 +186,10 @@ class ParallelClientManager:
                     client_id: {
                         "created_at": client_data["created_at"],
                         "last_used": client_data["last_used"],
-                        "active": client_data["active"]
+                        "active": client_data["active"],
                     }
                     for client_id, client_data in self._clients.items()
-                }
+                },
             }
 
     async def cleanup_inactive_clients(self, max_age_seconds: int = 3600) -> int:
@@ -207,8 +206,10 @@ class ParallelClientManager:
 
         async with self._client_lock:
             for client_id, client_data in self._clients.items():
-                if (not client_data.get("active", False) or
-                    current_time - client_data.get("last_used", 0) > max_age_seconds):
+                if (
+                    not client_data.get("active", False)
+                    or current_time - client_data.get("last_used", 0) > max_age_seconds
+                ):
                     clients_to_remove.append(client_id)
 
             for client_id in clients_to_remove:

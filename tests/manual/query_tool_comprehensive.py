@@ -51,7 +51,7 @@ class QueryToolTester:
             "users": []
         }
 
-    async def setup_test_data(self)
+    async def setup_test_data(self):
         """Create diverse test data for comprehensive testing."""
         print("\n🔧 Setting up test data...")
 

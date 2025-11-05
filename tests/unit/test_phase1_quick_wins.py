@@ -1,6 +1,6 @@
 """Phase 1 Quick Wins - Continue to 35% coverage (+500 statements)."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -15,9 +15,7 @@ class TestPhase1QuickWins:
             from config.python.session import (
                 JWTConfig,
                 SessionConfig,
-                SessionManager,
-                TokenManager,
-                audit_session_activity,
+                                                audit_session_activity,
                 cleanup_session_storage,
                 create_session_with_metadata,
                 export_session_config,
@@ -83,7 +81,7 @@ class TestPhase1QuickWins:
                 session_id=session_result["session_id"],
                 activity_data={
                     "last_action": "view_dashboard",
-                    "activity_timestamp": datetime.now().isoformat(),
+                    "activity_timestamp": datetime.now(UTC).isoformat(),
                     "page_accessed": "/dashboard"
                 },
                 config=session_config
@@ -162,7 +160,7 @@ class TestPhase1QuickWins:
         except ImportError:
             pytest.skip("Phase 1 session completion not available")
 
-    def test_config_python_infrastructure_phase1_completion(self)
+    def test_config_python_infrastructure_phase1_completion(self):
         """Complete config/python/infrastructure.py from 60% to 80% (+14 statements)."""
         try:
             from config.python.infrastructure import (
@@ -178,9 +176,7 @@ class TestPhase1QuickWins:
                 monitor_redis_health,
                 optimize_database_performance,
                 optimize_redis_performance,
-                restore_database_data,
-                restore_redis_data,
-                validate_infrastructure_config,
+                                                validate_infrastructure_config,
             )
 
             # Phase 1: Complete infrastructure configuration testing
@@ -349,7 +345,7 @@ class TestPhase1QuickWins:
         except ImportError:
             pytest.skip("Phase 1 infrastructure completion not available")
 
-    def test_config_python_vector_phase1_completion(self)
+    def test_config_python_vector_phase1_completion(self):
         """Complete config/python/vector.py from 65% to 85% (+12 statements)."""
         try:
             from config.python.vector import (
@@ -540,15 +536,12 @@ class TestPhase1QuickWins:
         except ImportError:
             pytest.skip("Phase 1 vector completion not available")
 
-    def test_server_auth_phase1_completion(self)
+    def test_server_auth_phase1_completion(self):
         """Complete server/auth.py from 50% to 70% (+14 statements)."""
         try:
             from server.auth import (
-                AuthService,
-                BearerToken,
-                RateLimiter,
-                TokenService,
-                assign_user_permissions,
+                                BearerToken,
+                                                assign_user_permissions,
                 audit_user_activity,
                 check_resource_access,
                 configure_auth_logging,
@@ -674,7 +667,7 @@ class TestPhase1QuickWins:
                 user_id="phase1-user-12345",
                 group_name="phase1_admin",
                 custom_permissions=["custom_read", "custom_write"],
-                effective_date=datetime.now().isoformat()
+                effective_date=datetime.now(UTC).isoformat()
             )
             assert permission_result is not None
             assert permission_result.get("assigned") is True
@@ -700,14 +693,14 @@ class TestPhase1QuickWins:
                     {
                         "event_type": "login_success",
                         "user_id": "phase1-user-12345",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "ip_address": "192.168.1.100",
                         "user_agent": "Phase1TestAgent"
                     },
                     {
                         "event_type": "mfa_verified",
                         "user_id": "phase1-user-12345",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "mfa_method": "totp"
                     }
                 ]
@@ -720,7 +713,7 @@ class TestPhase1QuickWins:
         except ImportError:
             pytest.skip("Phase 1 auth completion not available")
 
-    def test_server_errors_phase1_completion(self)
+    def test_server_errors_phase1_completion(self):
         """Complete server/errors.py from 60% to 80% (+5 statements)."""
         try:
             from server.errors import (
@@ -899,7 +892,7 @@ class TestPhase1QuickWins:
             import time
 
             from config.python.session import JWTConfig, SessionConfig
-            from server.auth import BearerToken, create_multi_factor_auth
+            from server.auth import create_multi_factor_auth
             from server.errors import ApiError, create_comprehensive_error_report
 
             # Phase 1 performance testing

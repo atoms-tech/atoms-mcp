@@ -123,13 +123,12 @@ class TestRapidCoverageBoost:
         except ImportError:
             pytest.skip("Advanced session config not available")
 
-    def test_config_python_infrastructure_advanced(self)
+    def test_config_python_infrastructure_advanced(self):
         """Advanced infrastructure config testing for maximum coverage."""
         try:
             from config.python.infrastructure import (
                 DatabaseConfig,
-                InfrastructureConfig,
-                RedisConfig,
+                                RedisConfig,
                 configure_backup_strategy,
                 configure_ssl,
                 create_database_pool,
@@ -263,7 +262,7 @@ class TestRapidCoverageBoost:
         except ImportError:
             pytest.skip("Advanced infrastructure config not available")
 
-    def test_config_python_vector_advanced(self)
+    def test_config_python_vector_advanced(self):
         """Advanced vector config testing for maximum coverage."""
         try:
             from config.python.vector import (
@@ -424,14 +423,12 @@ class TestRapidCoverageBoost:
         except ImportError:
             pytest.skip("Advanced vector config not available")
 
-    def test_server_auth_advanced(self)
+    def test_server_auth_advanced(self):
         """Advanced server auth testing for maximum coverage."""
         try:
             from server.auth import (
-                AuthenticationError,
-                BearerToken,
-                RateLimiter,
-                blacklist_token,
+                                BearerToken,
+                                blacklist_token,
                 check_token_permissions,
                 cleanup_expired_tokens,
                 create_access_token,
@@ -573,14 +570,12 @@ class TestRapidCoverageBoost:
         except ImportError:
             pytest.skip("Advanced server auth not available")
 
-    def test_tools_base_advanced(self)
+    def test_tools_base_advanced(self):
         """Advanced tools base testing for maximum coverage."""
         try:
             from tools.base import (
                 ApiError,
-                ToolBase,
-                ToolResult,
-                benchmark_tool_execution,
+                                                benchmark_tool_execution,
                 create_advanced_tool,
                 create_tool_chain,
                 execute_async_tool,
@@ -833,7 +828,7 @@ class TestRapidCoverageBoost:
             import time
 
             from config.python.session import JWTConfig, SessionConfig
-            from server.auth import BearerToken, create_access_token
+            from server.auth import create_access_token
             from tools.base import create_advanced_tool, execute_async_tool
 
             # Performance testing

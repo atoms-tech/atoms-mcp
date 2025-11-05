@@ -30,28 +30,20 @@ for _path in _SHARED_QA_PATHS:
 sys.path.insert(0, str(_TESTS_DIR.parent))
 
 # Import from pheno-sdk (mcp_qa)
-from pheno.mcp.qa.config.endpoints import EndpointRegistry, MCPProject  # noqa: E402
-from pheno.testing.mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings  # noqa: E402
-from pheno.testing.mcp_qa.testing.test_cache import TestCache  # noqa: E402
+from pheno.mcp.qa.config.endpoints import EndpointRegistry, MCPProject
+from pheno.testing.mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings
+from pheno.testing.mcp_qa.testing.test_cache import TestCache
 
 # Import test modules to register tests
 # Basic tests (19 tests - tested and working)
 # User stories (12 integration tests - working)
-from tests import (  # noqa: F401, E402
-    test_entity,
-    test_query,
-    test_relationship,
-    test_user_stories,
-    test_workflow,
-    test_workspace,
-)
 
 # Comprehensive tests (FIXED - parameters corrected)
 try:
     from tests import (
-        test_entity_comprehensive,  # noqa: F401
-        test_query_comprehensive,  # noqa: F401
-        test_workspace_comprehensive,  # noqa: F401
+        test_entity_comprehensive,
+        test_query_comprehensive,
+        test_workspace_comprehensive,
     )
     # Relationship and workflow still need real UUIDs - skip for now
     COMPREHENSIVE_AVAILABLE = True
@@ -141,7 +133,7 @@ def _check_preview_server_health() -> tuple[bool, str | None]:
         return False, f"Preview server health check failed: {e!s}"
 
 
-async def main()
+async def main():
     """Main test runner."""
     import argparse
 

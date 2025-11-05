@@ -185,7 +185,7 @@ def configured_db_adapter(test_users, test_organizations, test_projects):
         },
     ]
 
-    def mock_get_single(table: str, filters: dict[str, Any]) -> dict[str, Any] | None
+    def mock_get_single(table: str, filters: dict[str, Any]) -> dict[str, Any] | None:
         """Simulate get_single queries."""
         if table == Tables.ORGANIZATION_MEMBERS:
             for member in org_memberships:

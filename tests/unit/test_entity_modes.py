@@ -15,12 +15,12 @@ Run with:
     pytest tests/unit/test_entity_modes.py -v --mode dry
 """
 
-
 import pytest
 
 # ============================================================================
 # HOT Mode Tests - Real Integration Tests
 # ============================================================================
+
 
 @pytest.mark.hot
 class TestEntityHOTMode:
@@ -31,11 +31,7 @@ class TestEntityHOTMode:
     async def test_list_organizations_hot(self, authenticated_client):
         """Test listing organizations with real server integration."""
         result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "list"}
         )
 
         assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
@@ -50,12 +46,7 @@ class TestEntityHOTMode:
     async def test_create_organization_hot(self, authenticated_client, test_organization_data):
         """Test creating organization with real server integration."""
         result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": test_organization_data
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "create", "data": test_organization_data}
         )
 
         assert result.get("success"), f"Failed to create organization: {result.get('error')}"
@@ -72,11 +63,7 @@ class TestEntityHOTMode:
         # First create an organization
         create_result = await authenticated_client.call_tool(
             "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": "Test Read Org", "type": "test"}
-            }
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Test Read Org", "type": "test"}},
         )
 
         assert create_result["success"]
@@ -84,12 +71,7 @@ class TestEntityHOTMode:
 
         # Then read it back
         result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "read",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "read", "id": org_id}
         )
 
         assert result.get("success"), f"Failed to read organization: {result.get('error')}"
@@ -105,11 +87,7 @@ class TestEntityHOTMode:
         # First create an organization
         create_result = await authenticated_client.call_tool(
             "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": "Original Name", "type": "test"}
-            }
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Original Name", "type": "test"}},
         )
 
         assert create_result["success"]
@@ -118,13 +96,7 @@ class TestEntityHOTMode:
         # Then update it
         update_data = {"name": "Updated Name", "description": "Updated description"}
         result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "update",
-                "id": org_id,
-                "data": update_data
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "update", "id": org_id, "data": update_data}
         )
 
         assert result.get("success"), f"Failed to update organization: {result.get('error')}"
@@ -140,11 +112,7 @@ class TestEntityHOTMode:
         # First create an organization
         create_result = await authenticated_client.call_tool(
             "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": "To Be Deleted", "type": "test"}
-            }
+            {"entity_type": "organization", "operation": "create", "data": {"name": "To Be Deleted", "type": "test"}},
         )
 
         assert create_result["success"]
@@ -152,24 +120,14 @@ class TestEntityHOTMode:
 
         # Then delete it
         result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "delete",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "delete", "id": org_id}
         )
 
         assert result.get("success"), f"Failed to delete organization: {result.get('error')}"
 
         # Verify it's deleted
         read_result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "read",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "read", "id": org_id}
         )
         assert not read_result.get("success")  # Should fail to read deleted org
 
@@ -177,6 +135,7 @@ class TestEntityHOTMode:
 # ============================================================================
 # COLD Mode Tests - Unit Tests with Mocked Dependencies
 # ============================================================================
+
 
 @pytest.mark.cold
 class TestEntityCOLDMode:
@@ -186,13 +145,7 @@ class TestEntityCOLDMode:
     @pytest.mark.asyncio
     async def test_list_organizations_cold(self, fastmcp_client):
         """Test listing organizations with mocked server."""
-        result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
-        )
+        result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
         assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
         assert "data" in result
@@ -206,12 +159,7 @@ class TestEntityCOLDMode:
     async def test_create_organization_cold(self, fastmcp_client, test_organization_data):
         """Test creating organization with mocked server."""
         result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": test_organization_data
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "create", "data": test_organization_data}
         )
 
         assert result.get("success"), f"Failed to create organization: {result.get('error')}"
@@ -226,12 +174,7 @@ class TestEntityCOLDMode:
     async def test_read_organization_cold(self, fastmcp_client):
         """Test reading organization with mocked server."""
         result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "read",
-                "id": "mock_org_1"
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "read", "id": "mock_org_1"}
         )
 
         assert result.get("success"), f"Failed to read organization: {result.get('error')}"
@@ -247,12 +190,7 @@ class TestEntityCOLDMode:
         update_data = {"name": "Updated Mock Org", "description": "Updated description"}
         result = await fastmcp_client.call_tool(
             "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "update",
-                "id": "mock_org_1",
-                "data": update_data
-            }
+            {"entity_type": "organization", "operation": "update", "id": "mock_org_1", "data": update_data},
         )
 
         assert result.get("success"), f"Failed to update organization: {result.get('error')}"
@@ -266,12 +204,7 @@ class TestEntityCOLDMode:
     async def test_delete_organization_cold(self, fastmcp_client):
         """Test deleting organization with mocked server."""
         result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "delete",
-                "id": "mock_org_1"
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "delete", "id": "mock_org_1"}
         )
 
         assert result.get("success"), f"Failed to delete organization: {result.get('error')}"
@@ -286,13 +219,7 @@ class TestEntityCOLDMode:
 
         # Perform multiple operations
         for _i in range(20):
-            await fastmcp_client.call_tool(
-                "entity_tool",
-                {
-                    "entity_type": "organization",
-                    "operation": "list"
-                }
-            )
+            await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
         duration = time.time() - start_time
         assert duration < 2.0, f"COLD mode test took {duration:.2f}s (expected < 2s)"
@@ -321,6 +248,7 @@ class TestEntityCOLDMode:
 # DRY Mode Tests - Fully Simulated Tests
 # ============================================================================
 
+
 @pytest.mark.dry
 class TestEntityDRYMode:
     """DRY mode tests with full simulation for maximum speed and isolation."""
@@ -336,17 +264,11 @@ class TestEntityDRYMode:
                 {
                     "entity_type": "organization",
                     "operation": "create",
-                    "data": {"name": f"Simulated Org {i}", "type": "test"}
-                }
+                    "data": {"name": f"Simulated Org {i}", "type": "test"},
+                },
             )
 
-        result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
-        )
+        result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
         assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
         assert "data" in result
@@ -359,12 +281,7 @@ class TestEntityDRYMode:
     async def test_create_organization_dry(self, fastmcp_client, test_organization_data):
         """Test creating organization with simulated server."""
         result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": test_organization_data
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "create", "data": test_organization_data}
         )
 
         assert result.get("success"), f"Failed to create organization: {result.get('error')}"
@@ -381,23 +298,14 @@ class TestEntityDRYMode:
         # Create
         create_result = await fastmcp_client.call_tool(
             "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": "Test Org", "type": "enterprise"}
-            }
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Test Org", "type": "enterprise"}},
         )
         assert create_result["success"]
         org_id = create_result["data"]["id"]
 
         # Read
         read_result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "read",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "read", "id": org_id}
         )
         assert read_result["success"]
         assert read_result["data"]["name"] == "Test Org"
@@ -409,8 +317,8 @@ class TestEntityDRYMode:
                 "entity_type": "organization",
                 "operation": "update",
                 "id": org_id,
-                "data": {"name": "Updated Org", "status": "active"}
-            }
+                "data": {"name": "Updated Org", "status": "active"},
+            },
         )
         assert update_result["success"]
         assert update_result["data"]["name"] == "Updated Org"
@@ -418,23 +326,13 @@ class TestEntityDRYMode:
 
         # Delete
         delete_result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "delete",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "delete", "id": org_id}
         )
         assert delete_result["success"]
 
         # Verify deletion
         read_after_delete = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "read",
-                "id": org_id
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "read", "id": org_id}
         )
         assert not read_after_delete["success"]
         assert read_after_delete["error"] == "not_found"
@@ -454,8 +352,8 @@ class TestEntityDRYMode:
                 {
                     "entity_type": "organization",
                     "operation": "create",
-                    "data": {"name": f"Perf Org {i}", "type": "test"}
-                }
+                    "data": {"name": f"Perf Org {i}", "type": "test"},
+                },
             )
 
         duration = time.time() - start_time
@@ -476,8 +374,8 @@ class TestEntityDRYMode:
                     {
                         "entity_type": "organization",
                         "operation": "create",
-                        "data": {"name": f"Parallel Org {i}", "type": "test"}
-                    }
+                        "data": {"name": f"Parallel Org {i}", "type": "test"},
+                    },
                 )
             )
 
@@ -494,11 +392,7 @@ class TestEntityDRYMode:
         # Create a workflow
         workflow_result = await fastmcp_client.call_tool(
             "workflow_tool",
-            {
-                "operation": "create",
-                "name": "Test Workflow",
-                "steps": ["validate", "process", "notify"]
-            }
+            {"operation": "create", "name": "Test Workflow", "steps": ["validate", "process", "notify"]},
         )
 
         assert workflow_result["success"]
@@ -508,11 +402,7 @@ class TestEntityDRYMode:
         # Execute the workflow
         execute_result = await fastmcp_client.call_tool(
             "workflow_tool",
-            {
-                "operation": "execute",
-                "name": "Test Workflow",
-                "steps": ["validate", "process", "notify"]
-            }
+            {"operation": "execute", "name": "Test Workflow", "steps": ["validate", "process", "notify"]},
         )
 
         assert execute_result["success"]
@@ -530,18 +420,13 @@ class TestEntityDRYMode:
                 {
                     "entity_type": "document",
                     "operation": "create",
-                    "data": {"title": f"Test Document {i}", "content": f"Content {i}"}
-                }
+                    "data": {"title": f"Test Document {i}", "content": f"Content {i}"},
+                },
             )
 
         # Search for documents
         query_result = await fastmcp_client.call_tool(
-            "query_tool",
-            {
-                "operation": "search",
-                "query": "Test Document",
-                "filters": {"type": "document"}
-            }
+            "query_tool", {"operation": "search", "query": "Test Document", "filters": {"type": "document"}}
         )
 
         assert query_result["success"]
@@ -553,6 +438,7 @@ class TestEntityDRYMode:
 # Cross-Mode Validation Tests
 # ============================================================================
 
+
 class TestCrossModeValidation:
     """Tests that validate behavior consistency across modes."""
 
@@ -561,11 +447,7 @@ class TestCrossModeValidation:
     async def test_hot_mode_real_data_validation(self, authenticated_client):
         """Validate that HOT mode uses real data."""
         result = await authenticated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "list"}
         )
 
         # In HOT mode, we should get real data structure
@@ -578,13 +460,7 @@ class TestCrossModeValidation:
     @pytest.mark.asyncio
     async def test_cold_mode_mock_data_validation(self, fastmcp_client):
         """Validate that COLD mode uses predictable mock data."""
-        result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
-        )
+        result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
         # In COLD mode, we should get predictable mock data
         assert result.get("success")
@@ -599,21 +475,10 @@ class TestCrossModeValidation:
         # Create entities in simulation
         for i in range(3):
             await fastmcp_client.call_tool(
-                "entity_tool",
-                {
-                    "entity_type": "organization",
-                    "operation": "create",
-                    "data": {"name": f"Sim Org {i}"}
-                }
+                "entity_tool", {"entity_type": "organization", "operation": "create", "data": {"name": f"Sim Org {i}"}}
             )
 
-        result = await fastmcp_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
-        )
+        result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
         # In DRY mode, we should get simulated data that we created
         assert result.get("success")
@@ -625,6 +490,7 @@ class TestCrossModeValidation:
 # ============================================================================
 # Performance and Reliability Tests
 # ============================================================================
+
 
 @pytest.mark.cold
 class TestPerformanceCOLD:
@@ -645,8 +511,8 @@ class TestPerformanceCOLD:
                 {
                     "entity_type": "organization",
                     "operation": "create",
-                    "data": {"name": f"Batch Org {i}", "type": "test"}
-                }
+                    "data": {"name": f"Batch Org {i}", "type": "test"},
+                },
             )
 
         duration = time.time() - start_time
@@ -672,8 +538,8 @@ class TestPerformanceDRY:
                 {
                     "entity_type": "document",
                     "operation": "create",
-                    "data": {"title": f"Massive Doc {i}", "content": f"Content {i}"}
-                }
+                    "data": {"title": f"Massive Doc {i}", "content": f"Content {i}"},
+                },
             )
 
         duration = time.time() - start_time
@@ -697,8 +563,8 @@ class TestPerformanceDRY:
                     {
                         "entity_type": "organization",
                         "operation": "create",
-                        "data": {"name": f"Concurrent Org {i}", "type": "test"}
-                    }
+                        "data": {"name": f"Concurrent Org {i}", "type": "test"},
+                    },
                 )
             )
 

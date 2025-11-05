@@ -31,7 +31,7 @@ class HotTestRunner:
         self.playwright_adapter = PlaywrightOAuthAdapter()
         self.credential_broker = get_credential_broker() if PHENO_AVAILABLE else None
 
-    async def run_hot_tests(self, environment: str) -> TestResult
+    async def run_hot_tests(self, _environment: str) -> TestResult:
         """Run HOT tests with real authentication and HTTP client."""
         if not PHENO_AVAILABLE or not FASTMCP_AVAILABLE:
             return TestResult(
@@ -188,7 +188,7 @@ class ColdTestRunner:
             client_id="atoms-mcp-client"
         ) if PHENO_AVAILABLE else None
 
-    async def run_cold_tests(self, environment: str) -> TestResult
+    async def run_cold_tests(self, _environment: str) -> TestResult:
         """Run COLD tests with AuthKit API and in-memory client."""
         if not PHENO_AVAILABLE or not FASTMCP_AVAILABLE:
             return TestResult(
@@ -340,7 +340,7 @@ class DryTestRunner:
             "user_info": {"email": "test@example.com", "user_id": "dry_user_123"}
         }
 
-    async def run_dry_tests(self, environment: str) -> TestResult
+    async def run_dry_tests(self, _environment: str) -> TestResult:
         """Run DRY tests with mock authentication and in-memory client."""
         if not FASTMCP_AVAILABLE:
             return TestResult(

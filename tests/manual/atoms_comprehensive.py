@@ -5,7 +5,7 @@ Tests all tools and operations without authentication (shows API structure)
 """
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 
 # Tool definitions from server.py
 TOOLS = {
@@ -343,7 +343,7 @@ TOOLS = {
 }
 
 
-def print_functionality_matrix()
+def print_functionality_matrix():
     """Print comprehensive functionality matrix."""
 
     print("\n" + "="*100)
@@ -432,7 +432,7 @@ def print_functionality_matrix()
     print(f"\n{'='*100}")
 
     # Save to JSON
-    output_file = f"atoms_functionality_matrix_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    output_file = f"atoms_functionality_matrix_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     with open(output_file, "w") as f:
         json.dump(TOOLS, f, indent=2)
 

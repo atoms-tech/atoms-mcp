@@ -51,11 +51,9 @@ async def test_set_context(client_adapter):
         return {"success": True, "skipped": True, "skip_reason": "Organization missing ID"}
 
     # Set context with context_type and entity_id (required parameters)
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "set_context",
-        "context_type": "organization",
-        "entity_id": org_id
-    })
+    result = await client_adapter.call_tool(
+        "workspace_tool", {"operation": "set_context", "context_type": "organization", "entity_id": org_id}
+    )
 
     assert result["success"], f"Failed: {result.get('error')}"
     return None

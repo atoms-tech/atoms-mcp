@@ -1,6 +1,6 @@
 """Comprehensive schema tests for 50%+ code base coverage."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from schemas.constants import Fields, Tables
 
@@ -229,7 +229,7 @@ class TestTriggerEmulator:
         assert isinstance(result["updated_at"], datetime)
 
         # Test existing updated_at
-        existing_time = datetime.now()
+        existing_time = datetime.now(UTC)
         data_with_time = {"name": "test", "updated_at": existing_time}
         result = emulator.handle_updated_at(data_with_time)
 
@@ -252,7 +252,7 @@ class TestTriggerEmulator:
         assert result["created_at"] == result["updated_at"]  # Should be same for new records
 
         # Test existing timestamps (should update both)
-        existing_data = {"name": "test", "created_at": datetime.now()}
+        existing_data = {"name": "test", "created_at": datetime.now(UTC)}
         result = emulator.set_created_timestamps(existing_data)
 
         assert "created_at" in result
@@ -447,7 +447,7 @@ class TestSchemaIntegration:
             emulator.auto_generate_slug,
             emulator.handle_updated_at,
             emulator.set_created_timestamps,
-            emulator.generate_external_id
+            emulator.generate_external_id,
         ]
 
         for func in trigger_functions:
@@ -510,7 +510,7 @@ class TestSchemaEdgeCases:
             ("Test@#$%", "test"),
             ("Multiple   Spaces", "multiple-spaces"),
             ("MixedCASE_Slug", "mixedcase-slug"),
-            ("123Numeric", "123numeric")
+            ("123Numeric", "123numeric"),
         ]
 
         for input_val, expected in edge_cases:
@@ -541,10 +541,7 @@ class TestSchemaEdgeCases:
 
     def test_unicode_and_special_characters(self):
         """Test unicode and special character handling."""
-        unicode_data = {
-            "name": "Tëst Prøjëct with ünicöde",
-            "type": "enterprise"
-        }
+        unicode_data = {"name": "Tëst Prøjëct with ünicöde", "type": "enterprise"}
 
         # Should handle unicode properly
         try:

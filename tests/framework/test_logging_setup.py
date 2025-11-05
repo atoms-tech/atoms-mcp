@@ -17,11 +17,7 @@ import logging
 import sys
 
 
-def configure_test_logging(
-    verbose: bool = False,
-    show_progress: bool = True,
-    capture_warnings: bool = True
-) -> None:
+def configure_test_logging(verbose: bool = False, show_progress: bool = True, capture_warnings: bool = True) -> None:
     """
     Configure logging for test suites with minimal output.
 
@@ -52,7 +48,7 @@ def configure_test_logging(
         level=level,
         format=format_str,
         stream=sys.stderr,
-        force=True  # Override any existing configuration
+        force=True,  # Override any existing configuration
     )
 
     # Suppress noisy third-party libraries unless verbose
@@ -117,25 +113,13 @@ def suppress_deprecation_warnings() -> None:
     import warnings
 
     # Suppress websockets deprecation warnings
-    warnings.filterwarnings(
-        "ignore",
-        category=DeprecationWarning,
-        module="websockets.*"
-    )
+    warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets.*")
 
     # Suppress uvicorn websockets deprecation
-    warnings.filterwarnings(
-        "ignore",
-        category=DeprecationWarning,
-        message=".*WebSocketServerProtocol.*"
-    )
+    warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*WebSocketServerProtocol.*")
 
     # Suppress other common test-related warnings
-    warnings.filterwarnings(
-        "ignore",
-        category=DeprecationWarning,
-        message=".*legacy.*"
-    )
+    warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*legacy.*")
 
 
 class QuietLogger:
@@ -179,11 +163,7 @@ def print_test_header(title: str, emoji: str = "🧪") -> None:
 
 
 def print_test_summary(
-    total: int,
-    passed: int,
-    failed: int,
-    skipped: int = 0,
-    duration_seconds: float | None = None
+    total: int, passed: int, failed: int, skipped: int = 0, duration_seconds: float | None = None
 ) -> None:
     """
     Print a clean test summary.
@@ -216,6 +196,7 @@ def print_test_summary(
 # Auto-configure on import if not already configured
 _configured = False
 
+
 def auto_configure(verbose: bool = False) -> None:
     """
     Auto-configure logging on first import.
@@ -228,4 +209,3 @@ def auto_configure(verbose: bool = False) -> None:
         configure_test_logging(verbose=verbose)
         suppress_deprecation_warnings()
         _configured = True
-

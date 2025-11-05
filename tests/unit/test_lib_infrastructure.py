@@ -3,7 +3,7 @@
 import asyncio
 import os
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -20,11 +20,7 @@ class TestPortManager:
 
     def test_port_manager_creation(self):
         """Test port manager creation."""
-        manager = AtomsPortManager(
-            base_port=50000,
-            max_ports=100,
-            port_file="/tmp/test_ports.json"
-        )
+        manager = AtomsPortManager(base_port=50000, max_ports=100, port_file="/tmp/test_ports.json")
 
         assert manager.base_port == 50000
         assert manager.max_ports == 100
@@ -43,11 +39,7 @@ class TestPortManager:
         """Test port allocation."""
         with tempfile.TemporaryDirectory() as temp_dir:
             port_file = os.path.join(temp_dir, "test_ports.json")
-            manager = AtomsPortManager(
-                base_port=50000,
-                max_ports=10,
-                port_file=port_file
-            )
+            manager = AtomsPortManager(base_port=50000, max_ports=10, port_file=port_file)
 
             # Allocate first port
             port1 = await manager.allocate_atoms_port()
@@ -72,11 +64,7 @@ class TestPortManager:
         """Test port exhaustion handling."""
         with tempfile.TemporaryDirectory() as temp_dir:
             port_file = os.path.join(temp_dir, "test_ports.json")
-            manager = AtomsPortManager(
-                base_port=50000,
-                max_ports=2,
-                port_file=port_file
-            )
+            manager = AtomsPortManager(base_port=50000, max_ports=2, port_file=port_file)
 
             # Allocate all available ports
             await manager.allocate_atoms_port()
@@ -91,11 +79,7 @@ class TestPortManager:
         """Test getting allocated port."""
         with tempfile.TemporaryDirectory() as temp_dir:
             port_file = os.path.join(temp_dir, "test_ports.json")
-            manager = AtomsPortManager(
-                base_port=50000,
-                max_ports=10,
-                port_file=port_file
-            )
+            manager = AtomsPortManager(base_port=50000, max_ports=10, port_file=port_file)
 
             # Allocate port
             allocated_port = await manager.allocate_atoms_port()
@@ -116,11 +100,7 @@ class TestPortManager:
         """Test port release."""
         with tempfile.TemporaryDirectory() as temp_dir:
             port_file = os.path.join(temp_dir, "test_ports.json")
-            manager = AtomsPortManager(
-                base_port=50000,
-                max_ports=10,
-                port_file=port_file
-            )
+            manager = AtomsPortManager(base_port=50000, max_ports=10, port_file=port_file)
 
             # Allocate and release port
             port = await manager.allocate_atoms_port()
@@ -135,11 +115,7 @@ class TestPortManager:
         """Test releasing non-existent port."""
         with tempfile.TemporaryDirectory() as temp_dir:
             port_file = os.path.join(temp_dir, "test_ports.json")
-            manager = AtomsPortManager(
-                base_port=50000,
-                max_ports=10,
-                port_file=port_file
-            )
+            manager = AtomsPortManager(base_port=50000, max_ports=10, port_file=port_file)
 
             # Should not raise error for non-existent port
             await manager.release_atoms_port(99999)
@@ -160,7 +136,7 @@ class TestDeployment:
             vercel_team_id="team-123",
             domain="test.example.com",
             build_command="npm run build",
-            output_directory="dist"
+            output_directory="dist",
         )
 
         assert config.project_name == "test-project"
@@ -173,25 +149,17 @@ class TestDeployment:
     def test_deployment_config_validation(self):
         """Test deployment configuration validation."""
         # Valid config
-        valid_config = AtomsDeploymentConfig(
-            project_name="test-project",
-            vercel_token="test-token"
-        )
+        valid_config = AtomsDeploymentConfig(project_name="test-project", vercel_token="test-token")
         assert valid_config.is_valid() is True
 
         # Invalid config (missing required fields)
         with pytest.raises(Exception):
-            AtomsDeploymentConfig(
-                project_name="",
-                vercel_token=""
-            )
+            AtomsDeploymentConfig(project_name="", vercel_token="")
 
     def test_deployment_config_serialization(self):
         """Test deployment configuration serialization."""
         config = AtomsDeploymentConfig(
-            project_name="test-project",
-            vercel_token="test-token",
-            domain="test.example.com"
+            project_name="test-project", vercel_token="test-token", domain="test.example.com"
         )
 
         # Convert to dict
@@ -208,10 +176,7 @@ class TestDeployment:
 
     def test_vercel_deployer_creation(self):
         """Test Vercel deployer creation."""
-        config = AtomsDeploymentConfig(
-            project_name="test-project",
-            vercel_token="test-token"
-        )
+        config = AtomsDeploymentConfig(project_name="test-project", vercel_token="test-token")
 
         deployer = AtomsVercelDeployer(config)
         assert deployer.config == config
@@ -220,10 +185,7 @@ class TestDeployment:
     @pytest.mark.asyncio
     async def test_vercel_deployer_deploy_success(self):
         """Test successful Vercel deployment."""
-        config = AtomsDeploymentConfig(
-            project_name="test-project",
-            vercel_token="test-token"
-        )
+        config = AtomsDeploymentConfig(project_name="test-project", vercel_token="test-token")
 
         deployer = AtomsVercelDeployer(config)
 
@@ -232,7 +194,7 @@ class TestDeployment:
         deployer.client.deploy.return_value = {
             "deployment_url": "https://test-project.vercel.app",
             "deployment_id": "deployment-123",
-            "status": "ready"
+            "status": "ready",
         }
 
         result = await deployer.deploy()
@@ -245,10 +207,7 @@ class TestDeployment:
     @pytest.mark.asyncio
     async def test_vercel_deployer_deploy_failure(self):
         """Test failed Vercel deployment."""
-        config = AtomsDeploymentConfig(
-            project_name="test-project",
-            vercel_token="test-token"
-        )
+        config = AtomsDeploymentConfig(project_name="test-project", vercel_token="test-token")
 
         deployer = AtomsVercelDeployer(config)
 
@@ -262,10 +221,7 @@ class TestDeployment:
     @pytest.mark.asyncio
     async def test_vercel_deployer_get_deployment_status(self):
         """Test getting deployment status."""
-        config = AtomsDeploymentConfig(
-            project_name="test-project",
-            vercel_token="test-token"
-        )
+        config = AtomsDeploymentConfig(project_name="test-project", vercel_token="test-token")
 
         deployer = AtomsVercelDeployer(config)
 
@@ -274,7 +230,7 @@ class TestDeployment:
         deployer.client.get_deployment.return_value = {
             "id": "deployment-123",
             "status": "ready",
-            "created_at": datetime.now().isoformat()
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         status = await deployer.get_deployment_status("deployment-123")
@@ -291,18 +247,10 @@ class TestDeployment:
             variables={
                 "API_URL": "https://api.example.com",
                 "DATABASE_URL": "postgresql://...",
-                "JWT_SECRET": "super-secret"
+                "JWT_SECRET": "super-secret",
             },
-            build_config={
-                "cmd": "npm run build:prod",
-                "cwd": "./frontend",
-                "env": ["NODE_ENV=production"]
-            },
-            deploy_config={
-                "type": "vercel",
-                "domain": "app.example.com",
-                "regions": ["iad1"]
-            }
+            build_config={"cmd": "npm run build:prod", "cwd": "./frontend", "env": ["NODE_ENV=production"]},
+            deploy_config={"type": "vercel", "domain": "app.example.com", "regions": ["iad1"]},
         )
 
         assert config.name == "comprehensive-test"
@@ -313,14 +261,11 @@ class TestDeployment:
 
     def test_deployment_config_merge(self):
         """Test deployment configuration merging."""
-        base_config = DeploymentConfig(
-            name="base-test",
-            variables={"BASE_VAR": "base_value"}
-        )
+        base_config = DeploymentConfig(name="base-test", variables={"BASE_VAR": "base_value"})
 
         override_config = {
             "variables": {"OVERRIDE_VAR": "override_value"},
-            "build_config": {"cmd": "npm run build:override"}
+            "build_config": {"cmd": "npm run build:override"},
         }
 
         merged = base_config.merge(override_config)
@@ -336,9 +281,7 @@ class TestInfrastructureBootstrap:
     def test_bootstrap_creation(self):
         """Test bootstrap creation."""
         bootstrap = AtomsInfrastructureBootstrap(
-            project_name="test-project",
-            environment="development",
-            config_file="/tmp/test_config.json"
+            project_name="test-project", environment="development", config_file="/tmp/test_config.json"
         )
 
         assert bootstrap.project_name == "test-project"
@@ -348,9 +291,7 @@ class TestInfrastructureBootstrap:
     def test_bootstrap_error(self):
         """Test bootstrap error."""
         error = InfrastructureBootstrapError(
-            message="Bootstrap failed",
-            error_code="BOOTSTRAP_ERROR",
-            details={"phase": "initialization"}
+            message="Bootstrap failed", error_code="BOOTSTRAP_ERROR", details={"phase": "initialization"}
         )
 
         assert error.message == "Bootstrap failed"
@@ -369,38 +310,25 @@ class TestInfrastructureBootstrap:
                 "project_name": "bootstrap-test",
                 "environment": "development",
                 "services": {
-                    "database": {
-                        "type": "postgresql",
-                        "host": "localhost",
-                        "port": 5432
-                    },
-                    "redis": {
-                        "type": "redis",
-                        "host": "localhost",
-                        "port": 6379
-                    }
+                    "database": {"type": "postgresql", "host": "localhost", "port": 5432},
+                    "redis": {"type": "redis", "host": "localhost", "port": 6379},
                 },
-                "ports": {
-                    "base": 50000,
-                    "max": 10
-                }
+                "ports": {"base": 50000, "max": 10},
             }
 
             with open(config_file, "w") as f:
                 import json
+
                 json.dump(test_config, f)
 
             bootstrap = AtomsInfrastructureBootstrap(
-                project_name="bootstrap-test",
-                environment="development",
-                config_file=config_file
+                project_name="bootstrap-test", environment="development", config_file=config_file
             )
 
             # Mock service startup
             with patch.object(bootstrap, "_start_database_service", new=AsyncMock()) as mock_db:
                 with patch.object(bootstrap, "_start_redis_service", new=AsyncMock()) as mock_redis:
                     with patch.object(bootstrap, "_allocate_ports", new=AsyncMock()) as mock_ports:
-
                         # Run bootstrap
                         result = await bootstrap.bootstrap_infrastructure()
 
@@ -419,30 +347,19 @@ class TestInfrastructureBootstrap:
         bootstrap = AtomsInfrastructureBootstrap(
             project_name="custom-test",
             environment="production",
-            custom_config={
-                "custom_service": {
-                    "enabled": True,
-                    "config": {"key": "value"}
-                }
-            }
+            custom_config={"custom_service": {"enabled": True, "config": {"key": "value"}}},
         )
 
         # Mock custom service
         with patch.object(bootstrap, "_start_custom_service", new=AsyncMock()) as mock_custom:
             await bootstrap.bootstrap_infrastructure()
 
-            mock_custom.assert_called_once_with({
-                "enabled": True,
-                "config": {"key": "value"}
-            })
+            mock_custom.assert_called_once_with({"enabled": True, "config": {"key": "value"}})
 
     @pytest.mark.asyncio
     async def test_bootstrap_error_handling(self):
         """Test bootstrap error handling."""
-        bootstrap = AtomsInfrastructureBootstrap(
-            project_name="error-test",
-            environment="development"
-        )
+        bootstrap = AtomsInfrastructureBootstrap(project_name="error-test", environment="development")
 
         # Mock service failure
         with patch.object(bootstrap, "_start_database_service", new=AsyncMock(side_effect=Exception("DB failed"))):
@@ -458,11 +375,7 @@ class TestInfrastructureBootstrap:
         bootstrap = AtomsInfrastructureBootstrap(
             project_name="port-test",
             environment="development",
-            port_config={
-                "base": 50000,
-                "max_ports": 5,
-                "services": ["api", "websocket", "metrics"]
-            }
+            port_config={"base": 50000, "max_ports": 5, "services": ["api", "websocket", "metrics"]},
         )
 
         # Mock port manager
@@ -480,10 +393,7 @@ class TestInfrastructureBootstrap:
     @pytest.mark.asyncio
     async def test_bootstrap_service_health_checks(self):
         """Test bootstrap service health checks."""
-        bootstrap = AtomsInfrastructureBootstrap(
-            project_name="health-test",
-            environment="development"
-        )
+        bootstrap = AtomsInfrastructureBootstrap(project_name="health-test", environment="development")
 
         # Mock health check
         with patch.object(bootstrap, "_check_service_health", new=AsyncMock(return_value=True)) as mock_health:
@@ -494,35 +404,22 @@ class TestInfrastructureBootstrap:
 
     def test_bootstrap_config_validation(self):
         """Test bootstrap configuration validation."""
-        bootstrap = AtomsInfrastructureBootstrap(
-            project_name="validation-test",
-            environment="production"
-        )
+        bootstrap = AtomsInfrastructureBootstrap(project_name="validation-test", environment="production")
 
         # Valid config
-        valid_config = {
-            "project_name": "test-project",
-            "environment": "production",
-            "services": {}
-        }
+        valid_config = {"project_name": "test-project", "environment": "production", "services": {}}
 
         assert bootstrap.validate_config(valid_config) is True
 
         # Invalid config (missing project name)
-        invalid_config = {
-            "environment": "production",
-            "services": {}
-        }
+        invalid_config = {"environment": "production", "services": {}}
 
         assert bootstrap.validate_config(invalid_config) is False
 
     @pytest.mark.asyncio
     async def test_bootstrap_teardown(self):
         """Test bootstrap teardown process."""
-        bootstrap = AtomsInfrastructureBootstrap(
-            project_name="teardown-test",
-            environment="development"
-        )
+        bootstrap = AtomsInfrastructureBootstrap(project_name="teardown-test", environment="development")
 
         # Mock service shutdown
         with patch.object(bootstrap, "_stop_all_services", new=AsyncMock()) as mock_stop:
@@ -541,19 +438,13 @@ class TestInfrastructureIntegration:
         """Test complete deployment lifecycle."""
         # Setup deployment config
         config = AtomsDeploymentConfig(
-            project_name="lifecycle-test",
-            vercel_token="test-token",
-            domain="lifecycle-test.example.com"
+            project_name="lifecycle-test", vercel_token="test-token", domain="lifecycle-test.example.com"
         )
 
         # Setup port manager
         with tempfile.TemporaryDirectory() as temp_dir:
             port_file = os.path.join(temp_dir, "ports.json")
-            port_manager = AtomsPortManager(
-                base_port=50000,
-                max_ports=10,
-                port_file=port_file
-            )
+            port_manager = AtomsPortManager(base_port=50000, max_ports=10, port_file=port_file)
 
             # Allocate port
             port = await port_manager.allocate_atoms_port()
@@ -566,7 +457,7 @@ class TestInfrastructureIntegration:
             deployer.client.deploy.return_value = {
                 "deployment_url": "https://lifecycle-test.example.com",
                 "deployment_id": "deployment-lifecycle-123",
-                "status": "ready"
+                "status": "ready",
             }
 
             # Deploy
@@ -593,29 +484,26 @@ class TestInfrastructureIntegration:
                 "environment": "staging",
                 "services": {
                     "api": {"type": "fastapi", "port": "auto"},
-                    "database": {"type": "postgresql", "host": "localhost"}
+                    "database": {"type": "postgresql", "host": "localhost"},
                 },
-                "deployment": {
-                    "type": "vercel",
-                    "domain": "integrated-test.vercel.app"
-                }
+                "deployment": {"type": "vercel", "domain": "integrated-test.vercel.app"},
             }
 
             with open(config_file, "w") as f:
                 import json
+
                 json.dump(bootstrap_config, f)
 
             bootstrap = AtomsInfrastructureBootstrap(
-                project_name="integrated-test",
-                environment="staging",
-                config_file=config_file
+                project_name="integrated-test", environment="staging", config_file=config_file
             )
 
             # Mock bootstrap and deployment
             with patch.object(bootstrap, "_start_api_service", new=AsyncMock()) as mock_api:
                 with patch.object(bootstrap, "_start_database_service", new=AsyncMock()) as mock_db:
-                    with patch.object(bootstrap, "_allocate_ports", new=AsyncMock(return_value={"api": 50001})) as mock_ports:
-
+                    with patch.object(
+                        bootstrap, "_allocate_ports", new=AsyncMock(return_value={"api": 50001})
+                    ) as mock_ports:
                         # Bootstrap
                         bootstrap_result = await bootstrap.bootstrap_infrastructure()
 
@@ -628,7 +516,7 @@ class TestInfrastructureIntegration:
                         deployment_config = AtomsDeploymentConfig(
                             project_name="integrated-test",
                             vercel_token="test-token",
-                            domain="integrated-test.vercel.app"
+                            domain="integrated-test.vercel.app",
                         )
 
                         deployer = AtomsVercelDeployer(deployment_config)
@@ -636,7 +524,7 @@ class TestInfrastructureIntegration:
                         deployer.client.deploy.return_value = {
                             "success": True,
                             "deployment_url": "https://integrated-test.vercel.app",
-                            "deployment_id": "deployment-integrated-123"
+                            "deployment_id": "deployment-integrated-123",
                         }
 
                         # Deploy

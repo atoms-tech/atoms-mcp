@@ -20,7 +20,7 @@ Run with:
 
 import contextlib
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -43,7 +43,7 @@ def generate_entity_data(entity_type: str, organization_id: str | None = None,
     Returns:
         Dictionary with entity-specific test data
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     unique_id = uuid.uuid4().hex[:8]
 
     entity_data = {
@@ -101,7 +101,7 @@ def generate_update_data(entity_type: str) -> dict[str, Any]:
     Returns:
         Dictionary with fields to update
     """
-    update_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    update_timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     update_data = {
         "organization": {
@@ -136,7 +136,7 @@ def generate_update_data(entity_type: str) -> dict[str, Any]:
     "requirement",
     "test"
 ])
-async def test_full_crud_flow(authenticated_client, entity_type)
+async def test_full_crud_flow(authenticated_client, entity_type):
     """
     Test complete CRUD flow for an entity type.
 

@@ -11,44 +11,34 @@ from tests.framework import DataGenerator, ResponseValidator, mcp_test
 # LIST_WORKSPACES TESTS (6 tests)
 # ============================================================================
 
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_list_workspaces_default_pagination(client_adapter):
     """Test list_workspaces with default pagination settings."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "list_workspaces"
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "list_workspaces"})
 
     assert result["success"], "Operation should succeed"
-    assert ResponseValidator.has_any_fields(
-        result["response"],
-        ["organizations", "workspaces", "items", "data"]
-    ), "Response should contain workspace data"
+    assert ResponseValidator.has_any_fields(result["response"], ["organizations", "workspaces", "items", "data"]), (
+        "Response should contain workspace data"
+    )
 
     # Check for pagination fields if present
     if "pagination" in result["response"]:
-        assert ResponseValidator.has_fields(
-            result["response"]["pagination"],
-            ["total", "limit", "offset"]
-        ), "Pagination should have required fields"
+        assert ResponseValidator.has_fields(result["response"]["pagination"], ["total", "limit", "offset"]), (
+            "Pagination should have required fields"
+        )
 
     return {"success": True, "test": "default_pagination"}
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_list_workspaces_custom_limit(client_adapter):
     """Test list_workspaces with custom limit of 50."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "list_workspaces",
-        "limit": 50
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "list_workspaces", "limit": 50})
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
@@ -58,10 +48,9 @@ async def test_list_workspaces_custom_limit(client_adapter):
         assert response["pagination"].get("limit") == 50, "Limit should be 50"
 
     # Check data structure
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["organizations", "workspaces", "items", "data"]
-    ), "Response should contain workspace data"
+    assert ResponseValidator.has_any_fields(response, ["organizations", "workspaces", "items", "data"]), (
+        "Response should contain workspace data"
+    )
 
     # Verify item count doesn't exceed limit
     data_field = None
@@ -77,17 +66,13 @@ async def test_list_workspaces_custom_limit(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_list_workspaces_with_offset(client_adapter):
     """Test list_workspaces with limit=25 and offset=25 for pagination."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "list_workspaces",
-        "limit": 25,
-        "offset": 25
-    })
+    result = await client_adapter.call_tool(
+        "workspace_tool", {"operation": "list_workspaces", "limit": 25, "offset": 25}
+    )
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
@@ -99,10 +84,9 @@ async def test_list_workspaces_with_offset(client_adapter):
         assert pagination.get("offset") == 25, "Offset should be 25"
 
     # Check data structure
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["organizations", "workspaces", "items", "data"]
-    ), "Response should contain workspace data"
+    assert ResponseValidator.has_any_fields(response, ["organizations", "workspaces", "items", "data"]), (
+        "Response should contain workspace data"
+    )
 
     # Verify item count
     data_field = None
@@ -118,16 +102,11 @@ async def test_list_workspaces_with_offset(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_list_workspaces_exceeds_max_limit(client_adapter):
     """Test list_workspaces with limit=1000 to check max limit handling."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "list_workspaces",
-        "limit": 1000
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "list_workspaces", "limit": 1000})
 
     # Could either succeed with capped limit or fail with error
     if result["success"]:
@@ -143,39 +122,34 @@ async def test_list_workspaces_exceeds_max_limit(client_adapter):
                 assert actual_limit in [100, 200, 500], f"Limit capped to unexpected value: {actual_limit}"
 
         # Verify data structure
-        assert ResponseValidator.has_any_fields(
-            response,
-            ["organizations", "workspaces", "items", "data"]
-        ), "Response should contain workspace data"
+        assert ResponseValidator.has_any_fields(response, ["organizations", "workspaces", "items", "data"]), (
+            "Response should contain workspace data"
+        )
     else:
         # If it failed, should have appropriate error message
         assert "error" in result or "message" in result, "Should have error details"
         error_msg = str(result.get("error", result.get("message", ""))).lower()
-        assert any(word in error_msg for word in ["limit", "max", "exceed", "invalid"]), \
+        assert any(word in error_msg for word in ["limit", "max", "exceed", "invalid"]), (
             "Error should mention limit issue"
+        )
 
     return {"success": True, "test": "exceeds_max_limit", "requested_limit": 1000}
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_list_workspaces_with_data_check(client_adapter):
     """Test list_workspaces returns proper workspace data structure."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "list_workspaces"
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "list_workspaces"})
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Check that response includes comprehensive information
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["organizations", "workspaces", "items", "data"]
-    ), "Response should contain workspace data"
+    assert ResponseValidator.has_any_fields(response, ["organizations", "workspaces", "items", "data"]), (
+        "Response should contain workspace data"
+    )
 
     # Check for detailed fields in items
     data_field = None
@@ -195,9 +169,7 @@ async def test_list_workspaces_with_data_check(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_list_workspaces_consistency_check(client_adapter):
     """Test list_workspaces returns consistent data structure."""
@@ -205,19 +177,21 @@ async def test_list_workspaces_consistency_check(client_adapter):
     results = []
 
     for i in range(2):
-        result = await client_adapter.call_tool("workspace_tool", {
-            "operation": "list_workspaces",
-            "limit": 5  # Small limit for quick test
-        })
+        result = await client_adapter.call_tool(
+            "workspace_tool",
+            {
+                "operation": "list_workspaces",
+                "limit": 5,  # Small limit for quick test
+            },
+        )
 
-        assert result["success"], f"Operation should succeed on iteration {i+1}"
+        assert result["success"], f"Operation should succeed on iteration {i + 1}"
         response = result["response"]
 
         # All calls should have consistent data structure
-        assert ResponseValidator.has_any_fields(
-            response,
-            ["organizations", "workspaces", "items", "data"]
-        ), f"Response should contain workspace data on iteration {i+1}"
+        assert ResponseValidator.has_any_fields(response, ["organizations", "workspaces", "items", "data"]), (
+            f"Response should contain workspace data on iteration {i + 1}"
+        )
 
         results.append(response)
 
@@ -235,27 +209,28 @@ async def test_list_workspaces_consistency_check(client_adapter):
 # GET_CONTEXT TESTS (2 tests)
 # ============================================================================
 
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_get_context_basic(client_adapter):
     """Test get_context with default parameters."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "get_context"
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "get_context"})
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Check for context fields
-    context_fields = ["organization", "project", "document", "workspace",
-                     "current_context", "active_context", "context"]
-    assert ResponseValidator.has_any_fields(
-        response,
-        context_fields
-    ), "Response should contain context information"
+    context_fields = [
+        "organization",
+        "project",
+        "document",
+        "workspace",
+        "current_context",
+        "active_context",
+        "context",
+    ]
+    assert ResponseValidator.has_any_fields(response, context_fields), "Response should contain context information"
 
     # Verify context structure if present
     context_data = None
@@ -267,43 +242,45 @@ async def test_get_context_basic(client_adapter):
     if context_data and isinstance(context_data, dict):
         # Context should have type information
         assert ResponseValidator.has_any_fields(
-            context_data,
-            ["type", "id", "name", "organization_id", "project_id"]
+            context_data, ["type", "id", "name", "organization_id", "project_id"]
         ), "Context should have identification fields"
 
     return {"success": True, "test": "get_context_basic"}
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_get_context_structure(client_adapter):
     """Test get_context returns proper structure."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "get_context"
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "get_context"})
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Response should provide context info
-    context_fields = ["organization", "project", "document", "workspace",
-                     "current_context", "active_context", "context", "active_organization",
-                     "active_project", "active_document"]
-    assert ResponseValidator.has_any_fields(
-        response,
-        context_fields
-    ), "Response should contain context information"
+    context_fields = [
+        "organization",
+        "project",
+        "document",
+        "workspace",
+        "current_context",
+        "active_context",
+        "context",
+        "active_organization",
+        "active_project",
+        "active_document",
+    ]
+    assert ResponseValidator.has_any_fields(response, context_fields), "Response should contain context information"
 
     # Context data structure check
     for field in context_fields:
         if field in response:
             # If field exists, it should be a valid data type
             context_value = response[field]
-            assert context_value is None or isinstance(context_value, (str, dict)), \
+            assert context_value is None or isinstance(context_value, str | dict), (
                 f"Context field '{field}' should be None, string, or dict"
+            )
             break
 
     return {"success": True, "test": "get_context_structure"}
@@ -313,46 +290,41 @@ async def test_get_context_structure(client_adapter):
 # SET_CONTEXT TESTS (4 tests)
 # ============================================================================
 
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_set_context_organization(client_adapter):
     """Test set_context for organization type."""
     # Generate test organization ID
     org_id = DataGenerator.uuid()
 
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "set_context",
-        "context_type": "organization",
-        "entity_id": org_id
-    })
+    result = await client_adapter.call_tool(
+        "workspace_tool", {"operation": "set_context", "context_type": "organization", "entity_id": org_id}
+    )
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Verify context was set
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["success", "context", "updated", "organization"]
-    ), "Response should confirm context update"
+    assert ResponseValidator.has_any_fields(response, ["success", "context", "updated", "organization"]), (
+        "Response should confirm context update"
+    )
 
     # Check if organization context is reflected
     if "context" in response:
         context = response["context"]
         if isinstance(context, dict):
             assert context.get("type") == "organization", "Context type should be organization"
-            assert context.get("id") == org_id or context.get("organization_id") == org_id, \
+            assert context.get("id") == org_id or context.get("organization_id") == org_id, (
                 "Organization ID should match"
+            )
 
     return {"success": True, "test": "set_organization", "org_id": org_id}
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_set_context_project(client_adapter):
     """Test set_context for project type."""
@@ -360,29 +332,25 @@ async def test_set_context_project(client_adapter):
     org_id = DataGenerator.uuid()
     project_id = DataGenerator.uuid()
 
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "set_context",
-        "context_type": "project",
-        "entity_id": project_id,
-        "organization_id": org_id
-    })
+    result = await client_adapter.call_tool(
+        "workspace_tool",
+        {"operation": "set_context", "context_type": "project", "entity_id": project_id, "organization_id": org_id},
+    )
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Verify context was set
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["success", "context", "updated", "project"]
-    ), "Response should confirm context update"
+    assert ResponseValidator.has_any_fields(response, ["success", "context", "updated", "project"]), (
+        "Response should confirm context update"
+    )
 
     # Check if project context is reflected
     if "context" in response:
         context = response["context"]
         if isinstance(context, dict):
             assert context.get("type") == "project", "Context type should be project"
-            assert context.get("id") == project_id or context.get("project_id") == project_id, \
-                "Project ID should match"
+            assert context.get("id") == project_id or context.get("project_id") == project_id, "Project ID should match"
             # Organization might be included
             if "organization_id" in context:
                 assert context["organization_id"] == org_id, "Organization ID should match"
@@ -391,9 +359,7 @@ async def test_set_context_project(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_set_context_document(client_adapter):
     """Test set_context for document type."""
@@ -402,30 +368,33 @@ async def test_set_context_document(client_adapter):
     project_id = DataGenerator.uuid()
     document_id = DataGenerator.uuid()
 
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "set_context",
-        "context_type": "document",
-        "entity_id": document_id,
-        "project_id": project_id,
-        "organization_id": org_id
-    })
+    result = await client_adapter.call_tool(
+        "workspace_tool",
+        {
+            "operation": "set_context",
+            "context_type": "document",
+            "entity_id": document_id,
+            "project_id": project_id,
+            "organization_id": org_id,
+        },
+    )
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Verify context was set
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["success", "context", "updated", "document"]
-    ), "Response should confirm context update"
+    assert ResponseValidator.has_any_fields(response, ["success", "context", "updated", "document"]), (
+        "Response should confirm context update"
+    )
 
     # Check if document context is reflected
     if "context" in response:
         context = response["context"]
         if isinstance(context, dict):
             assert context.get("type") == "document", "Context type should be document"
-            assert context.get("id") == document_id or context.get("document_id") == document_id, \
+            assert context.get("id") == document_id or context.get("document_id") == document_id, (
                 "Document ID should match"
+            )
             # Parent IDs might be included
             if "project_id" in context:
                 assert context["project_id"] == project_id, "Project ID should match"
@@ -436,17 +405,14 @@ async def test_set_context_document(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_set_context_invalid_type(client_adapter):
     """Test set_context with invalid context type (error test)."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "set_context",
-        "context_type": "invalid_type",
-        "entity_id": DataGenerator.uuid()
-    })
+    result = await client_adapter.call_tool(
+        "workspace_tool",
+        {"operation": "set_context", "context_type": "invalid_type", "entity_id": DataGenerator.uuid()},
+    )
 
     # This should fail
     assert not result["success"], "Operation should fail with invalid type"
@@ -456,8 +422,9 @@ async def test_set_context_invalid_type(client_adapter):
     assert error, "Should have error message"
 
     error_lower = str(error).lower()
-    assert any(word in error_lower for word in ["invalid", "type", "unsupported", "unknown"]), \
+    assert any(word in error_lower for word in ["invalid", "type", "unsupported", "unknown"]), (
         f"Error should mention invalid type: {error}"
+    )
 
     return {"success": True, "test": "invalid_context_type", "expected_failure": True}
 
@@ -466,25 +433,21 @@ async def test_set_context_invalid_type(client_adapter):
 # GET_DEFAULTS TESTS (2 tests)
 # ============================================================================
 
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_get_defaults_basic(client_adapter):
     """Test get_defaults with default parameters."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "get_defaults"
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "get_defaults"})
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
 
     # Check for default settings
-    assert ResponseValidator.has_any_fields(
-        response,
-        ["defaults", "settings", "preferences", "configuration"]
-    ), "Response should contain default settings"
+    assert ResponseValidator.has_any_fields(response, ["defaults", "settings", "preferences", "configuration"]), (
+        "Response should contain default settings"
+    )
 
     # Verify defaults structure
     defaults_data = None
@@ -495,8 +458,7 @@ async def test_get_defaults_basic(client_adapter):
 
     if defaults_data and isinstance(defaults_data, dict):
         # Should have various default settings
-        common_defaults = ["organization", "project", "format", "limit",
-                          "timeout", "region", "language"]
+        common_defaults = ["organization", "project", "format", "limit", "timeout", "region", "language"]
         has_defaults = any(field in defaults_data for field in common_defaults)
         assert has_defaults, "Should have some default settings"
 
@@ -504,15 +466,11 @@ async def test_get_defaults_basic(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="workspace_tool", category="workspace", priority=10)
 async def test_get_defaults_data_types(client_adapter):
     """Test get_defaults returns proper data types."""
-    result = await client_adapter.call_tool("workspace_tool", {
-        "operation": "get_defaults"
-    })
+    result = await client_adapter.call_tool("workspace_tool", {"operation": "get_defaults"})
 
     assert result["success"], "Operation should succeed"
     response = result["response"]
@@ -529,11 +487,10 @@ async def test_get_defaults_data_types(client_adapter):
         assert len(response.keys()) > 0, "Dict response should have fields"
 
         # Check for common default fields
-        default_fields = ["organization_id", "project_id", "document_id",
-                         "defaults", "settings", "preferences"]
+        default_fields = ["organization_id", "project_id", "document_id", "defaults", "settings", "preferences"]
         has_defaults = any(field in response for field in default_fields)
         assert has_defaults, "Response should contain default configuration fields"
-    elif isinstance(response, (list, tuple)):
+    elif isinstance(response, list | tuple):
         # List/tuple should have items
         assert len(response) > 0, "List response should have items"
 

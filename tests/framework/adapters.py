@@ -8,9 +8,11 @@ This is the slimmed-down version (~80 lines vs ~200 before) that leverages
 shared infrastructure from pheno-sdk.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -112,7 +114,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             Exception: If tool call fails
         """
         self._call_count += 1
-        call_start = datetime.now()
+        call_start = datetime.now(UTC)
 
         # Compact params for logging (hide sensitive data, truncate large values)
         params_preview = self._format_params_for_log(params)
@@ -135,7 +137,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             logger.debug(f"← [AFTER PROCESSING] Result processed for {name}")
 
             # Log success with timing
-            duration = (datetime.now() - call_start).total_seconds()
+            duration = (datetime.now(UTC) - call_start).total_seconds()
             success = processed_result.get("success", True) if isinstance(processed_result, dict) else True
 
             # Always log if call was slow or if in debug/verbose mode
@@ -161,7 +163,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             self._error_count += 1
             self._last_error = e
 
-            duration = (datetime.now() - call_start).total_seconds()
+            duration = (datetime.now(UTC) - call_start).total_seconds()
 
             # Track failed call
             self._call_history.append({
@@ -178,7 +180,6 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             logger.exception(
                 f"❌ [ERROR] {name} failed after {duration:.2f}s\n"
                 f"   Error type: {error_type}\n"
-                f"   Error: {str(e)[:200]}\n"
                 f"   Params: {params_preview}"
             )
 
@@ -219,7 +220,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             logger.warning(f"Failed to extract auth from MCP client: {e}")
             return None
 
-    async def _call_tool_http(self, name: str, params: dict[str, Any]) -> Any
+    async def _call_tool_http(self, name: str, params: dict[str, Any]) -> Any:
         """
         Make direct HTTP call to MCP tool endpoint using proper MCP HTTP protocol.
 
@@ -421,7 +422,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         except Exception:
             return str(params)[:200]
 
-    def _process_result(self, result: Any, tool_name: str, params: dict[str, Any]) -> Any:
+    def _process_result(self, result: Any, _tool_name: str, params: dict[str, Any]) -> Any:
         """
         Process Atoms MCP result format.
 

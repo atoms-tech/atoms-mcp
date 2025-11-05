@@ -14,7 +14,7 @@ Those operations are handled by entity_tool with entity_type='organization'.
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -24,7 +24,7 @@ class MCPWorkspaceToolTester:
     def __init__(self):
         """Initialize tester."""
         self.results: list[dict[str, Any]] = []
-        self.test_start_time = datetime.now()
+        self.test_start_time = datetime.now(UTC)
 
     def log_result(
         self,
@@ -39,7 +39,7 @@ class MCPWorkspaceToolTester:
         """Log detailed test result."""
         result = {
             "test_number": test_number,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "operation": operation,
             "input_parameters": input_params,
             "output_response": output_response,
@@ -115,7 +115,7 @@ class MCPWorkspaceToolTester:
 
     def generate_final_report(self) -> dict[str, Any]:
         """Generate comprehensive final test report."""
-        test_end_time = datetime.now()
+        test_end_time = datetime.now(UTC)
         duration = (test_end_time - self.test_start_time).total_seconds()
 
         # Calculate statistics
@@ -169,7 +169,7 @@ class MCPWorkspaceToolTester:
             print(f"  {status_icon} Test #{result['test_number']}: {result['operation']} - {result['status']}")
 
         # Save to file
-        report_filename = f"workspace_tool_mcp_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_filename = f"workspace_tool_mcp_test_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
         with open(report_filename, "w") as f:
             json.dump(report, f, indent=2, default=str)
 
@@ -213,7 +213,7 @@ async def get_auth_token():
         return None
 
 
-async def run_comprehensive_tests()
+async def run_comprehensive_tests():
     """Run all comprehensive tests for mcp__Atoms__workspace_tool."""
 
     tester = MCPWorkspaceToolTester()

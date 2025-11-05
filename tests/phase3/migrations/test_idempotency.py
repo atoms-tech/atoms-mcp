@@ -88,9 +88,7 @@ async def non_idempotent_insert_up(adapter: DatabaseAdapter):
     """)
 
     # Insert without conflict handling (will create duplicates)
-    await adapter.execute(
-        "INSERT INTO non_idempotent_test (value) VALUES ('duplicate')"
-    )
+    await adapter.execute("INSERT INTO non_idempotent_test (value) VALUES ('duplicate')")
     logger.debug("Non-idempotent insert executed")
 
 
@@ -201,9 +199,7 @@ async def real_adapter_idempotency():
 class TestIdempotencyCOLD:
     """Test idempotency with mocked database (COLD mode)."""
 
-    async def test_01_migration_runs_twice_same_result_cold(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_01_migration_runs_twice_same_result_cold(self, migration_engine_idempotency_cold):
         """Test that running migration twice produces same result.
 
         Given: An idempotent migration
@@ -222,9 +218,7 @@ class TestIdempotencyCOLD:
 
         try:
             # Register migration
-            migration_engine_idempotency_cold.register(
-                "001", "idempotent", idempotent_migration
-            )
+            migration_engine_idempotency_cold.register("001", "idempotent", idempotent_migration)
 
             # First run
             await migration_engine_idempotency_cold.migrate()
@@ -239,9 +233,7 @@ class TestIdempotencyCOLD:
             logger.error(f"FAIL: Idempotency test failed: {e}", exc_info=True)
             raise
 
-    async def test_02_create_if_not_exists_pattern_cold(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_02_create_if_not_exists_pattern_cold(self, migration_engine_idempotency_cold):
         """Test CREATE IF NOT EXISTS pattern for idempotency.
 
         Given: Migration using IF NOT EXISTS
@@ -252,9 +244,7 @@ class TestIdempotencyCOLD:
         logger.info("TEST: CREATE IF NOT EXISTS pattern (COLD)")
 
         try:
-            migration_engine_idempotency_cold.register(
-                "001", "create_idempotent", idempotent_create_table_up
-            )
+            migration_engine_idempotency_cold.register("001", "create_idempotent", idempotent_create_table_up)
 
             # Apply multiple times (simulation)
             await migration_engine_idempotency_cold.migrate()
@@ -271,9 +261,7 @@ class TestIdempotencyCOLD:
             logger.error(f"FAIL: IF NOT EXISTS test failed: {e}", exc_info=True)
             raise
 
-    async def test_03_on_conflict_do_nothing_pattern_cold(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_03_on_conflict_do_nothing_pattern_cold(self, migration_engine_idempotency_cold):
         """Test ON CONFLICT DO NOTHING pattern for data idempotency.
 
         Given: Migration using ON CONFLICT DO NOTHING
@@ -285,9 +273,7 @@ class TestIdempotencyCOLD:
 
         try:
             # This test verifies the pattern is used correctly
-            migration_engine_idempotency_cold.register(
-                "001", "data_idempotent", idempotent_insert_data_up
-            )
+            migration_engine_idempotency_cold.register("001", "data_idempotent", idempotent_insert_data_up)
 
             await migration_engine_idempotency_cold.migrate()
 
@@ -312,9 +298,7 @@ class TestIdempotencyHOT:
     """Test idempotency with real database (HOT mode)."""
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_04_table_creation_idempotency_hot(
-        self, migration_engine_idempotency_hot, harmful_tracker
-    ):
+    async def test_04_table_creation_idempotency_hot(self, migration_engine_idempotency_hot, _harmful_tracker):
         """Test that table creation is truly idempotent.
 
         Given: Migration that creates a table
@@ -335,8 +319,7 @@ class TestIdempotencyHOT:
 
             # Verify table exists
             result = await migration_engine_idempotency_hot.adapter.execute(
-                "SELECT COUNT(*) as count FROM information_schema.tables "
-                "WHERE table_name = 'idempotent_test'"
+                "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = 'idempotent_test'"
             )
             assert result[0]["count"] == 1
 
@@ -345,8 +328,7 @@ class TestIdempotencyHOT:
 
             # Verify still only one table
             result = await migration_engine_idempotency_hot.adapter.execute(
-                "SELECT COUNT(*) as count FROM information_schema.tables "
-                "WHERE table_name = 'idempotent_test'"
+                "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = 'idempotent_test'"
             )
             assert result[0]["count"] == 1
 
@@ -356,9 +338,7 @@ class TestIdempotencyHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_05_data_insertion_idempotency_hot(
-        self, migration_engine_idempotency_hot, harmful_tracker
-    ):
+    async def test_05_data_insertion_idempotency_hot(self, migration_engine_idempotency_hot, _harmful_tracker):
         """Test that data insertion is idempotent.
 
         Given: Migration that inserts data with ON CONFLICT
@@ -399,9 +379,7 @@ class TestIdempotencyHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_06_partial_migration_recovery_hot(
-        self, migration_engine_idempotency_hot, harmful_tracker
-    ):
+    async def test_06_partial_migration_recovery_hot(self, migration_engine_idempotency_hot, _harmful_tracker):
         """Test recovery from partial migration execution.
 
         Given: Migration that can fail partway through
@@ -413,9 +391,7 @@ class TestIdempotencyHOT:
 
         try:
             # Register recoverable migration
-            migration_engine_idempotency_hot.register(
-                "001", "recoverable", recoverable_migration_up
-            )
+            migration_engine_idempotency_hot.register("001", "recoverable", recoverable_migration_up)
 
             # First run (complete)
             await migration_engine_idempotency_hot.migrate()
@@ -450,9 +426,7 @@ class TestIdempotencyHOT:
 class TestIdempotencyEdgeCases:
     """Test edge cases and non-idempotent scenarios."""
 
-    async def test_non_idempotent_migration_detection(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_non_idempotent_migration_detection(self, migration_engine_idempotency_cold):
         """Test that non-idempotent migrations are detected.
 
         Given: Migration without idempotent patterns
@@ -464,9 +438,7 @@ class TestIdempotencyEdgeCases:
 
         try:
             # Register non-idempotent migration
-            migration_engine_idempotency_cold.register(
-                "001", "non_idempotent", non_idempotent_insert_up
-            )
+            migration_engine_idempotency_cold.register("001", "non_idempotent", non_idempotent_insert_up)
 
             # Apply migration
             await migration_engine_idempotency_cold.migrate()
@@ -480,9 +452,7 @@ class TestIdempotencyEdgeCases:
             logger.error(f"FAIL: Non-idempotent detection failed: {e}", exc_info=True)
             raise
 
-    async def test_migration_tracking_prevents_rerun(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_migration_tracking_prevents_rerun(self, migration_engine_idempotency_cold):
         """Test that migration tracking prevents re-runs.
 
         Given: Any migration (idempotent or not)
@@ -498,9 +468,7 @@ class TestIdempotencyEdgeCases:
             execution_count["count"] += 1
 
         try:
-            migration_engine_idempotency_cold.register(
-                "001", "tracked", counting_migration
-            )
+            migration_engine_idempotency_cold.register("001", "tracked", counting_migration)
 
             # First run
             await migration_engine_idempotency_cold.migrate()
@@ -519,9 +487,7 @@ class TestIdempotencyEdgeCases:
             logger.error(f"FAIL: Tracking test failed: {e}", exc_info=True)
             raise
 
-    async def test_concurrent_migration_safety(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_concurrent_migration_safety(self, migration_engine_idempotency_cold):
         """Test that concurrent migration attempts are handled safely.
 
         Given: Same migration attempted concurrently
@@ -539,9 +505,7 @@ class TestIdempotencyEdgeCases:
                 execution_count["count"] += 1
 
         try:
-            migration_engine_idempotency_cold.register(
-                "001", "concurrent", thread_safe_migration
-            )
+            migration_engine_idempotency_cold.register("001", "concurrent", thread_safe_migration)
 
             # Simulate concurrent migration attempts
             await asyncio.gather(
@@ -551,17 +515,14 @@ class TestIdempotencyEdgeCases:
             )
 
             # Verify only one execution
-            assert execution_count["count"] == 1, \
-                f"Migration ran {execution_count['count']} times (expected 1)"
+            assert execution_count["count"] == 1, f"Migration ran {execution_count['count']} times (expected 1)"
 
             logger.info("PASS: Concurrent migration safety verified")
         except Exception as e:
             logger.error(f"FAIL: Concurrent safety test failed: {e}", exc_info=True)
             raise
 
-    async def test_migration_state_consistency(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_migration_state_consistency(self, migration_engine_idempotency_cold):
         """Test that migration state remains consistent.
 
         Given: Migration applied successfully
@@ -572,9 +533,7 @@ class TestIdempotencyEdgeCases:
         logger.info("TEST: Migration state consistency")
 
         try:
-            migration_engine_idempotency_cold.register(
-                "001", "state_test", idempotent_create_table_up
-            )
+            migration_engine_idempotency_cold.register("001", "state_test", idempotent_create_table_up)
 
             # Apply migration
             await migration_engine_idempotency_cold.migrate()
@@ -582,7 +541,7 @@ class TestIdempotencyEdgeCases:
             # Query state multiple times
             for i in range(5):
                 applied = await migration_engine_idempotency_cold.get_applied_migrations()
-                assert "001" in applied, f"State inconsistent on check {i+1}"
+                assert "001" in applied, f"State inconsistent on check {i + 1}"
 
                 statuses = await migration_engine_idempotency_cold.status()
                 assert len(statuses) == 1
@@ -594,9 +553,7 @@ class TestIdempotencyEdgeCases:
             logger.error(f"FAIL: State consistency test failed: {e}", exc_info=True)
             raise
 
-    async def test_idempotency_with_rollback(
-        self, migration_engine_idempotency_cold
-    ):
+    async def test_idempotency_with_rollback(self, migration_engine_idempotency_cold):
         """Test idempotency after rollback and re-application.
 
         Given: Migration applied, rolled back, and re-applied
@@ -608,9 +565,7 @@ class TestIdempotencyEdgeCases:
 
         try:
             migration_engine_idempotency_cold.register(
-                "001", "rollback_test",
-                idempotent_create_table_up,
-                idempotent_create_table_down
+                "001", "rollback_test", idempotent_create_table_up, idempotent_create_table_down
             )
 
             # Apply

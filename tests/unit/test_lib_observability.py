@@ -1,6 +1,6 @@
 """Test lib.atoms.observability modules for 100% coverage."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -68,12 +68,7 @@ class TestMetrics:
 
     def test_metric_value(self):
         """Test metric value creation."""
-        value = MetricValue(
-            name="test_metric",
-            value=42.0,
-            metric_type=MetricType.COUNTER,
-            timestamp=datetime.now()
-        )
+        value = MetricValue(name="test_metric", value=42.0, metric_type=MetricType.COUNTER, timestamp=datetime.now(UTC))
         assert value.name == "test_metric"
         assert value.value == 42.0
         assert value.metric_type == MetricType.COUNTER
@@ -81,24 +76,14 @@ class TestMetrics:
     @pytest.mark.asyncio
     async def test_record_http_request(self):
         """Test HTTP request recording."""
-        record_http_request(
-            method="GET",
-            endpoint="/api/test",
-            status_code=200,
-            duration_ms=150
-        )
+        record_http_request(method="GET", endpoint="/api/test", status_code=200, duration_ms=150)
         # Metrics should be recorded (implementation specific)
         assert True
 
     @pytest.mark.asyncio
     async def test_record_tool_execution(self):
         """Test tool execution recording."""
-        record_tool_execution(
-            tool_name="test_tool",
-            operation="create",
-            duration_ms=50,
-            success=True
-        )
+        record_tool_execution(tool_name="test_tool", operation="create", duration_ms=50, success=True)
         # Metrics should be recorded
         assert True
 
@@ -120,11 +105,7 @@ class TestHealth:
 
     def test_health_check(self):
         """Test health check creation."""
-        check = HealthCheck(
-            name="test_check",
-            status=HealthStatus.HEALTHY,
-            message="All systems operational"
-        )
+        check = HealthCheck(name="test_check", status=HealthStatus.HEALTHY, message="All systems operational")
         assert check.name == "test_check"
         assert check.status == HealthStatus.HEALTHY
         assert check.message == "All systems operational"
@@ -140,7 +121,7 @@ class TestHealth:
         checks = [
             HealthCheck("db", HealthStatus.HEALTHY),
             HealthCheck("cache", HealthStatus.HEALTHY),
-            HealthCheck("api", HealthStatus.DEGRADED)
+            HealthCheck("api", HealthStatus.DEGRADED),
         ]
 
         system_health = SystemHealth(checks)
@@ -166,12 +147,7 @@ class TestWebhooks:
 
     def test_webhook_config(self):
         """Test webhook configuration."""
-        config = WebhookConfig(
-            url="https://example.com/webhook",
-            enabled=True,
-            retry_count=3,
-            timeout_seconds=30
-        )
+        config = WebhookConfig(url="https://example.com/webhook", enabled=True, retry_count=3, timeout_seconds=30)
         assert config.url == "https://example.com/webhook"
         assert config.enabled is True
         assert config.retry_count == 3
@@ -182,8 +158,8 @@ class TestWebhooks:
         payload = WebhookPayload(
             event_type=WebhookEventType.HEALTH_ALERT,
             severity=AlertSeverity.WARNING,
-            timestamp=datetime.now(),
-            data={"message": "Test alert"}
+            timestamp=datetime.now(UTC),
+            data={"message": "Test alert"},
         )
         assert payload.event_type == WebhookEventType.HEALTH_ALERT
         assert payload.severity == AlertSeverity.WARNING
@@ -192,17 +168,14 @@ class TestWebhooks:
     @pytest.mark.asyncio
     async def test_webhook_client(self):
         """Test webhook client functionality."""
-        config = WebhookConfig(
-            url="https://httpbin.org/post",
-            enabled=True
-        )
+        config = WebhookConfig(url="https://httpbin.org/post", enabled=True)
         client = WebhookClient(config)
 
         payload = WebhookPayload(
             event_type=WebhookEventType.HEALTH_ALERT,
             severity=AlertSeverity.INFO,
-            timestamp=datetime.now(),
-            data={"test": True}
+            timestamp=datetime.now(UTC),
+            data={"test": True},
         )
 
         # Mock the HTTP call
@@ -271,24 +244,20 @@ class TestIntegration:
         record_tool_execution("test_tool", "execute", 50, True)
 
         # Check health
-        health_check = HealthCheck(
-            name="test_system",
-            status=HealthStatus.HEALTHY,
-            message="System is healthy"
-        )
+        health_check = HealthCheck(name="test_system", status=HealthStatus.HEALTHY, message="System is healthy")
 
         # Send webhook
         config = WebhookConfig(
             url="https://httpbin.org/post",
-            enabled=False  # Disabled for test
+            enabled=False,  # Disabled for test
         )
         client = WebhookClient(config)
 
         payload = WebhookPayload(
             event_type=WebhookEventType.HEALTH_ALERT,
             severity=AlertSeverity.INFO,
-            timestamp=datetime.now(),
-            data={"health_check": health_check.to_dict()}
+            timestamp=datetime.now(UTC),
+            data={"health_check": health_check.to_dict()},
         )
 
         # Should not send due to disabled config

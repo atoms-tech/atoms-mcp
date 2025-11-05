@@ -18,7 +18,7 @@ from typing import Any
 try:
     # Simulate pheno-sdk components for testing
     class MockPlaywrightOAuthAdapter:
-        async def authenticate(self, provider, credentials):
+        async def authenticate(self, _provider, _credentials):
             return {
                 "success": True,
                 "tokens": {"access_token": "mock_hot_token", "refresh_token": "mock_refresh"},
@@ -42,7 +42,7 @@ try:
             pass
 
     class MockCredentialBroker:
-        async def get_credential(self, name, default=None):
+        async def get_credential(self, _name, _default=None):
             return {"username": "test", "password": "test"}
 
     PlaywrightOAuthAdapter = MockPlaywrightOAuthAdapter
@@ -69,7 +69,7 @@ try:
         async def disconnect(self):
             pass
 
-        async def call_tool(self, tool_name, params)
+        async def call_tool(self, tool_name, params):
             # Simulate different tool responses based on tool name and params
             if tool_name == "entity_tool":
                 operation = params.get("operation", "list")
@@ -390,7 +390,7 @@ class HotTestRunner:
         self.playwright_adapter = PlaywrightOAuthAdapter()
         self.credential_broker = get_credential_broker() if PHENO_AVAILABLE else None
 
-    async def run_hot_tests(self, environment: str) -> TestResult
+    async def run_hot_tests(self, _environment: str) -> TestResult:
         """Run HOT tests with real authentication and HTTP client."""
         if not PHENO_AVAILABLE or not FASTMCP_AVAILABLE:
             return TestResult(
@@ -547,7 +547,7 @@ class ColdTestRunner:
             client_id="atoms-mcp-client"
         ) if PHENO_AVAILABLE else None
 
-    async def run_cold_tests(self, environment: str) -> TestResult
+    async def run_cold_tests(self, _environment: str) -> TestResult:
         """Run COLD tests with AuthKit API and in-memory client."""
         if not PHENO_AVAILABLE or not FASTMCP_AVAILABLE:
             return TestResult(
@@ -711,7 +711,7 @@ class DryTestRunner:
 
         return MockAuth()
 
-    async def run_dry_tests(self, environment: str) -> TestResult
+    async def run_dry_tests(self, _environment: str) -> TestResult:
         """Run DRY tests with full mocking."""
         if not FASTMCP_AVAILABLE:
             return TestResult(
@@ -960,7 +960,7 @@ class ComprehensiveTestEvolutionRunner:
 
         return sum(scores) / max(1, len(scores))
 
-    def display_test_results(self, results: dict[str, TestResult])
+    def display_test_results(self, results: dict[str, TestResult]):
         """Display comprehensive test results using Rich UI."""
         try:
             from rich.console import Console

@@ -12,7 +12,7 @@ These fixtures follow the FastMCP testing patterns for in-memory testing.
 import asyncio
 import logging
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -51,7 +51,7 @@ def create_real_fastmcp_server() -> FastMCP:
                 "data": {
                     "id": f"{entity_type}_new",
                     **(data or {}),
-                    "created_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z"
                 }
             }
         if operation == "read":
@@ -85,7 +85,7 @@ def create_real_fastmcp_server() -> FastMCP:
                 "data": {
                     "id": f"workspace_{entity_type}_new",
                     **(data or {}),
-                    "created_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z"
                 }
             }
         if operation in {"list", "list_workspaces"}:
@@ -164,7 +164,7 @@ def create_real_fastmcp_server() -> FastMCP:
                     "name": name,
                     "steps": steps or [],
                     "status": "created",
-                    "created_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z"
                 }
             }
         if operation == "execute":
@@ -172,7 +172,7 @@ def create_real_fastmcp_server() -> FastMCP:
                 "success": True,
                 "data": {
                     "workflow_id": f"workflow_{name.lower().replace(' ', '_')}",
-                    "execution_id": f"exec_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    "execution_id": f"exec_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                     "status": "completed",
                     "steps_completed": len(steps or [])
                 }
@@ -205,7 +205,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                 "data": {
                     "id": f"mock_{entity_type}_new",
                     **(data or {}),
-                    "created_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z"
                 }
             }
         if operation == "read":
@@ -239,7 +239,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                 "data": {
                     "id": f"mock_workspace_{entity_type}_new",
                     **(data or {}),
-                    "created_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z"
                 }
             }
         if operation in {"list", "list_workspaces"}:
@@ -318,7 +318,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                     "name": name,
                     "steps": steps or [],
                     "status": "created",
-                    "created_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z"
                 }
             }
         if operation == "execute":
@@ -326,7 +326,7 @@ def create_mock_fastmcp_server() -> FastMCP:
                 "success": True,
                 "data": {
                     "workflow_id": f"mock_workflow_{name.lower().replace(' ', '_')}",
-                    "execution_id": f"mock_exec_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    "execution_id": f"mock_exec_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                     "status": "completed",
                     "steps_completed": len(steps or [])
                 }
@@ -336,7 +336,7 @@ def create_mock_fastmcp_server() -> FastMCP:
     return server
 
 
-def create_simulated_fastmcp_server() -> FastMCP
+def create_simulated_fastmcp_server() -> FastMCP:
     """Create a fully simulated FastMCP server for DRY mode testing."""
     server = FastMCP("atoms-simulated-server")
 
@@ -350,7 +350,7 @@ def create_simulated_fastmcp_server() -> FastMCP
     }
 
     @server.tool
-    def entity_tool(entity_type: str, operation: str, id: str | None = None, data: dict | None = None) -> dict[str, Any]
+    def entity_tool(entity_type: str, operation: str, id: str | None = None, data: dict | None = None) -> dict[str, Any]:
         """Simulated entity management tool."""
         if operation == "create":
             entity_id = f"sim_{entity_type}_{len(simulated_data['entities']) + 1}"
@@ -358,8 +358,8 @@ def create_simulated_fastmcp_server() -> FastMCP
                 "id": entity_id,
                 "type": entity_type,
                 **(data or {}),
-                "created_at": datetime.now().isoformat() + "Z",
-                "updated_at": datetime.now().isoformat() + "Z"
+                "created_at": datetime.now(UTC).isoformat() + "Z",
+                "updated_at": datetime.now(UTC).isoformat() + "Z"
             }
             simulated_data["entities"][entity_id] = entity_data
             return {
@@ -379,7 +379,7 @@ def create_simulated_fastmcp_server() -> FastMCP
             entity = simulated_data["entities"].get(id)
             if entity:
                 entity.update(data or {})
-                entity["updated_at"] = datetime.now().isoformat() + "Z"
+                entity["updated_at"] = datetime.now(UTC).isoformat() + "Z"
                 return {"success": True, "data": entity}
             return {"success": False, "error": "not_found"}
         if operation == "delete":
@@ -413,7 +413,7 @@ def create_simulated_fastmcp_server() -> FastMCP
                 "id": workspace_id,
                 "entity_type": entity_type,
                 **(data or {}),
-                "created_at": datetime.now().isoformat() + "Z"
+                "created_at": datetime.now(UTC).isoformat() + "Z"
             }
             simulated_data["workspaces"][workspace_id] = workspace_data
             return {
@@ -501,7 +501,7 @@ def create_simulated_fastmcp_server() -> FastMCP
                 "name": name,
                 "steps": steps or [],
                 "status": "created",
-                "created_at": datetime.now().isoformat() + "Z"
+                "created_at": datetime.now(UTC).isoformat() + "Z"
             }
             simulated_data["workflows"][workflow_id] = workflow_data
             return {
@@ -510,7 +510,7 @@ def create_simulated_fastmcp_server() -> FastMCP
             }
         if operation == "execute":
             workflow_id = f"sim_workflow_{name.lower().replace(' ', '_')}"
-            execution_id = f"sim_exec_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            execution_id = f"sim_exec_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
 
             # Simulate workflow execution
             await asyncio.sleep(0.001)  # Simulate processing time

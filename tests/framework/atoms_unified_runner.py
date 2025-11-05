@@ -23,6 +23,9 @@ except ImportError:
     class UnifiedMCPTestRunner:
         """Stub for UnifiedMCPTestRunner when pheno module is unavailable."""
 
+
+from datetime import UTC
+
 from .adapters import AtomsMCPClientAdapter
 
 try:
@@ -144,12 +147,13 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
             mcp_endpoint=self.mcp_endpoint,
             access_token=access_token,
             use_direct_http=True,  # Use JSON-RPC 2.0 over HTTP POST (correct MCP protocol)
-            verbose_on_fail=True
+            verbose_on_fail=True,
         )
 
         # Run health checks if available
         try:
             from .health_checks import HealthChecker
+
             health_results = await HealthChecker.check_all()
             adapter.health_results = health_results
             if self.verbose:
@@ -159,25 +163,21 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
                 print("⚠️  Health checks not available")
 
         # Setup reporters
-        reporters = [
-            ConsoleReporter(
-                verbose=self.verbose,
-                show_running=self.show_running and self.parallel
-            )
-        ]
+        reporters = [ConsoleReporter(verbose=self.verbose, show_running=self.show_running and self.parallel)]
 
         if self.enable_all_reporters:
             from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             output_dir = self.output_dir or Path(__file__).parent.parent
 
-            reporters.extend([
-                JSONReporter(str(output_dir / f"test_report_{timestamp}.json")),
-                MarkdownReporter(str(output_dir / f"test_report_{timestamp}.md")),
-                FunctionalityMatrixReporter(
-                    str(output_dir / f"functionality_matrix_{timestamp}.md")
-                ),
-            ])
+            reporters.extend(
+                [
+                    JSONReporter(str(output_dir / f"test_report_{timestamp}.json")),
+                    MarkdownReporter(str(output_dir / f"test_report_{timestamp}.md")),
+                    FunctionalityMatrixReporter(str(output_dir / f"functionality_matrix_{timestamp}.md")),
+                ]
+            )
 
         # Create Atoms TestRunner with parallel client manager if available
         self._test_runner = AtomsTestRunner(
@@ -200,7 +200,6 @@ class AtomsMCPTestRunner(UnifiedMCPTestRunner):
         return await self._test_runner.run_all(categories=categories)
 
 
-
 async def run_atoms_tests(
     mcp_endpoint: str | None = None,
     provider: str = "authkit",
@@ -209,7 +208,7 @@ async def run_atoms_tests(
     categories: list[str] | None = None,
     cache: bool = True,
     verbose: bool = False,
-    **kwargs
+    **kwargs,
 ) -> dict[str, Any]:
     """
     Quick helper to run Atoms MCP tests with automatic OAuth and parallel execution.
@@ -235,10 +234,7 @@ async def run_atoms_tests(
             verbose=True
         )
     """
-    mcp_endpoint = mcp_endpoint or os.getenv(
-        "ATOMS_MCP_ENDPOINT",
-        "https://mcp.atoms.tech/api/mcp"
-    )
+    mcp_endpoint = mcp_endpoint or os.getenv("ATOMS_MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
 
     # Ensure mcp_endpoint is a string
     if not isinstance(mcp_endpoint, str):
@@ -251,6 +247,6 @@ async def run_atoms_tests(
         workers=workers,
         cache=cache,
         verbose=verbose,
-        **kwargs
+        **kwargs,
     ) as runner:
         return await runner.run_all(categories=categories)

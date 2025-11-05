@@ -1,26 +1,29 @@
 """Phase 6: Reach 70% coverage target (+700 statements)."""
 
+from datetime import UTC, datetime
+
 import pytest
-from unittest.mock import patch, MagicMock, Mock
-import asyncio
-import json
-from datetime import datetime, timezone, timedelta
+
 
 # Phase 6: Focus on completing remaining modules to reach 70% coverage
 class TestPhase6_70PercentTarget:
     """Phase 6 testing to reach 70% coverage (+700 statements)."""
-    
-    def test_server_core_phase6_completion(self)
+
+    def test_server_core_phase6_completion(self):
         """Complete server/core.py from 95% to 100% (+6 statements)."""
         try:
             from server.core import (
-                MCPServer, RequestHandler, ResponseBuilder,
-                create_advanced_middleware, implement_circuit_breaker_phase6,
-                configure_retry_policies_phase6, setup_health_checks_phase6,
-                optimize_core_performance_phase6, enhance_core_monitoring_phase6,
-                validate_core_architecture_phase6, setup_core_observability_phase6
+                MCPServer,
+                configure_retry_policies_phase6,
+                create_advanced_middleware,
+                enhance_core_monitoring_phase6,
+                implement_circuit_breaker_phase6,
+                optimize_core_performance_phase6,
+                setup_core_observability_phase6,
+                setup_health_checks_phase6,
+                validate_core_architecture_phase6,
             )
-            
+
             # Phase 6: Complete core server to 100%
             mcp_server = MCPServer(
                 name="phase6-mcp-server",
@@ -33,7 +36,7 @@ class TestPhase6_70PercentTarget:
                 observability_enabled=True,
                 performance_optimized=True
             )
-            
+
             # Test advanced middleware creation
             middleware_result = create_advanced_middleware(
                 middleware_type="enterprise_final",
@@ -46,7 +49,7 @@ class TestPhase6_70PercentTarget:
             assert middleware_result.get("created") is True
             assert "middleware_configuration" in middleware_result
             assert middleware_result.get("middleware_count") >= 6
-            
+
             # Test circuit breaker implementation (Phase 6)
             circuit_breaker_result = implement_circuit_breaker_phase6(
                 breaker_type="enterprise_final",
@@ -60,7 +63,7 @@ class TestPhase6_70PercentTarget:
             assert "circuit_breaker_configuration" in circuit_breaker_result
             assert circuit_breaker_result.get("breaker_enabled") is True
             assert circuit_breaker_result.get("health_checks_enabled") is True
-            
+
             # Test retry policies configuration (Phase 6)
             retry_result = configure_retry_policies_phase6(
                 retry_type="exponential_backoff_final",
@@ -75,7 +78,7 @@ class TestPhase6_70PercentTarget:
             assert "retry_configuration" in retry_result
             assert retry_result.get("retry_enabled") is True
             assert retry_result.get("circuit_breaker_enabled") is True
-            
+
             # Test health checks setup (Phase 6)
             health_setup_result = setup_health_checks_phase6(
                 check_type="comprehensive_final",
@@ -89,7 +92,7 @@ class TestPhase6_70PercentTarget:
             assert "health_check_configuration" in health_setup_result
             assert health_setup_result.get("health_checks_count") >= 4
             assert health_setup_result.get("performance_health_enabled") is True
-            
+
             # Test core performance optimization (Phase 6)
             optimize_result = optimize_core_performance_phase6(
                 optimization_level="maximum_final",
@@ -103,7 +106,7 @@ class TestPhase6_70PercentTarget:
             assert "performance_improvement" in optimize_result
             assert optimize_result.get("optimization_count") >= 4
             assert optimize_result.get("advanced_optimization_enabled") is True
-            
+
             # Test core monitoring enhancement (Phase 6)
             monitoring_result = enhance_core_monitoring_phase6(
                 monitoring_level="enterprise_critical_final",
@@ -117,7 +120,7 @@ class TestPhase6_70PercentTarget:
             assert "monitoring_configuration" in monitoring_result
             assert monitoring_result.get("monitoring_features_count") >= 5
             assert monitoring_result.get("predictive_monitoring_enabled") is True
-            
+
             # Test core architecture validation (Phase 6)
             validation_result = validate_core_architecture_phase6(
                 validation_level="enterprise_critical_final",
@@ -131,7 +134,7 @@ class TestPhase6_70PercentTarget:
             assert "architecture_validation" in validation_result
             assert validation_result.get("validation_passed") is True
             assert validation_result.get("reliability_validated") is True
-            
+
             # Test core observability setup (Phase 6)
             observability_result = setup_core_observability_phase6(
                 observability_level="enterprise_critical_final",
@@ -145,20 +148,23 @@ class TestPhase6_70PercentTarget:
             assert "observability_configuration" in observability_result
             assert observability_result.get("observability_features_count") >= 4
             assert observability_result.get("distributed_tracing_enabled") is True
-            
+
         except ImportError:
             pytest.skip("Phase 6 server core completion not available")
-    
+
     def test_server_env_phase6_completion(self):
         """Complete server/env.py from 95% to 100% (+5 statements)."""
         try:
             from server.env import (
-                EnvironmentManager, ConfigLoader, SecurityValidator,
-                load_environment_variables_phase6, validate_environment_security_phase6,
-                configure_environment_monitoring_phase6, setup_environment_alerts_phase6,
-                optimize_environment_performance_phase6, enhance_environment_compliance_phase6
+                EnvironmentManager,
+                configure_environment_monitoring_phase6,
+                enhance_environment_compliance_phase6,
+                load_environment_variables_phase6,
+                optimize_environment_performance_phase6,
+                setup_environment_alerts_phase6,
+                validate_environment_security_phase6,
             )
-            
+
             # Phase 6: Complete environment management to 100%
             env_manager = EnvironmentManager(
                 environment="phase6-production",
@@ -169,7 +175,7 @@ class TestPhase6_70PercentTarget:
                 observability_enabled=True,
                 performance_optimized=True
             )
-            
+
             # Test environment variables loading (Phase 6)
             loading_result = load_environment_variables_phase6(
                 load_type="enterprise_secure_final",
@@ -185,7 +191,7 @@ class TestPhase6_70PercentTarget:
             assert loading_result.get("variables_count") >= 20
             assert loading_result.get("audit_trail_enabled") is True
             assert loading_result.get("compliance_validation_enabled") is True
-            
+
             # Test environment security validation (Phase 6)
             security_result = validate_environment_security_phase6(
                 validation_level="comprehensive_final",
@@ -201,7 +207,7 @@ class TestPhase6_70PercentTarget:
             assert security_result.get("security_validated") is True
             assert security_result.get("compliance_validated") is True
             assert security_result.get("vulnerability_scan_completed") is True
-            
+
             # Test environment monitoring configuration (Phase 6)
             monitoring_result = configure_environment_monitoring_phase6(
                 monitoring_level="enterprise_critical_final",
@@ -217,7 +223,7 @@ class TestPhase6_70PercentTarget:
             assert monitoring_result.get("monitoring_enabled") is True
             assert monitoring_result.get("anomaly_detection_enabled") is True
             assert monitoring_result.get("predictive_monitoring_enabled") is True
-            
+
             # Test environment alerts setup (Phase 6)
             alerts_result = setup_environment_alerts_phase6(
                 alert_severities=["critical", "high", "medium", "low"],
@@ -233,7 +239,7 @@ class TestPhase6_70PercentTarget:
             assert alerts_result.get("alerts_enabled") is True
             assert alerts_result.get("compliance_alerts_enabled") is True
             assert alerts_result.get("predictive_alerts_enabled") is True
-            
+
             # Test environment performance optimization (Phase 6)
             optimize_result = optimize_environment_performance_phase6(
                 optimization_level="maximum_final",
@@ -249,7 +255,7 @@ class TestPhase6_70PercentTarget:
             assert optimize_result.get("optimization_count") >= 5
             assert optimize_result.get("intelligent_optimization_enabled") is True
             assert optimize_result.get("predictive_optimization_enabled") is True
-            
+
             # Test environment compliance enhancement (Phase 6)
             compliance_result = enhance_environment_compliance_phase6(
                 compliance_frameworks=["SOC2", "ISO27001", "HIPAA", "GDPR", "PCI-DSS"],
@@ -265,20 +271,23 @@ class TestPhase6_70PercentTarget:
             assert compliance_result.get("compliance_enhanced") is True
             assert compliance_result.get("automated_compliance_enabled") is True
             assert compliance_result.get("continuous_monitoring_enabled") is True
-            
+
         except ImportError:
             pytest.skip("Phase 6 server env completion not available")
-    
+
     def test_tools_base_phase6_completion(self):
         """Complete tools/base.py from 95% to 100% (+7 statements)."""
         try:
             from tools.base import (
-                ToolBase, ToolManager, ToolRegistry,
-                create_tool_manager_phase6, implement_tool_discovery_phase6,
-                configure_tool_security_phase6, setup_tool_monitoring_phase6,
-                optimize_tool_performance_phase6, enhance_tool_reliability_phase6
+                ToolBase,
+                configure_tool_security_phase6,
+                create_tool_manager_phase6,
+                enhance_tool_reliability_phase6,
+                implement_tool_discovery_phase6,
+                optimize_tool_performance_phase6,
+                setup_tool_monitoring_phase6,
             )
-            
+
             # Phase 6: Complete tool management to 100%
             class Phase6FinalTool(ToolBase):
                 def __init__(self):
@@ -292,11 +301,11 @@ class TestPhase6_70PercentTarget:
                         observability_enabled=True,
                         compliance_enforced=True
                     )
-                
+
                 def execute(self, data: dict, options: dict = None) -> dict:
                     if options is None:
                         options = {}
-                    
+
                     return {
                         "result": {
                             "processed_items": len(data.get("items", [])),
@@ -314,14 +323,14 @@ class TestPhase6_70PercentTarget:
                         },
                         "success": True,
                         "execution_trace": {
-                            "start_time": datetime.now().isoformat(),
+                            "start_time": datetime.now(UTC).isoformat(),
                             "steps": ["validation", "processing", "optimization", "compliance"],
-                            "end_time": datetime.now().isoformat()
+                            "end_time": datetime.now(UTC).isoformat()
                         }
                     }
-            
+
             final_tool = Phase6FinalTool()
-            
+
             # Test tool manager creation (Phase 6)
             manager_result = create_tool_manager_phase6(
                 manager_type="enterprise_final",
@@ -337,7 +346,7 @@ class TestPhase6_70PercentTarget:
             assert manager_result.get("manager_type") == "enterprise_final"
             assert manager_result.get("observability_enabled") is True
             assert manager_result.get("compliance_enabled") is True
-            
+
             # Test tool discovery implementation (Phase 6)
             discovery_result = implement_tool_discovery_phase6(
                 discovery_level="comprehensive_final",
@@ -353,7 +362,7 @@ class TestPhase6_70PercentTarget:
             assert discovery_result.get("discovery_enabled") is True
             assert discovery_result.get("security_validation_enabled") is True
             assert discovery_result.get("compliance_validation_enabled") is True
-            
+
             # Test tool security configuration (Phase 6)
             security_result = configure_tool_security_phase6(
                 security_level="enterprise_critical_final",
@@ -369,7 +378,7 @@ class TestPhase6_70PercentTarget:
             assert security_result.get("security_enabled") is True
             assert security_result.get("compliance_validation_enabled") is True
             assert security_result.get("security_monitoring_enabled") is True
-            
+
             # Test tool monitoring setup (Phase 6)
             monitoring_result = setup_tool_monitoring_phase6(
                 monitoring_level="enterprise_critical_final",
@@ -385,7 +394,7 @@ class TestPhase6_70PercentTarget:
             assert monitoring_result.get("monitoring_enabled") is True
             assert monitoring_result.get("observability_enabled") is True
             assert monitoring_result.get("predictive_monitoring_enabled") is True
-            
+
             # Test tool performance optimization (Phase 6)
             optimize_result = optimize_tool_performance_phase6(
                 optimization_level="maximum_final",
@@ -401,7 +410,7 @@ class TestPhase6_70PercentTarget:
             assert optimize_result.get("optimization_count") >= 5
             assert optimize_result.get("intelligent_optimization_enabled") is True
             assert optimize_result.get("predictive_optimization_enabled") is True
-            
+
             # Test tool reliability enhancement (Phase 6)
             reliability_result = enhance_tool_reliability_phase6(
                 reliability_level="enterprise_critical_final",
@@ -417,20 +426,23 @@ class TestPhase6_70PercentTarget:
             assert reliability_result.get("reliability_enhanced") is True
             assert reliability_result.get("circuit_breaker_enabled") is True
             assert reliability_result.get("predictive_monitoring_enabled") is True
-            
+
         except ImportError:
             pytest.skip("Phase 6 tools base completion not available")
-    
+
     def test_tools_query_phase6_completion(self):
         """Complete tools/query.py from 95% to 100% (+25 statements)."""
         try:
             from tools.query import (
-                QueryTool, QueryEngine, QueryOptimizer,
-                create_query_engine_phase6, implement_query_optimization_phase6,
-                configure_query_security_phase6, setup_query_monitoring_phase6,
-                optimize_query_performance_phase6, enhance_query_reliability_phase6
+                QueryEngine,
+                configure_query_security_phase6,
+                create_query_engine_phase6,
+                enhance_query_reliability_phase6,
+                implement_query_optimization_phase6,
+                optimize_query_performance_phase6,
+                setup_query_monitoring_phase6,
             )
-            
+
             # Phase 6: Complete query tool to 100%
             query_engine = QueryEngine(
                 name="phase6-query-engine",
@@ -442,7 +454,7 @@ class TestPhase6_70PercentTarget:
                 performance_optimized=True,
                 compliance_enforced=True
             )
-            
+
             # Test query engine creation (Phase 6)
             engine_result = create_query_engine_phase6(
                 engine_type="enterprise_final",
@@ -458,7 +470,7 @@ class TestPhase6_70PercentTarget:
             assert engine_result.get("engine_type") == "enterprise_final"
             assert engine_result.get("observability_enabled") is True
             assert engine_result.get("compliance_validation_enabled") is True
-            
+
             # Test query optimization implementation (Phase 6)
             optimization_result = implement_query_optimization_phase6(
                 optimization_level="comprehensive_final",
@@ -474,7 +486,7 @@ class TestPhase6_70PercentTarget:
             assert optimization_result.get("optimization_enabled") is True
             assert optimization_result.get("intelligent_optimization_enabled") is True
             assert optimization_result.get("predictive_optimization_enabled") is True
-            
+
             # Test query security configuration (Phase 6)
             security_result = configure_query_security_phase6(
                 security_level="enterprise_critical_final",
@@ -490,7 +502,7 @@ class TestPhase6_70PercentTarget:
             assert security_result.get("security_enabled") is True
             assert security_result.get("compliance_validation_enabled") is True
             assert security_result.get("security_monitoring_enabled") is True
-            
+
             # Test query monitoring setup (Phase 6)
             monitoring_result = setup_query_monitoring_phase6(
                 monitoring_level="enterprise_critical_final",
@@ -506,7 +518,7 @@ class TestPhase6_70PercentTarget:
             assert monitoring_result.get("monitoring_enabled") is True
             assert monitoring_result.get("observability_enabled") is True
             assert monitoring_result.get("predictive_monitoring_enabled") is True
-            
+
             # Test query performance optimization (Phase 6)
             optimize_result = optimize_query_performance_phase6(
                 optimization_level="maximum_final",
@@ -522,7 +534,7 @@ class TestPhase6_70PercentTarget:
             assert optimize_result.get("optimization_count") >= 5
             assert optimize_result.get("intelligent_caching_enabled") is True
             assert optimize_result.get("predictive_optimization_enabled") is True
-            
+
             # Test query reliability enhancement (Phase 6)
             reliability_result = enhance_query_reliability_phase6(
                 reliability_level="enterprise_critical_final",
@@ -538,22 +550,23 @@ class TestPhase6_70PercentTarget:
             assert reliability_result.get("reliability_enhanced") is True
             assert reliability_result.get("circuit_breaker_enabled") is True
             assert reliability_result.get("predictive_monitoring_enabled") is True
-            
+
         except ImportError:
             pytest.skip("Phase 6 tools query completion not available")
-    
-    def test_phase6_comprehensive_integration(self)
+
+    def test_phase6_comprehensive_integration(self):
         """Comprehensive integration testing for Phase 6."""
         try:
             import time
+
             from server.core import MCPServer, create_advanced_middleware
             from server.env import EnvironmentManager, load_environment_variables_phase6
-            from tools.base import ToolBase, create_tool_manager_phase6
-            from tools.query import QueryEngine, create_query_engine_phase6
-            
+            from tools.base import create_tool_manager_phase6
+            from tools.query import create_query_engine_phase6
+
             # Phase 6 comprehensive integration testing
             start_time = time.time()
-            
+
             # Create enterprise MCP server
             mcp_server = MCPServer(
                 name="phase6-integration-server",
@@ -565,7 +578,7 @@ class TestPhase6_70PercentTarget:
                 performance_optimized=True,
                 compliance_enforced=True
             )
-            
+
             # Create environment manager
             env_manager = EnvironmentManager(
                 environment="phase6-integration",
@@ -575,7 +588,7 @@ class TestPhase6_70PercentTarget:
                 observability_enabled=True,
                 performance_optimized=True
             )
-            
+
             # Create tool manager
             tool_manager_result = create_tool_manager_phase6(
                 manager_type="enterprise_final",
@@ -585,7 +598,7 @@ class TestPhase6_70PercentTarget:
                 include_tool_compliance=True
             )
             assert tool_manager_result.get("created") is True
-            
+
             # Create query engine
             query_engine_result = create_query_engine_phase6(
                 engine_type="enterprise_final",
@@ -595,7 +608,7 @@ class TestPhase6_70PercentTarget:
                 include_compliance_validation=True
             )
             assert query_engine_result.get("created") is True
-            
+
             # Create advanced middleware
             middleware_result = create_advanced_middleware(
                 middleware_type="enterprise_final",
@@ -605,7 +618,7 @@ class TestPhase6_70PercentTarget:
                 include_security_validation=True
             )
             assert middleware_result.get("created") is True
-            
+
             # Load environment variables
             env_load_result = load_environment_variables_phase6(
                 load_type="enterprise_secure_final",
@@ -615,7 +628,7 @@ class TestPhase6_70PercentTarget:
                 include_compliance_validation=True
             )
             assert env_load_result.get("loaded") is True
-            
+
             # Create comprehensive test scenarios
             test_scenarios = []
             for i in range(100):
@@ -634,14 +647,14 @@ class TestPhase6_70PercentTarget:
                     "predictive_monitoring_enabled": True
                 }
                 test_scenarios.append(scenario)
-            
+
             scenario_creation_time = time.time() - start_time
             assert scenario_creation_time < 30.0, f"100 integration scenarios created in {scenario_creation_time}s, expected < 30.0s"
             assert len(test_scenarios) == 100
-            
+
             # Validate comprehensive integration
             validation_start_time = time.time()
-            
+
             for scenario in test_scenarios:
                 assert scenario["mcp_server"].security_level == "enterprise_critical"
                 assert scenario["mcp_server"].observability_enabled is True
@@ -665,14 +678,14 @@ class TestPhase6_70PercentTarget:
                 assert "HIPAA" in scenario["compliance_frameworks"]
                 assert "GDPR" in scenario["compliance_frameworks"]
                 assert "PCI-DSS" in scenario["compliance_frameworks"]
-            
+
             validation_time = time.time() - validation_start_time
             assert validation_time < 5.0, f"Integration validation took {validation_time}s, expected < 5.0s"
-            
+
             # Total integration verification
             total_time = time.time() - start_time
             assert total_time < 40.0, f"Complete Phase 6 integration test took {total_time}s, expected < 40.0s"
-            
+
             # Validate enterprise-level integration
             assert mcp_server.security_level == "enterprise_critical"
             assert mcp_server.observability_enabled is True
@@ -688,22 +701,23 @@ class TestPhase6_70PercentTarget:
             assert query_engine_result.get("compliance_validation_enabled") is True
             assert middleware_result.get("middleware_type") == "enterprise_final"
             assert env_load_result.get("loaded") is True
-            
+
         except ImportError:
             pytest.skip("Phase 6 comprehensive integration testing not available")
-    
-    def test_phase6_performance_and_security_validation(self)
+
+    def test_phase6_performance_and_security_validation(self):
         """Performance and security validation for Phase 6."""
         try:
             import time
+
             from server.core import MCPServer, optimize_core_performance_phase6
             from server.env import EnvironmentManager, optimize_environment_performance_phase6
-            from tools.base import ToolBase, optimize_tool_performance_phase6
-            from tools.query import QueryEngine, optimize_query_performance_phase6
-            
+            from tools.base import optimize_tool_performance_phase6
+            from tools.query import optimize_query_performance_phase6
+
             # Phase 6 performance and security testing
             start_time = time.time()
-            
+
             # Create high-performance MCP server
             mcp_server = MCPServer(
                 name="phase6-performance-server",
@@ -715,7 +729,7 @@ class TestPhase6_70PercentTarget:
                 observability_enabled=True,
                 compliance_enforced=True
             )
-            
+
             # Create high-performance environment manager
             env_manager = EnvironmentManager(
                 environment="phase6-performance",
@@ -725,7 +739,7 @@ class TestPhase6_70PercentTarget:
                 observability_enabled=True,
                 compliance_enforced=True
             )
-            
+
             # Create high-performance tool manager
             tool_optimization_result = optimize_tool_performance_phase6(
                 optimization_level="maximum_final",
@@ -735,7 +749,7 @@ class TestPhase6_70PercentTarget:
                 include_predictive_optimization=True
             )
             assert tool_optimization_result.get("optimized") is True
-            
+
             # Create high-performance query engine
             query_optimization_result = optimize_query_performance_phase6(
                 optimization_level="maximum_final",
@@ -745,7 +759,7 @@ class TestPhase6_70PercentTarget:
                 include_predictive_optimization=True
             )
             assert query_optimization_result.get("optimized") is True
-            
+
             # Core server performance optimization
             core_optimization_result = optimize_core_performance_phase6(
                 optimization_level="maximum_final",
@@ -755,7 +769,7 @@ class TestPhase6_70PercentTarget:
                 enable_advanced_optimization=True
             )
             assert core_optimization_result.get("optimized") is True
-            
+
             # Environment performance optimization
             env_optimization_result = optimize_environment_performance_phase6(
                 optimization_level="maximum_final",
@@ -765,7 +779,7 @@ class TestPhase6_70PercentTarget:
                 include_predictive_optimization=True
             )
             assert env_optimization_result.get("optimized") is True
-            
+
             # Performance testing scenarios
             performance_scenarios = []
             for i in range(200):
@@ -784,11 +798,11 @@ class TestPhase6_70PercentTarget:
                     "predictive_optimization_enabled": True
                 }
                 performance_scenarios.append(scenario)
-            
+
             performance_creation_time = time.time() - start_time
             assert performance_creation_time < 50.0, f"200 performance scenarios created in {performance_creation_time}s, expected < 50.0s"
             assert len(performance_scenarios) == 200
-            
+
             # Security validation scenarios
             security_scenarios = []
             for i in range(150):
@@ -803,15 +817,15 @@ class TestPhase6_70PercentTarget:
                     "predictive_monitoring_enabled": True
                 }
                 security_scenarios.append(scenario)
-            
+
             security_creation_time = time.time() - start_time
             assert security_creation_time < 60.0, f"150 security scenarios created in {security_creation_time}s, expected < 60.0s"
             assert len(security_scenarios) == 150
-            
+
             # Total performance and security verification
             total_time = time.time() - start_time
             assert total_time < 70.0, f"Complete Phase 6 performance test took {total_time}s, expected < 70.0s"
-            
+
             # Validate performance and security integration
             assert mcp_server.performance_optimized is True
             assert mcp_server.observability_enabled is True
@@ -827,12 +841,12 @@ class TestPhase6_70PercentTarget:
             assert core_optimization_result.get("advanced_optimization_enabled") is True
             assert env_optimization_result.get("optimized") is True
             assert env_optimization_result.get("predictive_optimization_enabled") is True
-            
+
             assert all(s["security_level"] == "enterprise_critical" for s in security_scenarios)
             assert all(s["observability_enabled"] is True for s in performance_scenarios)
             assert all(s["predictive_optimization_enabled"] is True for s in performance_scenarios)
             assert all(s["performance_target"] == "maximum" for s in performance_scenarios)
             assert all(s["predictive_monitoring_enabled"] is True for s in security_scenarios)
-            
+
         except ImportError:
             pytest.skip("Phase 6 performance and security validation not available")

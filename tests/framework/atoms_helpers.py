@@ -7,7 +7,6 @@ Provides helpers for Atoms MCP Server testing:
 - Test entity factories for Atoms domain model
 """
 
-
 # Import from local validators
 from .validators import ResponseValidator as BaseValidator
 
@@ -21,11 +20,9 @@ class AtomsTestHelpers:
 
         Returns the ID of the first entity of the given type, or None if none exist.
         """
-        list_result = await client.call_tool("entity_tool", {
-            "entity_type": entity_type,
-            "operation": "list",
-            "limit": 1
-        })
+        list_result = await client.call_tool(
+            "entity_tool", {"entity_type": entity_type, "operation": "list", "limit": 1}
+        )
 
         if not list_result.get("success"):
             return None
@@ -79,11 +76,9 @@ class AtomsTestHelpers:
                 data_kwargs["project_id"] = project_id
 
         data = data_generator_func(**data_kwargs)
-        create_result = await client.call_tool("entity_tool", {
-            "entity_type": entity_type,
-            "operation": "create",
-            "data": data
-        })
+        create_result = await client.call_tool(
+            "entity_tool", {"entity_type": entity_type, "operation": "create", "data": data}
+        )
 
         if not create_result.get("success"):
             return None
@@ -104,9 +99,8 @@ class AtomsTestHelpers:
 
         # Create new org
         from .data_generators import DataGenerator
-        return await AtomsTestHelpers.create_test_entity(
-            client, "organization", DataGenerator.organization_data
-        )
+
+        return await AtomsTestHelpers.create_test_entity(client, "organization", DataGenerator.organization_data)
 
     @staticmethod
     async def get_or_create_project(client, organization_id: str | None = None) -> str | None:
@@ -131,9 +125,9 @@ class AtomsTestHelpers:
 
         # Create new project
         from .data_generators import DataGenerator
+
         return await AtomsTestHelpers.create_test_entity(
-            client, "project", DataGenerator.project_data,
-            organization_id=organization_id
+            client, "project", DataGenerator.project_data, organization_id=organization_id
         )
 
     @staticmethod
@@ -159,9 +153,9 @@ class AtomsTestHelpers:
 
         # Create new document
         from .data_generators import DataGenerator
+
         return await AtomsTestHelpers.create_test_entity(
-            client, "document", DataGenerator.document_data,
-            project_id=project_id
+            client, "document", DataGenerator.document_data, project_id=project_id
         )
 
 

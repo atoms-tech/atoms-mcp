@@ -10,7 +10,7 @@ import asyncio
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -37,7 +37,7 @@ class TestResult:
         self.success = success
         self.response = response
         self.error = error
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(UTC).isoformat()
 
     def to_dict(self):
         return {
@@ -101,7 +101,7 @@ async def call_mcp(tool_name: str, params: dict[str, Any], jwt_token: str) -> di
     return {"success": False, "error": body.get("error", "Unknown error")}
 
 
-async def main()
+async def main():
     """Execute all relationship tool tests."""
     print("=" * 80)
     print("ATOMS MCP RELATIONSHIP_TOOL COMPREHENSIVE TEST")
@@ -576,14 +576,14 @@ async def main()
     print()
 
     # Save results to JSON file
-    report_file = f"relationship_tool_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    report_file = f"relationship_tool_test_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     report_data = {
         "summary": {
             "total_operations": total_tests,
             "successful": successful_tests,
             "failed": failed_tests,
             "success_rate": f"{(successful_tests/total_tests*100):.1f}%",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         },
         "operations": [r.to_dict() for r in test_results]
     }

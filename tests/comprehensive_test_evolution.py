@@ -125,7 +125,7 @@ class ComprehensiveTestEvolutionRunner:
 
         return sum(scores) / max(1, len(scores))
 
-    def display_test_results(self, results: dict[str, TestResult])
+    def display_test_results(self, results: dict[str, TestResult]):
         """Display comprehensive test results using Rich UI."""
         try:
             from rich.console import Console

@@ -38,8 +38,8 @@ class WorkflowOperationsTestSuite:
                         "operation": "delete",
                         "entity_type": entity["type"],
                         "entity_id": entity["id"],
-                        "soft_delete": True
-                    }
+                        "soft_delete": True,
+                    },
                 )
             except Exception:
                 pass  # Ignore cleanup errors
@@ -64,22 +64,14 @@ class TestWorkflowImportRequirements:
             {
                 "title": "User Authentication",
                 "description": "Implement secure user authentication system",
-                "priority": "high"
+                "priority": "high",
             },
-            {
-                "title": "Data Validation",
-                "description": "Implement data validation rules",
-                "priority": "medium"
-            }
+            {"title": "Data Validation", "description": "Implement data validation rules", "priority": "medium"},
         ]
 
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": str(uuid.uuid4()),
-                "requirements": requirements
-            }
+            {"operation": "import_requirements", "project_id": str(uuid.uuid4()), "requirements": requirements},
         )
 
         assert result["success"] is True
@@ -94,21 +86,13 @@ class TestWorkflowImportRequirements:
                 "title": "API Integration",
                 "description": "Integrate with external API",
                 "priority": "high",
-                "metadata": {
-                    "complexity": "medium",
-                    "estimated_hours": 40,
-                    "dependencies": ["authentication"]
-                }
+                "metadata": {"complexity": "medium", "estimated_hours": 40, "dependencies": ["authentication"]},
             }
         ]
 
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": str(uuid.uuid4()),
-                "requirements": requirements
-            }
+            {"operation": "import_requirements", "project_id": str(uuid.uuid4()), "requirements": requirements},
         )
 
         assert result["success"] is True
@@ -119,21 +103,13 @@ class TestWorkflowImportRequirements:
     async def test_import_requirements_batch_large(self, workflow_suite):
         """Test import_requirements with large batch."""
         requirements = [
-            {
-                "title": f"Requirement {i}",
-                "description": f"Description for requirement {i}",
-                "priority": "medium"
-            }
+            {"title": f"Requirement {i}", "description": f"Description for requirement {i}", "priority": "medium"}
             for i in range(100)
         ]
 
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": str(uuid.uuid4()),
-                "requirements": requirements
-            }
+            {"operation": "import_requirements", "project_id": str(uuid.uuid4()), "requirements": requirements},
         )
 
         assert result["success"] is True
@@ -144,16 +120,12 @@ class TestWorkflowImportRequirements:
     async def test_import_requirements_with_validation(self, workflow_suite):
         """Test import_requirements with validation rules."""
         requirements = [
-            {
-                "title": "Valid Requirement",
-                "description": "This is a valid requirement",
-                "priority": "high"
-            },
+            {"title": "Valid Requirement", "description": "This is a valid requirement", "priority": "high"},
             {
                 "title": "",  # Invalid - empty title
                 "description": "This requirement has no title",
-                "priority": "medium"
-            }
+                "priority": "medium",
+            },
         ]
 
         result = await workflow_suite.call_mcp(
@@ -162,8 +134,8 @@ class TestWorkflowImportRequirements:
                 "operation": "import_requirements",
                 "project_id": str(uuid.uuid4()),
                 "requirements": requirements,
-                "validate": True
-            }
+                "validate": True,
+            },
         )
 
         assert result["success"] is True
@@ -175,21 +147,11 @@ class TestWorkflowImportRequirements:
     @pytest.mark.asyncio
     async def test_import_requirements_invalid_project(self, workflow_suite):
         """Test import_requirements with invalid project ID."""
-        requirements = [
-            {
-                "title": "Test Requirement",
-                "description": "Test description",
-                "priority": "high"
-            }
-        ]
+        requirements = [{"title": "Test Requirement", "description": "Test description", "priority": "high"}]
 
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": "invalid-project-id",
-                "requirements": requirements
-            }
+            {"operation": "import_requirements", "project_id": "invalid-project-id", "requirements": requirements},
         )
 
         assert result["success"] is False
@@ -199,12 +161,7 @@ class TestWorkflowImportRequirements:
     async def test_import_requirements_empty_list(self, workflow_suite):
         """Test import_requirements with empty requirements list."""
         result = await workflow_suite.call_mcp(
-            "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": str(uuid.uuid4()),
-                "requirements": []
-            }
+            "workflow_tool", {"operation": "import_requirements", "project_id": str(uuid.uuid4()), "requirements": []}
         )
 
         assert result["success"] is False
@@ -225,22 +182,13 @@ class TestWorkflowBulkStatusUpdate:
         # First create some requirements
         project_id = str(uuid.uuid4())
         requirements = [
-            {
-                "title": f"Requirement {i}",
-                "description": f"Description {i}",
-                "priority": "medium"
-            }
-            for i in range(5)
+            {"title": f"Requirement {i}", "description": f"Description {i}", "priority": "medium"} for i in range(5)
         ]
 
         # Import requirements
         import_result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": project_id,
-                "requirements": requirements
-            }
+            {"operation": "import_requirements", "project_id": project_id, "requirements": requirements},
         )
 
         assert import_result["success"] is True
@@ -253,8 +201,8 @@ class TestWorkflowBulkStatusUpdate:
                 "operation": "bulk_status_update",
                 "entity_type": "requirement",
                 "entity_ids": requirement_ids,
-                "new_status": "in_progress"
-            }
+                "new_status": "in_progress",
+            },
         )
 
         assert result["success"] is True
@@ -265,14 +213,7 @@ class TestWorkflowBulkStatusUpdate:
     async def test_bulk_status_update_tests(self, workflow_suite):
         """Test bulk_status_update for tests."""
         # Create test cases
-        test_cases = [
-            {
-                "name": f"Test {i}",
-                "description": f"Test description {i}",
-                "type": "unit"
-            }
-            for i in range(3)
-        ]
+        test_cases = [{"name": f"Test {i}", "description": f"Test description {i}", "type": "unit"} for i in range(3)]
 
         # Setup test matrix
         setup_result = await workflow_suite.call_mcp(
@@ -281,8 +222,8 @@ class TestWorkflowBulkStatusUpdate:
                 "operation": "setup_test_matrix",
                 "project_id": str(uuid.uuid4()),
                 "test_types": ["unit"],
-                "test_cases": test_cases
-            }
+                "test_cases": test_cases,
+            },
         )
 
         assert setup_result["success"] is True
@@ -291,12 +232,7 @@ class TestWorkflowBulkStatusUpdate:
         # Update status
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "bulk_status_update",
-                "entity_type": "test",
-                "entity_ids": test_ids,
-                "new_status": "passed"
-            }
+            {"operation": "bulk_status_update", "entity_type": "test", "entity_ids": test_ids, "new_status": "passed"},
         )
 
         assert result["success"] is True
@@ -313,11 +249,8 @@ class TestWorkflowBulkStatusUpdate:
                 "entity_type": "requirement",
                 "entity_ids": [str(uuid.uuid4())],
                 "new_status": "completed",
-                "metadata_update": {
-                    "completed_by": "test_user",
-                    "completed_at": "2024-01-01T00:00:00Z"
-                }
-            }
+                "metadata_update": {"completed_by": "test_user", "completed_at": "2024-01-01T00:00:00Z"},
+            },
         )
 
         assert result["success"] is True
@@ -332,8 +265,8 @@ class TestWorkflowBulkStatusUpdate:
                 "operation": "bulk_status_update",
                 "entity_type": "invalid_type",
                 "entity_ids": [str(uuid.uuid4())],
-                "new_status": "active"
-            }
+                "new_status": "active",
+            },
         )
 
         assert result["success"] is False
@@ -344,12 +277,7 @@ class TestWorkflowBulkStatusUpdate:
         """Test bulk_status_update with empty entity IDs list."""
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "bulk_status_update",
-                "entity_type": "requirement",
-                "entity_ids": [],
-                "new_status": "active"
-            }
+            {"operation": "bulk_status_update", "entity_type": "requirement", "entity_ids": [], "new_status": "active"},
         )
 
         assert result["success"] is False
@@ -371,7 +299,7 @@ class TestWorkflowPerformance:
             {
                 "title": f"Performance Test Requirement {i}",
                 "description": f"Description for requirement {i}",
-                "priority": "medium"
+                "priority": "medium",
             }
             for i in range(1000)
         ]
@@ -379,11 +307,7 @@ class TestWorkflowPerformance:
         start_time = time.time()
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "import_requirements",
-                "project_id": str(uuid.uuid4()),
-                "requirements": requirements
-            }
+            {"operation": "import_requirements", "project_id": str(uuid.uuid4()), "requirements": requirements},
         )
         end_time = time.time()
 
@@ -406,8 +330,8 @@ class TestWorkflowPerformance:
                 "operation": "bulk_status_update",
                 "entity_type": "requirement",
                 "entity_ids": entity_ids,
-                "new_status": "in_progress"
-            }
+                "new_status": "in_progress",
+            },
         )
         end_time = time.time()
 

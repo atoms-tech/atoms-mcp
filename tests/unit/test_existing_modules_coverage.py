@@ -1,8 +1,6 @@
 """Test existing modules for maximum coverage with working imports."""
 
-import os
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -80,6 +78,7 @@ class TestDeploymentChecker:
             assert success is False
             assert "missing.txt" in message
 
+
 # Test core server manager
 class TestAtomsServerManager:
     """Test atoms server manager functionality."""
@@ -109,6 +108,7 @@ class TestAtomsServerManager:
         cmd_args = mock_run.call_args[0][0]
         assert "--port" in cmd_args
 
+
 # Test entity tools
 class TestEntityTool:
     """Test entity tool functionality."""
@@ -135,7 +135,7 @@ class TestEntityTool:
             with patch.object(manager, "supabase") as mock_db:
                 mock_db.table.return_value.select.return_value.execute.return_value.data = [
                     {"id": "1", "name": "Test Entity 1"},
-                    {"id": "2", "name": "Test Entity 2"}
+                    {"id": "2", "name": "Test Entity 2"},
                 ]
 
                 result = await manager.list("project")
@@ -146,6 +146,7 @@ class TestEntityTool:
 
         except ImportError:
             pytest.skip("EntityManager not available")
+
 
 # Test query tool
 class TestQueryTool:
@@ -171,30 +172,28 @@ class TestQueryTool:
                 "search_term": "test",
                 "entities_searched": ["project"],
                 "total_results": 1,
-                "results_by_entity": {
-                    "project": {"count": 1, "results": [{"content": "Search result 1"}]}
-                }
+                "results_by_entity": {"project": {"count": 1, "results": [{"content": "Search result 1"}]}},
             }
 
-            with patch.object(query_module._query_engine, "_validate_auth", new=AsyncMock()), \
-                 patch.object(query_module._query_engine, "_resolve_entity_table", side_effect=lambda entity: entity), \
-                 patch.object(query_module._query_engine, "_search_query", new=AsyncMock(return_value=expected_result)) as mock_search:
+            with (
+                patch.object(query_module._query_engine, "_validate_auth", new=AsyncMock()),
+                patch.object(query_module._query_engine, "_resolve_entity_table", side_effect=lambda entity: entity),
+                patch.object(
+                    query_module._query_engine, "_search_query", new=AsyncMock(return_value=expected_result)
+                ) as mock_search,
+            ):
                 result = await query_module.data_query(
-                    auth_token="token",
-                    query_type="search",
-                    entities=["project"],
-                    search_term="test"
+                    auth_token="token", query_type="search", entities=["project"], search_term="test"
                 )
 
                 assert isinstance(result, dict)
-                project_info = (result.get("data", {})
-                                .get("results_by_entity", {})
-                                .get("project", {}))
+                project_info = result.get("data", {}).get("results_by_entity", {}).get("project", {})
                 assert project_info.get("count") == 1
                 mock_search.assert_awaited_once()
 
         except ImportError:
             pytest.skip("DataQueryEngine not available")
+
 
 # Test configuration modules
 class TestConfigurationModules:
@@ -237,6 +236,7 @@ class TestConfigurationModules:
 
         except ImportError:
             pytest.skip("Infrastructure config not available")
+
 
 # Test schema modules
 class TestSchemaModules:
@@ -314,6 +314,7 @@ class TestSchemaModules:
         except ValidationError:
             pass  # Expected
 
+
 # Test utility modules
 class TestUtilsModules:
     """Test utility modules."""
@@ -338,6 +339,7 @@ class TestUtilsModules:
         adapter = create_atoms_adapter()
         assert adapter is not None
 
+
 # Test server auth and env
 class TestServerModules:
     """Test server modules."""
@@ -360,10 +362,10 @@ class TestServerModules:
                 self.allowed = allowed
                 self.remaining = remaining
 
-            async def check_limit(self, user_id: str) -> bool:
+            async def check_limit(self, _user_id: str) -> bool:
                 return self.allowed
 
-            def get_remaining(self, user_id: str) -> int:
+            def get_remaining(self, _user_id: str) -> int:
                 return self.remaining
 
         await check_rate_limit("user-1", DummyLimiter(True, 3))
@@ -376,11 +378,7 @@ class TestServerModules:
         from server.env import EnvConfig
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            config = EnvConfig(
-                base_dir=Path(temp_dir),
-                env_files=(".env",),
-                override_existing=True
-            )
+            config = EnvConfig(base_dir=Path(temp_dir), env_files=(".env",), override_existing=True)
 
             assert config.base_dir == Path(temp_dir)
             assert config.env_files == (".env",)
@@ -400,6 +398,7 @@ class TestServerModules:
         with patch.object(auth_module, "get_access_token", return_value=None):
             assert auth_module.extract_bearer_token() is None
 
+
 # Test errors and serializers
 class TestErrorAndSerialization:
     """Test error handling and serialization."""
@@ -408,12 +407,7 @@ class TestErrorAndSerialization:
         """Test API error."""
         from server.errors import ApiError, create_api_error_internal
 
-        error = ApiError(
-            code="TEST_ERROR",
-            message="Test error",
-            status=400,
-            details={"context": "unit-test"}
-        )
+        error = ApiError(code="TEST_ERROR", message="Test error", status=400, details={"context": "unit-test"})
 
         assert error.message == "Test error"
         assert error.status == 400
@@ -429,12 +423,7 @@ class TestErrorAndSerialization:
         from server.serializers import Serializable, SerializerConfig
 
         # Test serializer config
-        config = SerializerConfig(
-            max_string_length=50,
-            max_list_items=5,
-            indent_size=4,
-            show_metadata=False
-        )
+        config = SerializerConfig(max_string_length=50, max_list_items=5, indent_size=4, show_metadata=False)
 
         assert config.max_string_length == 50
         assert config.max_list_items == 5
@@ -454,6 +443,7 @@ class TestErrorAndSerialization:
         markdown = obj.to_markdown()
         assert "test" in markdown
         assert "42" in markdown
+
 
 # Integration test for comprehensive coverage
 class TestComprehensiveCoverage:
@@ -493,7 +483,11 @@ class TestComprehensiveCoverage:
         from lib import deployment_checker
         from lib.atoms.core import server as atoms_server
         from schemas import constants, enums, triggers
-        from server import auth as server_auth, env as server_env, errors as server_errors, serializers as server_serializers
+        from server import auth as server_auth
+        from server import env as server_env
+        from server import errors as server_errors
+        from server import serializers as server_serializers
+
         try:
             from utils import logging_setup, mcp_adapter
         except ImportError:

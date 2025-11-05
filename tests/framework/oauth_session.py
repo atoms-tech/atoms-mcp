@@ -49,7 +49,7 @@ class OAuthSessionBroker:
             "auth_data": auth_data,
             "created_at": time.time(),
             "expires_at": time.time() + 3600,  # 1 hour default
-            "active": True
+            "active": True,
         }
 
         async with self._session_lock:
@@ -106,10 +106,7 @@ class OAuthSessionBroker:
         if not session:
             return False
 
-        return (
-            session.get("active", False) and
-            session.get("expires_at", 0) > time.time()
-        )
+        return session.get("active", False) and session.get("expires_at", 0) > time.time()
 
     async def cleanup_expired_sessions(self) -> int:
         """Clean up expired sessions.

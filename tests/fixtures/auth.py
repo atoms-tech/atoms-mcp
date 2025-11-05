@@ -98,7 +98,7 @@ async def authenticated_client(request, atoms_mode_config):
             mcp_endpoint=mcp_endpoint,
             access_token=access_token,
             debug=True,  # Enable network-level logging
-            reauthenticate_callback=reauthenticate  # Auto re-auth on 401
+            reauthenticate_callback=reauthenticate,  # Auto re-auth on 401
         )
 
         yield client
@@ -132,26 +132,21 @@ async def google_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerato
 
 
 @pytest.fixture
-async def fresh_authenticated_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
+async def fresh_authenticated_client(
+    auth_session_broker: AuthSessionBroker,
+) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """Function-scoped client with fresh credentials.
 
     Use this when you need to test auth refresh or credential expiry.
     """
-    credentials = await auth_session_broker.get_authenticated_credentials(
-        provider="authkit",
-        force_refresh=True
-    )
+    credentials = await auth_session_broker.get_authenticated_credentials(provider="authkit", force_refresh=True)
     return AuthenticatedHTTPClient(credentials)
 
 
 @pytest.fixture
 def mock_auth_credentials() -> AuthCredentials:
     """Mock credentials for unit testing (no real OAuth)."""
-    return AuthCredentials(
-        access_token="mock_token_for_unit_tests",
-        provider="mock",
-        base_url="http://localhost:8000"
-    )
+    return AuthCredentials(access_token="mock_token_for_unit_tests", provider="mock", base_url="http://localhost:8000")
 
 
 @pytest.fixture

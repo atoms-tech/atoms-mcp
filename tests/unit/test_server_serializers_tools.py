@@ -23,21 +23,18 @@ class TestServerSerializersComplete:
         """Test server serializers module imports."""
         try:
             import server.serializers
+
             assert server.serializers is not None
         except ImportError:
             pytest.skip("server.serializers not available")
 
-    def test_json_serialization(self, mock_serializer_environment):
+    def test_json_serialization(self, _mock_serializer_environment):
         """Test JSON serialization."""
         try:
             from server.serializers import serialize_error, serialize_response
 
             # Test response serialization
-            test_data = {
-                "message": "Success",
-                "data": {"id": 1, "name": "Test"},
-                "status": "ok"
-            }
+            test_data = {"message": "Success", "data": {"id": 1, "name": "Test"}, "status": "ok"}
 
             result = serialize_response(test_data)
             assert isinstance(result, str)
@@ -48,6 +45,7 @@ class TestServerSerializersComplete:
 
             # Test error serialization
             from server.errors import ApiError
+
             error = ApiError("Test error", 400, "TEST_ERROR")
 
             error_result = serialize_error(error)
@@ -60,27 +58,19 @@ class TestServerSerializersComplete:
         except ImportError:
             pytest.skip("JSON serialization not available")
 
-    def test_response_formatting(self, mock_serializer_environment):
+    def test_response_formatting(self, _mock_serializer_environment):
         """Test response formatting."""
         try:
             from server.serializers import format_response
 
             # Test success response
-            success_response = format_response(
-                data={"result": "success"},
-                status=200,
-                message="Operation completed"
-            )
+            success_response = format_response(data={"result": "success"}, status=200, message="Operation completed")
 
             assert success_response is not None
             assert isinstance(success_response, dict)
 
             # Test error response
-            error_response = format_response(
-                error="Test error",
-                status=400,
-                error_code="TEST_ERROR"
-            )
+            error_response = format_response(error="Test error", status=400, error_code="TEST_ERROR")
 
             assert error_response is not None
             assert isinstance(error_response, dict)
@@ -88,7 +78,7 @@ class TestServerSerializersComplete:
         except ImportError:
             pytest.skip("Response formatting not available")
 
-    def test_data_validation_serialization(self, mock_serializer_environment):
+    def test_data_validation_serialization(self, _mock_serializer_environment):
         """Test data validation serialization."""
         try:
             from server.serializers import validate_and_serialize
@@ -126,11 +116,12 @@ class TestServerToolsComplete:
         """Test server tools module imports."""
         try:
             import server.tools
+
             assert server.tools is not None
         except ImportError:
             pytest.skip("server.tools not available")
 
-    def test_mcp_tool_registration(self, mock_server_tools_environment):
+    def test_mcp_tool_registration(self, _mock_server_tools_environment):
         """Test MCP tool registration."""
         try:
             from server.tools import get_registered_mcp_tools, register_mcp_tool
@@ -146,11 +137,8 @@ class TestServerToolsComplete:
                 description="Mock MCP tool for testing",
                 schema={
                     "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "value": {"type": "integer", "default": 10}
-                    }
-                }
+                    "properties": {"name": {"type": "string"}, "value": {"type": "integer", "default": 10}},
+                },
             )
 
             # Verify registration
@@ -164,7 +152,7 @@ class TestServerToolsComplete:
         except ImportError:
             pytest.skip("MCP tool registration not available")
 
-    def test_tool_execution(self, mock_server_tools_environment):
+    def test_tool_execution(self, _mock_server_tools_environment):
         """Test tool execution."""
         try:
             from server.tools import execute_tool
@@ -175,9 +163,7 @@ class TestServerToolsComplete:
 
             # Execute tool
             result = execute_tool(
-                tool_name="test_tool",
-                function=test_function,
-                arguments={"param1": "hello", "param2": 10}
+                tool_name="test_tool", function=test_function, arguments={"param1": "hello", "param2": 10}
             )
 
             assert result is not None
@@ -188,7 +174,7 @@ class TestServerToolsComplete:
         except ImportError:
             pytest.skip("Tool execution not available")
 
-    def test_tool_error_handling(self, mock_server_tools_environment):
+    def test_tool_error_handling(self, _mock_server_tools_environment):
         """Test tool error handling."""
         try:
             from server.tools import execute_tool
@@ -198,11 +184,7 @@ class TestServerToolsComplete:
                 raise ValueError("Tool execution failed")
 
             # Execute failing tool
-            result = execute_tool(
-                tool_name="failing_tool",
-                function=failing_function,
-                arguments={}
-            )
+            result = execute_tool(tool_name="failing_tool", function=failing_function, arguments={})
 
             assert result is not None
             if isinstance(result, dict):
@@ -211,7 +193,7 @@ class TestServerToolsComplete:
         except ImportError:
             pytest.skip("Tool error handling not available")
 
-    def test_tool_parameter_validation(self, mock_server_tools_environment):
+    def test_tool_parameter_validation(self, _mock_server_tools_environment):
         """Test tool parameter validation."""
         try:
             from server.tools import validate_tool_parameters
@@ -222,9 +204,9 @@ class TestServerToolsComplete:
                 "properties": {
                     "name": {"type": "string"},
                     "age": {"type": "integer", "minimum": 0},
-                    "email": {"type": "string", "format": "email"}
+                    "email": {"type": "string", "format": "email"},
                 },
-                "required": ["name", "age"]
+                "required": ["name", "age"],
             }
 
             # Test valid parameters

@@ -168,12 +168,7 @@ class TestRequirementTriggers:
 
     def test_sync_requirements_properties(self):
         """Test requirement properties are synced."""
-        data = {
-            "name": "REQ-001",
-            "status": "active",
-            "priority": "high",
-            "format": "incose"
-        }
+        data = {"name": "REQ-001", "status": "active", "priority": "high", "format": "incose"}
         result = sync_requirements_properties(data)
 
         assert "properties" in result
@@ -183,11 +178,7 @@ class TestRequirementTriggers:
 
     def test_sync_requirements_properties_preserves_existing(self):
         """Test sync preserves existing properties."""
-        data = {
-            "name": "REQ-001",
-            "status": "active",
-            "properties": {"custom_field": "value"}
-        }
+        data = {"name": "REQ-001", "status": "active", "properties": {"custom_field": "value"}}
         result = sync_requirements_properties(data)
 
         assert result["properties"]["status"] == "active"
@@ -208,7 +199,7 @@ class TestRequirementTriggers:
         data = {"id": "req-2", "parent_id": "req-1"}
         existing_closure = [
             {"ancestor_id": "req-0", "descendant_id": "req-1", "depth": 1},
-            {"ancestor_id": "req-1", "descendant_id": "req-1", "depth": 0}
+            {"ancestor_id": "req-1", "descendant_id": "req-1", "depth": 0},
         ]
 
         closure = handle_requirement_hierarchy(data, existing_closure)
@@ -216,20 +207,11 @@ class TestRequirementTriggers:
         # Should have self-reference + 2 inherited ancestors
         assert len(closure) == 3
         # Self-reference
-        assert any(
-            e["ancestor_id"] == "req-2" and e["descendant_id"] == "req-2" and e["depth"] == 0
-            for e in closure
-        )
+        assert any(e["ancestor_id"] == "req-2" and e["descendant_id"] == "req-2" and e["depth"] == 0 for e in closure)
         # Direct parent
-        assert any(
-            e["ancestor_id"] == "req-1" and e["descendant_id"] == "req-2" and e["depth"] == 1
-            for e in closure
-        )
+        assert any(e["ancestor_id"] == "req-1" and e["descendant_id"] == "req-2" and e["depth"] == 1 for e in closure)
         # Grandparent
-        assert any(
-            e["ancestor_id"] == "req-0" and e["descendant_id"] == "req-2" and e["depth"] == 2
-            for e in closure
-        )
+        assert any(e["ancestor_id"] == "req-0" and e["descendant_id"] == "req-2" and e["depth"] == 2 for e in closure)
 
 
 # =============================================================================
@@ -242,11 +224,7 @@ class TestUserOrgTriggers:
 
     def test_handle_new_user(self):
         """Test new user creates personal org."""
-        user_data = {
-            "id": "user-1",
-            "email": "test@example.com",
-            "full_name": "Test User"
-        }
+        user_data = {"id": "user-1", "email": "test@example.com", "full_name": "Test User"}
 
         updated_profile, personal_org = handle_new_user(user_data)
 
@@ -263,10 +241,7 @@ class TestUserOrgTriggers:
 
     def test_handle_new_user_email_only(self):
         """Test new user with email only."""
-        user_data = {
-            "id": "user-2",
-            "email": "john@example.com"
-        }
+        user_data = {"id": "user-2", "email": "john@example.com"}
 
         _updated_profile, personal_org = handle_new_user(user_data)
 
@@ -307,7 +282,7 @@ class TestSoftDelete:
             "id": "entity-1",
             Fields.IS_DELETED: True,
             Fields.DELETED_AT: "2024-01-01T00:00:00Z",
-            Fields.DELETED_BY: "user-1"
+            Fields.DELETED_BY: "user-1",
         }
         result = handle_restore(data)
 
@@ -359,17 +334,13 @@ class TestValidation:
 
     def test_check_requirement_cycle_descendant(self):
         """Test cycle detection - parent is descendant."""
-        closure = [
-            {"ancestor_id": "req-1", "descendant_id": "req-2", "depth": 1}
-        ]
+        closure = [{"ancestor_id": "req-1", "descendant_id": "req-2", "depth": 1}]
         with pytest.raises(ValueError, match="Cycle detected"):
             check_requirement_cycle("req-1", "req-2", closure)
 
     def test_check_requirement_cycle_valid(self):
         """Test valid parent assignment."""
-        closure = [
-            {"ancestor_id": "req-1", "descendant_id": "req-2", "depth": 1}
-        ]
+        closure = [{"ancestor_id": "req-1", "descendant_id": "req-2", "depth": 1}]
         # Should not raise - req-3 can have req-1 as parent
         check_requirement_cycle("req-3", "req-1", closure)
 
@@ -391,10 +362,7 @@ class TestTriggerEmulator:
 
     def test_before_insert_organization(self, emulator):
         """Test BEFORE INSERT for organization."""
-        data = {
-            "name": "Test Org",
-            "slug": "Test Org"
-        }
+        data = {"name": "Test Org", "slug": "Test Org"}
         result = emulator.before_insert(Tables.ORGANIZATIONS, data)
 
         # Check generated fields
@@ -414,10 +382,7 @@ class TestTriggerEmulator:
 
     def test_before_insert_project(self, emulator):
         """Test BEFORE INSERT for project."""
-        data = {
-            "name": "Test Project",
-            "organization_id": "org-123"
-        }
+        data = {"name": "Test Project", "organization_id": "org-123"}
         result = emulator.before_insert(Tables.PROJECTS, data)
 
         # Check auto-generated slug
@@ -426,12 +391,7 @@ class TestTriggerEmulator:
 
     def test_before_insert_requirement(self, emulator):
         """Test BEFORE INSERT for requirement."""
-        data = {
-            "name": "REQ-001",
-            "document_id": "doc-123",
-            "status": "active",
-            "priority": "high"
-        }
+        data = {"name": "REQ-001", "document_id": "doc-123", "status": "active", "priority": "high"}
         result = emulator.before_insert(Tables.REQUIREMENTS, data)
 
         # Check external_id generation
@@ -476,11 +436,7 @@ class TestTriggerEmulator:
 
     def test_after_insert_organization(self, emulator):
         """Test AFTER INSERT for organization creates member."""
-        data = {
-            "id": "org-1",
-            "name": "Test Org",
-            "owner_id": "user-123"
-        }
+        data = {"id": "org-1", "name": "Test Org", "owner_id": "user-123"}
 
         side_effects = emulator.after_insert(Tables.ORGANIZATIONS, data)
 
@@ -494,11 +450,7 @@ class TestTriggerEmulator:
 
     def test_after_insert_profile(self, emulator):
         """Test AFTER INSERT for profile creates personal org."""
-        data = {
-            "id": "user-1",
-            "email": "test@example.com",
-            "full_name": "Test User"
-        }
+        data = {"id": "user-1", "email": "test@example.com", "full_name": "Test User"}
 
         side_effects = emulator.after_insert(Tables.PROFILES, data)
 
@@ -539,11 +491,7 @@ class TestTriggerIntegration:
         emulator.set_user_context("user-123")
 
         # 1. BEFORE INSERT
-        org_data = {
-            "name": "My Company",
-            "slug": "My Company!",
-            "type": OrganizationType.TEAM.value
-        }
+        org_data = {"name": "My Company", "slug": "My Company!", "type": OrganizationType.TEAM.value}
         org_data = emulator.before_insert(Tables.ORGANIZATIONS, org_data)
 
         # Check transformations
@@ -565,17 +513,9 @@ class TestTriggerIntegration:
         emulator = TriggerEmulator()
         emulator.set_user_context("user-456")
 
-        old_data = {
-            "id": "req-1",
-            "name": "REQ-001",
-            Fields.VERSION: 3,
-            "status": "draft"
-        }
+        old_data = {"id": "req-1", "name": "REQ-001", Fields.VERSION: 3, "status": "draft"}
 
-        new_data = {
-            "status": "approved",
-            "priority": "high"
-        }
+        new_data = {"status": "approved", "priority": "high"}
 
         # BEFORE UPDATE
         result = emulator.before_update(Tables.REQUIREMENTS, old_data, new_data)
@@ -592,11 +532,7 @@ class TestTriggerIntegration:
         emulator = TriggerEmulator()
 
         # 1. User profile inserted
-        user_data = {
-            "id": "user-new",
-            "email": "newuser@example.com",
-            "full_name": "New User"
-        }
+        user_data = {"id": "user-new", "email": "newuser@example.com", "full_name": "New User"}
 
         # BEFORE INSERT on profiles
         user_data = emulator.before_insert(Tables.PROFILES, user_data)

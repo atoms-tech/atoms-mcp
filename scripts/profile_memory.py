@@ -12,6 +12,7 @@ from memory_profiler import profile
 def load_server():
     """Load server module."""
     from server import app
+
     return app
 
 
@@ -19,6 +20,7 @@ def load_server():
 def load_schema_sync():
     """Load schema sync."""
     from lib.schema_sync import SchemaSync
+
     return SchemaSync()
 
 
@@ -26,6 +28,7 @@ def load_schema_sync():
 def load_deployment_checker():
     """Load deployment checker."""
     from lib.deployment_checker import DeploymentChecker
+
     return DeploymentChecker()
 
 

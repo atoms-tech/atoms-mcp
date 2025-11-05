@@ -13,6 +13,7 @@ class TestBaseToolComplete:
         """Test base tool imports and basic functionality."""
         try:
             from tools.base import ApiError, ToolBase
+
             assert ToolBase is not None
             assert ApiError is not None
         except ImportError as e:
@@ -34,7 +35,7 @@ class TestBaseToolComplete:
                 message="Validation failed",
                 status_code=400,
                 error_code="VALIDATION_ERROR",
-                details={"field": "name", "value": ""}
+                details={"field": "name", "value": ""},
             )
 
             assert error.message == "Validation failed"
@@ -83,6 +84,7 @@ class TestEntityToolsComplete:
         """Create mocked entity manager."""
         try:
             from tools.entity.entity import EntityManager
+
             mock_supabase = Mock()
             return EntityManager(mock_supabase)
         except ImportError:
@@ -92,6 +94,7 @@ class TestEntityToolsComplete:
         """Test entity manager imports."""
         try:
             from tools.entity.entity import EntityManager
+
             assert EntityManager is not None
         except ImportError:
             pytest.skip("EntityManager not available")
@@ -119,7 +122,7 @@ class TestEntityToolsComplete:
         mock_response = Mock()
         mock_response.data = [
             {"id": "1", "name": "Project 1", "status": "active"},
-            {"id": "2", "name": "Project 2", "status": "archived"}
+            {"id": "2", "name": "Project 2", "status": "archived"},
         ]
 
         mock_entity_manager.supabase.table.return_value.select.return_value.execute.return_value = mock_response
@@ -159,7 +162,9 @@ class TestEntityToolsComplete:
         mock_response = Mock()
         mock_response.data = [{"id": "1", "name": "Test Project"}]
 
-        mock_entity_manager.supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        mock_entity_manager.supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = (
+            mock_response
+        )
 
         result = await mock_entity_manager.read("project", "1")
 
@@ -177,7 +182,9 @@ class TestEntityToolsComplete:
         mock_response = Mock()
         mock_response.data = [{"id": "1", "name": "Updated Project"}]
 
-        mock_entity_manager.supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = mock_response
+        mock_entity_manager.supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = (
+            mock_response
+        )
 
         data = {"name": "Updated Project"}
         result = await mock_entity_manager.update("project", "1", data)
@@ -196,7 +203,9 @@ class TestEntityToolsComplete:
         mock_response = Mock()
         mock_response.data = [{"id": "1"}]
 
-        mock_entity_manager.supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value = mock_response
+        mock_entity_manager.supabase.table.return_value.delete.return_value.eq.return_value.execute.return_value = (
+            mock_response
+        )
 
         result = await mock_entity_manager.delete("project", "1")
 
@@ -214,10 +223,12 @@ class TestEntityToolsComplete:
         mock_response = Mock()
         mock_response.data = [
             {"id": "1", "name": "Search Result 1", "content": "Matching content"},
-            {"id": "2", "name": "Search Result 2", "content": "Another match"}
+            {"id": "2", "name": "Search Result 2", "content": "Another match"},
         ]
 
-        mock_entity_manager.supabase.table.return_value.select.return_value.or_.return_value.execute.return_value = mock_response
+        mock_entity_manager.supabase.table.return_value.select.return_value.or_.return_value.execute.return_value = (
+            mock_response
+        )
 
         result = await mock_entity_manager.search("project", "search term")
 
@@ -236,7 +247,9 @@ class TestEntityToolsComplete:
         mock_response = Mock()
         mock_response.data = []
 
-        mock_entity_manager.supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        mock_entity_manager.supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = (
+            mock_response
+        )
 
         result = await mock_entity_manager.read("project", "nonexistent")
 
@@ -244,7 +257,9 @@ class TestEntityToolsComplete:
         assert "not found" in result["error"].lower()
 
         # Test database error
-        mock_entity_manager.supabase.table.return_value.insert.return_value.execute.side_effect = Exception("Database error")
+        mock_entity_manager.supabase.table.return_value.insert.return_value.execute.side_effect = Exception(
+            "Database error"
+        )
 
         with pytest.raises(Exception):
             await mock_entity_manager.create("project", {"name": "Test"})
@@ -258,6 +273,7 @@ class TestQueryToolsComplete:
         """Create mocked query engine."""
         try:
             from tools.query import DataQueryEngine
+
             mock_supabase = Mock()
             return DataQueryEngine(mock_supabase)
         except ImportError:
@@ -267,6 +283,7 @@ class TestQueryToolsComplete:
         """Test query engine imports."""
         try:
             from tools.query import DataQueryEngine
+
             assert DataQueryEngine is not None
         except ImportError:
             pytest.skip("DataQueryEngine not available")
@@ -293,7 +310,7 @@ class TestQueryToolsComplete:
         mock_response = Mock()
         mock_response.data = [
             {"id": "1", "content": "Searchable content", "type": "document"},
-            {"id": "2", "content": "More content", "type": "requirement"}
+            {"id": "2", "content": "More content", "type": "requirement"},
         ]
 
         mock_query_engine.supabase.table.return_value.select.return_value.execute.return_value = mock_response
@@ -311,10 +328,7 @@ class TestQueryToolsComplete:
     async def test_aggregate_query_operation(self, mock_query_engine):
         """Test aggregate query operation."""
         mock_response = Mock()
-        mock_response.data = [
-            {"entity_type": "project", "count": 10},
-            {"entity_type": "document", "count": 25}
-        ]
+        mock_response.data = [{"entity_type": "project", "count": 10}, {"entity_type": "document", "count": 25}]
 
         mock_query_engine.supabase.rpc.return_value.execute.return_value = mock_response
 
@@ -331,11 +345,7 @@ class TestQueryToolsComplete:
     async def test_analyze_query_operation(self, mock_query_engine):
         """Test analyze query operation."""
         mock_response = Mock()
-        mock_response.data = {
-            "total_entities": 100,
-            "active_projects": 15,
-            "recent_documents": 30
-        }
+        mock_response.data = {"total_entities": 100, "active_projects": 15, "recent_documents": 30}
 
         mock_query_engine.supabase.rpc.return_value.execute.return_value = mock_response
 
@@ -351,7 +361,7 @@ class TestQueryToolsComplete:
         mock_response = Mock()
         mock_response.data = [
             {"source": "user-1", "target": "project-1", "relationship": "member"},
-            {"source": "user-1", "target": "project-2", "relationship": "member"}
+            {"source": "user-1", "target": "project-2", "relationship": "member"},
         ]
 
         mock_query_engine.supabase.table.return_value.select.return_value.execute.return_value = mock_response
@@ -367,10 +377,9 @@ class TestQueryToolsComplete:
         # Mock embedding service
         with patch.object(mock_query_engine, "_get_embedding", return_value=[0.1, 0.2, 0.3]):
             # Mock vector search
-            with patch.object(mock_query_engine, "_vector_search", return_value=[
-                {"id": "1", "content": "RAG result", "score": 0.95}
-            ]):
-
+            with patch.object(
+                mock_query_engine, "_vector_search", return_value=[{"id": "1", "content": "RAG result", "score": 0.95}]
+            ):
                 result = await mock_query_engine.rag_search("query", "document", "semantic")
 
                 assert result["success"] is True
@@ -381,7 +390,9 @@ class TestQueryToolsComplete:
     async def test_query_error_scenarios(self, mock_query_engine):
         """Test query error scenarios."""
         # Test database error
-        mock_query_engine.supabase.table.return_value.select.return_value.execute.side_effect = Exception("Query failed")
+        mock_query_engine.supabase.table.return_value.select.return_value.execute.side_effect = Exception(
+            "Query failed"
+        )
 
         result = await mock_query_engine.search("test", ["document"])
 
@@ -407,6 +418,7 @@ class TestWorkflowToolsComplete:
         """Create mocked workflow executor."""
         try:
             from tools.workflow.workflow import WorkflowExecutor
+
             mock_supabase = Mock()
             return WorkflowExecutor(mock_supabase)
         except ImportError:
@@ -416,6 +428,7 @@ class TestWorkflowToolsComplete:
         """Test workflow executor imports."""
         try:
             from tools.workflow.workflow import WorkflowExecutor
+
             assert WorkflowExecutor is not None
         except ImportError:
             pytest.skip("WorkflowExecutor not available")
@@ -445,10 +458,7 @@ class TestWorkflowToolsComplete:
         mock_workflow_executor._execute_steps = AsyncMock(return_value={"results": ["step1", "step2"]})
         mock_workflow_executor._finalize_workflow = AsyncMock(return_value={"status": "completed"})
 
-        result = await mock_workflow_executor.execute(
-            workflow_name="test_workflow",
-            parameters={"param1": "value1"}
-        )
+        result = await mock_workflow_executor.execute(workflow_name="test_workflow", parameters={"param1": "value1"})
 
         assert result["success"] is True
         assert result["workflow_id"] is not None
@@ -464,10 +474,7 @@ class TestWorkflowToolsComplete:
         """Test workflow validation error."""
         mock_workflow_executor._validate_workflow = AsyncMock(return_value=False)
 
-        result = await mock_workflow_executor.execute(
-            workflow_name="invalid_workflow",
-            parameters={}
-        )
+        result = await mock_workflow_executor.execute(workflow_name="invalid_workflow", parameters={})
 
         assert result["success"] is False
         assert "validation" in result["error"].lower()
@@ -478,10 +485,7 @@ class TestWorkflowToolsComplete:
         mock_workflow_executor._validate_workflow = AsyncMock(return_value=True)
         mock_workflow_executor._execute_steps = AsyncMock(side_effect=Exception("Step failed"))
 
-        result = await mock_workflow_executor.execute(
-            workflow_name="failing_workflow",
-            parameters={}
-        )
+        result = await mock_workflow_executor.execute(workflow_name="failing_workflow", parameters={})
 
         assert result["success"] is False
         assert "step failed" in result["error"].lower()
@@ -498,11 +502,7 @@ class TestWorkflowToolsComplete:
         # Mock workflow steps
         with patch.object(mock_workflow_executor, "_create_default_folders", new=AsyncMock()) as mock_folders:
             with patch.object(mock_workflow_executor, "_setup_permissions", new=AsyncMock()) as mock_permissions:
-
-                result = await mock_workflow_executor.setup_project(
-                    name="Test Project",
-                    organization_id="org-1"
-                )
+                result = await mock_workflow_executor.setup_project(name="Test Project", organization_id="org-1")
 
                 assert result["success"] is True
                 assert result["project"]["name"] == "Test Project"
@@ -548,7 +548,7 @@ class TestToolsIntegrationComplete:
             errors = [
                 ApiError("Not found", 404, "NOT_FOUND"),
                 ApiError("Validation failed", 400, "VALIDATION_ERROR"),
-                ApiError("Server error", 500, "INTERNAL_ERROR", {"stack": "trace"})
+                ApiError("Server error", 500, "INTERNAL_ERROR", {"stack": "trace"}),
             ]
 
             for error in errors:
@@ -594,6 +594,7 @@ class TestToolsPerformanceComplete:
 
             # Test tool creation performance
             import time
+
             start_time = time.time()
 
             for _ in range(100):

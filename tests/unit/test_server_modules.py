@@ -1,6 +1,6 @@
 """Test server modules for 100% coverage."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -26,11 +26,7 @@ class TestAuthentication:
 
     def test_rate_limiter_creation(self):
         """Test rate limiter creation."""
-        limiter = RateLimiter(
-            max_requests=100,
-            window_seconds=3600,
-            cleanup_interval=300
-        )
+        limiter = RateLimiter(max_requests=100, window_seconds=3600, cleanup_interval=300)
 
         assert limiter.max_requests == 100
         assert limiter.window_seconds == 3600
@@ -68,11 +64,7 @@ class TestAuthentication:
 
     def test_rate_limiter_cleanup(self):
         """Test rate limiter cleanup of old entries."""
-        limiter = RateLimiter(
-            max_requests=5,
-            window_seconds=1,
-            cleanup_interval=0.1
-        )
+        limiter = RateLimiter(max_requests=5, window_seconds=1, cleanup_interval=0.1)
 
         user_id = "test-user"
 
@@ -82,6 +74,7 @@ class TestAuthentication:
 
         # Wait for window to expire
         import time
+
         time.sleep(1.5)
 
         # Cleanup should remove old entries
@@ -93,10 +86,7 @@ class TestAuthentication:
 
     def test_rate_limit_exceeded(self):
         """Test rate limit exceeded exception."""
-        error = RateLimitExceeded(
-            message="Rate limit exceeded",
-            retry_after=60
-        )
+        error = RateLimitExceeded(message="Rate limit exceeded", retry_after=60)
 
         assert error.message == "Rate limit exceeded"
         assert error.retry_after == 60
@@ -107,7 +97,7 @@ class TestAuthentication:
         token = BearerToken(
             access_token="test-access-token",
             refresh_token="test-refresh-token",
-            expires_at=datetime.now() + timedelta(hours=1)
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
         assert token.access_token == "test-access-token"
@@ -121,7 +111,7 @@ class TestAuthentication:
         expired_token = BearerToken(
             access_token="expired-token",
             refresh_token="expired-refresh",
-            expires_at=datetime.now() - timedelta(hours=1)
+            expires_at=datetime.now(UTC) - timedelta(hours=1),
         )
         assert expired_token.is_expired() is True
 
@@ -140,9 +130,7 @@ class TestAuthentication:
     def test_get_remaining(self):
         """Test time remaining calculation."""
         token = BearerToken(
-            access_token="test-token",
-            refresh_token="refresh-token",
-            expires_at=datetime.now() + timedelta(minutes=30)
+            access_token="test-token", refresh_token="refresh-token", expires_at=datetime.now(UTC) + timedelta(minutes=30)
         )
 
         remaining = token.get_remaining()
@@ -153,7 +141,7 @@ class TestAuthentication:
         expired_token = BearerToken(
             access_token="expired-token",
             refresh_token="expired-refresh",
-            expires_at=datetime.now() - timedelta(minutes=5)
+            expires_at=datetime.now(UTC) - timedelta(minutes=5),
         )
 
         remaining = expired_token.get_remaining()
@@ -165,11 +153,7 @@ class TestEnvironment:
 
     def test_env_config_creation(self):
         """Test environment configuration creation."""
-        config = EnvConfig(
-            database_url="postgresql://test",
-            redis_url="redis://test",
-            jwt_secret="test-secret"
-        )
+        config = EnvConfig(database_url="postgresql://test", redis_url="redis://test", jwt_secret="test-secret")
 
         assert config.database_url == "postgresql://test"
         assert config.redis_url == "redis://test"
@@ -200,6 +184,7 @@ class TestEnvironment:
         """Test environment variable retrieval."""
         # Set environment variable
         import os
+
         os.environ["TEST_GET_VAR"] = "test_value"
 
         try:
@@ -217,11 +202,8 @@ class TestEnvironment:
         """Test FastMCP environment variables retrieval."""
         # Mock environment variables
         import os
-        env_vars = {
-            "FASTMCP_HOST": "localhost",
-            "FASTMCP_PORT": "50002",
-            "FASTMCP_LOG_LEVEL": "INFO"
-        }
+
+        env_vars = {"FASTMCP_HOST": "localhost", "FASTMCP_PORT": "50002", "FASTMCP_LOG_LEVEL": "INFO"}
 
         for key, value in env_vars.items():
             os.environ[key] = value
@@ -256,11 +238,7 @@ class TestSerializers:
 
     def test_serializer_config(self):
         """Test serializer configuration."""
-        config = SerializerConfig(
-            max_depth=10,
-            max_array_length=100,
-            pretty_print=True
-        )
+        config = SerializerConfig(max_depth=10, max_array_length=100, pretty_print=True)
 
         assert config.max_depth == 10
         assert config.max_array_length == 100
@@ -268,6 +246,7 @@ class TestSerializers:
 
     def test_serializable_mixin(self):
         """Test serializable mixin functionality."""
+
         class TestClass(Serializable):
             def __init__(self, name: str, value: int):
                 self.name = name
@@ -288,9 +267,7 @@ class TestSerializers:
             "number_field": 42,
             "boolean_field": True,
             "list_field": ["item1", "item2"],
-            "nested_dict": {
-                "inner_key": "inner_value"
-            }
+            "nested_dict": {"inner_key": "inner_value"},
         }
 
         markdown = serialize_to_markdown(data)
@@ -306,6 +283,7 @@ class TestSerializers:
 
     def test_serialize_nested_objects(self):
         """Test serialization of nested objects."""
+
         class NestedClass(Serializable):
             def __init__(self, value: str):
                 self.value = value
@@ -406,12 +384,7 @@ class TestErrorHandling:
 
     def test_api_error_creation(self):
         """Test API error creation."""
-        error = ApiError(
-            message="Test error",
-            status_code=400,
-            error_code="TEST_ERROR",
-            details={"field": "value"}
-        )
+        error = ApiError(message="Test error", status_code=400, error_code="TEST_ERROR", details={"field": "value"})
 
         assert error.message == "Test error"
         assert error.status_code == 400
@@ -420,11 +393,7 @@ class TestErrorHandling:
 
     def test_api_error_str_representation(self):
         """Test API error string representation."""
-        error = ApiError(
-            message="Test error",
-            status_code=400,
-            error_code="TEST_ERROR"
-        )
+        error = ApiError(message="Test error", status_code=400, error_code="TEST_ERROR")
 
         error_str = str(error)
         assert "Test error" in error_str
@@ -433,10 +402,7 @@ class TestErrorHandling:
 
     def test_create_api_error_internal(self):
         """Test internal API error creation."""
-        error = create_api_error_internal(
-            message="Internal error",
-            details={"stack": "trace"}
-        )
+        error = create_api_error_internal(message="Internal error", details={"stack": "trace"})
 
         assert error.message == "Internal error"
         assert error.status_code == 500
@@ -478,11 +444,7 @@ class TestServerCore:
             debug=True,
             log_level="INFO",
             enable_auth=True,
-            rate_limiting={
-                "enabled": True,
-                "max_requests": 100,
-                "window_seconds": 3600
-            }
+            rate_limiting={"enabled": True, "max_requests": 100, "window_seconds": 3600},
         )
 
         assert config.host == "localhost"
@@ -495,18 +457,14 @@ class TestServerCore:
     @pytest.mark.asyncio
     async def test_server_initialization(self):
         """Test server initialization."""
-        config = ServerConfig(
-            host="localhost",
-            port=50003,
-            debug=False,
-            log_level="DEBUG"
-        )
+        config = ServerConfig(host="localhost", port=50003, debug=False, log_level="DEBUG")
 
         # Mock FastMCP server
         mock_mcp = Mock()
 
         with patch("fastmcp.FastMCP", return_value=mock_mcp):
             from server.core import create_atoms_server
+
             server = create_atoms_server(config)
 
             # Should initialize FastMCP with correct config
@@ -542,7 +500,7 @@ class TestServerCore:
             {"entity", "crud"},
             {"relationship", "association"},
             {"workflow", "automation"},
-            {"query", "analysis", "rag"}
+            {"query", "analysis", "rag"},
         ]
 
         for expected in expected_tags:
@@ -562,7 +520,7 @@ class TestServerIntegration:
         token = BearerToken(
             access_token="test-access-token",
             refresh_token="test-refresh-token",
-            expires_at=datetime.now() + timedelta(hours=1)
+            expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
 
         # Simulate authenticated request
@@ -580,7 +538,7 @@ class TestServerIntegration:
         new_token = BearerToken(
             access_token="new-access-token",
             refresh_token="new-refresh-token",
-            expires_at=datetime.now() + timedelta(hours=2)
+            expires_at=datetime.now(UTC) + timedelta(hours=2),
         )
 
         assert new_token.access_token != token.access_token
@@ -594,7 +552,7 @@ class TestServerIntegration:
             ApiError("Validation error", 400, "VALIDATION_ERROR"),
             Exception("Unexpected error"),
             "String error",
-            None
+            None,
         ]
 
         for error in errors:
@@ -628,11 +586,7 @@ class TestServerIntegration:
         # Execute tool multiple times (within rate limit)
         for _i in range(5):
             try:
-                result = await tool_func(
-                    operation="get_context",
-                    context_type="project",
-                    entity_id="proj-123"
-                )
+                result = await tool_func(operation="get_context", context_type="project", entity_id="proj-123")
 
                 assert result["success"] is True
                 workspace_operation.assert_called()
@@ -643,11 +597,7 @@ class TestServerIntegration:
 
         # Next execution should be rate limited
         try:
-            await tool_func(
-                operation="get_context",
-                context_type="project",
-                entity_id="proj-123"
-            )
+            await tool_func(operation="get_context", context_type="project", entity_id="proj-123")
             pytest.fail("Expected rate limit exceeded error")
         except RateLimitExceeded as e:
             assert e.status_code == 429

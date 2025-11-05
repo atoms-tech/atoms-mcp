@@ -12,7 +12,7 @@ Run with: pytest tests/unit/test_entity_cold.py -v --mode cold
 """
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -46,7 +46,7 @@ class TestEntityColdMode:
         client = AsyncMock()
 
         # Mock list operations
-        async def mock_call_tool(tool_name: str, arguments: dict) -> dict
+        async def mock_call_tool(tool_name: str, arguments: dict) -> dict:
             if tool_name == "entity_tool":
                 operation = arguments.get("operation")
                 entity_type = arguments.get("entity_type")
@@ -63,7 +63,7 @@ class TestEntityColdMode:
                     new_entity = {
                         "id": entity_id,
                         **arguments.get("data", {}),
-                        "created_at": datetime.now().isoformat() + "Z"
+                        "created_at": datetime.now(UTC).isoformat() + "Z"
                     }
                     mock_entity_data.setdefault(f"{entity_type}s", []).append(new_entity)
                     return {

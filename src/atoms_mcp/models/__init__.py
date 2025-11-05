@@ -16,5 +16,5 @@ __all__ = [
     "Requirement",
     "RequirementPriority",
     "Test",
-    "TestStatus"
+    "TestStatus",
 ]

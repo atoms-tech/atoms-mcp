@@ -83,7 +83,7 @@ async def create_simulated_mcp_client() -> Any:
             self.entities = {}
             self.call_count = 0
 
-        async def call_tool(self, tool_name: str, arguments: dict) -> dict
+        async def call_tool(self, tool_name: str, arguments: dict) -> dict:
             self.call_count += 1
             operation = arguments.get("operation", "unknown")
 
@@ -260,7 +260,7 @@ async def conditional_database(atoms_mode_config: TestModeConfig) -> AsyncIterat
                     def __init__(self, data_list):
                         self.data_list = data_list
 
-                    def select(self, *args, **kwargs):
+                    def select(self, *_args, **_kwargs):
                         class SelectAPI:
                             def __init__(self, data_list):
                                 self.data_list = data_list
@@ -336,10 +336,10 @@ async def conditional_auth_manager(atoms_mode_config: TestModeConfig) -> AsyncIt
                 self.token = "sim_token_12345"
                 self.expires_at = 9999999999
 
-            async def authenticate(self, *args, **kwargs):
+            async def authenticate(self, *_args, **_kwargs):
                 return {"token": self.token, "expires_at": self.expires_at}
 
-            async def refresh_token(self, *args, **kwargs):
+            async def refresh_token(self, *_args, **_kwargs):
                 return {"token": self.token}
 
             async def logout(self):

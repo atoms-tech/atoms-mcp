@@ -63,9 +63,7 @@ async def test_aggregate_entities(client_adapter, entities):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="query_tool", category="query", priority=5)
 async def test_rag_search_semantic(client_adapter):
     """Test RAG semantic search (known embedding issue)."""
@@ -94,9 +92,7 @@ async def test_rag_search_semantic(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="query_tool", category="query", priority=8)
 async def test_rag_search_keyword(client_adapter):
     """Test RAG keyword search."""
@@ -117,9 +113,7 @@ async def test_rag_search_keyword(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="query_tool", category="query", priority=8)
 async def test_rag_search_hybrid(client_adapter):
     """Test RAG hybrid search (keyword + semantic)."""

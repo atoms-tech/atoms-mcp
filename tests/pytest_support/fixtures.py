@@ -40,10 +40,7 @@ async def oauth_broker() -> AsyncIterator[UnifiedCredentialBroker]:
     endpoint = os.getenv("ATOMS_MCP_ENDPOINT", os.getenv("ZEN_MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp"))
     provider = os.getenv("ATOMS_OAUTH_PROVIDER", os.getenv("ZEN_OAUTH_PROVIDER", "authkit"))
 
-    broker = UnifiedCredentialBroker(
-        mcp_endpoint=endpoint,
-        provider=provider
-    )
+    broker = UnifiedCredentialBroker(mcp_endpoint=endpoint, provider=provider)
 
     try:
         yield broker
@@ -80,9 +77,7 @@ async def oauth_http_client(oauth_credentials):
 
     import httpx
 
-    async with httpx.AsyncClient(
-        headers={"Authorization": f"Bearer {oauth_credentials.access_token}"}
-    ) as client:
+    async with httpx.AsyncClient(headers={"Authorization": f"Bearer {oauth_credentials.access_token}"}) as client:
         yield client
 
 

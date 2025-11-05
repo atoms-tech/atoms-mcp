@@ -35,7 +35,7 @@ async def server_with_test_data():
         name="TechCorp",
         description="Leading technology company focused on AI and cloud solutions",
         created_at=datetime.now(UTC),
-        metadata={"industry": "technology", "size": "large", "region": "global"}
+        metadata={"industry": "technology", "size": "large", "region": "global"},
     )
 
     org2 = Organization(
@@ -43,7 +43,7 @@ async def server_with_test_data():
         name="DataSystems",
         description="Data management and analytics company",
         created_at=datetime.now(UTC),
-        metadata={"industry": "data", "size": "medium", "region": "north-america"}
+        metadata={"industry": "data", "size": "medium", "region": "north-america"},
     )
 
     # Create projects
@@ -53,7 +53,7 @@ async def server_with_test_data():
         description="Next-generation AI platform for enterprise applications",
         organization_id=org1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "ai", "priority": "high", "status": "active"}
+        metadata={"type": "ai", "priority": "high", "status": "active"},
     )
 
     project2 = Project(
@@ -62,7 +62,7 @@ async def server_with_test_data():
         description="Real-time data processing pipeline",
         organization_id=org2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "data", "priority": "medium", "status": "planning"}
+        metadata={"type": "data", "priority": "medium", "status": "planning"},
     )
 
     # Create requirements
@@ -74,7 +74,7 @@ async def server_with_test_data():
         priority=RequirementPriority.HIGH,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "medium"}
+        metadata={"type": "functional", "complexity": "medium"},
     )
 
     req2 = Requirement(
@@ -85,7 +85,7 @@ async def server_with_test_data():
         priority=RequirementPriority.MEDIUM,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "low"}
+        metadata={"type": "functional", "complexity": "low"},
     )
 
     # Create tests
@@ -96,7 +96,7 @@ async def server_with_test_data():
         project_id=project1.id,
         status=TestStatus.PASSED,
         created_at=datetime.now(UTC),
-        metadata={"type": "unit", "coverage": "high"}
+        metadata={"type": "unit", "coverage": "high"},
     )
 
     test2 = Test(
@@ -106,7 +106,7 @@ async def server_with_test_data():
         project_id=project2.id,
         status=TestStatus.FAILED,
         created_at=datetime.now(UTC),
-        metadata={"type": "integration", "coverage": "medium"}
+        metadata={"type": "integration", "coverage": "medium"},
     )
 
     # Create documents
@@ -116,7 +116,7 @@ async def server_with_test_data():
         content="Comprehensive API documentation for the AI platform",
         project_id=project1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "documentation", "format": "markdown"}
+        metadata={"type": "documentation", "format": "markdown"},
     )
 
     doc2 = Document(
@@ -125,7 +125,7 @@ async def server_with_test_data():
         content="Data schema definitions and validation rules",
         project_id=project2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "schema", "format": "json"}
+        metadata={"type": "schema", "format": "json"},
     )
 
     # Store all entities
@@ -149,10 +149,7 @@ class TestQueryAggregate:
     @pytest.mark.asyncio
     async def test_count_organizations(self, server_with_test_data):
         """Test counting organizations."""
-        result = await server_with_test_data.query_entities(
-            entity_types=["Organization"],
-            aggregate="count"
-        )
+        result = await server_with_test_data.query_entities(entity_types=["Organization"], aggregate="count")
 
         assert result is not None
         assert "count" in result
@@ -162,9 +159,7 @@ class TestQueryAggregate:
     async def test_count_projects_by_organization(self, server_with_test_data):
         """Test counting projects grouped by organization."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project"],
-            aggregate="count",
-            group_by="organization_id"
+            entity_types=["Project"], aggregate="count", group_by="organization_id"
         )
 
         assert result is not None
@@ -179,9 +174,7 @@ class TestQueryAggregate:
     async def test_count_requirements_by_priority(self, server_with_test_data):
         """Test counting requirements grouped by priority."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Requirement"],
-            aggregate="count",
-            group_by="priority"
+            entity_types=["Requirement"], aggregate="count", group_by="priority"
         )
 
         assert result is not None
@@ -196,11 +189,7 @@ class TestQueryAggregate:
     @pytest.mark.asyncio
     async def test_count_tests_by_status(self, server_with_test_data):
         """Test counting tests grouped by status."""
-        result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            aggregate="count",
-            group_by="status"
-        )
+        result = await server_with_test_data.query_entities(entity_types=["Test"], aggregate="count", group_by="status")
 
         assert result is not None
         assert "groups" in result
@@ -215,9 +204,7 @@ class TestQueryAggregate:
     async def test_count_documents_by_type(self, server_with_test_data):
         """Test counting documents grouped by type."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Document"],
-            aggregate="count",
-            group_by="metadata.type"
+            entity_types=["Document"], aggregate="count", group_by="metadata.type"
         )
 
         assert result is not None
@@ -233,9 +220,7 @@ class TestQueryAggregate:
     async def test_count_with_filters(self, server_with_test_data):
         """Test counting with metadata filters."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            aggregate="count",
-            filters={"metadata.type": "unit"}
+            entity_types=["Test"], aggregate="count", filters={"metadata.type": "unit"}
         )
 
         assert result is not None
@@ -246,8 +231,7 @@ class TestQueryAggregate:
     async def test_count_multiple_entity_types(self, server_with_test_data):
         """Test counting across multiple entity types."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization", "Project", "Requirement"],
-            aggregate="count"
+            entity_types=["Organization", "Project", "Requirement"], aggregate="count"
         )
 
         assert result is not None
@@ -258,9 +242,7 @@ class TestQueryAggregate:
     async def test_count_by_metadata_field(self, server_with_test_data):
         """Test counting grouped by metadata field."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project"],
-            aggregate="count",
-            group_by="metadata.type"
+            entity_types=["Project"], aggregate="count", group_by="metadata.type"
         )
 
         assert result is not None
@@ -276,9 +258,7 @@ class TestQueryAggregate:
     async def test_count_with_search_query(self, server_with_test_data):
         """Test counting with search query."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Document"],
-            search_query="API",
-            aggregate="count"
+            entity_types=["Document"], search_query="API", aggregate="count"
         )
 
         assert result is not None
@@ -289,12 +269,7 @@ class TestQueryAggregate:
     async def test_count_with_complex_filters(self, server_with_test_data):
         """Test counting with complex metadata filters."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            aggregate="count",
-            filters={
-                "metadata.type": "unit",
-                "status": "PASSED"
-            }
+            entity_types=["Test"], aggregate="count", filters={"metadata.type": "unit", "status": "PASSED"}
         )
 
         assert result is not None
@@ -305,8 +280,7 @@ class TestQueryAggregate:
     async def test_count_all_entities(self, server_with_test_data):
         """Test counting all entity types."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization", "Project", "Requirement", "Test", "Document"],
-            aggregate="count"
+            entity_types=["Organization", "Project", "Requirement", "Test", "Document"], aggregate="count"
         )
 
         assert result is not None
@@ -317,9 +291,7 @@ class TestQueryAggregate:
     async def test_count_with_nested_group_by(self, server_with_test_data):
         """Test counting with nested group by."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            aggregate="count",
-            group_by=["metadata.type", "status"]
+            entity_types=["Test"], aggregate="count", group_by=["metadata.type", "status"]
         )
 
         assert result is not None

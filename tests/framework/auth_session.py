@@ -12,7 +12,7 @@ import json
 import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +42,7 @@ class AuthCredentials:
         """Check if credentials are still valid."""
         if not self.access_token:
             return False
-        return not (self.expires_at and datetime.now() >= self.expires_at)
+        return not (self.expires_at and datetime.now(UTC) >= self.expires_at)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -82,9 +82,7 @@ class AuthSessionBroker:
         return self.cache_dir / "auth_credentials.json"
 
     async def get_authenticated_credentials(
-        self,
-        provider: str = "authkit",
-        force_refresh: bool = False
+        self, provider: str = "authkit", force_refresh: bool = False
     ) -> AuthCredentials:
         """Get valid authentication credentials.
 
@@ -142,16 +140,14 @@ class AuthSessionBroker:
         try:
             # Import the existing auth helper
             import sys
+
             sys.path.append(os.path.dirname(os.path.dirname(__file__)))
             from auth_helper import automate_oauth_login_with_retry
 
             # Use a mock OAuth URL for now - in practice this would come from FastMCP
             oauth_url = os.getenv("TEST_OAUTH_URL", "https://mcp.atoms.tech/oauth/authorize")
 
-            success = await automate_oauth_login_with_retry(
-                oauth_url=oauth_url,
-                provider=provider
-            )
+            success = await automate_oauth_login_with_retry(oauth_url=oauth_url, provider=provider)
 
             if success:
                 return await self._extract_credentials_from_oauth(provider)
@@ -177,11 +173,7 @@ class AuthSessionBroker:
             oauth_url = await self._get_oauth_url()
             if oauth_url:
                 logger.info(f"Starting AuthKit OAuth flow for {provider}")
-                success = await automate_oauth_login_with_retry(
-                    oauth_url=oauth_url,
-                    provider=provider,
-                    max_retries=2
-                )
+                success = await automate_oauth_login_with_retry(oauth_url=oauth_url, provider=provider, max_retries=2)
 
                 if success:
                     flow_result = get_last_flow_result()
@@ -190,8 +182,8 @@ class AuthSessionBroker:
                         return AuthCredentials(
                             access_token=flow_result.session_token,
                             provider=provider,
-                            expires_at=datetime.now() + timedelta(hours=24),
-                            base_url=os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech").replace("/api/mcp", "")
+                            expires_at=datetime.now(UTC) + timedelta(hours=24),
+                            base_url=os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech").replace("/api/mcp", ""),
                         )
 
         except Exception as e:
@@ -204,8 +196,8 @@ class AuthSessionBroker:
                 return AuthCredentials(
                     access_token=session_token,
                     provider=provider,
-                    expires_at=datetime.now() + timedelta(hours=24),
-                    base_url=os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech").replace("/api/mcp", "")
+                    expires_at=datetime.now(UTC) + timedelta(hours=24),
+                    base_url=os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech").replace("/api/mcp", ""),
                 )
         except Exception as e:
             logger.warning(f"Direct AuthKit auth failed: {e}")
@@ -213,39 +205,43 @@ class AuthSessionBroker:
         # Final fallback: Use test session token
         logger.error("All AuthKit authentication methods failed, using test token")
         import uuid
+
         access_token = f"test_session_{uuid.uuid4().hex[:16]}"
 
         return AuthCredentials(
             access_token=access_token,
             provider=provider,
-            expires_at=datetime.now() + timedelta(hours=24),
-            base_url=os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech").replace("/api/mcp", "")
+            expires_at=datetime.now(UTC) + timedelta(hours=24),
+            base_url=os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech").replace("/api/mcp", ""),
         )
 
     async def _get_oauth_url(self) -> str | None:
         """Get OAuth URL from FastMCP server."""
         try:
             # For AuthKit, we can construct the URL or get it from server
-            authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "https://decent-hymn-17-staging.authkit.app")
+            authkit_domain = os.getenv(
+                "FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "https://decent-hymn-17-staging.authkit.app"
+            )
             client_id = os.getenv("WORKOS_CLIENT_ID")
             base_url = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL", "https://mcp.atoms.tech")
 
             if authkit_domain and client_id:
                 # Construct AuthKit OAuth URL
                 import urllib.parse
+
                 redirect_uri = f"{base_url}/auth/callback"
                 params = {
                     "client_id": client_id,
                     "redirect_uri": redirect_uri,
                     "response_type": "code",
-                    "scope": "openid profile email"
+                    "scope": "openid profile email",
                 }
                 return f"{authkit_domain}/oauth/authorize?" + urllib.parse.urlencode(params)
         except Exception as e:
             logger.warning(f"Failed to construct OAuth URL: {e}")
         return None
 
-    async def _get_authkit_session_direct(self, provider: str) -> str | None:
+    async def _get_authkit_session_direct(self, _provider: str) -> str | None:
         """Get AuthKit session token using direct API calls (no browser)."""
         try:
             # This would implement direct OAuth flow using httpx
@@ -259,6 +255,7 @@ class AuthSessionBroker:
                 logger.info("Using demo credentials for testing")
                 # Create a mock session token that indicates demo auth
                 import uuid
+
                 return f"demo_session_{uuid.uuid4().hex[:20]}"
 
         except Exception as e:
@@ -281,9 +278,7 @@ class AuthenticatedHTTPClient:
         """Async context manager for HTTP client."""
         if self._client is None:
             self._client = httpx.AsyncClient(
-                base_url=self.credentials.base_url,
-                timeout=self.credentials.timeout,
-                headers=self._build_headers()
+                base_url=self.credentials.base_url, timeout=self.credentials.timeout, headers=self._build_headers()
             )
 
         try:
@@ -303,10 +298,7 @@ class AuthenticatedHTTPClient:
         }
 
     async def call_tool(
-        self,
-        tool_name: str,
-        arguments: dict[str, Any],
-        timeout: float | None = None
+        self, tool_name: str, arguments: dict[str, Any], timeout: float | None = None
     ) -> dict[str, Any]:
         """Call MCP tool directly via HTTP API.
 
@@ -314,10 +306,7 @@ class AuthenticatedHTTPClient:
         Uses AuthKit session_token authentication as per WARP.md docs.
         """
         # Add session_token to arguments as required by AuthKit production
-        tool_params = {
-            "session_token": self.credentials.access_token,
-            **arguments
-        }
+        tool_params = {"session_token": self.credentials.access_token, **arguments}
 
         async with self.client() as client:
             response = await client.post(
@@ -326,9 +315,9 @@ class AuthenticatedHTTPClient:
                     "jsonrpc": "2.0",
                     "id": 1,
                     "method": f"tools/{tool_name}",
-                    "params": tool_params  # Include session_token in params
+                    "params": tool_params,  # Include session_token in params
                 },
-                timeout=timeout or self.credentials.timeout
+                timeout=timeout or self.credentials.timeout,
             )
             response.raise_for_status()
             json_response = response.json()
@@ -341,14 +330,7 @@ class AuthenticatedHTTPClient:
     async def list_tools(self) -> dict[str, Any]:
         """Get available tools."""
         async with self.client() as client:
-            response = await client.post(
-                "/api/mcp",
-                json={
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "tools/list"
-                }
-            )
+            response = await client.post("/api/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
             response.raise_for_status()
             return response.json()
 
@@ -365,6 +347,7 @@ class AuthenticatedHTTPClient:
 # Singleton broker instance
 _global_broker: AuthSessionBroker | None = None
 
+
 def get_auth_broker() -> AuthSessionBroker:
     """Get global auth broker instance."""
     global _global_broker
@@ -373,10 +356,7 @@ def get_auth_broker() -> AuthSessionBroker:
     return _global_broker
 
 
-async def get_authenticated_client(
-    provider: str = "authkit",
-    force_refresh: bool = False
-) -> AuthenticatedHTTPClient:
+async def get_authenticated_client(provider: str = "authkit", force_refresh: bool = False) -> AuthenticatedHTTPClient:
     """Convenience function to get authenticated HTTP client.
 
     This is the main entry point for tests.

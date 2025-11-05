@@ -11,7 +11,7 @@ These tests run in DRY mode with fully simulated dependencies:
 Run with: pytest tests/unit/test_entity_dry.py -v --mode dry
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -35,6 +35,7 @@ class TestEntityDryMode:
     @pytest.fixture
     def simulated_client(self, simulated_entity_store):
         """Create a fully simulated MCP client for DRY mode testing."""
+
         class SimulatedEntityClient:
             def __init__(self, store: dict[str, dict[str, Any]]):
                 self.store = store
@@ -43,11 +44,9 @@ class TestEntityDryMode:
 
             async def call_tool(self, tool_name: str, arguments: dict) -> dict:
                 self.call_count += 1
-                self.operation_log.append({
-                    "tool": tool_name,
-                    "arguments": arguments,
-                    "timestamp": datetime.now().isoformat()
-                })
+                self.operation_log.append(
+                    {"tool": tool_name, "arguments": arguments, "timestamp": datetime.now(UTC).isoformat()}
+                )
 
                 if tool_name == "entity_tool":
                     return await self._handle_entity_operation(arguments)
@@ -84,16 +83,12 @@ class TestEntityDryMode:
                 entity_data = {
                     "id": entity_id,
                     **data,
-                    "created_at": datetime.now().isoformat() + "Z",
-                    "updated_at": datetime.now().isoformat() + "Z"
+                    "created_at": datetime.now(UTC).isoformat() + "Z",
+                    "updated_at": datetime.now(UTC).isoformat() + "Z",
                 }
 
                 self.store[f"{entity_type}s"][entity_id] = entity_data
-                return {
-                    "success": True,
-                    "data": entity_data,
-                    "id": entity_id
-                }
+                return {"success": True, "data": entity_data, "id": entity_id}
 
             async def _read_entity(self, entity_type: str, entity_id: str) -> dict:
                 entities = self.store.get(f"{entity_type}s", {})
@@ -109,7 +104,7 @@ class TestEntityDryMode:
 
                 if entity:
                     entity.update(data)
-                    entity["updated_at"] = datetime.now().isoformat() + "Z"
+                    entity["updated_at"] = datetime.now(UTC).isoformat() + "Z"
                     return {"success": True, "data": entity}
                 return {"success": False, "error": "not_found"}
 
@@ -122,21 +117,17 @@ class TestEntityDryMode:
 
             async def _list_entities(self, entity_type: str) -> dict:
                 entities = list(self.store.get(f"{entity_type}s", {}).values())
-                return {
-                    "success": True,
-                    "data": entities,
-                    "count": len(entities)
-                }
+                return {"success": True, "data": entities, "count": len(entities)}
 
-            async def _handle_relationship_operation(self, arguments: dict) -> dict:
+            async def _handle_relationship_operation(self, _arguments: dict) -> dict:
                 # Simulate relationship operations
                 return {"success": True, "data": {"relationship": "simulated"}}
 
-            async def _handle_workflow_operation(self, arguments: dict) -> dict:
+            async def _handle_workflow_operation(self, _arguments: dict) -> dict:
                 # Simulate workflow operations
                 return {"success": True, "data": {"workflow": "simulated"}}
 
-            async def _handle_query_operation(self, arguments: dict) -> dict:
+            async def _handle_query_operation(self, _arguments: dict) -> dict:
                 # Simulate query operations
                 return {"success": True, "data": {"query": "simulated"}}
 
@@ -151,19 +142,10 @@ class TestEntityDryMode:
     @pytest.mark.dry
     async def test_create_organization_dry(self, simulated_client):
         """Test creating organization with full simulation."""
-        org_data = {
-            "name": "Simulated Org",
-            "description": "A simulated organization",
-            "type": "enterprise"
-        }
+        org_data = {"name": "Simulated Org", "description": "A simulated organization", "type": "enterprise"}
 
         result = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": org_data
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "create", "data": org_data}
         )
 
         assert result["success"], f"Failed to create organization: {result.get('error')}"
@@ -182,16 +164,11 @@ class TestEntityDryMode:
             "name": "Simulated Project",
             "description": "A simulated project",
             "organization_id": "org_123",
-            "status": "active"
+            "status": "active",
         }
 
         result = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "project",
-                "operation": "create",
-                "data": project_data
-            }
+            "entity_tool", {"entity_type": "project", "operation": "create", "data": project_data}
         )
 
         assert result["success"], f"Failed to create project: {result.get('error')}"
@@ -210,20 +187,15 @@ class TestEntityDryMode:
             {
                 "entity_type": "document",
                 "operation": "create",
-                "data": {"title": "Test Document", "content": "Test content"}
-            }
+                "data": {"title": "Test Document", "content": "Test content"},
+            },
         )
         assert create_result["success"]
         doc_id = create_result["data"]["id"]
 
         # Read
         read_result = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "document",
-                "operation": "read",
-                "id": doc_id
-            }
+            "entity_tool", {"entity_type": "document", "operation": "read", "id": doc_id}
         )
         assert read_result["success"]
         assert read_result["data"]["title"] == "Test Document"
@@ -235,8 +207,8 @@ class TestEntityDryMode:
                 "entity_type": "document",
                 "operation": "update",
                 "id": doc_id,
-                "data": {"title": "Updated Document", "status": "published"}
-            }
+                "data": {"title": "Updated Document", "status": "published"},
+            },
         )
         assert update_result["success"]
         assert update_result["data"]["title"] == "Updated Document"
@@ -244,23 +216,13 @@ class TestEntityDryMode:
 
         # Delete
         delete_result = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "document",
-                "operation": "delete",
-                "id": doc_id
-            }
+            "entity_tool", {"entity_type": "document", "operation": "delete", "id": doc_id}
         )
         assert delete_result["success"]
 
         # Verify deletion
         read_after_delete = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "document",
-                "operation": "read",
-                "id": doc_id
-            }
+            "entity_tool", {"entity_type": "document", "operation": "read", "id": doc_id}
         )
         assert not read_after_delete["success"]
         assert read_after_delete["error"] == "not_found"
@@ -272,20 +234,12 @@ class TestEntityDryMode:
         for i in range(5):
             await simulated_client.call_tool(
                 "entity_tool",
-                {
-                    "entity_type": "organization",
-                    "operation": "create",
-                    "data": {"name": f"Org {i}", "type": "test"}
-                }
+                {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {i}", "type": "test"}},
             )
 
         # List all organizations
         list_result = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "list"
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "list"}
         )
 
         assert list_result["success"]
@@ -308,8 +262,8 @@ class TestEntityDryMode:
                 {
                     "entity_type": "document",
                     "operation": "create",
-                    "data": {"title": f"Document {i}", "content": f"Content {i}"}
-                }
+                    "data": {"title": f"Document {i}", "content": f"Content {i}"},
+                },
             )
 
         duration = time.time() - start_time
@@ -326,11 +280,7 @@ class TestEntityDryMode:
             tasks.append(
                 simulated_client.call_tool(
                     "entity_tool",
-                    {
-                        "entity_type": "organization",
-                        "operation": "create",
-                        "data": {"name": f"Parallel Org {i}"}
-                    }
+                    {"entity_type": "organization", "operation": "create", "data": {"name": f"Parallel Org {i}"}},
                 )
             )
 
@@ -345,12 +295,7 @@ class TestEntityDryMode:
         """Test simulated relationship operations."""
         # Create organization
         org_result = await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": "Test Org"}
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "create", "data": {"name": "Test Org"}}
         )
         org_id = org_result["data"]["id"]
 
@@ -360,8 +305,8 @@ class TestEntityDryMode:
             {
                 "entity_type": "project",
                 "operation": "create",
-                "data": {"name": "Test Project", "organization_id": org_id}
-            }
+                "data": {"name": "Test Project", "organization_id": org_id},
+            },
         )
         project_id = project_result["data"]["id"]
 
@@ -374,8 +319,8 @@ class TestEntityDryMode:
                 "source_id": org_id,
                 "target_type": "project",
                 "target_id": project_id,
-                "relationship_type": "owns"
-            }
+                "relationship_type": "owns",
+            },
         )
 
         assert rel_result["success"]
@@ -385,12 +330,7 @@ class TestEntityDryMode:
     async def test_simulated_workflows_dry(self, simulated_client):
         """Test simulated workflow operations."""
         workflow_result = await simulated_client.call_tool(
-            "workflow_tool",
-            {
-                "operation": "create",
-                "name": "Test Workflow",
-                "steps": ["step1", "step2", "step3"]
-            }
+            "workflow_tool", {"operation": "create", "name": "Test Workflow", "steps": ["step1", "step2", "step3"]}
         )
 
         assert workflow_result["success"]
@@ -400,12 +340,7 @@ class TestEntityDryMode:
     async def test_simulated_queries_dry(self, simulated_client):
         """Test simulated query operations."""
         query_result = await simulated_client.call_tool(
-            "query_tool",
-            {
-                "operation": "search",
-                "query": "test query",
-                "filters": {"type": "document"}
-            }
+            "query_tool", {"operation": "search", "query": "test query", "filters": {"type": "document"}}
         )
 
         assert query_result["success"]
@@ -416,21 +351,11 @@ class TestEntityDryMode:
         """Test that operations are logged in simulation."""
         # Perform some operations
         await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": "Logged Org"}
-            }
+            "entity_tool", {"entity_type": "organization", "operation": "create", "data": {"name": "Logged Org"}}
         )
 
         await simulated_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "project",
-                "operation": "create",
-                "data": {"name": "Logged Project"}
-            }
+            "entity_tool", {"entity_type": "project", "operation": "create", "data": {"name": "Logged Project"}}
         )
 
         # Check operation log
@@ -448,6 +373,7 @@ class TestEntityLogicDry:
     @pytest.fixture
     def simulated_business_logic(self):
         """Simulated business logic for testing."""
+
         class BusinessLogicSimulator:
             def __init__(self):
                 self.entities = {}
@@ -456,7 +382,7 @@ class TestEntityLogicDry:
                     "max_orgs_per_user": 10,
                     "max_projects_per_org": 50,
                     "required_org_fields": ["name", "type"],
-                    "required_project_fields": ["name", "organization_id"]
+                    "required_project_fields": ["name", "organization_id"],
                 }
 
             def validate_organization(self, data: dict) -> tuple[bool, str]:
@@ -485,14 +411,20 @@ class TestEntityLogicDry:
 
             def can_create_organization(self, user_id: str) -> bool:
                 """Check if user can create more organizations."""
-                user_orgs = [e for e in self.entities.values()
-                           if e.get("type") == "organization" and e.get("owner_id") == user_id]
+                user_orgs = [
+                    e
+                    for e in self.entities.values()
+                    if e.get("type") == "organization" and e.get("owner_id") == user_id
+                ]
                 return len(user_orgs) < self.rules["max_orgs_per_user"]
 
             def can_create_project(self, org_id: str) -> bool:
                 """Check if organization can have more projects."""
-                org_projects = [e for e in self.entities.values()
-                              if e.get("type") == "project" and e.get("organization_id") == org_id]
+                org_projects = [
+                    e
+                    for e in self.entities.values()
+                    if e.get("type") == "project" and e.get("organization_id") == org_id
+                ]
                 return len(org_projects) < self.rules["max_projects_per_org"]
 
         return BusinessLogicSimulator()
@@ -547,7 +479,7 @@ class TestEntityLogicDry:
             simulated_business_logic.entities[f"org_{i}"] = {
                 "type": "organization",
                 "owner_id": user_id,
-                "name": f"Org {i}"
+                "name": f"Org {i}",
             }
 
         # Now cannot create more
@@ -561,7 +493,7 @@ class TestEntityLogicDry:
             simulated_business_logic.entities[f"proj_{i}"] = {
                 "type": "project",
                 "organization_id": org_id,
-                "name": f"Project {i}"
+                "name": f"Project {i}",
             }
 
         # Now cannot create more
@@ -575,14 +507,10 @@ class TestEntityDataFlowDry:
     @pytest.fixture
     def simulated_state_manager(self):
         """Simulated state manager for testing data flow."""
+
         class StateManager:
             def __init__(self):
-                self.state = {
-                    "entities": {},
-                    "relationships": {},
-                    "workflows": {},
-                    "audit_log": []
-                }
+                self.state = {"entities": {}, "relationships": {}, "workflows": {}, "audit_log": []}
                 self.transaction_id = 0
 
             def begin_transaction(self) -> str:
@@ -592,20 +520,16 @@ class TestEntityDataFlowDry:
 
             def commit_transaction(self, tx_id: str) -> bool:
                 """Commit a transaction."""
-                self.state["audit_log"].append({
-                    "action": "commit",
-                    "transaction_id": tx_id,
-                    "timestamp": datetime.now().isoformat()
-                })
+                self.state["audit_log"].append(
+                    {"action": "commit", "transaction_id": tx_id, "timestamp": datetime.now(UTC).isoformat()}
+                )
                 return True
 
             def rollback_transaction(self, tx_id: str) -> bool:
                 """Rollback a transaction."""
-                self.state["audit_log"].append({
-                    "action": "rollback",
-                    "transaction_id": tx_id,
-                    "timestamp": datetime.now().isoformat()
-                })
+                self.state["audit_log"].append(
+                    {"action": "rollback", "transaction_id": tx_id, "timestamp": datetime.now(UTC).isoformat()}
+                )
                 return True
 
             def add_entity(self, entity_type: str, data: dict) -> str:
@@ -615,7 +539,7 @@ class TestEntityDataFlowDry:
                     "id": entity_id,
                     "type": entity_type,
                     **data,
-                    "created_at": datetime.now().isoformat()
+                    "created_at": datetime.now(UTC).isoformat(),
                 }
                 return entity_id
 
@@ -677,10 +601,7 @@ class TestEntityDataFlowDry:
         # Add multiple entities
         entities = []
         for i in range(10):
-            entity_id = simulated_state_manager.add_entity(
-                "organization",
-                {"name": f"Org {i}", "index": i}
-            )
+            entity_id = simulated_state_manager.add_entity("organization", {"name": f"Org {i}", "index": i})
             entities.append(entity_id)
 
         # Verify all entities exist and are consistent

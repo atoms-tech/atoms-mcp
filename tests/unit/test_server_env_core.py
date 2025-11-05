@@ -23,11 +23,12 @@ class TestServerEnvComplete:
         """Test server env module imports."""
         try:
             import server.env
+
             assert server.env is not None
         except ImportError:
             pytest.skip("server.env not available")
 
-    def test_config_creation(self, mock_env_environment):
+    def test_config_creation(self, _mock_env_environment):
         """Test configuration creation."""
         try:
             from server.env import EnvConfig
@@ -38,11 +39,7 @@ class TestServerEnvComplete:
 
             # Test configuration with parameters (if supported)
             try:
-                config = EnvConfig(
-                    database_url="postgresql://test",
-                    redis_url="redis://test",
-                    jwt_secret="test-secret"
-                )
+                config = EnvConfig(database_url="postgresql://test", redis_url="redis://test", jwt_secret="test-secret")
                 assert config.database_url == "postgresql://test"
             except TypeError:
                 # May not accept parameters in constructor
@@ -51,7 +48,7 @@ class TestServerEnvComplete:
         except ImportError:
             pytest.skip("EnvConfig not available")
 
-    def test_environment_variable_loading(self, mock_env_environment):
+    def test_environment_variable_loading(self, _mock_env_environment):
         """Test environment variable loading."""
         try:
             import os
@@ -64,7 +61,7 @@ class TestServerEnvComplete:
                 "REDIS_URL": "redis://env-test",
                 "JWT_SECRET": "env-secret-key",
                 "DEBUG": "true",
-                "PORT": "8000"
+                "PORT": "8000",
             }
 
             with patch.dict(os.environ, test_env):
@@ -94,7 +91,7 @@ class TestServerEnvComplete:
             # Environment loading may be implemented differently
             pytest.skip("Environment loading has different implementation")
 
-    def test_config_validation(self, mock_env_environment):
+    def test_config_validation(self, _mock_env_environment):
         """Test configuration validation."""
         try:
             from server.env import EnvConfig, validate_config
@@ -133,11 +130,12 @@ class TestServerCoreComplete:
         """Test server core module imports."""
         try:
             import server.core
+
             assert server.core is not None
         except ImportError:
             pytest.skip("server.core not available")
 
-    def test_server_configuration(self, mock_core_environment):
+    def test_server_configuration(self, _mock_core_environment):
         """Test server configuration."""
         try:
             from server.core import ServerConfig
@@ -148,12 +146,7 @@ class TestServerCoreComplete:
 
             # Test configuration with parameters (if supported)
             try:
-                config = ServerConfig(
-                    host="0.0.0.0",
-                    port=5000,
-                    debug=True,
-                    workers=4
-                )
+                config = ServerConfig(host="0.0.0.0", port=5000, debug=True, workers=4)
                 assert config.host == "0.0.0.0"
                 assert config.port == 5000
             except TypeError:
@@ -163,7 +156,7 @@ class TestServerCoreComplete:
         except ImportError:
             pytest.skip("ServerConfig not available")
 
-    def test_server_startup(self, mock_core_environment):
+    def test_server_startup(self, _mock_core_environment):
         """Test server startup."""
         try:
             from server.core import start_server
@@ -183,7 +176,7 @@ class TestServerCoreComplete:
         except ImportError:
             pytest.skip("Server startup not available")
 
-    def test_tool_registration(self, mock_core_environment):
+    def test_tool_registration(self, _mock_core_environment):
         """Test tool registration."""
         try:
             from server.core import get_registered_tools, register_tool
@@ -197,7 +190,7 @@ class TestServerCoreComplete:
                 name="test_tool",
                 function=test_tool_function,
                 description="Test tool for unit testing",
-                schema={"type": "object"}
+                schema={"type": "object"},
             )
 
             # Verify registration
@@ -214,7 +207,7 @@ class TestServerCoreComplete:
             # Tool registration may have different interface
             pytest.skip("Tool registration has different interface")
 
-    def test_server_health_check(self, mock_core_environment):
+    def test_server_health_check(self, _mock_core_environment):
         """Test server health check."""
         try:
             from server.core import health_check
@@ -235,7 +228,7 @@ class TestServerCoreComplete:
         except ImportError:
             pytest.skip("Health check not available")
 
-    def test_metrics_collection(self, mock_core_environment):
+    def test_metrics_collection(self, _mock_core_environment):
         """Test metrics collection."""
         try:
             from server.core import collect_metrics, get_metrics
@@ -255,7 +248,7 @@ class TestServerCoreComplete:
             expected_metrics = ["request_count", "response_time", "error_rate"]
             for metric in expected_metrics:
                 if metric in metrics:  # May not be implemented
-                    assert isinstance(metrics[metric], (int, float))
+                    assert isinstance(metrics[metric], int | float)
 
         except ImportError:
             pytest.skip("Metrics collection not available")

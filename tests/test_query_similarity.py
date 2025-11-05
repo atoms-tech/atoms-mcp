@@ -34,7 +34,7 @@ async def server_with_test_data():
         name="TechCorp",
         description="Leading technology company focused on AI and cloud solutions",
         created_at=datetime.now(UTC),
-        metadata={"industry": "technology", "size": "large", "region": "global"}
+        metadata={"industry": "technology", "size": "large", "region": "global"},
     )
 
     org2 = Organization(
@@ -42,7 +42,7 @@ async def server_with_test_data():
         name="DataSystems",
         description="Data management and analytics company",
         created_at=datetime.now(UTC),
-        metadata={"industry": "data", "size": "medium", "region": "north-america"}
+        metadata={"industry": "data", "size": "medium", "region": "north-america"},
     )
 
     # Create projects
@@ -52,7 +52,7 @@ async def server_with_test_data():
         description="Next-generation AI platform for enterprise applications",
         organization_id=org1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "ai", "priority": "high", "status": "active"}
+        metadata={"type": "ai", "priority": "high", "status": "active"},
     )
 
     project2 = Project(
@@ -61,7 +61,7 @@ async def server_with_test_data():
         description="Real-time data processing pipeline",
         organization_id=org2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "data", "priority": "medium", "status": "planning"}
+        metadata={"type": "data", "priority": "medium", "status": "planning"},
     )
 
     # Create requirements
@@ -73,7 +73,7 @@ async def server_with_test_data():
         priority=RequirementPriority.HIGH,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "medium"}
+        metadata={"type": "functional", "complexity": "medium"},
     )
 
     req2 = Requirement(
@@ -84,7 +84,7 @@ async def server_with_test_data():
         priority=RequirementPriority.MEDIUM,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "low"}
+        metadata={"type": "functional", "complexity": "low"},
     )
 
     # Create tests
@@ -95,7 +95,7 @@ async def server_with_test_data():
         project_id=project1.id,
         status=TestStatus.PASSED,
         created_at=datetime.now(UTC),
-        metadata={"type": "unit", "coverage": "high"}
+        metadata={"type": "unit", "coverage": "high"},
     )
 
     test2 = Test(
@@ -105,7 +105,7 @@ async def server_with_test_data():
         project_id=project2.id,
         status=TestStatus.FAILED,
         created_at=datetime.now(UTC),
-        metadata={"type": "integration", "coverage": "medium"}
+        metadata={"type": "integration", "coverage": "medium"},
     )
 
     # Create documents
@@ -115,7 +115,7 @@ async def server_with_test_data():
         content="Comprehensive API documentation for the AI platform",
         project_id=project1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "documentation", "format": "markdown"}
+        metadata={"type": "documentation", "format": "markdown"},
     )
 
     doc2 = Document(
@@ -124,7 +124,7 @@ async def server_with_test_data():
         content="Data schema definitions and validation rules",
         project_id=project2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "schema", "format": "json"}
+        metadata={"type": "schema", "format": "json"},
     )
 
     # Store all entities
@@ -149,9 +149,7 @@ class TestQuerySimilarity:
     async def test_similarity_basic_organizations(self, server_with_test_data):
         """Test basic similarity search for organizations."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization"],
-            search_query="tech company",
-            similarity_threshold=0.5
+            entity_types=["Organization"], search_query="tech company", similarity_threshold=0.5
         )
 
         assert result is not None
@@ -166,9 +164,7 @@ class TestQuerySimilarity:
     async def test_similarity_high_threshold(self, server_with_test_data):
         """Test similarity search with high threshold."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project"],
-            search_query="AI platform",
-            similarity_threshold=0.9
+            entity_types=["Project"], search_query="AI platform", similarity_threshold=0.9
         )
 
         assert result is not None
@@ -180,9 +176,7 @@ class TestQuerySimilarity:
     async def test_similarity_low_threshold(self, server_with_test_data):
         """Test similarity search with low threshold."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Requirement"],
-            search_query="system",
-            similarity_threshold=0.1
+            entity_types=["Requirement"], search_query="system", similarity_threshold=0.1
         )
 
         assert result is not None
@@ -197,9 +191,7 @@ class TestQuerySimilarity:
     async def test_similarity_multiple_entity_types(self, server_with_test_data):
         """Test similarity search across multiple entity types."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project", "Requirement", "Test"],
-            search_query="authentication",
-            similarity_threshold=0.6
+            entity_types=["Project", "Requirement", "Test"], search_query="authentication", similarity_threshold=0.6
         )
 
         assert result is not None
@@ -214,10 +206,7 @@ class TestQuerySimilarity:
     async def test_similarity_with_filters(self, server_with_test_data):
         """Test similarity search with metadata filters."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            search_query="unit test",
-            similarity_threshold=0.5,
-            filters={"metadata.type": "unit"}
+            entity_types=["Test"], search_query="unit test", similarity_threshold=0.5, filters={"metadata.type": "unit"}
         )
 
         assert result is not None
@@ -232,9 +221,7 @@ class TestQuerySimilarity:
     async def test_similarity_documents(self, server_with_test_data):
         """Test similarity search for documents."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Document"],
-            search_query="API documentation",
-            similarity_threshold=0.7
+            entity_types=["Document"], search_query="API documentation", similarity_threshold=0.7
         )
 
         assert result is not None
@@ -249,9 +236,7 @@ class TestQuerySimilarity:
     async def test_similarity_cross_entity_semantic(self, server_with_test_data):
         """Test cross-entity semantic similarity."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization", "Project"],
-            search_query="technology solutions",
-            similarity_threshold=0.6
+            entity_types=["Organization", "Project"], search_query="technology solutions", similarity_threshold=0.6
         )
 
         assert result is not None
@@ -266,9 +251,7 @@ class TestQuerySimilarity:
     async def test_similarity_requirement_test_matching(self, server_with_test_data):
         """Test similarity between requirements and tests."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Requirement", "Test"],
-            search_query="validation",
-            similarity_threshold=0.5
+            entity_types=["Requirement", "Test"], search_query="validation", similarity_threshold=0.5
         )
 
         assert result is not None
@@ -286,7 +269,7 @@ class TestQuerySimilarity:
             entity_types=["Document"],
             search_query="technical documentation",
             similarity_threshold=0.6,
-            rag_mode=RAGMode.SEMANTIC
+            rag_mode=RAGMode.SEMANTIC,
         )
 
         assert result is not None
@@ -301,9 +284,7 @@ class TestQuerySimilarity:
     async def test_similarity_no_matches(self, server_with_test_data):
         """Test similarity search with no matches."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization"],
-            search_query="completely unrelated query",
-            similarity_threshold=0.9
+            entity_types=["Organization"], search_query="completely unrelated query", similarity_threshold=0.9
         )
 
         assert result is not None
@@ -316,7 +297,7 @@ class TestQuerySimilarity:
         result = await server_with_test_data.query_entities(
             entity_types=["Organization", "Project", "Requirement", "Test", "Document"],
             search_query="data",
-            similarity_threshold=0.4
+            similarity_threshold=0.4,
         )
 
         assert result is not None

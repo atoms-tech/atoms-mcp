@@ -23,6 +23,7 @@ async def _run_subprocess(cmd):
     proc = await asyncio.create_subprocess_exec(*cmd)
     return await proc.wait()
 
+
 cli = CLI(name="atoms-dev", description="Atoms MCP local development toolkit")
 
 
@@ -76,9 +77,7 @@ async def start_command():
     }
 
     server_probe = ReadyProbe(
-        lambda: _check_http_ready(
-            f"http://{app_env['ATOMS_FASTMCP_HOST']}:{app_env['ATOMS_FASTMCP_PORT']}/health"
-        )
+        lambda: _check_http_ready(f"http://{app_env['ATOMS_FASTMCP_HOST']}:{app_env['ATOMS_FASTMCP_PORT']}/health")
     )
 
     configs = [
@@ -238,7 +237,7 @@ async def backfill_command(options: list[str] | None = None):
     cmd = [
         sys.executable,
         str(Path(__file__).parent / "backfill_embeddings.py"),
-        * (options or []),
+        *(options or []),
     ]
     await _run_subprocess(cmd)
 

@@ -155,7 +155,7 @@ async def export_schema_to_json(project_id: str, output_file: str):
         "metadata": {
             "project_id": project_id,
             "exported_at": None,  # Would be datetime.now().isoformat()
-        }
+        },
     }
 
     # Get enums
@@ -198,12 +198,7 @@ async def compare_with_local_schema():
     local_enums = []
     for name in dir(enums):
         obj = getattr(enums, name)
-        if (
-            isinstance(obj, type)
-            and issubclass(obj, enums.Enum)
-            and obj != enums.Enum
-            and not name.startswith("_")
-        ):
+        if isinstance(obj, type) and issubclass(obj, enums.Enum) and obj != enums.Enum and not name.startswith("_"):
             local_enums.append(name)
 
     print(f"  Local enums: {len(local_enums)}")

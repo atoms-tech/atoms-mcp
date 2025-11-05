@@ -1,6 +1,5 @@
 """Server security, performance, and integration testing using established mock framework."""
 
-
 import pytest
 
 # Import our mock framework
@@ -20,20 +19,18 @@ class TestServerSecurityComplete:
         """Create mock security environment."""
         with mock_external_services() as services:
             auth_system = MockAuthSystem()
-            return {
-                "services": services,
-                "auth_system": auth_system
-            }
+            return {"services": services, "auth_system": auth_system}
 
     def test_server_security_imports(self):
         """Test server security module imports."""
         try:
             import server.security
+
             assert server.security is not None
         except ImportError:
             pytest.skip("server.security not available")
 
-    def test_jwt_token_operations(self, mock_security_environment):
+    def test_jwt_token_operations(self, _mock_security_environment):
         """Test JWT token operations."""
         mock_security_environment["auth_system"]
 
@@ -59,7 +56,7 @@ class TestServerSecurityComplete:
             # May use different JWT implementation
             pytest.skip("JWT operations have different implementation")
 
-    def test_cors_configuration(self, mock_security_environment):
+    def test_cors_configuration(self, _mock_security_environment):
         """Test CORS configuration."""
         try:
             from server.security import configure_cors
@@ -70,7 +67,7 @@ class TestServerSecurityComplete:
                 allowed_methods=["GET", "POST", "PUT", "DELETE"],
                 allowed_headers=["Content-Type", "Authorization"],
                 allow_credentials=True,
-                max_age=3600
+                max_age=3600,
             )
 
             assert cors_config is not None
@@ -81,7 +78,7 @@ class TestServerSecurityComplete:
         except ImportError:
             pytest.skip("CORS configuration not available")
 
-    def test_security_headers(self, mock_security_environment):
+    def test_security_headers(self, _mock_security_environment):
         """Test security headers."""
         try:
             from server.security import add_security_headers
@@ -97,7 +94,7 @@ class TestServerSecurityComplete:
                 "X-Content-Type-Options",
                 "X-Frame-Options",
                 "X-XSS-Protection",
-                "Strict-Transport-Security"
+                "Strict-Transport-Security",
             ]
 
             for header in expected_headers:
@@ -107,16 +104,14 @@ class TestServerSecurityComplete:
         except ImportError:
             pytest.skip("Security headers not available")
 
-    def test_rate_limiting_middleware(self, mock_security_environment):
+    def test_rate_limiting_middleware(self, _mock_security_environment):
         """Test rate limiting middleware."""
         try:
             from server.security import RateLimitMiddleware
 
             # Test middleware creation
             middleware = RateLimitMiddleware(
-                max_requests=10,
-                window_seconds=60,
-                key_func=lambda request: request.client.host
+                max_requests=10, window_seconds=60, key_func=lambda request: request.client.host
             )
 
             assert middleware is not None
@@ -127,7 +122,7 @@ class TestServerSecurityComplete:
         except ImportError:
             pytest.skip("Rate limiting middleware not available")
 
-    def test_input_sanitization(self, mock_security_environment):
+    def test_input_sanitization(self, _mock_security_environment):
         """Test input sanitization."""
         try:
             from server.security import sanitize_html, sanitize_input
@@ -161,7 +156,7 @@ class TestServerPerformanceComplete:
         with mock_external_services() as services:
             return services
 
-    def test_server_startup_performance(self, mock_performance_environment):
+    def test_server_startup_performance(self, _mock_performance_environment):
         """Test server startup performance."""
         try:
             from server.core import ServerConfig, initialize_server
@@ -180,7 +175,7 @@ class TestServerPerformanceComplete:
         except ImportError:
             pytest.skip("Server startup performance not available")
 
-    def test_request_handling_performance(self, mock_performance_environment):
+    def test_request_handling_performance(self, _mock_performance_environment):
         """Test request handling performance."""
         try:
             from server.tools import execute_tool
@@ -194,9 +189,7 @@ class TestServerPerformanceComplete:
                 results = []
                 for i in range(100):
                     result = execute_tool(
-                        tool_name="fast_tool",
-                        function=fast_tool_function,
-                        arguments={"data": f"request-{i}"}
+                        tool_name="fast_tool", function=fast_tool_function, arguments={"data": f"request-{i}"}
                     )
                     results.append(result)
                 return results
@@ -211,7 +204,7 @@ class TestServerPerformanceComplete:
         except ImportError:
             pytest.skip("Request handling performance not available")
 
-    def test_memory_usage_patterns(self, mock_performance_environment):
+    def test_memory_usage_patterns(self, _mock_performance_environment):
         """Test memory usage patterns."""
         try:
             from server.core import collect_metrics
@@ -225,6 +218,7 @@ class TestServerPerformanceComplete:
                 return metrics
 
             import gc
+
             gc.collect()
 
             metrics, execution_time = PerformanceTestUtils.time_function(simulate_high_load)
@@ -236,7 +230,7 @@ class TestServerPerformanceComplete:
         except ImportError:
             pytest.skip("Memory usage testing not available")
 
-    def test_concurrent_request_handling(self, mock_performance_environment):
+    def test_concurrent_request_handling(self, _mock_performance_environment):
         """Test concurrent request handling."""
         try:
             import threading
@@ -250,14 +244,13 @@ class TestServerPerformanceComplete:
 
             def simulate_concurrent_request(request_id):
                 try:
+
                     def test_function():
                         time.sleep(0.01)  # Simulate work
                         return {"request_id": request_id, "success": True}
 
                     result = execute_tool(
-                        tool_name=f"concurrent_tool_{request_id}",
-                        function=test_function,
-                        arguments={}
+                        tool_name=f"concurrent_tool_{request_id}", function=test_function, arguments={}
                     )
                     results.append(result)
                 except Exception as e:
@@ -299,13 +292,9 @@ class TestServerIntegrationComplete:
             auth_system = MockAuthSystem()
             config = MockConfig()
 
-            return {
-                "services": services,
-                "auth_system": auth_system,
-                "config": config
-            }
+            return {"services": services, "auth_system": auth_system, "config": config}
 
-    def test_complete_request_flow(self, mock_integration_environment):
+    def test_complete_request_flow(self, _mock_integration_environment):
         """Test complete request flow."""
         try:
             from server.core import handle_request
@@ -315,11 +304,8 @@ class TestServerIntegrationComplete:
             request_data = {
                 "method": "POST",
                 "path": "/api/projects",
-                "headers": {
-                    "Authorization": "Bearer test-token",
-                    "Content-Type": "application/json"
-                },
-                "body": {"name": "Test Project", "description": "Test Description"}
+                "headers": {"Authorization": "Bearer test-token", "Content-Type": "application/json"},
+                "body": {"name": "Test Project", "description": "Test Description"},
             }
 
             # Validate request
@@ -335,22 +321,19 @@ class TestServerIntegrationComplete:
         except ImportError:
             pytest.skip("Complete request flow not available")
 
-    def test_authentication_integration(self, mock_integration_environment):
+    def test_authentication_integration(self, _mock_integration_environment):
         """Test authentication integration."""
         auth_system = mock_integration_environment["auth_system"]
 
         try:
-            from server.auth import authenticate_request, generate_response
+            from server.auth import authenticate_request
 
             # Test authentication flow
             login_result = auth_system.authenticate("test@example.com", "password")
             token = login_result["access_token"]
 
             # Test request authentication
-            request = {
-                "headers": {"Authorization": f"Bearer {token}"},
-                "path": "/api/protected"
-            }
+            request = {"headers": {"Authorization": f"Bearer {token}"}, "path": "/api/protected"}
 
             auth_result = authenticate_request(request)
             assert auth_result.get("authenticated") is True
@@ -359,7 +342,7 @@ class TestServerIntegrationComplete:
         except ImportError:
             pytest.skip("Authentication integration not available")
 
-    def test_database_integration(self, mock_integration_environment):
+    def test_database_integration(self, _mock_integration_environment):
         """Test database integration."""
         mock_integration_environment["services"]
 
@@ -371,7 +354,7 @@ class TestServerIntegrationComplete:
                 {"operation": "create", "table": "projects", "data": {"name": "Test Project"}},
                 {"operation": "read", "table": "projects", "id": "1"},
                 {"operation": "update", "table": "projects", "id": "1", "data": {"name": "Updated Project"}},
-                {"operation": "delete", "table": "projects", "id": "1"}
+                {"operation": "delete", "table": "projects", "id": "1"},
             ]
 
             results = []
@@ -385,7 +368,7 @@ class TestServerIntegrationComplete:
         except ImportError:
             pytest.skip("Database integration not available")
 
-    def test_error_handling_integration(self, mock_integration_environment):
+    def test_error_handling_integration(self, _mock_integration_environment):
         """Test error handling integration."""
         try:
             from server.core import handle_error

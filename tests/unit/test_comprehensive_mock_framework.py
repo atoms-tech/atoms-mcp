@@ -37,7 +37,7 @@ class MockTable:
         self.client = client
         self.data = client.tables.get(name, [])
 
-    def select(self, columns="*"):
+    def select(self, _columns="*"):
         mock = Mock()
         mock.eq = self._eq
         mock.or_ = self._or_
@@ -84,8 +84,7 @@ class MockTable:
         filtered_data = self.data.copy()
 
         if hasattr(self, "_eq_field"):
-            filtered_data = [item for item in filtered_data
-                           if item.get(self._eq_field) == self._eq_value]
+            filtered_data = [item for item in filtered_data if item.get(self._eq_field) == self._eq_value]
 
         response = Mock()
         response.data = filtered_data
@@ -109,8 +108,11 @@ class MockTable:
                 if item.get(self._eq_field) == self._eq_value:
                     item.update(data)
 
-        filtered_data = [item for item in self.data
-                        if item.get(self._eq_field) == self._eq_value] if hasattr(self, "_eq_field") else self.data
+        filtered_data = (
+            [item for item in self.data if item.get(self._eq_field) == self._eq_value]
+            if hasattr(self, "_eq_field")
+            else self.data
+        )
 
         response = Mock()
         response.data = filtered_data
@@ -119,8 +121,7 @@ class MockTable:
     def _execute_delete(self):
         # Delete records
         if hasattr(self, "_eq_field"):
-            self.data = [item for item in self.data
-                        if item.get(self._eq_field) != self._eq_value]
+            self.data = [item for item in self.data if item.get(self._eq_field) != self._eq_value]
 
         response = Mock()
         response.data = []
@@ -139,16 +140,9 @@ class MockRPC:
 
         # Return appropriate mock data based on RPC name
         if self.name.startswith("aggregate_"):
-            response.data = [
-                {"entity_type": "project", "count": 10},
-                {"entity_type": "document", "count": 25}
-            ]
+            response.data = [{"entity_type": "project", "count": 10}, {"entity_type": "document", "count": 25}]
         elif self.name.startswith("analyze_"):
-            response.data = {
-                "total_entities": 100,
-                "active_projects": 15,
-                "recent_documents": 30
-            }
+            response.data = {"total_entities": 100, "active_projects": 15, "recent_documents": 30}
         else:
             response.data = []
 
@@ -167,7 +161,7 @@ class MockConfig:
             "debug": True,
             "environment": "test",
             "port": 8000,
-            "host": "localhost"
+            "host": "localhost",
         }
 
     def get(self, key, default=None):
@@ -193,12 +187,12 @@ class MockVercelClient:
 
     def create_deployment(self, project_id, data):
         deployment = {
-            "id": f"deploy-{len(self.deployments)+1}",
+            "id": f"deploy-{len(self.deployments) + 1}",
             "project_id": project_id,
             "status": "ready",
-            "url": f"https://test-{len(self.deployments)+1}.vercel.app",
+            "url": f"https://test-{len(self.deployments) + 1}.vercel.app",
             "created_at": datetime.now(UTC).isoformat(),
-            **data
+            **data,
         }
         self.deployments.append(deployment)
         return deployment
@@ -252,13 +246,13 @@ class MockAuthSystem:
                 "email": "test@example.com",
                 "password_hash": "hashed_password",
                 "role": "admin",
-                "created_at": datetime.now(UTC).isoformat()
+                "created_at": datetime.now(UTC).isoformat(),
             }
         }
         self.tokens = {}
         self.refresh_tokens = {}
 
-    def authenticate(self, email, password):
+    def authenticate(self, email, _password):
         """Authenticate user and return tokens."""
         for user_id, user_data in self.users.items():
             if user_data["email"] == email:
@@ -267,17 +261,14 @@ class MockAuthSystem:
                 refresh_token = f"refresh-{user_id}"
                 expires_at = datetime.now(UTC) + timedelta(hours=1)
 
-                self.tokens[access_token] = {
-                    "user_id": user_id,
-                    "expires_at": expires_at
-                }
+                self.tokens[access_token] = {"user_id": user_id, "expires_at": expires_at}
                 self.refresh_tokens[refresh_token] = user_id
 
                 return {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                     "expires_at": expires_at,
-                    "user": user_data
+                    "user": user_data,
                 }
         return None
 
@@ -285,10 +276,7 @@ class MockAuthSystem:
         """Validate access token."""
         token_data = self.tokens.get(access_token)
         if token_data and datetime.now(UTC) < token_data["expires_at"]:
-            return {
-                "user_id": token_data["user_id"],
-                "valid": True
-            }
+            return {"user_id": token_data["user_id"], "valid": True}
         return {"valid": False}
 
     def refresh_token(self, refresh_token):
@@ -298,15 +286,9 @@ class MockAuthSystem:
             new_access_token = f"new-access-{user_id}"
             expires_at = datetime.now(UTC) + timedelta(hours=1)
 
-            self.tokens[new_access_token] = {
-                "user_id": user_id,
-                "expires_at": expires_at
-            }
+            self.tokens[new_access_token] = {"user_id": user_id, "expires_at": expires_at}
 
-            return {
-                "access_token": new_access_token,
-                "expires_at": expires_at
-            }
+            return {"access_token": new_access_token, "expires_at": expires_at}
         return None
 
 
@@ -348,7 +330,7 @@ class MockFileSystem:
         files = []
         for file_path in self.files:
             if file_path.startswith(path + "/"):
-                files.append(file_path[len(path)+1:])
+                files.append(file_path[len(path) + 1 :])
         return files
 
 
@@ -363,10 +345,7 @@ class MockHttpClient:
     def add_response(self, method, url, response_data, status_code=200):
         """Add a canned response."""
         key = f"{method.upper()}:{url}"
-        self.responses[key] = {
-            "data": response_data,
-            "status": status_code
-        }
+        self.responses[key] = {"data": response_data, "status": status_code}
 
     def get(self, url, headers=None):
         """Mock GET request."""
@@ -386,21 +365,13 @@ class MockHttpClient:
 
     def _make_request(self, method, url, data, headers):
         """Make mock HTTP request."""
-        self.requests.append({
-            "method": method,
-            "url": url,
-            "data": data,
-            "headers": headers or {}
-        })
+        self.requests.append({"method": method, "url": url, "data": data, "headers": headers or {}})
 
         key = f"{method.upper()}:{url}"
         response = self.responses.get(key)
 
         if response:
-            return MockHttpResponse(
-                data=response["data"],
-                status=response["status"]
-            )
+            return MockHttpResponse(data=response["data"], status=response["status"])
 
         # Default 404 response
         return MockHttpResponse(status=404, data={"error": "Not found"})
@@ -413,7 +384,7 @@ class MockHttpResponse:
         self.data = data or {}
         self.status_code = status
         self.headers = headers or {}
-        self.text = json.dumps(data) if isinstance(data, (dict, list)) else str(data)
+        self.text = json.dumps(data) if isinstance(data, dict | list) else str(data)
 
     def json(self):
         """Return JSON data."""
@@ -505,11 +476,7 @@ class mock_external_services:
         for patcher in self.patchers:
             patcher.start()
 
-        return {
-            "supabase": self.supabase,
-            "redis": self.redis,
-            "vercel": self.vercel
-        }
+        return {"supabase": self.supabase, "redis": self.redis, "vercel": self.vercel}
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for patcher in self.patchers:
@@ -524,7 +491,7 @@ def create_test_user(user_id="test-user", email="test@example.com"):
         "email": email,
         "role": "user",
         "created_at": datetime.now(UTC).isoformat(),
-        "updated_at": datetime.now(UTC).isoformat()
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -538,7 +505,7 @@ def create_test_project(project_id="proj-1", name="Test Project", owner_id="test
         "owner_id": owner_id,
         "status": "active",
         "created_at": datetime.now(UTC).isoformat(),
-        "updated_at": datetime.now(UTC).isoformat()
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -551,7 +518,7 @@ def create_test_document(doc_id="doc-1", title="Test Document", project_id="proj
         "project_id": project_id,
         "status": "active",
         "created_at": datetime.now(UTC).isoformat(),
-        "updated_at": datetime.now(UTC).isoformat()
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -565,7 +532,7 @@ def create_test_requirement(req_id="req-1", title="Test Requirement", doc_id="do
         "priority": "high",
         "status": "active",
         "created_at": datetime.now(UTC).isoformat(),
-        "updated_at": datetime.now(UTC).isoformat()
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -580,7 +547,7 @@ def create_test_organization(org_id="org-1", name="Test Organization", owner_id=
         "type": "team",
         "status": "active",
         "created_at": datetime.now(UTC).isoformat(),
-        "updated_at": datetime.now(UTC).isoformat()
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -608,6 +575,7 @@ class AsyncTestUtils:
     async def run_parallel(*coroutines):
         """Run coroutines in parallel."""
         import asyncio
+
         return await asyncio.gather(*coroutines)
 
     @staticmethod
@@ -626,6 +594,7 @@ class PerformanceTestUtils:
     def time_function(func, *args, **kwargs):
         """Time function execution."""
         import time
+
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
@@ -636,6 +605,7 @@ class PerformanceTestUtils:
         """Time async coroutine execution."""
         import asyncio
         import time
+
         start_time = time.time()
         loop = asyncio.get_event_loop()
         result = loop.run_until_complete(coro)
@@ -645,12 +615,15 @@ class PerformanceTestUtils:
     @staticmethod
     def assert_execution_time(max_seconds):
         """Decorator to assert execution time."""
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 result, execution_time = PerformanceTestUtils.time_function(func, *args, **kwargs)
                 assert execution_time < max_seconds, f"Function took {execution_time}s, expected < {max_seconds}s"
                 return result
+
             return wrapper
+
         return decorator
 
 
@@ -714,30 +687,14 @@ class TestDataFactory:
         project = self.create_project(**overrides)
 
         # Create documents
-        doc1 = self.create_document(
-            title="Requirements Document",
-            project_id=project["id"]
-        )
-        doc2 = self.create_document(
-            title="Design Document",
-            project_id=project["id"]
-        )
+        doc1 = self.create_document(title="Requirements Document", project_id=project["id"])
+        doc2 = self.create_document(title="Design Document", project_id=project["id"])
 
         # Create requirements
-        req1 = self.create_requirement(
-            title="Login Functionality",
-            document_id=doc1["id"]
-        )
-        req2 = self.create_requirement(
-            title="User Registration",
-            document_id=doc1["id"]
-        )
+        req1 = self.create_requirement(title="Login Functionality", document_id=doc1["id"])
+        req2 = self.create_requirement(title="User Registration", document_id=doc1["id"])
 
-        return {
-            "project": project,
-            "documents": [doc1, doc2],
-            "requirements": [req1, req2]
-        }
+        return {"project": project, "documents": [doc1, doc2], "requirements": [req1, req2]}
 
 
 # Integration test utilities
@@ -777,7 +734,7 @@ class IntegrationTestUtils:
                 "organization": org,
                 "projects": [proj1, proj2],
                 "documents": [doc1, doc2],
-                "requirements": [req1, req2]
+                "requirements": [req1, req2],
             }
 
         return None

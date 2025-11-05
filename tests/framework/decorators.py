@@ -28,6 +28,7 @@ def skip_if(condition: Callable[[], bool], reason: str = "Condition not met"):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -44,6 +45,7 @@ def skip_if(condition: Callable[[], bool], reason: str = "Condition not met"):
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return wrapper
+
     return decorator
 
 
@@ -59,12 +61,9 @@ def mcp_test(tool_name: str, category: str = "general", priority: int = 1):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
-        func._mcp_test_metadata = {
-            "tool_name": tool_name,
-            "category": category,
-            "priority": priority
-        }
+        func._mcp_test_metadata = {"tool_name": tool_name, "category": category, "priority": priority}
 
         # Register the test
         _test_registry[func.__name__] = func._mcp_test_metadata
@@ -80,6 +79,7 @@ def mcp_test(tool_name: str, category: str = "general", priority: int = 1):
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return wrapper
+
     return decorator
 
 
@@ -118,13 +118,15 @@ def timeout(seconds: int):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             return asyncio.wait_for(
-                asyncio.create_task(func(*args, **kwargs)) if asyncio.iscoroutinefunction(func)
+                asyncio.create_task(func(*args, **kwargs))
+                if asyncio.iscoroutinefunction(func)
                 else asyncio.create_task(asyncio.to_thread(func, *args, **kwargs)),
-                timeout=seconds
+                timeout=seconds,
             )
 
         @functools.wraps(func)
@@ -134,6 +136,7 @@ def timeout(seconds: int):
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return wrapper
+
     return decorator
 
 
@@ -148,6 +151,7 @@ def retry(max_attempts: int = 3, delay: float = 1.0):
     Returns:
         Decorator function
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -182,6 +186,7 @@ def retry(max_attempts: int = 3, delay: float = 1.0):
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return wrapper
+
     return decorator
 
 

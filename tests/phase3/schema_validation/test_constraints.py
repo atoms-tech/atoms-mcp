@@ -51,17 +51,13 @@ class TestConstraints:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.exception(f"Failed to initialize SchemaSync: {e}")
+            logger.exception("Failed to initialize SchemaSync")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_not_null_constraints_enforced(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_not_null_constraints_enforced(self, _schema_sync: SchemaSync, store_result) -> None:
         """Test that NOT NULL constraints are enforced.
 
         Given: Database columns with NOT NULL constraint
@@ -84,7 +80,7 @@ class TestConstraints:
                     # Missing "name" which is NOT NULL
                     "field_type": "personal",
                     "owner_id": uuid.uuid4(),
-                    "version": 1
+                    "version": 1,
                 }
                 OrganizationBaseSchema(**data)  # type: ignore
             except ValidationError as e:
@@ -99,7 +95,7 @@ class TestConstraints:
                     "name": None,  # NOT NULL field
                     "field_type": "personal",
                     "owner_id": uuid.uuid4(),
-                    "version": 1
+                    "version": 1,
                 }
                 OrganizationBaseSchema(**data)  # type: ignore
             except ValidationError:
@@ -113,7 +109,7 @@ class TestConstraints:
                     "name": "Test Org",
                     "field_type": "personal",
                     "owner_id": uuid.uuid4(),
-                    "version": 1
+                    "version": 1,
                 }
                 org = OrganizationBaseSchema(**data)  # type: ignore
                 assert org.name == "Test Org"
@@ -121,11 +117,15 @@ class TestConstraints:
                 logger.exception(f"Valid data failed: {e}")
                 valid_data_test = False
 
-            store_result("test_not_null_constraints_enforced", True, {
-                "missing_required_fails": missing_required_test,
-                "explicit_null_fails": explicit_null_test,
-                "valid_data_passes": valid_data_test
-            })
+            store_result(
+                "test_not_null_constraints_enforced",
+                True,
+                {
+                    "missing_required_fails": missing_required_test,
+                    "explicit_null_fails": explicit_null_test,
+                    "valid_data_passes": valid_data_test,
+                },
+            )
 
             assert missing_required_test, "Missing required field should fail"
             assert explicit_null_test, "Explicit null should fail"
@@ -138,11 +138,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_nullable_fields_allow_null(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_nullable_fields_allow_null(self, _schema_sync: SchemaSync, store_result) -> None:
         """Test that nullable fields properly allow null values.
 
         Given: Database columns with NULL allowed
@@ -157,13 +153,7 @@ class TestConstraints:
         try:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
-            base_data = {
-                "id": uuid.uuid4(),
-                "name": "Test",
-                "slug": "test",
-                "project_id": uuid.uuid4(),
-                "version": 1
-            }
+            base_data = {"id": uuid.uuid4(), "name": "Test", "slug": "test", "project_id": uuid.uuid4(), "version": 1}
 
             # Test null for optional field
             null_optional_test = True
@@ -199,11 +189,15 @@ class TestConstraints:
                 logger.exception(f"Multiple null fields failed: {e}")
                 multiple_null_test = False
 
-            store_result("test_nullable_fields_allow_null", True, {
-                "null_optional": null_optional_test,
-                "omit_optional": omit_optional_test,
-                "multiple_null": multiple_null_test
-            })
+            store_result(
+                "test_nullable_fields_allow_null",
+                True,
+                {
+                    "null_optional": null_optional_test,
+                    "omit_optional": omit_optional_test,
+                    "multiple_null": multiple_null_test,
+                },
+            )
 
             assert null_optional_test, "Null optional fields should work"
             assert omit_optional_test, "Omitting optional fields should work"
@@ -215,11 +209,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_unique_constraints_documented(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_unique_constraints_documented(self, _schema_sync: SchemaSync, store_result) -> None:
         """Test that UNIQUE constraints are documented in models.
 
         Given: Database columns with UNIQUE constraint
@@ -250,25 +240,17 @@ class TestConstraints:
                     continue
 
                 # Check if these fields exist in the schema
-                table_columns = {
-                    col["column_name"]
-                    for col in schema_sync.db_schema["tables"][table_name]["columns"]
-                }
+                table_columns = {col["column_name"] for col in schema_sync.db_schema["tables"][table_name]["columns"]}
 
                 for unique_field in expected_unique:
                     if unique_field in table_columns:
-                        findings.append({
-                            "table": table_name,
-                            "field": unique_field,
-                            "exists": True
-                        })
+                        findings.append({"table": table_name, "field": unique_field, "exists": True})
 
             logger.info(f"Found {len(findings)} potential unique fields")
 
-            store_result("test_unique_constraints_documented", True, {
-                "unique_fields_found": len(findings),
-                "findings": findings
-            })
+            store_result(
+                "test_unique_constraints_documented", True, {"unique_fields_found": len(findings), "findings": findings}
+            )
 
             # This is informational - we can't enforce uniqueness in Pydantic
             assert True, "UNIQUE constraint documentation check complete"
@@ -280,11 +262,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_check_constraints_identified(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_check_constraints_identified(self, _schema_sync: SchemaSync, store_result) -> None:
         """Test identification of CHECK constraints.
 
         Given: Database tables with CHECK constraints
@@ -307,37 +285,44 @@ class TestConstraints:
 
                     # Version fields typically have version >= 0
                     if col_name == "version" and col["data_type"] in ["integer", "bigint"]:
-                        check_constraint_candidates.append({
-                            "table": table_name,
-                            "column": col_name,
-                            "constraint_type": "version_non_negative",
-                            "expected": "version >= 0"
-                        })
+                        check_constraint_candidates.append(
+                            {
+                                "table": table_name,
+                                "column": col_name,
+                                "constraint_type": "version_non_negative",
+                                "expected": "version >= 0",
+                            }
+                        )
 
                     # Position fields typically have position >= 0
                     elif col_name == "position" and col["data_type"] in ["integer", "bigint", "numeric"]:
-                        check_constraint_candidates.append({
-                            "table": table_name,
-                            "column": col_name,
-                            "constraint_type": "position_non_negative",
-                            "expected": "position >= 0"
-                        })
+                        check_constraint_candidates.append(
+                            {
+                                "table": table_name,
+                                "column": col_name,
+                                "constraint_type": "position_non_negative",
+                                "expected": "position >= 0",
+                            }
+                        )
 
                     # Enum fields have implicit CHECK constraints
                     elif col["data_type"] == "USER-DEFINED":
-                        check_constraint_candidates.append({
-                            "table": table_name,
-                            "column": col_name,
-                            "constraint_type": "enum_values",
-                            "enum_type": col.get("udt_name")
-                        })
+                        check_constraint_candidates.append(
+                            {
+                                "table": table_name,
+                                "column": col_name,
+                                "constraint_type": "enum_values",
+                                "enum_type": col.get("udt_name"),
+                            }
+                        )
 
             logger.info(f"Found {len(check_constraint_candidates)} CHECK constraint candidates")
 
-            store_result("test_check_constraints_identified", True, {
-                "candidate_count": len(check_constraint_candidates),
-                "candidates": check_constraint_candidates[:20]
-            })
+            store_result(
+                "test_check_constraints_identified",
+                True,
+                {"candidate_count": len(check_constraint_candidates), "candidates": check_constraint_candidates[:20]},
+            )
 
             assert len(check_constraint_candidates) > 0, "Should find some CHECK constraints"
 
@@ -348,11 +333,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_default_values_identified(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_default_values_identified(self, _schema_sync: SchemaSync, store_result) -> None:
         """Test identification of DEFAULT value constraints.
 
         Given: Database columns with DEFAULT values
@@ -373,12 +354,14 @@ class TestConstraints:
                     default_value = col.get("column_default")
 
                     if default_value:
-                        default_findings.append({
-                            "table": table_name,
-                            "column": col["column_name"],
-                            "default": default_value,
-                            "data_type": col["data_type"]
-                        })
+                        default_findings.append(
+                            {
+                                "table": table_name,
+                                "column": col["column_name"],
+                                "default": default_value,
+                                "data_type": col["data_type"],
+                            }
+                        )
 
             # Common default patterns
             uuid_defaults = [f for f in default_findings if "gen_random_uuid" in f["default"]]
@@ -392,14 +375,18 @@ class TestConstraints:
             logger.info(f"  Boolean defaults: {len(boolean_defaults)}")
             logger.info(f"  Numeric defaults: {len(numeric_defaults)}")
 
-            store_result("test_default_values_identified", True, {
-                "total_defaults": len(default_findings),
-                "uuid_defaults": len(uuid_defaults),
-                "timestamp_defaults": len(timestamp_defaults),
-                "boolean_defaults": len(boolean_defaults),
-                "numeric_defaults": len(numeric_defaults),
-                "samples": default_findings[:10]
-            })
+            store_result(
+                "test_default_values_identified",
+                True,
+                {
+                    "total_defaults": len(default_findings),
+                    "uuid_defaults": len(uuid_defaults),
+                    "timestamp_defaults": len(timestamp_defaults),
+                    "boolean_defaults": len(boolean_defaults),
+                    "numeric_defaults": len(numeric_defaults),
+                    "samples": default_findings[:10],
+                },
+            )
 
             assert len(default_findings) > 0, "Should find some default values"
 
@@ -410,10 +397,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_pydantic_field_defaults(
-        self,
-        store_result
-    ) -> None:
+    async def test_pydantic_field_defaults(self, store_result) -> None:
         """Test that Pydantic models have proper field defaults.
 
         Given: Pydantic BaseSchema models
@@ -432,28 +416,26 @@ class TestConstraints:
             doc_fields_with_defaults = []
             for field_name, field_info in DocumentBaseSchema.model_fields.items():
                 if hasattr(field_info, "default") and field_info.default is not None:
-                    doc_fields_with_defaults.append({
-                        "field": field_name,
-                        "default": field_info.default
-                    })
+                    doc_fields_with_defaults.append({"field": field_name, "default": field_info.default})
 
             # Check BlockBaseSchema defaults
             block_fields_with_defaults = []
             for field_name, field_info in BlockBaseSchema.model_fields.items():
                 if hasattr(field_info, "default") and field_info.default is not None:
-                    block_fields_with_defaults.append({
-                        "field": field_name,
-                        "default": field_info.default
-                    })
+                    block_fields_with_defaults.append({"field": field_name, "default": field_info.default})
 
             logger.info(f"Document fields with defaults: {len(doc_fields_with_defaults)}")
             logger.info(f"Block fields with defaults: {len(block_fields_with_defaults)}")
 
-            store_result("test_pydantic_field_defaults", True, {
-                "document_defaults": len(doc_fields_with_defaults),
-                "block_defaults": len(block_fields_with_defaults),
-                "samples": doc_fields_with_defaults + block_fields_with_defaults
-            })
+            store_result(
+                "test_pydantic_field_defaults",
+                True,
+                {
+                    "document_defaults": len(doc_fields_with_defaults),
+                    "block_defaults": len(block_fields_with_defaults),
+                    "samples": doc_fields_with_defaults + block_fields_with_defaults,
+                },
+            )
 
             # This is informational
             assert True, "Pydantic field defaults check complete"
@@ -465,11 +447,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_foreign_key_constraints(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_foreign_key_constraints(self, _schema_sync: SchemaSync, store_result) -> None:
         """Test identification of foreign key constraints.
 
         Given: Database tables with foreign key relationships
@@ -497,17 +475,18 @@ class TestConstraints:
                         ref_table_plural = ref_table[:-1] + "ies" if ref_table.endswith("y") else ref_table + "s"
 
                         # Check if referenced table exists
-                        ref_table_exists = (
-                            ref_table_plural in schema_sync.db_schema.get("tables", {})
-                            or ref_table in schema_sync.db_schema.get("tables", {})
-                        )
+                        ref_table_exists = ref_table_plural in schema_sync.db_schema.get(
+                            "tables", {}
+                        ) or ref_table in schema_sync.db_schema.get("tables", {})
 
-                        fk_candidates.append({
-                            "table": table_name,
-                            "column": col_name,
-                            "referenced_table": ref_table_plural,
-                            "reference_exists": ref_table_exists
-                        })
+                        fk_candidates.append(
+                            {
+                                "table": table_name,
+                                "column": col_name,
+                                "referenced_table": ref_table_plural,
+                                "reference_exists": ref_table_exists,
+                            }
+                        )
 
             valid_fks = [fk for fk in fk_candidates if fk["reference_exists"]]
             invalid_fks = [fk for fk in fk_candidates if not fk["reference_exists"]]
@@ -516,12 +495,16 @@ class TestConstraints:
             logger.info(f"Valid FKs: {len(valid_fks)}")
             logger.info(f"Invalid/External FKs: {len(invalid_fks)}")
 
-            store_result("test_foreign_key_constraints", True, {
-                "total_fk_candidates": len(fk_candidates),
-                "valid_fks": len(valid_fks),
-                "invalid_fks": len(invalid_fks),
-                "samples": fk_candidates[:15]
-            })
+            store_result(
+                "test_foreign_key_constraints",
+                True,
+                {
+                    "total_fk_candidates": len(fk_candidates),
+                    "valid_fks": len(valid_fks),
+                    "invalid_fks": len(invalid_fks),
+                    "samples": fk_candidates[:15],
+                },
+            )
 
             assert len(valid_fks) > 0, "Should find some valid foreign keys"
 
@@ -532,10 +515,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_version_field_constraints(
-        self,
-        store_result
-    ) -> None:
+    async def test_version_field_constraints(self, store_result) -> None:
         """Test version field constraints and behavior.
 
         Given: Models with version fields
@@ -551,12 +531,7 @@ class TestConstraints:
         try:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
-            base_data = {
-                "id": uuid.uuid4(),
-                "name": "Test",
-                "slug": "test",
-                "project_id": uuid.uuid4()
-            }
+            base_data = {"id": uuid.uuid4(), "name": "Test", "slug": "test", "project_id": uuid.uuid4()}
 
             # Test valid version
             valid_version_test = True
@@ -598,12 +573,16 @@ class TestConstraints:
             except ValidationError:
                 pass
 
-            store_result("test_version_field_constraints", True, {
-                "valid_version": valid_version_test,
-                "zero_version": zero_version_test,
-                "missing_version_fails": missing_version_test,
-                "negative_version_behavior": negative_version_test
-            })
+            store_result(
+                "test_version_field_constraints",
+                True,
+                {
+                    "valid_version": valid_version_test,
+                    "zero_version": zero_version_test,
+                    "missing_version_fails": missing_version_test,
+                    "negative_version_behavior": negative_version_test,
+                },
+            )
 
             assert valid_version_test, "Valid version should work"
             assert missing_version_test, "Missing version should fail"
@@ -615,10 +594,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_soft_delete_constraints(
-        self,
-        store_result
-    ) -> None:
+    async def test_soft_delete_constraints(self, store_result) -> None:
         """Test soft delete field constraints.
 
         Given: Models with is_deleted, deleted_at, deleted_by fields
@@ -634,13 +610,7 @@ class TestConstraints:
         try:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
-            base_data = {
-                "id": uuid.uuid4(),
-                "name": "Test",
-                "slug": "test",
-                "project_id": uuid.uuid4(),
-                "version": 1
-            }
+            base_data = {"id": uuid.uuid4(), "name": "Test", "slug": "test", "project_id": uuid.uuid4(), "version": 1}
 
             # Test soft delete fields present
             soft_delete_present_test = True
@@ -680,11 +650,15 @@ class TestConstraints:
             except ValidationError:
                 pass
 
-            store_result("test_soft_delete_constraints", True, {
-                "soft_delete_present": soft_delete_present_test,
-                "soft_deleted_state": soft_deleted_test,
-                "allows_inconsistent": inconsistent_test
-            })
+            store_result(
+                "test_soft_delete_constraints",
+                True,
+                {
+                    "soft_delete_present": soft_delete_present_test,
+                    "soft_deleted_state": soft_deleted_test,
+                    "allows_inconsistent": inconsistent_test,
+                },
+            )
 
             assert soft_delete_present_test, "Soft delete fields should work"
             assert soft_deleted_test, "Soft deleted state should work"
@@ -696,11 +670,7 @@ class TestConstraints:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_constraint_validation_summary(
-        self,
-        test_results,
-        store_result
-    ) -> None:
+    async def test_constraint_validation_summary(self, test_results, store_result) -> None:
         """Generate summary of constraint validation results.
 
         Given: All constraint validation tests
@@ -719,10 +689,16 @@ class TestConstraints:
                 "total_tests": len(all_results),
                 "passed_tests": sum(1 for r in all_results.values() if r.passed),
                 "constraint_types_tested": [
-                    "NOT NULL", "NULLABLE", "UNIQUE", "CHECK",
-                    "DEFAULT", "FOREIGN KEY", "VERSION", "SOFT DELETE"
+                    "NOT NULL",
+                    "NULLABLE",
+                    "UNIQUE",
+                    "CHECK",
+                    "DEFAULT",
+                    "FOREIGN KEY",
+                    "VERSION",
+                    "SOFT DELETE",
                 ],
-                "critical_failures": []
+                "critical_failures": [],
             }
 
             for test_name, result in all_results.items():
@@ -736,8 +712,9 @@ class TestConstraints:
 
             store_result("test_constraint_validation_summary", True, summary)
 
-            assert summary["passed_tests"] >= summary["total_tests"] * 0.8, \
+            assert summary["passed_tests"] >= summary["total_tests"] * 0.8, (
                 f"Less than 80% tests passed: {summary['passed_tests']}/{summary['total_tests']}"
+            )
 
         except Exception as e:
             logger.error(f"Test failed with error: {e}", exc_info=True)

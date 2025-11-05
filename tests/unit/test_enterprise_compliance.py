@@ -1,6 +1,5 @@
 """Phase 3: Continue to 45% coverage target (+500 statements)."""
 
-
 import pytest
 
 
@@ -14,7 +13,6 @@ class TestPhase3_45PercentTarget:
             from config.python.session import (
                 JWTConfig,
                 SessionConfig,
-                TokenManager,
                 audit_advanced_compliance,
                 configure_compliance_monitoring,
                 implement_zero_trust,
@@ -32,7 +30,7 @@ class TestPhase3_45PercentTarget:
                 issuer="phase3-zero-trust",
                 audience="phase3-zero-trust-users",
                 zero_trust_enabled=True,
-                compliance_level="critical"
+                compliance_level="critical",
             )
 
             session_config = SessionConfig(
@@ -47,7 +45,7 @@ class TestPhase3_45PercentTarget:
                 cleanup_interval=900,  # 15 minutes
                 audit_enabled=True,
                 compliance_enforced=True,
-                zero_trust_verified=True
+                zero_trust_verified=True,
             )
 
             # Test advanced compliance audit
@@ -56,7 +54,7 @@ class TestPhase3_45PercentTarget:
                 compliance_frameworks=["SOC2", "ISO27001", "HIPAA", "GDPR", "CCPA"],
                 audit_scope="comprehensive",
                 include_sensitivity_analysis=True,
-                compliance_level="critical"
+                compliance_level="critical",
             )
             assert audit_result is not None
             assert audit_result.get("audited") is True
@@ -70,7 +68,7 @@ class TestPhase3_45PercentTarget:
                 zero_trust_policy="least_privilege",
                 continuous_verification=True,
                 contextual_access=True,
-                risk_based_authentication=True
+                risk_based_authentication=True,
             )
             assert zero_trust_result is not None
             assert zero_trust_result.get("implemented") is True
@@ -84,7 +82,7 @@ class TestPhase3_45PercentTarget:
                 monitoring_level="enterprise_critical",
                 include_behavioral_analysis=True,
                 include_anomaly_detection=True,
-                include_risk_assessment=True
+                include_risk_assessment=True,
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -98,7 +96,7 @@ class TestPhase3_45PercentTarget:
                 alert_severities=["critical", "high"],
                 alert_types=["compliance_violation", "security_breach", "data_leak"],
                 escalation_policies=True,
-                regulatory_notifications=True
+                regulatory_notifications=True,
             )
             assert alerts_result is not None
             assert alerts_result.get("configured") is True
@@ -111,7 +109,7 @@ class TestPhase3_45PercentTarget:
                 config=session_config,
                 optimization_targets=["verification_speed", "resource_efficiency"],
                 benchmark_improvements=True,
-                compliance_preservation=True
+                compliance_preservation=True,
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -124,7 +122,7 @@ class TestPhase3_45PercentTarget:
                 integrity_check_level="comprehensive",
                 include_chain_of_trust=True,
                 include_tamper_detection=True,
-                include_cryptographic_validation=True
+                include_cryptographic_validation=True,
             )
             assert integrity_result is not None
             assert integrity_result.get("validated") is True
@@ -139,9 +137,7 @@ class TestPhase3_45PercentTarget:
         """Advanced server security testing for Phase 3."""
         try:
             from server.auth import (
-                AuthService,
                 BearerToken,
-                TokenService,
                 configure_threat_detection,
                 enhance_security_monitoring,
                 implement_advanced_security,
@@ -163,8 +159,8 @@ class TestPhase3_45PercentTarget:
                     "role": "phase3_advanced_admin",
                     "department": "advanced_security",
                     "clearance_level": "top_secret",
-                    "security_level": "enterprise_critical"
-                }
+                    "security_level": "enterprise_critical",
+                },
             )
 
             # Test advanced security implementation
@@ -173,7 +169,7 @@ class TestPhase3_45PercentTarget:
                 security_frameworks=["NIST", "MITRE ATT&CK", "ISO27001"],
                 zero_trust_architecture=True,
                 behavioral_biometrics=True,
-                adaptive_authentication=True
+                adaptive_authentication=True,
             )
             assert security_result is not None
             assert security_result.get("implemented") is True
@@ -187,7 +183,7 @@ class TestPhase3_45PercentTarget:
                 threat_intelligence=True,
                 behavioral_analysis=True,
                 anomaly_detection=True,
-                machine_learning_enabled=True
+                machine_learning_enabled=True,
             )
             assert threat_detection_result is not None
             assert threat_detection_result.get("configured") is True
@@ -201,7 +197,7 @@ class TestPhase3_45PercentTarget:
                 response_automation=True,
                 forensics_enabled=True,
                 containment_strategies=True,
-                recovery_procedures=True
+                recovery_procedures=True,
             )
             assert incident_response_result is not None
             assert incident_response_result.get("configured") is True
@@ -213,7 +209,7 @@ class TestPhase3_45PercentTarget:
             optimize_result = optimize_security_performance(
                 optimization_targets=["authentication_speed", "threat_detection_efficiency"],
                 security_preservation=True,
-                benchmark_improvements=True
+                benchmark_improvements=True,
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -225,7 +221,7 @@ class TestPhase3_45PercentTarget:
                 validation_level="comprehensive",
                 include_vulnerability_assessment=True,
                 include_penetration_testing=True,
-                include_compliance_check=True
+                include_compliance_check=True,
             )
             assert posture_result is not None
             assert posture_result.get("validated") is True
@@ -238,7 +234,7 @@ class TestPhase3_45PercentTarget:
                 monitoring_level="enterprise_critical",
                 include_siem_integration=True,
                 include_threat_intelligence=True,
-                include_real_time_alerting=True
+                include_real_time_alerting=True,
             )
             assert monitoring_result is not None
             assert monitoring_result.get("enhanced") is True
@@ -278,7 +274,7 @@ class TestPhase3_45PercentTarget:
                 batch_size=100,
                 rate_limit=60,
                 analytics_enabled=True,
-                quality_monitoring=True
+                quality_monitoring=True,
             )
 
             vectordb_config = VectorDBConfig(
@@ -294,7 +290,7 @@ class TestPhase3_45PercentTarget:
                 search_timeout=5000,
                 batch_insert_size=1000,
                 auto_index=True,
-                analytics_enabled=True
+                analytics_enabled=True,
             )
 
             vector_config = VectorConfig(
@@ -307,7 +303,7 @@ class TestPhase3_45PercentTarget:
                 max_workers=4,
                 compression=True,
                 encryption=True,
-                analytics_enabled=True
+                analytics_enabled=True,
             )
 
             # Test vector analytics implementation
@@ -316,7 +312,7 @@ class TestPhase3_45PercentTarget:
                 analytics_level="comprehensive",
                 include_usage_statistics=True,
                 include_performance_metrics=True,
-                include_quality_metrics=True
+                include_quality_metrics=True,
             )
             assert analytics_result is not None
             assert analytics_result.get("implemented") is True
@@ -329,7 +325,7 @@ class TestPhase3_45PercentTarget:
                 config=vector_config,
                 optimization_focus=["search_speed", "memory_efficiency", "cost"],
                 analytics_based_optimization=True,
-                benchmark_improvements=True
+                benchmark_improvements=True,
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -342,7 +338,7 @@ class TestPhase3_45PercentTarget:
                 monitoring_level="comprehensive",
                 include_anomaly_detection=True,
                 include_trend_analysis=True,
-                include_predictive_analytics=True
+                include_predictive_analytics=True,
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -355,7 +351,7 @@ class TestPhase3_45PercentTarget:
                 config=vector_config,
                 search_enhancements=["semantic_search", "contextual_ranking", "learning_to_rank"],
                 search_analytics=True,
-                personalization_enabled=True
+                personalization_enabled=True,
             )
             assert search_result is not None
             assert search_result.get("enhanced") is True
@@ -369,7 +365,7 @@ class TestPhase3_45PercentTarget:
                 quality_level="enterprise",
                 include_accuracy_validation=True,
                 include_consistency_check=True,
-                include_completeness_analysis=True
+                include_completeness_analysis=True,
             )
             assert quality_result is not None
             assert quality_result.get("validated") is True
@@ -383,7 +379,7 @@ class TestPhase3_45PercentTarget:
                 scaling_strategy="intelligent",
                 predictive_scaling=True,
                 performance_based_scaling=True,
-                cost_optimization=True
+                cost_optimization=True,
             )
             assert scaling_result is not None
             assert scaling_result.get("configured") is True
@@ -398,9 +394,6 @@ class TestPhase3_45PercentTarget:
         """Advanced tools integration and orchestration for Phase 3."""
         try:
             from tools.base import (
-                ApiError,
-                ToolBase,
-                ToolResult,
                 configure_tool_monitoring,
                 create_tool_orchestrator,
                 implement_tool_chaining,
@@ -418,15 +411,15 @@ class TestPhase3_45PercentTarget:
                     "processed_data": {
                         "item_count": len(data.get("items", [])),
                         "processing_time": 0.001,
-                        "quality_score": 0.95
+                        "quality_score": 0.95,
                     },
                     "options_applied": options,
                     "metadata": {
                         "tool_version": "3.0.0",
                         "performance_level": "enterprise",
-                        "integration_status": "connected"
+                        "integration_status": "connected",
                     },
-                    "success": True
+                    "success": True,
                 }
 
             # Test tool orchestrator creation
@@ -434,7 +427,7 @@ class TestPhase3_45PercentTarget:
                 orchestrator_type="enterprise_advanced",
                 parallel_execution=True,
                 distributed_processing=True,
-                fault_tolerance=True
+                fault_tolerance=True,
             )
             assert orchestrator_result is not None
             assert orchestrator_result.get("created") is True
@@ -447,7 +440,7 @@ class TestPhase3_45PercentTarget:
                 chain_type="enterprise_workflow",
                 chaining_strategy="event_driven",
                 error_handling="graceful",
-                performance_optimization=True
+                performance_optimization=True,
             )
             assert chaining_result is not None
             assert chaining_result.get("implemented") is True
@@ -460,7 +453,7 @@ class TestPhase3_45PercentTarget:
                 monitoring_level="enterprise_critical",
                 include_performance_metrics=True,
                 include_error_tracking=True,
-                include_usage_analytics=True
+                include_usage_analytics=True,
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -472,7 +465,7 @@ class TestPhase3_45PercentTarget:
             optimize_result = optimize_tool_performance(
                 optimization_targets=["execution_speed", "resource_efficiency"],
                 enterprise_optimization=True,
-                benchmark_improvements=True
+                benchmark_improvements=True,
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -484,7 +477,7 @@ class TestPhase3_45PercentTarget:
                 validation_level="comprehensive",
                 include_compatibility_check=True,
                 include_performance_validation=True,
-                include_security_verification=True
+                include_security_verification=True,
             )
             assert integration_result is not None
             assert integration_result.get("validated") is True
@@ -497,7 +490,7 @@ class TestPhase3_45PercentTarget:
                 scaling_strategy="intelligent",
                 auto_scaling=True,
                 performance_based_scaling=True,
-                cost_optimization=True
+                cost_optimization=True,
             )
             assert scaling_result is not None
             assert scaling_result.get("configured") is True
@@ -514,18 +507,15 @@ class TestPhase3_45PercentTarget:
             import time
 
             from config.python.session import JWTConfig, SessionConfig
-            from server.auth import BearerToken, implement_advanced_security
-            from tools.base import ToolBase, create_tool_orchestrator
+            from server.auth import implement_advanced_security
+            from tools.base import create_tool_orchestrator
 
             # Phase 3 comprehensive integration testing
             start_time = time.time()
 
             # Create enterprise configurations
             jwt_config = JWTConfig(
-                secret="phase3-integration-secret",
-                algorithm="HS256",
-                expire_hours=12,
-                compliance_level="critical"
+                secret="phase3-integration-secret", algorithm="HS256", expire_hours=12, compliance_level="critical"
             )
 
             session_config = SessionConfig(
@@ -534,22 +524,18 @@ class TestPhase3_45PercentTarget:
                 secure=True,
                 compliance_enforced=True,
                 audit_enabled=True,
-                zero_trust_verified=True
+                zero_trust_verified=True,
             )
 
             # Create enterprise security
             security_result = implement_advanced_security(
-                security_level="enterprise_critical",
-                zero_trust_architecture=True,
-                behavioral_biometrics=True
+                security_level="enterprise_critical", zero_trust_architecture=True, behavioral_biometrics=True
             )
             assert security_result.get("implemented") is True
 
             # Create tool orchestrator
             orchestrator_result = create_tool_orchestrator(
-                orchestrator_type="enterprise_advanced",
-                parallel_execution=True,
-                fault_tolerance=True
+                orchestrator_type="enterprise_advanced", parallel_execution=True, fault_tolerance=True
             )
             assert orchestrator_result.get("created") is True
 
@@ -563,12 +549,14 @@ class TestPhase3_45PercentTarget:
                     "security_level": "enterprise_critical",
                     "tool_orchestration": "enterprise_advanced",
                     "compliance_frameworks": ["SOC2", "ISO27001"],
-                    "test_type": "comprehensive_integration"
+                    "test_type": "comprehensive_integration",
                 }
                 test_scenarios.append(scenario)
 
             scenario_creation_time = time.time() - start_time
-            assert scenario_creation_time < 12.0, f"30 integration scenarios created in {scenario_creation_time}s, expected < 12.0s"
+            assert scenario_creation_time < 12.0, (
+                f"30 integration scenarios created in {scenario_creation_time}s, expected < 12.0s"
+            )
             assert len(test_scenarios) == 30
 
             # Validate comprehensive integration
@@ -602,9 +590,6 @@ class TestPhase3_45PercentTarget:
             import time
 
             from config.python.session import JWTConfig, SessionConfig
-            from server.auth import BearerToken
-            from tools.base import ToolBase
-
             # Phase 3 performance and compliance testing
             start_time = time.time()
 
@@ -614,7 +599,7 @@ class TestPhase3_45PercentTarget:
                 algorithm="HS256",
                 expire_hours=12,
                 compliance_level="critical",
-                performance_optimized=True
+                performance_optimized=True,
             )
 
             session_config = SessionConfig(
@@ -622,7 +607,7 @@ class TestPhase3_45PercentTarget:
                 cookie_domain="phase3-perf.test",
                 secure=True,
                 compliance_enforced=True,
-                performance_optimized=True
+                performance_optimized=True,
             )
 
             # Performance testing scenarios
@@ -633,12 +618,14 @@ class TestPhase3_45PercentTarget:
                     "session_config": session_config,
                     "performance_target": "enterprise_critical",
                     "compliance_level": "critical",
-                    "optimization_level": "maximum"
+                    "optimization_level": "maximum",
                 }
                 performance_scenarios.append(scenario)
 
             performance_creation_time = time.time() - start_time
-            assert performance_creation_time < 15.0, f"50 performance scenarios created in {performance_creation_time}s, expected < 15.0s"
+            assert performance_creation_time < 15.0, (
+                f"50 performance scenarios created in {performance_creation_time}s, expected < 15.0s"
+            )
             assert len(performance_scenarios) == 50
 
             # Compliance validation scenarios
@@ -649,12 +636,14 @@ class TestPhase3_45PercentTarget:
                     "compliance_frameworks": ["SOC2", "ISO27001", "HIPAA", "GDPR"],
                     "compliance_level": "critical",
                     "audit_level": "comprehensive",
-                    "validation_level": "enterprise"
+                    "validation_level": "enterprise",
                 }
                 compliance_scenarios.append(scenario)
 
             compliance_creation_time = time.time() - start_time
-            assert compliance_creation_time < 25.0, f"40 compliance scenarios created in {compliance_creation_time}s, expected < 25.0s"
+            assert compliance_creation_time < 25.0, (
+                f"40 compliance scenarios created in {compliance_creation_time}s, expected < 25.0s"
+            )
             assert len(compliance_scenarios) == 40
 
             # Total performance and compliance verification

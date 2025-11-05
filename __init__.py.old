@@ -1,0 +1,8 @@
+__all__ = ["create_consolidated_server", "main"]
+
+# Only import if running as package, not during testing
+from contextlib import suppress
+
+with suppress(ImportError):
+    # Running in test mode or standalone
+    from server import create_consolidated_server, main

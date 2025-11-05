@@ -8,19 +8,19 @@ from typing import Any
 
 # Import Rich components
 try:
-    from rich import print as rprint
     from rich.console import Console
     from rich.panel import Panel
     from rich.progress import Progress, SpinnerColumn, TextColumn
     from rich.table import Table
+
     RICH_AVAILABLE = True
 except ImportError:
     RICH_AVAILABLE = False
 
-# Import test evolution components
+# Set flag for evolution module availability
+EVOLUTION_AVAILABLE = True
 try:
-    from .evolution import ComprehensiveTestEvolutionRunner, TestResult
-    EVOLUTION_AVAILABLE = True
+    from . import evolution
 except ImportError:
     EVOLUTION_AVAILABLE = False
 
@@ -43,10 +43,7 @@ class TestDisplayManager:
             return
 
         # Display header
-        self.console.print(Panel.fit(
-            "[bold blue]🧪 Test Evolution Results[/bold blue]",
-            border_style="blue"
-        ))
+        self.console.print(Panel.fit("[bold blue]🧪 Test Evolution Results[/bold blue]", border_style="blue"))
 
         # Results table
         table = Table(title="Test Matrix Results")
@@ -77,7 +74,7 @@ class TestDisplayManager:
                 str(passed_tests),
                 str(failed_tests),
                 f"{duration:.2f}s",
-                f"{perf_indicator} {score:.0f}%"
+                f"{perf_indicator} {score:.0f}%",
             )
 
         self.console.print(table)
@@ -93,14 +90,13 @@ class TestDisplayManager:
             return
 
         with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=self.console
+            SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=self.console
         ) as progress:
             task = progress.add_task(f"{mode.upper()}", total=1)
             progress.update(task, description=message)
             # Short delay to show spinner
             import time
+
             time.sleep(0.5)
 
     def display_auth_flow(self, mode: str, method: str):
@@ -112,7 +108,7 @@ class TestDisplayManager:
         auth_methods = {
             "playwright": "🔐 Browser automation",
             "authkit": "🔑 Programmatic API",
-            "mock": "🎭 Fully simulated"
+            "mock": "🎭 Fully simulated",
         }
 
         method_desc = auth_methods.get(method, f"📋 {method}")
@@ -127,7 +123,7 @@ class TestDisplayManager:
         client_types = {
             "real_http": "🌐 Real HTTP client",
             "in_memory": "💾 In-memory client",
-            "simulated": "🎯 Fully simulated"
+            "simulated": "🎯 Fully simulated",
         }
 
         client_desc = client_types.get(client_type, f"📋 {client_type}")
@@ -163,11 +159,7 @@ class TestDisplayManager:
     def _calculate_performance_score(self, mode: str, duration: float) -> float:
         """Calculate performance score based on mode and duration."""
         # Performance targets: HOT<30s, COLD<2s, DRY<1s
-        targets = {
-            "HOT": 30.0,
-            "COLD": 2.0,
-            "DRY": 1.0
-        }
+        targets = {"HOT": 30.0, "COLD": 2.0, "DRY": 1.0}
 
         target = targets.get(mode.upper(), 5.0)
 

@@ -1,6 +1,6 @@
 """Next 10% coverage boost - focusing on 5 high-impact modules."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -9,7 +9,7 @@ import pytest
 class TestNext10PercentBoost:
     """Focused testing for next 10% coverage improvement."""
 
-    def test_config_python_session_complete_coverage(self)
+    def test_config_python_session_complete_coverage(self):
         """Complete config/python/session.py from 54% to 100% (+19 statements)."""
         try:
             from config.python.session import (
@@ -131,7 +131,7 @@ class TestNext10PercentBoost:
             # Test session metadata update
             update_result = update_session_metadata(
                 session_id=session_result["session_id"],
-                metadata={"last_activity": datetime.now().isoformat()},
+                metadata={"last_activity": datetime.now(UTC).isoformat()},
                 config=session_config
             )
             assert update_result is not None
@@ -168,12 +168,11 @@ class TestNext10PercentBoost:
         except ImportError:
             pytest.skip("Session complete coverage not available")
 
-    def test_config_python_infrastructure_complete_coverage(self)
+    def test_config_python_infrastructure_complete_coverage(self):
         """Complete config/python/infrastructure.py from 36% to 80% (+23 statements)."""
         try:
             from config.python.infrastructure import (
-                ConnectionPool,
-                DatabaseConfig,
+                                DatabaseConfig,
                 DatabaseManager,
                 HealthChecker,
                 InfrastructureConfig,
@@ -340,7 +339,7 @@ class TestNext10PercentBoost:
         except ImportError:
             pytest.skip("Infrastructure complete coverage not available")
 
-    def test_config_python_vector_complete_coverage(self)
+    def test_config_python_vector_complete_coverage(self):
         """Complete config/python/vector.py from 41% to 80% (+12 statements)."""
         try:
             from config.python.vector import (
@@ -351,8 +350,7 @@ class TestNext10PercentBoost:
                 VectorDBManager,
                 VectorSearcher,
                 configure_vector_backup,
-                create_vector_config,
-                create_vector_index,
+                                create_vector_index,
                 get_embedding_metrics,
                 optimize_vector_storage,
                 test_embedding_service,
@@ -492,16 +490,14 @@ class TestNext10PercentBoost:
         except ImportError:
             pytest.skip("Vector complete coverage not available")
 
-    def test_server_auth_complete_coverage(self)
+    def test_server_auth_complete_coverage(self):
         """Complete server/auth.py from 28% to 70% (+30 statements)."""
         try:
             from server.auth import (
-                AuthenticationError,
-                AuthService,
+                                AuthService,
                 BearerToken,
                 PermissionService,
-                RateLimiter,
-                TokenService,
+                                TokenService,
                 authenticate_user,
                 authorize_request,
                 blacklist_token,
@@ -700,7 +696,7 @@ class TestNext10PercentBoost:
         except ImportError:
             pytest.skip("Server auth complete coverage not available")
 
-    def test_server_errors_complete_coverage(self)
+    def test_server_errors_complete_coverage(self):
         """Complete server/errors.py from 31% to 80% (+15 statements)."""
         try:
             from server.errors import (
@@ -730,7 +726,7 @@ class TestNext10PercentBoost:
                     "error_stage": "processing",
                     "request_id": "next10-req-12345",
                     "user_id": "next10-user-12345",
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now(UTC).isoformat()
                 },
                 headers={"Retry-After": "60"}
             )
@@ -759,7 +755,7 @@ class TestNext10PercentBoost:
                 message="Next10 authentication failed",
                 auth_type="jwt",
                 failed_attempts=3,
-                lockout_until=datetime.now() + timedelta(minutes=15)
+                lockout_until=datetime.now(UTC) + timedelta(minutes=15)
             )
             assert auth_error.message == "Next10 authentication failed"
             assert auth_error.auth_type == "jwt"
@@ -794,7 +790,7 @@ class TestNext10PercentBoost:
                 message="Next10 rate limit exceeded",
                 limit=100,
                 window=3600,
-                reset_time=datetime.now() + timedelta(hours=1),
+                reset_time=datetime.now(UTC) + timedelta(hours=1),
                 retry_after=60
             )
             assert rate_limit_error.message == "Next10 rate limit exceeded"
@@ -904,7 +900,7 @@ class TestNext10PercentBoost:
 
             from config.python.session import JWTConfig, SessionConfig
             from server.auth import BearerToken, create_access_token
-            from server.errors import ApiError, ValidationError
+            from server.errors import ValidationError
 
             # Performance testing
             start_time = time.time()

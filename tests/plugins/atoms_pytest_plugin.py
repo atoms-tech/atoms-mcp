@@ -30,7 +30,7 @@ class AtomsPytestPlugin(MCPPytestPlugin):
     all generic MCP testing features from the base class.
     """
 
-    def _extract_tool_name(self, item) -> str
+    def _extract_tool_name(self, item) -> str:
         """
         Extract tool name from test item using Atoms-specific logic.
 

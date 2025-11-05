@@ -35,16 +35,18 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "workspace",
-            "source_id": "user_123",
-            "target_id": "project_456",
-            "metadata": {}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "workspace",
+                "source_id": "user_123",
+                "target_id": "project_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -62,16 +64,18 @@ class TestWorkspaceRelationship:
             source_id="user_123",
             target_type="project",
             target_id="project_456",
-            metadata={"permissions": ["read", "write"], "joined_at": "2024-01-01"}
+            metadata={"permissions": ["read", "write"], "joined_at": "2024-01-01"},
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "workspace",
-            "source_id": "user_123",
-            "target_id": "project_456",
-            "metadata": {"permissions": ["read", "write"], "joined_at": "2024-01-01"}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "workspace",
+                "source_id": "user_123",
+                "target_id": "project_456",
+                "metadata": {"permissions": ["read", "write"], "joined_at": "2024-01-01"},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -87,13 +91,12 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.delete_relationship = AsyncMock(return_value={
-            "success": True,
-            "message": "Relationship removed"
-        })
+        relationship_service.client.delete_relationship = AsyncMock(
+            return_value={"success": True, "message": "Relationship removed"}
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -104,24 +107,23 @@ class TestWorkspaceRelationship:
     async def test_workspace_list_basic(self, relationship_service):
         """Test listing workspace relationships."""
         request = RelationshipRequest(
-            action="list",
-            relationship_type=RelationshipType.WORKSPACE,
-            source_type="user",
-            source_id="user_123"
+            action="list", relationship_type=RelationshipType.WORKSPACE, source_type="user", source_id="user_123"
         )
 
-        relationship_service.client.list_relationships = AsyncMock(return_value={
-            "relationships": [
-                {
-                    "id": "rel_789",
-                    "relationship_type": "workspace",
-                    "source_id": "user_123",
-                    "target_id": "project_456",
-                    "metadata": {"permissions": ["read", "write"]}
-                }
-            ],
-            "total": 1
-        })
+        relationship_service.client.list_relationships = AsyncMock(
+            return_value={
+                "relationships": [
+                    {
+                        "id": "rel_789",
+                        "relationship_type": "workspace",
+                        "source_id": "user_123",
+                        "target_id": "project_456",
+                        "metadata": {"permissions": ["read", "write"]},
+                    }
+                ],
+                "total": 1,
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -138,21 +140,24 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             limit=5,
-            offset=0
+            offset=0,
         )
 
-        relationship_service.client.list_relationships = AsyncMock(return_value={
-            "relationships": [
-                {
-                    "id": f"rel_{i}",
-                    "relationship_type": "workspace",
-                    "source_id": "user_123",
-                    "target_id": f"project_{i}",
-                    "metadata": {}
-                } for i in range(5)
-            ],
-            "total": 15
-        })
+        relationship_service.client.list_relationships = AsyncMock(
+            return_value={
+                "relationships": [
+                    {
+                        "id": f"rel_{i}",
+                        "relationship_type": "workspace",
+                        "source_id": "user_123",
+                        "target_id": f"project_{i}",
+                        "metadata": {},
+                    }
+                    for i in range(5)
+                ],
+                "total": 15,
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -169,16 +174,18 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.get_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "workspace",
-            "source_id": "user_123",
-            "target_id": "project_456",
-            "metadata": {}
-        })
+        relationship_service.client.get_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "workspace",
+                "source_id": "user_123",
+                "target_id": "project_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -194,7 +201,7 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_999"
+            target_id="project_999",
         )
 
         relationship_service.client.get_relationship = AsyncMock(return_value=None)
@@ -213,10 +220,12 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.create_relationship = AsyncMock(side_effect=Exception("Relationship already exists"))
+        relationship_service.client.create_relationship = AsyncMock(
+            side_effect=Exception("Relationship already exists")
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -232,7 +241,7 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_999"
+            target_id="project_999",
         )
 
         relationship_service.client.delete_relationship = AsyncMock(side_effect=Exception("Relationship not found"))
@@ -246,16 +255,10 @@ class TestWorkspaceRelationship:
     async def test_workspace_list_empty(self, relationship_service):
         """Test listing workspace relationships when none exist."""
         request = RelationshipRequest(
-            action="list",
-            relationship_type=RelationshipType.WORKSPACE,
-            source_type="user",
-            source_id="user_999"
+            action="list", relationship_type=RelationshipType.WORKSPACE, source_type="user", source_id="user_999"
         )
 
-        relationship_service.client.list_relationships = AsyncMock(return_value={
-            "relationships": [],
-            "total": 0
-        })
+        relationship_service.client.list_relationships = AsyncMock(return_value={"relationships": [], "total": 0})
 
         result = await relationship_service.process_relationship(request)
 
@@ -272,7 +275,7 @@ class TestWorkspaceRelationship:
             source_type="user",
             source_id="user_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
         result = await relationship_service.process_relationship(request)

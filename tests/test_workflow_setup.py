@@ -36,8 +36,8 @@ class WorkflowSetupTestSuite:
                         "operation": "delete",
                         "entity_type": entity["type"],
                         "entity_id": entity["id"],
-                        "soft_delete": True
-                    }
+                        "soft_delete": True,
+                    },
                 )
             except Exception:
                 pass  # Ignore cleanup errors
@@ -61,11 +61,7 @@ class TestWorkflowSetupProject:
         """Test setup_project with minimal parameters."""
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "setup_project",
-                "project_name": "Test Project",
-                "organization_id": str(uuid.uuid4())
-            }
+            {"operation": "setup_project", "project_name": "Test Project", "organization_id": str(uuid.uuid4())},
         )
 
         assert result["success"] is True
@@ -82,17 +78,9 @@ class TestWorkflowSetupProject:
                 "project_name": "Full Test Project",
                 "organization_id": str(uuid.uuid4()),
                 "description": "A comprehensive test project",
-                "metadata": {
-                    "priority": "high",
-                    "type": "development",
-                    "status": "active"
-                },
-                "settings": {
-                    "auto_approve": True,
-                    "notifications": True,
-                    "version_control": "git"
-                }
-            }
+                "metadata": {"priority": "high", "type": "development", "status": "active"},
+                "settings": {"auto_approve": True, "notifications": True, "version_control": "git"},
+            },
         )
 
         assert result["success"] is True
@@ -104,16 +92,8 @@ class TestWorkflowSetupProject:
     async def test_setup_project_with_requirements(self, workflow_suite):
         """Test setup_project with initial requirements."""
         requirements = [
-            {
-                "title": "User Authentication",
-                "description": "Implement secure user authentication",
-                "priority": "high"
-            },
-            {
-                "title": "Data Validation",
-                "description": "Implement data validation rules",
-                "priority": "medium"
-            }
+            {"title": "User Authentication", "description": "Implement secure user authentication", "priority": "high"},
+            {"title": "Data Validation", "description": "Implement data validation rules", "priority": "medium"},
         ]
 
         result = await workflow_suite.call_mcp(
@@ -122,8 +102,8 @@ class TestWorkflowSetupProject:
                 "operation": "setup_project",
                 "project_name": "Project with Requirements",
                 "organization_id": str(uuid.uuid4()),
-                "requirements": requirements
-            }
+                "requirements": requirements,
+            },
         )
 
         assert result["success"] is True
@@ -136,16 +116,8 @@ class TestWorkflowSetupProject:
     async def test_setup_project_with_tests(self, workflow_suite):
         """Test setup_project with initial test cases."""
         test_cases = [
-            {
-                "name": "Authentication Test",
-                "description": "Test user authentication functionality",
-                "type": "unit"
-            },
-            {
-                "name": "Data Validation Test",
-                "description": "Test data validation rules",
-                "type": "integration"
-            }
+            {"name": "Authentication Test", "description": "Test user authentication functionality", "type": "unit"},
+            {"name": "Data Validation Test", "description": "Test data validation rules", "type": "integration"},
         ]
 
         result = await workflow_suite.call_mcp(
@@ -154,8 +126,8 @@ class TestWorkflowSetupProject:
                 "operation": "setup_project",
                 "project_name": "Project with Tests",
                 "organization_id": str(uuid.uuid4()),
-                "test_cases": test_cases
-            }
+                "test_cases": test_cases,
+            },
         )
 
         assert result["success"] is True
@@ -173,11 +145,7 @@ class TestWorkflowSetupProject:
         # Create first project
         result1 = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "setup_project",
-                "project_name": project_name,
-                "organization_id": organization_id
-            }
+            {"operation": "setup_project", "project_name": project_name, "organization_id": organization_id},
         )
 
         assert result1["success"] is True
@@ -186,11 +154,7 @@ class TestWorkflowSetupProject:
         # Try to create duplicate
         result2 = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "setup_project",
-                "project_name": project_name,
-                "organization_id": organization_id
-            }
+            {"operation": "setup_project", "project_name": project_name, "organization_id": organization_id},
         )
 
         assert result2["success"] is False
@@ -201,11 +165,7 @@ class TestWorkflowSetupProject:
         """Test setup_project with invalid organization ID."""
         result = await workflow_suite.call_mcp(
             "workflow_tool",
-            {
-                "operation": "setup_project",
-                "project_name": "Test Project",
-                "organization_id": "invalid-id"
-            }
+            {"operation": "setup_project", "project_name": "Test Project", "organization_id": "invalid-id"},
         )
 
         assert result["success"] is False
@@ -218,9 +178,9 @@ class TestWorkflowSetupProject:
             "workflow_tool",
             {
                 "operation": "setup_project",
-                "project_name": "Test Project"
+                "project_name": "Test Project",
                 # Missing organization_id
-            }
+            },
         )
 
         assert result["success"] is False
@@ -243,8 +203,8 @@ class TestWorkflowSetupTestMatrix:
             {
                 "operation": "setup_test_matrix",
                 "project_id": str(uuid.uuid4()),
-                "test_types": ["unit", "integration", "e2e"]
-            }
+                "test_types": ["unit", "integration", "e2e"],
+            },
         )
 
         assert result["success"] is True
@@ -260,11 +220,8 @@ class TestWorkflowSetupTestMatrix:
                 "operation": "setup_test_matrix",
                 "project_id": str(uuid.uuid4()),
                 "test_types": ["unit", "integration"],
-                "requirements_mapping": {
-                    "unit": ["functional", "performance"],
-                    "integration": ["api", "database"]
-                }
-            }
+                "requirements_mapping": {"unit": ["functional", "performance"], "integration": ["api", "database"]},
+            },
         )
 
         assert result["success"] is True
@@ -280,12 +237,8 @@ class TestWorkflowSetupTestMatrix:
                 "operation": "setup_test_matrix",
                 "project_id": str(uuid.uuid4()),
                 "test_types": ["unit", "integration", "e2e"],
-                "metadata": {
-                    "coverage_target": 80,
-                    "automation_level": "high",
-                    "priority": "critical"
-                }
-            }
+                "metadata": {"coverage_target": 80, "automation_level": "high", "priority": "critical"},
+            },
         )
 
         assert result["success"] is True
@@ -309,8 +262,8 @@ class TestWorkflowOrganizationOnboarding:
             {
                 "operation": "organization_onboarding",
                 "organization_name": "Test Organization",
-                "admin_email": "admin@test.com"
-            }
+                "admin_email": "admin@test.com",
+            },
         )
 
         assert result["success"] is True
@@ -327,17 +280,13 @@ class TestWorkflowOrganizationOnboarding:
                 "operation": "organization_onboarding",
                 "organization_name": "Full Test Organization",
                 "admin_email": "admin@fulltest.com",
-                "organization_metadata": {
-                    "industry": "technology",
-                    "size": "medium",
-                    "region": "north-america"
-                },
+                "organization_metadata": {"industry": "technology", "size": "medium", "region": "north-america"},
                 "settings": {
                     "auto_approve_projects": True,
                     "require_approval": False,
-                    "notification_preferences": "email"
-                }
-            }
+                    "notification_preferences": "email",
+                },
+            },
         )
 
         assert result["success"] is True
@@ -350,14 +299,8 @@ class TestWorkflowOrganizationOnboarding:
     async def test_organization_onboarding_with_initial_projects(self, workflow_suite):
         """Test organization_onboarding with initial projects."""
         initial_projects = [
-            {
-                "name": "Initial Project 1",
-                "description": "First project for the organization"
-            },
-            {
-                "name": "Initial Project 2",
-                "description": "Second project for the organization"
-            }
+            {"name": "Initial Project 1", "description": "First project for the organization"},
+            {"name": "Initial Project 2", "description": "Second project for the organization"},
         ]
 
         result = await workflow_suite.call_mcp(
@@ -366,8 +309,8 @@ class TestWorkflowOrganizationOnboarding:
                 "operation": "organization_onboarding",
                 "organization_name": "Organization with Projects",
                 "admin_email": "admin@projecttest.com",
-                "initial_projects": initial_projects
-            }
+                "initial_projects": initial_projects,
+            },
         )
 
         assert result["success"] is True

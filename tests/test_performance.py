@@ -49,6 +49,7 @@ THRESHOLDS = {
     "query_tool_rag_search": 5.0,
 }
 
+
 class PerformanceMetrics:
     """Collect and analyze performance metrics."""
 
@@ -86,7 +87,7 @@ class PerformanceMetrics:
                 "operation_types": len(self.measurements),
             },
             "operations": {},
-            "threshold_violations": []
+            "threshold_violations": [],
         }
 
         for operation, _durations in self.measurements.items():
@@ -98,22 +99,26 @@ class PerformanceMetrics:
             if threshold and stats.get("p95", 0) > threshold:
                 violations = report.get("threshold_violations", [])
                 if isinstance(violations, list):
-                    violations.append({
-                    "operation": operation,
-                    "threshold": threshold,
-                    "p95": stats["p95"],
-                    "violation": stats["p95"] - threshold
-                    })
+                    violations.append(
+                        {
+                            "operation": operation,
+                            "threshold": threshold,
+                            "p95": stats["p95"],
+                            "violation": stats["p95"] - threshold,
+                        }
+                    )
 
         return report
+
 
 @pytest.fixture(scope="module")
 def perf_metrics():
     """Provide shared performance metrics instance."""
     return PerformanceMetrics()
 
+
 @pytest.fixture(scope="module")
-def mcp_client(check_server_running, shared_authkit_session, perf_metrics):
+def mcp_client(check_server_running, shared_authkit_session, _perf_metrics):
     """Return MCP client with performance tracking."""
     base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
     headers = {
@@ -121,7 +126,9 @@ def mcp_client(check_server_running, shared_authkit_session, perf_metrics):
         "Content-Type": "application/json",
     }
 
-    async def call_tool(tool_name: str, params: dict[str, Any], track_perf: bool = True) -> tuple[dict[str, Any], float]:
+    async def call_tool(
+        tool_name: str, params: dict[str, Any], track_perf: bool = True
+    ) -> tuple[dict[str, Any], float]:
         """Call MCP tool and track performance."""
         payload = {
             "jsonrpc": "2.0",
@@ -156,71 +163,69 @@ def mcp_client(check_server_running, shared_authkit_session, perf_metrics):
 
     return call_tool
 
+
 # ============================================================================
 # Individual Tool Performance Tests
 # ============================================================================
+
 
 class TestEntityToolPerformance:
     """Test entity_tool performance."""
 
     @pytest.mark.asyncio
-    async def test_entity_crud_performance(self, mcp_client, perf_metrics):
+    async def test_entity_crud_performance(self, mcp_client, _perf_metrics):
         """Benchmark entity CRUD operations."""
         print("\n=== Entity CRUD Performance ===")
 
         # Create
         org_slug = f"perf-test-{uuid.uuid4().hex[:8]}"
-        result, duration = await mcp_client("entity_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {
-                "name": "Performance Test Org",
-                "slug": org_slug,
-                "type": "team"
-            }
-        })
+        result, duration = await mcp_client(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "organization",
+                "data": {"name": "Performance Test Org", "slug": org_slug, "type": "team"},
+            },
+        )
 
         assert result.get("success") is True
         org_id = result["data"]["id"]
         print(f"  Create: {duration:.3f}s")
 
         # Read
-        result, duration = await mcp_client("entity_tool", {
-            "operation": "read",
-            "entity_type": "organization",
-            "entity_id": org_id
-        })
+        result, duration = await mcp_client(
+            "entity_tool", {"operation": "read", "entity_type": "organization", "entity_id": org_id}
+        )
 
         assert result.get("success") is True
         print(f"  Read:   {duration:.3f}s")
 
         # Update
-        result, duration = await mcp_client("entity_tool", {
-            "operation": "update",
-            "entity_type": "organization",
-            "entity_id": org_id,
-            "data": {"description": "Updated for performance test"}
-        })
+        result, duration = await mcp_client(
+            "entity_tool",
+            {
+                "operation": "update",
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "data": {"description": "Updated for performance test"},
+            },
+        )
 
         assert result.get("success") is True
         print(f"  Update: {duration:.3f}s")
 
         # List
-        result, duration = await mcp_client("entity_tool", {
-            "operation": "list",
-            "entity_type": "organization",
-            "limit": 50
-        })
+        result, duration = await mcp_client(
+            "entity_tool", {"operation": "list", "entity_type": "organization", "limit": 50}
+        )
 
         assert result.get("success") is True
         print(f"  List:   {duration:.3f}s")
 
         # Delete
-        result, duration = await mcp_client("entity_tool", {
-            "operation": "delete",
-            "entity_type": "organization",
-            "entity_id": org_id
-        })
+        result, duration = await mcp_client(
+            "entity_tool", {"operation": "delete", "entity_type": "organization", "entity_id": org_id}
+        )
 
         assert result.get("success") is True
         print(f"  Delete: {duration:.3f}s")
@@ -231,14 +236,14 @@ class TestEntityToolPerformance:
         print("\n=== Batch Create Performance ===")
 
         # Create org first
-        org_result, _ = await mcp_client("entity_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {
-                "name": "Batch Test Org",
-                "slug": f"batch-{uuid.uuid4().hex[:8]}"
-            }
-        })
+        org_result, _ = await mcp_client(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "organization",
+                "data": {"name": "Batch Test Org", "slug": f"batch-{uuid.uuid4().hex[:8]}"},
+            },
+        )
 
         org_id = org_result["data"]["id"]
 
@@ -247,39 +252,42 @@ class TestEntityToolPerformance:
         project_ids = []
 
         for i in range(10):
-            result, _ = await mcp_client("entity_tool", {
-                "operation": "create",
-                "entity_type": "project",
-                "data": {
-                    "name": f"Batch Project {i}",
-                    "organization_id": org_id
-                }
-            }, track_perf=False)
+            result, _ = await mcp_client(
+                "entity_tool",
+                {
+                    "operation": "create",
+                    "entity_type": "project",
+                    "data": {"name": f"Batch Project {i}", "organization_id": org_id},
+                },
+                track_perf=False,
+            )
 
             if result.get("success"):
                 project_ids.append(result["data"]["id"])
 
         sequential_duration = time.time() - start_time
-        print(f"  Sequential (10 projects): {sequential_duration:.3f}s ({sequential_duration/10:.3f}s avg)")
+        print(f"  Sequential (10 projects): {sequential_duration:.3f}s ({sequential_duration / 10:.3f}s avg)")
 
         # Create 10 projects concurrently
         async def create_project(index: int):
-            result, _ = await mcp_client("entity_tool", {
-                "operation": "create",
-                "entity_type": "project",
-                "data": {
-                    "name": f"Concurrent Project {index}",
-                    "organization_id": org_id
-                }
-            }, track_perf=False)
+            result, _ = await mcp_client(
+                "entity_tool",
+                {
+                    "operation": "create",
+                    "entity_type": "project",
+                    "data": {"name": f"Concurrent Project {index}", "organization_id": org_id},
+                },
+                track_perf=False,
+            )
             return result
 
         start_time = time.time()
         _results = await asyncio.gather(*[create_project(i) for i in range(10)])
         concurrent_duration = time.time() - start_time
 
-        print(f"  Concurrent (10 projects): {concurrent_duration:.3f}s ({concurrent_duration/10:.3f}s avg)")
-        print(f"  Speedup: {sequential_duration/concurrent_duration:.1f}x")
+        print(f"  Concurrent (10 projects): {concurrent_duration:.3f}s ({concurrent_duration / 10:.3f}s avg)")
+        print(f"  Speedup: {sequential_duration / concurrent_duration:.1f}x")
+
 
 class TestWorkspaceToolPerformance:
     """Test workspace_tool performance."""
@@ -290,26 +298,20 @@ class TestWorkspaceToolPerformance:
         print("\n=== Workspace Operations Performance ===")
 
         # Get context
-        result, duration = await mcp_client("workspace_tool", {
-            "operation": "get_context"
-        })
+        result, duration = await mcp_client("workspace_tool", {"operation": "get_context"})
 
         print(f"  Get Context:     {duration:.3f}s")
 
         # List workspaces
-        result, duration = await mcp_client("workspace_tool", {
-            "operation": "list_workspaces",
-            "limit": 100
-        })
+        result, duration = await mcp_client("workspace_tool", {"operation": "list_workspaces", "limit": 100})
 
         print(f"  List Workspaces: {duration:.3f}s")
 
         # Get defaults
-        _result, duration = await mcp_client("workspace_tool", {
-            "operation": "get_defaults"
-        })
+        _result, duration = await mcp_client("workspace_tool", {"operation": "get_defaults"})
 
         print(f"  Get Defaults:    {duration:.3f}s")
+
 
 class TestQueryToolPerformance:
     """Test query_tool performance."""
@@ -320,33 +322,34 @@ class TestQueryToolPerformance:
         print("\n=== Search Performance ===")
 
         # Simple search
-        result, duration = await mcp_client("query_tool", {
-            "query_type": "search",
-            "entities": ["organization", "project"],
-            "search_term": "test",
-            "limit": 20
-        })
+        result, duration = await mcp_client(
+            "query_tool",
+            {"query_type": "search", "entities": ["organization", "project"], "search_term": "test", "limit": 20},
+        )
 
         print(f"  Keyword Search: {duration:.3f}s")
 
         # Aggregate query
-        result, duration = await mcp_client("query_tool", {
-            "query_type": "aggregate",
-            "entities": ["organization", "project"]
-        })
+        result, duration = await mcp_client(
+            "query_tool", {"query_type": "aggregate", "entities": ["organization", "project"]}
+        )
 
         print(f"  Aggregate:      {duration:.3f}s")
 
         # RAG search (if available)
-        _result, duration = await mcp_client("query_tool", {
-            "query_type": "rag_search",
-            "entities": ["requirement"],
-            "search_term": "authentication security",
-            "rag_mode": "auto",
-            "limit": 10
-        })
+        _result, duration = await mcp_client(
+            "query_tool",
+            {
+                "query_type": "rag_search",
+                "entities": ["requirement"],
+                "search_term": "authentication security",
+                "rag_mode": "auto",
+                "limit": 10,
+            },
+        )
 
         print(f"  RAG Search:     {duration:.3f}s")
+
 
 class TestWorkflowPerformance:
     """Test workflow_tool performance."""
@@ -357,26 +360,29 @@ class TestWorkflowPerformance:
         print("\n=== Workflow Performance ===")
 
         # Create org for workflow
-        org_result, _ = await mcp_client("entity_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {
-                "name": "Workflow Perf Test",
-                "slug": f"wf-perf-{uuid.uuid4().hex[:8]}"
-            }
-        })
+        org_result, _ = await mcp_client(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "organization",
+                "data": {"name": "Workflow Perf Test", "slug": f"wf-perf-{uuid.uuid4().hex[:8]}"},
+            },
+        )
 
         org_id = org_result["data"]["id"]
 
         # Setup project workflow
-        result, duration = await mcp_client("workflow_tool", {
-            "workflow": "setup_project",
-            "parameters": {
-                "name": "Performance Test Project",
-                "organization_id": org_id,
-                "initial_documents": ["Requirements", "Design", "Test Plan"]
-            }
-        })
+        result, duration = await mcp_client(
+            "workflow_tool",
+            {
+                "workflow": "setup_project",
+                "parameters": {
+                    "name": "Performance Test Project",
+                    "organization_id": org_id,
+                    "initial_documents": ["Requirements", "Design", "Test Plan"],
+                },
+            },
+        )
 
         print(f"  Setup Project: {duration:.3f}s")
 
@@ -387,9 +393,11 @@ class TestWorkflowPerformance:
                 if step.get("duration"):
                     print(f"    - {step['step']}: {step.get('duration', 'N/A')}")
 
+
 # ============================================================================
 # Load and Stress Tests
 # ============================================================================
+
 
 class TestLoadPerformance:
     """Test performance under load."""
@@ -400,24 +408,24 @@ class TestLoadPerformance:
         print("\n=== Concurrent Read Performance ===")
 
         # Create test org
-        org_result, _ = await mcp_client("entity_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {
-                "name": "Concurrent Read Test",
-                "slug": f"concurrent-{uuid.uuid4().hex[:8]}"
-            }
-        })
+        org_result, _ = await mcp_client(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "organization",
+                "data": {"name": "Concurrent Read Test", "slug": f"concurrent-{uuid.uuid4().hex[:8]}"},
+            },
+        )
 
         org_id = org_result["data"]["id"]
 
         # Perform 50 concurrent reads
         async def read_org():
-            _result, duration = await mcp_client("entity_tool", {
-                "operation": "read",
-                "entity_type": "organization",
-                "entity_id": org_id
-            }, track_perf=False)
+            _result, duration = await mcp_client(
+                "entity_tool",
+                {"operation": "read", "entity_type": "organization", "entity_id": org_id},
+                track_perf=False,
+            )
             return duration
 
         start_time = time.time()
@@ -429,7 +437,7 @@ class TestLoadPerformance:
         print(f"    Avg per read: {statistics.mean(durations):.3f}s")
         print(f"    Min:          {min(durations):.3f}s")
         print(f"    Max:          {max(durations):.3f}s")
-        print(f"    Throughput:   {50/total_duration:.1f} req/s")
+        print(f"    Throughput:   {50 / total_duration:.1f} req/s")
 
     @pytest.mark.asyncio
     async def test_concurrent_writes(self, mcp_client):
@@ -437,27 +445,28 @@ class TestLoadPerformance:
         print("\n=== Concurrent Write Performance ===")
 
         # Create test org
-        org_result, _ = await mcp_client("entity_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {
-                "name": "Concurrent Write Test",
-                "slug": f"concurrent-write-{uuid.uuid4().hex[:8]}"
-            }
-        })
+        org_result, _ = await mcp_client(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "organization",
+                "data": {"name": "Concurrent Write Test", "slug": f"concurrent-write-{uuid.uuid4().hex[:8]}"},
+            },
+        )
 
         org_id = org_result["data"]["id"]
 
         # Perform 20 concurrent project creations
         async def create_project(index: int):
-            result, duration = await mcp_client("entity_tool", {
-                "operation": "create",
-                "entity_type": "project",
-                "data": {
-                    "name": f"Concurrent Project {index}",
-                    "organization_id": org_id
-                }
-            }, track_perf=False)
+            result, duration = await mcp_client(
+                "entity_tool",
+                {
+                    "operation": "create",
+                    "entity_type": "project",
+                    "data": {"name": f"Concurrent Project {index}", "organization_id": org_id},
+                },
+                track_perf=False,
+            )
             return duration, result.get("success")
 
         start_time = time.time()
@@ -471,7 +480,7 @@ class TestLoadPerformance:
         print(f"    Total time:    {total_duration:.3f}s")
         print(f"    Successes:     {successes}/20")
         print(f"    Avg per create: {statistics.mean(durations):.3f}s")
-        print(f"    Throughput:    {20/total_duration:.1f} req/s")
+        print(f"    Throughput:    {20 / total_duration:.1f} req/s")
 
     @pytest.mark.asyncio
     async def test_pagination_performance(self, mcp_client):
@@ -482,54 +491,57 @@ class TestLoadPerformance:
         page_sizes = [10, 50, 100, 500]
 
         for page_size in page_sizes:
-            result, duration = await mcp_client("entity_tool", {
-                "operation": "list",
-                "entity_type": "organization",
-                "limit": page_size,
-                "offset": 0
-            }, track_perf=False)
+            result, duration = await mcp_client(
+                "entity_tool",
+                {"operation": "list", "entity_type": "organization", "limit": page_size, "offset": 0},
+                track_perf=False,
+            )
 
             count = len(result.get("data", []))
             print(f"  Page size {page_size:3d}: {duration:.3f}s ({count} results)")
+
 
 # ============================================================================
 # Report Generation
 # ============================================================================
 
+
 class TestPerformanceReport:
     """Generate performance test report."""
 
     @pytest.mark.asyncio
-    async def test_generate_performance_report(self, perf_metrics):
+    async def test_generate_performance_report(self, _perf_metrics):
         """Generate and display performance report."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PERFORMANCE TEST REPORT")
-        print("="*80)
+        print("=" * 80)
 
         report = perf_metrics.generate_report()
 
         # Summary
         print(f"\n{'SUMMARY':^80}")
-        print("-"*80)
+        print("-" * 80)
         print(f"Total Operations:  {report['summary']['total_operations']}")
         print(f"Operation Types:   {report['summary']['operation_types']}")
 
         # Operations
         print(f"\n{'OPERATION PERFORMANCE':^80}")
-        print("-"*80)
+        print("-" * 80)
         print(f"{'Operation':<40} {'Count':>6} {'Mean':>8} {'P95':>8} {'P99':>8}")
-        print("-"*80)
+        print("-" * 80)
 
         for operation, stats in sorted(report["operations"].items()):
             threshold = THRESHOLDS.get(operation, float("inf"))
             p95_status = "❌" if stats.get("p95", 0) > threshold else "✅"
 
-            print(f"{operation:<40} {stats['count']:>6} {stats['mean']:>7.3f}s {stats['p95']:>7.3f}s {stats['p99']:>7.3f}s {p95_status}")
+            print(
+                f"{operation:<40} {stats['count']:>6} {stats['mean']:>7.3f}s {stats['p95']:>7.3f}s {stats['p99']:>7.3f}s {p95_status}"
+            )
 
         # Threshold Violations
         if report["threshold_violations"]:
             print(f"\n{'THRESHOLD VIOLATIONS':^80}")
-            print("-"*80)
+            print("-" * 80)
             for violation in report["threshold_violations"]:
                 print(f"❌ {violation['operation']}")
                 print(f"   Threshold: {violation['threshold']:.3f}s")
@@ -537,20 +549,22 @@ class TestPerformanceReport:
                 print(f"   Violation: +{violation['violation']:.3f}s")
         else:
             print(f"\n{'THRESHOLD VIOLATIONS':^80}")
-            print("-"*80)
+            print("-" * 80)
             print("✅ No threshold violations detected")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("END OF PERFORMANCE REPORT")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         # Save report
         import json
+
         report_path = "/Users/kooshapari/temp-PRODVERCEL/485/clean/atoms_mcp-old/tests/performance_report.json"
         with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         print(f"📊 Detailed report saved to: {report_path}\n")
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

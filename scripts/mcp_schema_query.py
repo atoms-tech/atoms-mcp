@@ -6,11 +6,12 @@ This script uses Supabase MCP tools to query and analyze the database schema.
 It demonstrates integration with the MCP system for schema introspection.
 """
 
+import argparse
 import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,11 +31,11 @@ class MCPSchemaQuery:
             # This would call the Supabase MCP execute_sql tool
             # For implementation, use: mcp__supabase__execute_sql
             print(f"Executing SQL: {query[:100]}...")
-
-            # Simulated response for documentation
-            return []
         except Exception as e:
             print(f"Error executing SQL: {e}")
+            return []
+        else:
+            # Simulated response for documentation
             return []
 
     async def list_tables(self, schemas: list[str] | None = None) -> list[dict[str, Any]]:
@@ -55,10 +56,12 @@ class MCPSchemaQuery:
                 ORDER BY table_name;
             """
 
-            return await self.execute_sql(query)
+            result = await self.execute_sql(query)
         except Exception as e:
             print(f"Error listing tables: {e}")
             return []
+        else:
+            return result
 
     async def get_table_schema(self, table_name: str) -> dict[str, Any]:
         """Get complete schema for a table including columns, constraints, indexes."""
@@ -164,7 +167,7 @@ class MCPSchemaQuery:
         results = await self.execute_sql(query)
 
         # Group by enum name
-        enums = {}
+        enums: dict[str, list[str]] = {}
         for row in results:
             enum_name = row["enum_name"]
             enum_value = row["enum_value"]
@@ -274,8 +277,7 @@ class MCPSchemaQuery:
             md_content = self._generate_table_markdown(table_name, schema, rls_policies)
 
             md_file = output_path / f"{table_name}.md"
-            with open(md_file, "w") as f:
-                f.write(md_content)
+            md_file.write_text(md_content)
 
         # Export enums
         print("  Exporting enums...")
@@ -283,8 +285,7 @@ class MCPSchemaQuery:
 
         enums_md = self._generate_enums_markdown(enums)
         enums_file = output_path / "enums.md"
-        with open(enums_file, "w") as f:
-            f.write(enums_md)
+        enums_file.write_text(enums_md)
 
         # Export overview
         print("  Generating overview...")
@@ -292,16 +293,12 @@ class MCPSchemaQuery:
 
         overview_md = self._generate_overview_markdown(metrics)
         overview_file = output_path / "README.md"
-        with open(overview_file, "w") as f:
-            f.write(overview_md)
+        overview_file.write_text(overview_md)
 
-        print(f"\n✓ Schema documentation exported to {output_path}")
+        print(f"\n? Schema documentation exported to {output_path}")
 
-    def _generate_table_markdown(  # noqa: PLR0912, PLR0915
-        self,
-        table_name: str,
-        schema: dict[str, Any],
-        rls_policies: list[dict[str, Any]]
+    def _generate_table_markdown(
+        self, table_name: str, schema: dict[str, Any], rls_policies: list[dict[str, Any]]
     ) -> str:
         """Generate markdown documentation for a table."""
         md = f"# Table: {table_name}\n\n"
@@ -319,7 +316,7 @@ class MCPSchemaQuery:
             default = col.get("column_default", "")
 
             type_display = data_type if data_type != "USER-DEFINED" else udt_name
-            nullable_display = "✓" if is_nullable == "YES" else ""
+            nullable_display = "?" if is_nullable == "YES" else ""
             default_display = default if default else ""
 
             md += f"| {col_name} | {type_display} | {nullable_display} | {default_display} |\n"
@@ -420,7 +417,7 @@ class MCPSchemaQuery:
     def _generate_overview_markdown(self, metrics: dict[str, Any]) -> str:
         """Generate overview markdown."""
         md = "# Database Schema Overview\n\n"
-        md += f"*Generated: {datetime.now().isoformat()}*\n\n"
+        md += f"*Generated: {datetime.now(tz=UTC).isoformat()}*\n\n"
 
         # Summary
         md += "## Summary\n\n"
@@ -455,7 +452,6 @@ class MCPSchemaQuery:
 
 async def main():
     """Main entry point."""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Query database schema using MCP")
     parser.add_argument("--project-id", help="Supabase project ID")

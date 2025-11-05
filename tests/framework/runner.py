@@ -18,8 +18,9 @@ except ImportError:
         def __init__(self, concurrency=4):
             self.concurrency = concurrency
 
-        async def run_test(self, test_name, callback, metadata=None):
+        async def run_test(self, _test_name, callback, metadata=None):
             import time
+
             start = time.time()
             result = await callback()
             duration = time.time() - start
@@ -52,7 +53,7 @@ class AtomsTestRunner(BaseTestRunner):
         """Preferred execution order for Atoms test categories."""
         return ["core", "entity", "query", "relationship", "workflow", "integration"]
 
-    async def _run_single_test(  # noqa: PLR0912, PLR0915
+    async def _run_single_test(
         self,
         test_name: str,
         test_info: dict[str, Any],
@@ -163,7 +164,11 @@ class AtomsTestRunner(BaseTestRunner):
                     error = "AssertionError: (assertion failed without message)"
             else:
                 # For other exceptions, use the exception message or type name
-                error = error_msg if error_msg and error_msg.strip() else f"{exc_type.__name__ if exc_type else 'Unknown'}: (no error message)"
+                error = (
+                    error_msg
+                    if error_msg and error_msg.strip()
+                    else f"{exc_type.__name__ if exc_type else 'Unknown'}: (no error message)"
+                )
 
             result = {
                 "test_name": test_name,

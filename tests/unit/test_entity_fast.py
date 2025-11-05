@@ -16,7 +16,7 @@ Run with:
     pytest tests/unit/test_entity_fast.py -v --mode dry
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -29,13 +29,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_list_organizations_hot(authenticated_client):
     """Test listing organizations via fast HTTP client in HOT mode (real server)."""
-    result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
-    )
+    result = await authenticated_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
     assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
 
@@ -54,13 +48,7 @@ async def test_list_organizations_hot(authenticated_client):
 @pytest.mark.asyncio
 async def test_list_organizations_cold(fastmcp_client):
     """Test listing organizations via FastMCP client in COLD mode (mocked server)."""
-    result = await fastmcp_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
-    )
+    result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
     assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
     assert "data" in result
@@ -82,20 +70,10 @@ async def test_list_organizations_dry(fastmcp_client):
     for i in range(3):
         await fastmcp_client.call_tool(
             "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": f"Simulated Org {i}"}
-            }
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Simulated Org {i}"}},
         )
 
-    result = await fastmcp_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
-    )
+    result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
     assert result.get("success"), f"Failed to list organizations: {result.get('error')}"
     assert "data" in result
@@ -113,13 +91,7 @@ async def test_list_organizations_dry(fastmcp_client):
 @pytest.mark.asyncio
 async def test_list_projects_hot(authenticated_client):
     """Test listing projects via fast HTTP client in HOT mode (real server)."""
-    result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "project",
-            "operation": "list"
-        }
-    )
+    result = await authenticated_client.call_tool("entity_tool", {"entity_type": "project", "operation": "list"})
 
     assert result["success"], f"Failed to list projects: {result.get('error')}"
 
@@ -133,13 +105,7 @@ async def test_list_projects_hot(authenticated_client):
 @pytest.mark.asyncio
 async def test_list_projects_cold(fastmcp_client):
     """Test listing projects via FastMCP client in COLD mode (mocked server)."""
-    result = await fastmcp_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "project",
-            "operation": "list"
-        }
-    )
+    result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "project", "operation": "list"})
 
     assert result["success"], f"Failed to list projects: {result.get('error')}"
     assert "data" in result
@@ -159,17 +125,11 @@ async def test_list_projects_dry(fastmcp_client):
             {
                 "entity_type": "project",
                 "operation": "create",
-                "data": {"name": f"Simulated Project {i}", "organization_id": f"org_{i}"}
-            }
+                "data": {"name": f"Simulated Project {i}", "organization_id": f"org_{i}"},
+            },
         )
 
-    result = await fastmcp_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "project",
-            "operation": "list"
-        }
-    )
+    result = await fastmcp_client.call_tool("entity_tool", {"entity_type": "project", "operation": "list"})
 
     assert result["success"], f"Failed to list projects: {result.get('error')}"
     assert "data" in result
@@ -182,13 +142,7 @@ async def test_list_projects_dry(fastmcp_client):
 @pytest.mark.asyncio
 async def test_list_documents_hot(authenticated_client):
     """Test listing documents via fast HTTP client."""
-    result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "document",
-            "operation": "list"
-        }
-    )
+    result = await authenticated_client.call_tool("entity_tool", {"entity_type": "document", "operation": "list"})
 
     assert result["success"], f"Failed to list documents: {result.get('error')}"
 
@@ -201,13 +155,7 @@ async def test_list_documents_hot(authenticated_client):
 @pytest.mark.asyncio
 async def test_list_requirements(authenticated_client):
     """Test listing requirements via fast HTTP client."""
-    result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "requirement",
-            "operation": "list"
-        }
-    )
+    result = await authenticated_client.call_tool("entity_tool", {"entity_type": "requirement", "operation": "list"})
 
     assert result["success"], f"Failed to list requirements: {result.get('error')}"
 
@@ -225,7 +173,7 @@ async def test_list_requirements(authenticated_client):
 @pytest.mark.asyncio
 async def test_create_organization(authenticated_client):
     """Test creating organization (known RLS issue with updated_by constraint)."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     result = await authenticated_client.call_tool(
         "entity_tool",
@@ -244,8 +192,7 @@ async def test_create_organization(authenticated_client):
     # This test documents the issue and validates the error message
     if not result.get("success"):
         error = result.get("error", "")
-        assert "updated_by" in error or "NOT NULL" in error, \
-            f"Expected updated_by constraint error, got: {error}"
+        assert "updated_by" in error or "NOT NULL" in error, f"Expected updated_by constraint error, got: {error}"
         pytest.skip("Known RLS issue: updated_by constraint prevents organization creation")
     else:
         # If it succeeds (after RLS fix), validate response structure
@@ -265,11 +212,7 @@ async def test_read_organization_by_id(authenticated_client):
     """Test reading organization by ID."""
     # First get list to find a real ID
     list_result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
+        "entity_tool", {"entity_type": "organization", "operation": "list"}
     )
 
     if not list_result.get("success"):
@@ -305,13 +248,7 @@ async def test_read_organization_by_id(authenticated_client):
 async def test_read_project_by_id(authenticated_client):
     """Test reading project by ID."""
     # Get list of projects
-    list_result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "project",
-            "operation": "list"
-        }
-    )
+    list_result = await authenticated_client.call_tool("entity_tool", {"entity_type": "project", "operation": "list"})
 
     if not list_result.get("success"):
         pytest.skip("Cannot list projects to get test ID")
@@ -346,13 +283,7 @@ async def test_read_project_by_id(authenticated_client):
 async def test_read_document_by_id(authenticated_client):
     """Test reading document by ID."""
     # Get list of documents
-    list_result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "document",
-            "operation": "list"
-        }
-    )
+    list_result = await authenticated_client.call_tool("entity_tool", {"entity_type": "document", "operation": "list"})
 
     if not list_result.get("success"):
         pytest.skip("Cannot list documents to get test ID")
@@ -403,8 +334,7 @@ async def test_search_organizations_fuzzy(authenticated_client):
     assert result["success"], f"Failed to search organizations: {result.get('error')}"
 
     response = result.get("response", {})
-    assert isinstance(response, dict), \
-        f"Expected response to be a dict, got {type(response).__name__}"
+    assert isinstance(response, dict), f"Expected response to be a dict, got {type(response).__name__}"
 
 
 # ============================================================================
@@ -417,11 +347,7 @@ async def test_update_organization(authenticated_client):
     """Test updating organization (may fail due to RLS permissions)."""
     # First get list to find a real ID
     list_result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
+        "entity_tool", {"entity_type": "organization", "operation": "list"}
     )
 
     if not list_result.get("success"):
@@ -442,9 +368,7 @@ async def test_update_organization(authenticated_client):
             "entity_type": "organization",
             "operation": "update",
             "entity_id": org_id,
-            "data": {
-                "description": f"Updated via fast HTTP test at {datetime.now().isoformat()}"
-            },
+            "data": {"description": f"Updated via fast HTTP test at {datetime.now(UTC).isoformat()}"},
         },
     )
 
@@ -475,19 +399,12 @@ async def test_list_performance(authenticated_client):
 
     start_time = time.time()
 
-    result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
-    )
+    result = await authenticated_client.call_tool("entity_tool", {"entity_type": "organization", "operation": "list"})
 
     duration = time.time() - start_time
 
     assert result["success"], f"Failed to list organizations: {result.get('error')}"
-    assert duration < 2.0, \
-        f"List operation took {duration:.2f}s, expected < 2.0s. Fast HTTP client should be faster."
+    assert duration < 2.0, f"List operation took {duration:.2f}s, expected < 2.0s. Fast HTTP client should be faster."
 
 
 @pytest.mark.asyncio
@@ -497,11 +414,7 @@ async def test_read_performance(authenticated_client):
 
     # Get a test ID first
     list_result = await authenticated_client.call_tool(
-        "entity_tool",
-        {
-            "entity_type": "organization",
-            "operation": "list"
-        }
+        "entity_tool", {"entity_type": "organization", "operation": "list"}
     )
 
     if not list_result.get("success"):
@@ -524,11 +437,10 @@ async def test_read_performance(authenticated_client):
             "entity_type": "organization",
             "operation": "read",
             "entity_id": org_id,
-        }
+        },
     )
 
     duration = time.time() - start_time
 
     assert result["success"], f"Failed to read organization: {result.get('error')}"
-    assert duration < 1.0, \
-        f"Read operation took {duration:.2f}s, expected < 1.0s. Fast HTTP client should be faster."
+    assert duration < 1.0, f"Read operation took {duration:.2f}s, expected < 1.0s. Fast HTTP client should be faster."

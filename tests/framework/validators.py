@@ -238,11 +238,9 @@ class ResponseValidator:
             data = data_generator_func(**kwargs)
 
             # Create the entity
-            result = await client_adapter.call_tool("entity_tool", {
-                "entity_type": entity_type,
-                "operation": "create",
-                "data": data
-            })
+            result = await client_adapter.call_tool(
+                "entity_tool", {"entity_type": entity_type, "operation": "create", "data": data}
+            )
 
             if result.get("success"):
                 return ResponseValidator.extract_id(result.get("response", {}))

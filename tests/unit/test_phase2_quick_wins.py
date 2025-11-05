@@ -1,6 +1,5 @@
 """Phase 2: Quick wins for 35%+ coverage under 500 lines."""
 
-
 import pytest
 
 
@@ -14,7 +13,6 @@ class TestPhase2QuickWins:
             from config.python.session import (
                 JWTConfig,
                 SessionConfig,
-                TokenManager,
                 configure_cookies,
                 create_session_config,
                 manage_jwt_tokens,
@@ -22,12 +20,7 @@ class TestPhase2QuickWins:
             )
 
             # Create JWT configuration
-            jwt_config = JWTConfig(
-                secret="phase2-secret-key",
-                algorithm="HS256",
-                expire_hours=12,
-                refresh_hours=168
-            )
+            jwt_config = JWTConfig(secret="phase2-secret-key", algorithm="HS256", expire_hours=12, refresh_hours=168)
             assert jwt_config.secret == "phase2-secret-key"
             assert jwt_config.algorithm == "HS256"
             assert jwt_config.expire_hours == 12
@@ -35,11 +28,7 @@ class TestPhase2QuickWins:
 
             # Create session configuration
             session_config = SessionConfig(
-                jwt=jwt_config,
-                cookie_domain="phase2.test",
-                secure=False,
-                http_only=True,
-                same_site="strict"
+                jwt=jwt_config, cookie_domain="phase2.test", secure=False, http_only=True, same_site="strict"
             )
             assert session_config.jwt.secret == "phase2-secret-key"
             assert session_config.cookie_domain == "phase2.test"
@@ -52,29 +41,20 @@ class TestPhase2QuickWins:
             assert token_manager is not None
 
             # Test session creation
-            created_config = create_session_config(
-                jwt_secret="phase2-created-secret",
-                environment="test"
-            )
+            created_config = create_session_config(jwt_secret="phase2-created-secret", environment="test")
             assert created_config is not None
 
             # Test validation
             assert validate_session(session_config) is True
 
             # Test JWT management
-            jwt_result = manage_jwt_tokens(
-                user_id="phase2-user",
-                jwt_config=jwt_config
-            )
+            jwt_result = manage_jwt_tokens(user_id="phase2-user", jwt_config=jwt_config)
             assert jwt_result is not None
             assert "access_token" in jwt_result
             assert "refresh_token" in jwt_result
 
             # Test cookie configuration
-            cookie_config = configure_cookies(
-                domain="phase2.cookie.test",
-                secure=True
-            )
+            cookie_config = configure_cookies(domain="phase2.cookie.test", secure=True)
             assert cookie_config is not None
 
         except ImportError:
@@ -100,7 +80,7 @@ class TestPhase2QuickWins:
                 pool_size=20,
                 max_overflow=40,
                 pool_timeout=60,
-                pool_recycle=3600
+                pool_recycle=3600,
             )
             assert db_config.url == "postgresql://phase2:password@localhost:5432/phase2db"
             assert db_config.pool_size == 20
@@ -113,7 +93,7 @@ class TestPhase2QuickWins:
                 url="redis://phase2:password@localhost:6379/0",
                 max_connections=100,
                 retry_on_timeout=True,
-                socket_timeout=30
+                socket_timeout=30,
             )
             assert redis_config.url == "redis://phase2:password@localhost:6379/0"
             assert redis_config.max_connections == 100
@@ -121,11 +101,7 @@ class TestPhase2QuickWins:
             assert redis_config.socket_timeout == 30
 
             # Create infrastructure configuration
-            infra_config = InfrastructureConfig(
-                database=db_config,
-                redis=redis_config,
-                environment="phase2-test"
-            )
+            infra_config = InfrastructureConfig(database=db_config, redis=redis_config, environment="phase2-test")
             assert infra_config.database.url == "postgresql://phase2:password@localhost:5432/phase2db"
             assert infra_config.redis.url == "redis://phase2:password@localhost:6379/0"
             assert infra_config.environment == "phase2-test"
@@ -134,7 +110,7 @@ class TestPhase2QuickWins:
             created_config = create_infrastructure_config(
                 database_url="postgresql://created.phase2/test",
                 redis_url="redis://created.phase2/0",
-                environment="test"
+                environment="test",
             )
             assert created_config is not None
 
@@ -143,17 +119,11 @@ class TestPhase2QuickWins:
             assert validate_redis(redis_config) is True
 
             # Test connection configuration
-            conn_config = configure_connections(
-                database=db_config,
-                redis=redis_config
-            )
+            conn_config = configure_connections(database=db_config, redis=redis_config)
             assert conn_config is not None
 
             # Test connection pool
-            pool_result = create_connection_pool(
-                config=db_config,
-                pool_type="sqlalchemy"
-            )
+            pool_result = create_connection_pool(config=db_config, pool_type="sqlalchemy")
             assert pool_result is not None
 
         except ImportError:
@@ -179,7 +149,7 @@ class TestPhase2QuickWins:
                 api_key="phase2-embedding-key",
                 api_base="https://api.openai.com/v1",
                 dimension=3072,
-                max_tokens=8191
+                max_tokens=8191,
             )
             assert embed_config.provider == "openai"
             assert embed_config.model == "text-embedding-3-large"
@@ -193,7 +163,7 @@ class TestPhase2QuickWins:
                 collection_name="phase2_collection",
                 index_name="phase2_index",
                 metric_type="cosine",
-                vector_dimension=3072
+                vector_dimension=3072,
             )
             assert vectordb_config.url == "postgresql://phase2:password@localhost:5432/vectordb"
             assert vectordb_config.collection_name == "phase2_collection"
@@ -203,10 +173,7 @@ class TestPhase2QuickWins:
 
             # Create vector configuration
             vector_config = VectorConfig(
-                embedding=embed_config,
-                vectordb=vectordb_config,
-                cache_enabled=True,
-                cache_ttl=3600
+                embedding=embed_config, vectordb=vectordb_config, cache_enabled=True, cache_ttl=3600
             )
             assert vector_config.embedding.provider == "openai"
             assert vector_config.vectordb.collection_name == "phase2_collection"
@@ -215,8 +182,7 @@ class TestPhase2QuickWins:
 
             # Test configuration creation
             created_config = create_vector_config(
-                embedding_provider="openai",
-                vector_db_url="postgresql://created.phase2/vectordb"
+                embedding_provider="openai", vector_db_url="postgresql://created.phase2/vectordb"
             )
             assert created_config is not None
 
@@ -224,18 +190,11 @@ class TestPhase2QuickWins:
             assert validate_embedding(embed_config) is True
 
             # Test index creation
-            index_result = create_vector_index(
-                vector_db=vectordb_config,
-                embedding_dim=3072
-            )
+            index_result = create_vector_index(vector_db=vectordb_config, embedding_dim=3072)
             assert index_result is not None
 
             # Test similarity search configuration
-            search_config = configure_similarity_search(
-                vector_config=vector_config,
-                top_k=10,
-                similarity_threshold=0.7
-            )
+            search_config = configure_similarity_search(vector_config=vector_config, top_k=10, similarity_threshold=0.7)
             assert search_config is not None
             assert search_config.top_k == 10
             assert search_config.similarity_threshold == 0.7
@@ -247,9 +206,7 @@ class TestPhase2QuickWins:
         """Complete server/auth coverage from 28% to 70%."""
         try:
             from server.auth import (
-                AuthenticationError,
                 BearerToken,
-                RateLimiter,
                 authenticate_user,
                 authorize_request,
                 create_bearer_token,
@@ -274,33 +231,22 @@ class TestPhase2QuickWins:
             assert extract_bearer_token(None) is None
 
             # Test token validation
-            valid_token = create_bearer_token(
-                user_id="phase2-user",
-                permissions=["read", "write"],
-                expires_in=3600
-            )
+            valid_token = create_bearer_token(user_id="phase2-user", permissions=["read", "write"], expires_in=3600)
             assert valid_token is not None
             assert "access_token" in valid_token
 
-            validation_result = validate_bearer_token(
-                valid_token["access_token"]
-            )
+            validation_result = validate_bearer_token(valid_token["access_token"])
             assert validation_result is not None
             assert validation_result.get("valid") is True
             assert validation_result.get("user_id") == "phase2-user"
 
             # Test token refresh
-            refresh_result = refresh_bearer_token(
-                refresh_token=valid_token.get("refresh_token")
-            )
+            refresh_result = refresh_bearer_token(refresh_token=valid_token.get("refresh_token"))
             assert refresh_result is not None
             assert "access_token" in refresh_result
 
             # Test user authentication
-            auth_result = authenticate_user(
-                username="phase2-user",
-                password="phase2-password"
-            )
+            auth_result = authenticate_user(username="phase2-user", password="phase2-password")
             assert auth_result is not None
             assert auth_result.get("success") is True
             assert auth_result.get("user_id") == "phase2-user"
@@ -309,23 +255,15 @@ class TestPhase2QuickWins:
             request = {
                 "headers": {"Authorization": f"Bearer {valid_token['access_token']}"},
                 "path": "/api/protected",
-                "method": "GET"
+                "method": "GET",
             }
 
-            authz_result = authorize_request(
-                request=request,
-                required_permissions=["read"]
-            )
+            authz_result = authorize_request(request=request, required_permissions=["read"])
             assert authz_result is not None
             assert authz_result.get("authorized") is True
 
             # Test rate limiting
-            rate_result = rate_limit_request(
-                user_id="phase2-user",
-                endpoint="/api/test",
-                limit=10,
-                window=60
-            )
+            rate_result = rate_limit_request(user_id="phase2-user", endpoint="/api/test", limit=10, window=60)
             assert rate_result is not None
             assert rate_result.get("allowed") is True
 
@@ -341,27 +279,18 @@ class TestPhase2QuickWins:
         """Complete server/core coverage from 24% to 70%."""
         try:
             from server.core import (
-                AppStatus,
-                HealthChecker,
+                                HealthChecker,
                 ServerConfig,
                 check_server_health,
                 collect_server_metrics,
                 configure_server_logging,
                 create_server_config,
                 get_server_status,
-                restart_server,
-                start_server,
-                stop_server,
-            )
+                                                            )
 
             # Create server configuration
             config = ServerConfig(
-                host="0.0.0.0",
-                port=8000,
-                debug=True,
-                workers=4,
-                log_level="info",
-                environment="phase2-test"
+                host="0.0.0.0", port=8000, debug=True, workers=4, log_level="info", environment="phase2-test"
             )
             assert config.host == "0.0.0.0"
             assert config.port == 8000
@@ -371,11 +300,7 @@ class TestPhase2QuickWins:
             assert config.environment == "phase2-test"
 
             # Test configuration creation
-            created_config = create_server_config(
-                host="localhost",
-                port=5000,
-                environment="test"
-            )
+            created_config = create_server_config(host="localhost", port=5000, environment="test")
             assert created_config is not None
             assert created_config.host == "localhost"
             assert created_config.port == 5000
@@ -405,11 +330,7 @@ class TestPhase2QuickWins:
             assert "error_rate" in metrics
 
             # Test logging configuration
-            logging_config = configure_server_logging(
-                level="info",
-                format="json",
-                output="file"
-            )
+            logging_config = configure_server_logging(level="info", format="json", output="file")
             assert logging_config is not None
 
         except ImportError:
@@ -420,25 +341,18 @@ class TestPhase2QuickWins:
         try:
             from tools.base import (
                 ApiError,
-                ToolBase,
-                ToolResult,
                 configure_tool_settings,
                 create_tool,
                 execute_tool,
                 format_tool_output,
                 get_tool_metadata,
                 handle_tool_error,
-                register_tool_handler,
                 validate_tool_input,
             )
 
             # Create tool
             def phase2_tool_function(param1: str, param2: int = 10):
-                return {
-                    "processed": param1.upper(),
-                    "doubled": param2 * 2,
-                    "timestamp": "phase2-timestamp"
-                }
+                return {"processed": param1.upper(), "doubled": param2 * 2, "timestamp": "phase2-timestamp"}
 
             tool = create_tool(
                 name="phase2_tool",
@@ -446,21 +360,15 @@ class TestPhase2QuickWins:
                 description="Phase 2 test tool",
                 schema={
                     "type": "object",
-                    "properties": {
-                        "param1": {"type": "string"},
-                        "param2": {"type": "integer", "default": 10}
-                    }
-                }
+                    "properties": {"param1": {"type": "string"}, "param2": {"type": "integer", "default": 10}},
+                },
             )
             assert tool is not None
             assert tool.name == "phase2_tool"
             assert tool.description == "Phase 2 test tool"
 
             # Test tool execution
-            result = execute_tool(
-                tool=tool,
-                arguments={"param1": "phase2-test", "param2": 5}
-            )
+            result = execute_tool(tool=tool, arguments={"param1": "phase2-test", "param2": 5})
             assert result is not None
             assert result.get("success") is True
             assert result.get("data")["processed"] == "PHASE2-TEST"
@@ -468,25 +376,16 @@ class TestPhase2QuickWins:
 
             # Test input validation
             valid_input = {"param1": "test", "param2": 15}
-            validation_result = validate_tool_input(
-                input_data=valid_input,
-                schema=tool.schema
-            )
+            validation_result = validate_tool_input(input_data=valid_input, schema=tool.schema)
             assert validation_result.get("valid") is True
 
             # Test output formatting
-            formatted_output = format_tool_output(
-                data={"result": "phase2-result"},
-                format_type="json"
-            )
+            formatted_output = format_tool_output(data={"result": "phase2-result"}, format_type="json")
             assert formatted_output is not None
             assert "phase2-result" in str(formatted_output)
 
             # Test error handling
-            error_result = handle_tool_error(
-                error=ApiError("Phase 2 error", 400),
-                tool_name="phase2_tool"
-            )
+            error_result = handle_tool_error(error=ApiError("Phase 2 error", 400), tool_name="phase2_tool")
             assert error_result is not None
             assert error_result.get("success") is False
             assert error_result.get("error") is not None
@@ -498,10 +397,7 @@ class TestPhase2QuickWins:
             assert metadata.get("description") is not None
 
             # Test tool settings
-            settings = configure_tool_settings(
-                tool_name="phase2_tool",
-                settings={"timeout": 30, "retries": 3}
-            )
+            settings = configure_tool_settings(tool_name="phase2_tool", settings={"timeout": 30, "retries": 3})
             assert settings is not None
             assert settings.get("timeout") == 30
             assert settings.get("retries") == 3
@@ -514,52 +410,30 @@ class TestPhase2QuickWins:
         try:
             from config.python.infrastructure import InfrastructureConfig
             from config.python.session import JWTConfig, SessionConfig
-            from server.auth import BearerToken, create_bearer_token
+            from server.auth import create_bearer_token
             from tools.base import create_tool, execute_tool
 
             # Create integrated configuration
-            jwt_config = JWTConfig(
-                secret="integration-secret",
-                algorithm="HS256",
-                expire_hours=24
-            )
+            jwt_config = JWTConfig(secret="integration-secret", algorithm="HS256", expire_hours=24)
 
-            session_config = SessionConfig(
-                jwt=jwt_config,
-                cookie_domain="integration.test",
-                secure=True
-            )
+            session_config = SessionConfig(jwt=jwt_config, cookie_domain="integration.test", secure=True)
 
             infra_config = InfrastructureConfig(
                 database_url="postgresql://integration/test",
                 redis_url="redis://integration/0",
-                environment="integration"
+                environment="integration",
             )
 
             # Create integration tool
             def integration_tool(data: dict):
-                return {
-                    "session_configured": True,
-                    "infra_ready": True,
-                    "data_processed": len(str(data))
-                }
+                return {"session_configured": True, "infra_ready": True, "data_processed": len(str(data))}
 
-            tool = create_tool(
-                name="integration_tool",
-                function=integration_tool,
-                description="Integration test tool"
-            )
+            tool = create_tool(name="integration_tool", function=integration_tool, description="Integration test tool")
 
             # Execute integrated workflow
-            token_result = create_bearer_token(
-                user_id="integration-user",
-                permissions=["read", "write"]
-            )
+            token_result = create_bearer_token(user_id="integration-user", permissions=["read", "write"])
 
-            tool_result = execute_tool(
-                tool=tool,
-                arguments={"data": {"test": "integration"}}
-            )
+            tool_result = execute_tool(tool=tool, arguments={"data": {"test": "integration"}})
 
             # Verify integration
             assert session_config.jwt.secret == "integration-secret"
@@ -585,20 +459,13 @@ class TestPhase2QuickWins:
             start_time = time.time()
 
             # Create and validate multiple JWTs
-            jwt_config = JWTConfig(
-                secret="perf-secret",
-                algorithm="HS256",
-                expire_hours=1
-            )
+            jwt_config = JWTConfig(secret="perf-secret", algorithm="HS256", expire_hours=1)
 
             token_manager = TokenManager(jwt_config)
             tokens = []
 
             for i in range(100):
-                token = token_manager.create_token(
-                    user_id=f"perf-user-{i}",
-                    permissions=["read"]
-                )
+                token = token_manager.create_token(user_id=f"perf-user-{i}", permissions=["read"])
                 tokens.append(token)
 
             jwt_time = time.time() - start_time
@@ -611,10 +478,7 @@ class TestPhase2QuickWins:
             rate_results = []
             for i in range(50):
                 result = rate_limit_request(
-                    user_id=f"rate-user-{i % 10}",
-                    endpoint="/api/perf-test",
-                    limit=10,
-                    window=60
+                    user_id=f"rate-user-{i % 10}", endpoint="/api/perf-test", limit=10, window=60
                 )
                 rate_results.append(result)
 
@@ -624,11 +488,7 @@ class TestPhase2QuickWins:
 
             # Test edge cases
             # Empty configurations
-            empty_jwt = JWTConfig(
-                secret="",
-                algorithm="",
-                expire_hours=0
-            )
+            empty_jwt = JWTConfig(secret="", algorithm="", expire_hours=0)
             assert empty_jwt is not None
 
             # Very long strings
@@ -644,26 +504,16 @@ class TestPhase2QuickWins:
             def edge_tool(param: str = ""):
                 return {"param_length": len(param), "param": param}
 
-            edge_tool_obj = create_tool(
-                name="edge_tool",
-                function=edge_tool,
-                description="Edge case tool"
-            )
+            edge_tool_obj = create_tool(name="edge_tool", function=edge_tool, description="Edge case tool")
 
             # Test with empty parameter
-            empty_result = execute_tool(
-                tool=edge_tool_obj,
-                arguments={}
-            )
+            empty_result = execute_tool(tool=edge_tool_obj, arguments={})
             assert empty_result.get("success") is True
             assert empty_result.get("data")["param_length"] == 0
 
             # Test with very long parameter
             long_param = "B" * 5000
-            long_result = execute_tool(
-                tool=edge_tool_obj,
-                arguments={"param": long_param}
-            )
+            long_result = execute_tool(tool=edge_tool_obj, arguments={"param": long_param})
             assert long_result.get("success") is True
             assert long_result.get("data")["param_length"] == 5000
 

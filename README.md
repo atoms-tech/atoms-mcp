@@ -147,9 +147,83 @@ atoms server stop
 
 The CLI stores state under `~/.atoms/` (PID + log files) so you can manage the server from any shell. All overrides (transport/host/path/log-level plus `--skip-env/--skip-source`) are forwarded to `fastmcp run`, which means HTTP deployment guidance from the FastMCP docs applies 1:1 to the CLI workflow.
 
+## Authentication
+
+The Atoms MCP server supports multiple authentication methods to accommodate different client types:
+
+### 1. HTTP Bearer Token Authentication (Frontend Clients)
+
+Frontend applications can authenticate by passing AuthKit JWT tokens via the `Authorization` header:
+
+```typescript
+// Frontend example with AuthKit
+const accessToken = await authkit.getAccessToken();
+
+const response = await fetch('https://your-mcp-server.com/api/mcp', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${accessToken}`,
+  },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
+    params: {
+      name: 'entity_tool',
+      arguments: { /* ... */ },
+    },
+  }),
+});
+```
+
+**Token Extraction Priority:**
+1. HTTP `Authorization: Bearer <token>` header (highest priority)
+2. FastMCP AuthKitProvider OAuth context
+3. Claims dict fallback
+
+This allows your frontend to use the same AuthKit JWT for both Supabase and MCP server authentication.
+
+### 2. FastMCP OAuth (MCP Clients)
+
+MCP clients use the built-in AuthKitProvider for OAuth authentication:
+
+```python
+from fastmcp import Client
+
+async with Client("https://your-mcp-server.com/api/mcp", auth="oauth") as client:
+    result = await client.call_tool("entity_tool", {...})
+```
+
+### Configuration
+
+Set the following environment variables for AuthKit integration:
+
+```bash
+# AuthKit Configuration
+FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN=https://your-project.authkit.app
+FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL=https://your-mcp-server.com
+FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_REQUIRED_SCOPES=read,write
+
+# Supabase Configuration (for token validation)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+### Documentation
+
+- [Authentication Methods Comparison](docs/deployment/AUTHENTICATION_COMPARISON.md) - Choose the right auth approach
+- [Frontend Bearer Token Guide](docs/deployment/FRONTEND_BEARER_TOKEN.md) - Detailed guide for frontend integration
+- [AuthKit & FastMCP Integration](docs/deployment/AUTHKIT_FASTMCP.md) - OAuth setup and configuration
+- [FastMCP Token Verification](https://gofastmcp.com/servers/auth/token-verification) - Official FastMCP docs
+
 ## Security Notes
 
 - `atoms.secrets.yaml` should be added to `.gitignore`
 - All sensitive values use environment variables with `${VAR_NAME}` syntax
 - Default values are provided for non-sensitive settings
 - Configuration validation is performed by pydantic
+- Always use HTTPS in production to protect bearer tokens in transit
+- Bearer tokens are automatically validated against Supabase/AuthKit
+- Row Level Security (RLS) is enforced based on the authenticated user

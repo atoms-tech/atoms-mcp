@@ -5,7 +5,7 @@ Tests CRUD operations for all Atoms entities using decorator-based framework.
 Now compatible with pytest-xdist for parallel execution.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -92,13 +92,11 @@ async def test_read_entity_by_id(client_adapter, entity_type, response_key, enti
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="entity_tool", category="entity", priority=3)
 async def test_create_organization(client_adapter):
     """Test creating organization (known RLS issue)."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     result = await client_adapter.call_tool(
         "entity_tool",
@@ -126,10 +124,9 @@ async def test_create_organization(client_adapter):
 
     return {"success": result["success"], "error": result.get("error")}
 
+
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="entity_tool", category="entity", priority=5)
 async def test_search_organizations_fuzzy(client_adapter):
     """Test searching organizations (fuzzy_match not supported as operation)."""
@@ -146,9 +143,7 @@ async def test_search_organizations_fuzzy(client_adapter):
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.parallel
-
 @mcp_test(tool_name="entity_tool", category="entity", priority=5)
 async def test_update_organization(client_adapter):
     """Test updating organization."""

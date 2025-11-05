@@ -26,6 +26,7 @@ class TestPortAllocation:
         """Test that PortRegistry can be imported."""
         try:
             from pheno.infra.port_registry import PortRegistry
+
             registry = PortRegistry()
             assert registry is not None
             logger.info("✓ PortRegistry imported successfully")
@@ -37,6 +38,7 @@ class TestPortAllocation:
         try:
             from pheno.infra.port_allocator import SmartPortAllocator
             from pheno.infra.port_registry import PortRegistry
+
             registry = PortRegistry()
             allocator = SmartPortAllocator(registry)
             assert allocator is not None
@@ -49,6 +51,7 @@ class TestPortAllocation:
         """Test Atoms MCP port allocation."""
         try:
             from lib.atoms.server import AtomsServerManager
+
             manager = AtomsServerManager()
             assert manager.port is not None
             assert isinstance(manager.port, int)
@@ -65,6 +68,7 @@ class TestProcessCleanup:
         """Test that ProcessCleanupManager can be imported."""
         try:
             from pheno.infra.process_cleanup import ProcessCleanupManager
+
             manager = ProcessCleanupManager()
             assert manager is not None
             logger.info("✓ ProcessCleanupManager imported successfully")
@@ -75,6 +79,7 @@ class TestProcessCleanup:
         """Test that ProcessCleanupConfig can be imported."""
         try:
             from pheno.infra.process_cleanup import ProcessCleanupConfig
+
             config = ProcessCleanupConfig(
                 cleanup_related_services=True,
                 cleanup_tunnels=True,
@@ -90,6 +95,7 @@ class TestProcessCleanup:
         """Test cleanup_before_startup function."""
         try:
             from pheno.infra.process_cleanup import ProcessCleanupConfig, cleanup_before_startup
+
             config = ProcessCleanupConfig()
             # Just test that it can be called
             try:
@@ -109,6 +115,7 @@ class TestTunneling:
         """Test that TunnelConfig can be imported."""
         try:
             from pheno.infra.tunneling import TunnelConfig, TunnelProtocol, TunnelType
+
             config = TunnelConfig(
                 name="test-tunnel",
                 local_host="127.0.0.1",
@@ -126,6 +133,7 @@ class TestTunneling:
         """Test that TunnelRegistry can be imported."""
         try:
             from pheno.infra.tunneling import TunnelRegistry
+
             registry = TunnelRegistry()
             assert registry is not None
             logger.info("✓ TunnelRegistry imported successfully")
@@ -136,6 +144,7 @@ class TestTunneling:
         """Test that AsyncTunnelManager can be imported."""
         try:
             from pheno.infra.tunneling import AsyncTunnelManager, TunnelConfig
+
             config = TunnelConfig(
                 name="test",
                 local_host="127.0.0.1",
@@ -155,6 +164,7 @@ class TestKinfraIntegration:
         """Test that SmartInfraManager can be imported."""
         try:
             from kinfra import SmartInfraManager
+
             manager = SmartInfraManager("atoms-mcp-server")
             assert manager is not None
             assert manager.project_name == "atoms-mcp-server"
@@ -166,6 +176,7 @@ class TestKinfraIntegration:
         """Test that DeploymentManager can be imported."""
         try:
             from kinfra import get_deployment_manager
+
             manager = get_deployment_manager("atoms-mcp-server")
             assert manager is not None
             logger.info("✓ DeploymentManager imported successfully")
@@ -177,6 +188,7 @@ class TestKinfraIntegration:
         """Test infrastructure manager port allocation."""
         try:
             from kinfra import SmartInfraManager
+
             manager = SmartInfraManager("atoms-mcp-server")
             port = await manager.allocate_port()
             assert port is not None
@@ -194,6 +206,7 @@ class TestInfrastructureBootstrap:
         """Test that bootstrap can be imported."""
         try:
             from lib.atoms.infrastructure_bootstrap import AtomsInfrastructureBootstrap
+
             bootstrap = AtomsInfrastructureBootstrap()
             assert bootstrap is not None
             logger.info("✓ AtomsInfrastructureBootstrap imported successfully")
@@ -205,6 +218,7 @@ class TestInfrastructureBootstrap:
         """Test bootstrap initialization."""
         try:
             from lib.atoms.infrastructure_bootstrap import AtomsInfrastructureBootstrap
+
             bootstrap = AtomsInfrastructureBootstrap()
             await bootstrap.initialize()
             assert bootstrap._initialized
@@ -217,6 +231,7 @@ class TestInfrastructureBootstrap:
         """Test bootstrap health check."""
         try:
             from lib.atoms.infrastructure_bootstrap import AtomsInfrastructureBootstrap
+
             bootstrap = AtomsInfrastructureBootstrap()
             await bootstrap.initialize()
             health = await bootstrap.health_check()
@@ -231,6 +246,7 @@ class TestInfrastructureBootstrap:
         """Test bootstrap lifespan context manager."""
         try:
             from lib.atoms.infrastructure_bootstrap import AtomsInfrastructureBootstrap
+
             bootstrap = AtomsInfrastructureBootstrap()
             async with bootstrap.lifespan_context():
                 assert bootstrap._initialized
@@ -247,6 +263,7 @@ class TestAsyncUtils:
         """Test that async_utils can be imported."""
         try:
             from lib.atoms.async_utils import run_async_safely
+
             assert callable(run_async_safely)
             logger.info("✓ async_utils imported successfully")
         except ImportError:
@@ -283,6 +300,7 @@ class TestEndToEndInfrastructure:
         """Test full infrastructure startup and shutdown."""
         try:
             from lib.atoms.infrastructure_bootstrap import AtomsInfrastructureBootstrap
+
             bootstrap = AtomsInfrastructureBootstrap()
 
             # Test full lifecycle
@@ -304,6 +322,7 @@ class TestEndToEndInfrastructure:
         """Test infrastructure with tunnel context."""
         try:
             from lib.atoms.infrastructure_bootstrap import AtomsInfrastructureBootstrap
+
             bootstrap = AtomsInfrastructureBootstrap()
 
             async with bootstrap.lifespan_context(enable_tunnel=False):
@@ -321,6 +340,7 @@ class TestEndToEndInfrastructure:
         """Test Atoms server manager integration."""
         try:
             from lib.atoms.server import AtomsServerManager
+
             manager = AtomsServerManager()
             assert manager.port is not None
             logger.info(f"✓ Atoms server manager test passed (port: {manager.port})")

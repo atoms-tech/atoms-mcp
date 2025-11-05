@@ -1,6 +1,5 @@
 """Final comprehensive coverage test using established mock framework."""
 
-
 import pytest
 
 # Import our mock framework
@@ -20,6 +19,7 @@ class TestFinalCoverage:
         """Test tools can be imported."""
         try:
             import tools
+
             assert tools is not None
             assert hasattr(tools, "data_query")
             assert hasattr(tools, "entity_operation")
@@ -30,6 +30,7 @@ class TestFinalCoverage:
         """Test server can be imported."""
         try:
             import server
+
             assert server is not None
             assert hasattr(server, "auth")
             assert hasattr(server, "errors")
@@ -40,6 +41,7 @@ class TestFinalCoverage:
         """Test config can be imported."""
         try:
             import config
+
             assert config is not None
         except ImportError:
             pytest.skip("Config not available")
@@ -119,6 +121,7 @@ class TestFinalCoverage:
     def test_performance_scenarios(self):
         """Test performance scenarios."""
         import time
+
         start_time = time.time()
 
         with mock_external_services() as services:
@@ -141,6 +144,7 @@ class TestFinalCoverage:
         """Test we can generate coverage report."""
         try:
             import coverage
+
             # Verify coverage module is available
             assert coverage is not None
         except ImportError:
@@ -191,18 +195,12 @@ class TestFinalCoverage:
             # Create documents and requirements
             docs = []
             for i in range(3):
-                doc = factory.create_document(
-                    title=f"Document {i}",
-                    project_id=project["id"]
-                )
+                doc = factory.create_document(title=f"Document {i}", project_id=project["id"])
                 docs.append(doc)
 
                 # Add requirements to each document
                 for j in range(2):
-                    req = factory.create_requirement(
-                        title=f"Requirement {i}-{j}",
-                        document_id=doc["id"]
-                    )
+                    req = factory.create_requirement(title=f"Requirement {i}-{j}", document_id=doc["id"])
                     assert req is not None
 
             # Verify complete scenario

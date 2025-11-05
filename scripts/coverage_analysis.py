@@ -7,9 +7,10 @@ Identifies modules that need test coverage for 100% coverage goal.
 
 import ast
 from pathlib import Path
+from typing import Any
 
 
-def find_python_modules(root_dir: Path) -> dict[str, list[str]]:
+def find_python_modules(root_dir: Path) -> dict[str, dict[str, Any]]:
     """Find all Python modules and their functions/classes."""
     modules = {}
 
@@ -21,7 +22,7 @@ def find_python_modules(root_dir: Path) -> dict[str, list[str]]:
         module_name = str(relative_path.with_suffix("")).replace("/", ".")
 
         try:
-            with open(py_file, encoding="utf-8") as f:
+            with py_file.open(encoding="utf-8") as f:
                 tree = ast.parse(f.read())
 
             functions = []
@@ -50,7 +51,7 @@ def find_existing_tests(tests_dir: Path) -> dict[str, set[str]]:
 
     for test_file in tests_dir.rglob("test_*.py"):
         try:
-            with open(test_file, encoding="utf-8") as f:
+            with test_file.open(encoding="utf-8") as f:
                 content = f.read()
 
             # Extract module being tested from imports and calls
@@ -58,11 +59,11 @@ def find_existing_tests(tests_dir: Path) -> dict[str, set[str]]:
             tested_items = set()
 
             for line in lines:
-                line = line.strip()
-                if "import " in line and ("lib" in line or "tools" in line or "server" in line):
-                    tested_items.add(line)
-                elif "def test_" in line:
-                    test_name = line.split("def test_")[1].split("(")[0].strip()
+                line_stripped = line.strip()
+                if "import " in line_stripped and ("lib" in line_stripped or "tools" in line_stripped or "server" in line_stripped):
+                    tested_items.add(line_stripped)
+                elif "def test_" in line_stripped:
+                    test_name = line_stripped.split("def test_")[1].split("(")[0].strip()
                     tested_items.add(f"test_{test_name}")
 
             test_coverage[test_file.name] = tested_items
@@ -71,7 +72,7 @@ def find_existing_tests(tests_dir: Path) -> dict[str, set[str]]:
 
     return test_coverage
 
-def analyze_coverage()
+def analyze_coverage():
     """Analyze current coverage and identify gaps."""
     project_root = Path()
 

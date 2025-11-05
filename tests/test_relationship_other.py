@@ -35,16 +35,18 @@ class TestOtherRelationships:
             source_type="requirement",
             source_id="req_123",
             target_type="requirement",
-            target_id="req_456"
+            target_id="req_456",
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "dependency",
-            "source_id": "req_123",
-            "target_id": "req_456",
-            "metadata": {}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "dependency",
+                "source_id": "req_123",
+                "target_id": "req_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -62,16 +64,18 @@ class TestOtherRelationships:
             source_id="req_123",
             target_type="requirement",
             target_id="req_456",
-            metadata={"dependency_type": "blocking", "priority": "high"}
+            metadata={"dependency_type": "blocking", "priority": "high"},
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "dependency",
-            "source_id": "req_123",
-            "target_id": "req_456",
-            "metadata": {"dependency_type": "blocking", "priority": "high"}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "dependency",
+                "source_id": "req_123",
+                "target_id": "req_456",
+                "metadata": {"dependency_type": "blocking", "priority": "high"},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -87,16 +91,18 @@ class TestOtherRelationships:
             source_type="project",
             source_id="project_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "hierarchy",
-            "source_id": "project_123",
-            "target_id": "project_456",
-            "metadata": {}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "hierarchy",
+                "source_id": "project_123",
+                "target_id": "project_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -114,16 +120,18 @@ class TestOtherRelationships:
             source_id="project_123",
             target_type="project",
             target_id="project_456",
-            metadata={"level": 1, "parent_child": "parent"}
+            metadata={"level": 1, "parent_child": "parent"},
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "hierarchy",
-            "source_id": "project_123",
-            "target_id": "project_456",
-            "metadata": {"level": 1, "parent_child": "parent"}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "hierarchy",
+                "source_id": "project_123",
+                "target_id": "project_456",
+                "metadata": {"level": 1, "parent_child": "parent"},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -139,16 +147,18 @@ class TestOtherRelationships:
             source_type="document",
             source_id="doc_123",
             target_type="test",
-            target_id="test_456"
+            target_id="test_456",
         )
 
-        relationship_service.client.create_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "custom_relationship",
-            "source_id": "doc_123",
-            "target_id": "test_456",
-            "metadata": {}
-        })
+        relationship_service.client.create_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "custom_relationship",
+                "source_id": "doc_123",
+                "target_id": "test_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -160,24 +170,23 @@ class TestOtherRelationships:
     async def test_dependency_list_basic(self, relationship_service):
         """Test listing dependency relationships."""
         request = RelationshipRequest(
-            action="list",
-            relationship_type=RelationshipType.DEPENDENCY,
-            source_type="requirement",
-            source_id="req_123"
+            action="list", relationship_type=RelationshipType.DEPENDENCY, source_type="requirement", source_id="req_123"
         )
 
-        relationship_service.client.list_relationships = AsyncMock(return_value={
-            "relationships": [
-                {
-                    "id": "rel_789",
-                    "relationship_type": "dependency",
-                    "source_id": "req_123",
-                    "target_id": "req_456",
-                    "metadata": {"dependency_type": "blocking"}
-                }
-            ],
-            "total": 1
-        })
+        relationship_service.client.list_relationships = AsyncMock(
+            return_value={
+                "relationships": [
+                    {
+                        "id": "rel_789",
+                        "relationship_type": "dependency",
+                        "source_id": "req_123",
+                        "target_id": "req_456",
+                        "metadata": {"dependency_type": "blocking"},
+                    }
+                ],
+                "total": 1,
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -189,24 +198,23 @@ class TestOtherRelationships:
     async def test_hierarchy_list_basic(self, relationship_service):
         """Test listing hierarchy relationships."""
         request = RelationshipRequest(
-            action="list",
-            relationship_type=RelationshipType.HIERARCHY,
-            source_type="project",
-            source_id="project_123"
+            action="list", relationship_type=RelationshipType.HIERARCHY, source_type="project", source_id="project_123"
         )
 
-        relationship_service.client.list_relationships = AsyncMock(return_value={
-            "relationships": [
-                {
-                    "id": "rel_789",
-                    "relationship_type": "hierarchy",
-                    "source_id": "project_123",
-                    "target_id": "project_456",
-                    "metadata": {"level": 1}
-                }
-            ],
-            "total": 1
-        })
+        relationship_service.client.list_relationships = AsyncMock(
+            return_value={
+                "relationships": [
+                    {
+                        "id": "rel_789",
+                        "relationship_type": "hierarchy",
+                        "source_id": "project_123",
+                        "target_id": "project_456",
+                        "metadata": {"level": 1},
+                    }
+                ],
+                "total": 1,
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -223,16 +231,18 @@ class TestOtherRelationships:
             source_type="requirement",
             source_id="req_123",
             target_type="requirement",
-            target_id="req_456"
+            target_id="req_456",
         )
 
-        relationship_service.client.get_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "dependency",
-            "source_id": "req_123",
-            "target_id": "req_456",
-            "metadata": {}
-        })
+        relationship_service.client.get_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "dependency",
+                "source_id": "req_123",
+                "target_id": "req_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -248,16 +258,18 @@ class TestOtherRelationships:
             source_type="project",
             source_id="project_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.get_relationship = AsyncMock(return_value={
-            "id": "rel_789",
-            "relationship_type": "hierarchy",
-            "source_id": "project_123",
-            "target_id": "project_456",
-            "metadata": {}
-        })
+        relationship_service.client.get_relationship = AsyncMock(
+            return_value={
+                "id": "rel_789",
+                "relationship_type": "hierarchy",
+                "source_id": "project_123",
+                "target_id": "project_456",
+                "metadata": {},
+            }
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -273,13 +285,12 @@ class TestOtherRelationships:
             source_type="requirement",
             source_id="req_123",
             target_type="requirement",
-            target_id="req_456"
+            target_id="req_456",
         )
 
-        relationship_service.client.delete_relationship = AsyncMock(return_value={
-            "success": True,
-            "message": "Relationship removed"
-        })
+        relationship_service.client.delete_relationship = AsyncMock(
+            return_value={"success": True, "message": "Relationship removed"}
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -295,13 +306,12 @@ class TestOtherRelationships:
             source_type="project",
             source_id="project_123",
             target_type="project",
-            target_id="project_456"
+            target_id="project_456",
         )
 
-        relationship_service.client.delete_relationship = AsyncMock(return_value={
-            "success": True,
-            "message": "Relationship removed"
-        })
+        relationship_service.client.delete_relationship = AsyncMock(
+            return_value={"success": True, "message": "Relationship removed"}
+        )
 
         result = await relationship_service.process_relationship(request)
 
@@ -317,7 +327,7 @@ class TestOtherRelationships:
             source_type="user",
             source_id="user_123",
             target_type="organization",
-            target_id="org_456"
+            target_id="org_456",
         )
 
         result = await relationship_service.process_relationship(request)
@@ -332,7 +342,7 @@ class TestOtherRelationships:
             action="link",
             relationship_type=RelationshipType.MEMBER,
             source_type="user",
-            source_id="user_123"
+            source_id="user_123",
             # Missing target_type and target_id
         )
 

@@ -1,6 +1,5 @@
 """Phase 2: Continue to 40% coverage target (+285 statements)."""
 
-
 import pytest
 
 
@@ -14,8 +13,6 @@ class TestPhase2_40PercentTarget:
             from config.python.session import (
                 JWTConfig,
                 SessionConfig,
-                SessionManager,
-                TokenManager,
                 audit_session_compliance,
                 configure_session_encryption,
                 create_session_template,
@@ -32,7 +29,7 @@ class TestPhase2_40PercentTarget:
                 refresh_hours=168,
                 issuer="phase2-compliance-test",
                 audience="phase2-compliance-users",
-                compliance_level="enterprise"
+                compliance_level="enterprise",
             )
 
             session_config = SessionConfig(
@@ -46,14 +43,12 @@ class TestPhase2_40PercentTarget:
                 extend_session_on_activity=True,
                 cleanup_interval=3600,
                 audit_enabled=True,
-                compliance_enforced=True
+                compliance_enforced=True,
             )
 
             # Test session compliance validation
             compliance_result = validate_session_compliance(
-                config=session_config,
-                compliance_standards=["SOX", "GDPR", "HIPAA"],
-                strict_validation=True
+                config=session_config, compliance_standards=["SOX", "GDPR", "HIPAA"], strict_validation=True
             )
             assert compliance_result is not None
             assert compliance_result.get("compliant") is True
@@ -67,8 +62,8 @@ class TestPhase2_40PercentTarget:
                     "max_concurrent_sessions": 3,
                     "session_inactivity_timeout": 1800,
                     "require_mfa": True,
-                    "ip_restriction": True
-                }
+                    "ip_restriction": True,
+                },
             )
             assert policy_result is not None
             assert policy_result.get("enforced") is True
@@ -80,7 +75,7 @@ class TestPhase2_40PercentTarget:
                 template_name="phase2-standard",
                 config=session_config,
                 template_preset="enterprise_secure",
-                customizable_fields=["user_role", "access_level", "permissions"]
+                customizable_fields=["user_role", "access_level", "permissions"],
             )
             assert template_result is not None
             assert template_result.get("created") is True
@@ -92,7 +87,7 @@ class TestPhase2_40PercentTarget:
                 config=session_config,
                 audit_scope="full_compliance",
                 include_sensitivity_level=True,
-                generate_report=True
+                generate_report=True,
             )
             assert audit_compliance_result is not None
             assert audit_compliance_result.get("audited") is True
@@ -104,7 +99,7 @@ class TestPhase2_40PercentTarget:
                 config=session_config,
                 optimization_level="aggressive",
                 compression_enabled=True,
-                index_optimization=True
+                index_optimization=True,
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -116,7 +111,7 @@ class TestPhase2_40PercentTarget:
                 config=session_config,
                 encryption_algorithm="AES-256-GCM",
                 key_rotation_enabled=True,
-                key_rotation_interval=86400
+                key_rotation_interval=86400,
             )
             assert encryption_result is not None
             assert encryption_result.get("configured") is True
@@ -154,8 +149,8 @@ class TestPhase2_40PercentTarget:
                 connect_args={
                     "sslmode": "require",
                     "sslcert": "/path/to/phase2-cert.pem",
-                    "sslkey": "/path/to/phase2-key.pem"
-                }
+                    "sslkey": "/path/to/phase2-key.pem",
+                },
             )
 
             redis_config = RedisConfig(
@@ -167,7 +162,7 @@ class TestPhase2_40PercentTarget:
                 socket_keepalive=True,
                 health_check_interval=30,
                 encoding="utf-8",
-                decode_responses=True
+                decode_responses=True,
             )
 
             infra_config = InfrastructureConfig(
@@ -178,14 +173,12 @@ class TestPhase2_40PercentTarget:
                 backup_enabled=True,
                 performance_optimization=True,
                 health_check_interval=30,
-                compliance_level="enterprise"
+                compliance_level="enterprise",
             )
 
             # Test infrastructure compliance validation
             compliance_result = validate_infrastructure_compliance(
-                config=infra_config,
-                compliance_standards=["SOC2", "ISO27001", "PCI-DSS"],
-                detailed_validation=True
+                config=infra_config, compliance_standards=["SOC2", "ISO27001", "PCI-DSS"], detailed_validation=True
             )
             assert compliance_result is not None
             assert compliance_result.get("compliant") is True
@@ -194,9 +187,7 @@ class TestPhase2_40PercentTarget:
 
             # Test infrastructure performance optimization
             optimize_result = optimize_infrastructure_performance(
-                config=infra_config,
-                optimization_targets=["throughput", "latency", "cost"],
-                benchmark_baseline=True
+                config=infra_config, optimization_targets=["throughput", "latency", "cost"], benchmark_baseline=True
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -208,7 +199,7 @@ class TestPhase2_40PercentTarget:
                 config=infra_config,
                 monitoring_level="comprehensive",
                 include_distributed_tracing=True,
-                log_analysis=True
+                log_analysis=True,
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -220,7 +211,7 @@ class TestPhase2_40PercentTarget:
                 config=infra_config,
                 alert_channels=["email", "slack", "pagerduty"],
                 alert_severities=["critical", "warning", "info"],
-                escalation_policies=True
+                escalation_policies=True,
             )
             assert alerts_result is not None
             assert alerts_result.get("configured") is True
@@ -231,11 +222,7 @@ class TestPhase2_40PercentTarget:
             scaling_result = implement_infrastructure_scaling(
                 config=infra_config,
                 scaling_policy="auto_scale",
-                scale_thresholds={
-                    "cpu_threshold": 80,
-                    "memory_threshold": 85,
-                    "request_rate_threshold": 1000
-                }
+                scale_thresholds={"cpu_threshold": 80, "memory_threshold": 85, "request_rate_threshold": 1000},
             )
             assert scaling_result is not None
             assert scaling_result.get("implemented") is True
@@ -246,12 +233,8 @@ class TestPhase2_40PercentTarget:
             backup_result = configure_infrastructure_backup(
                 config=infra_config,
                 backup_strategy="multi_region",
-                retention_policies={
-                    "daily_retention": 30,
-                    "weekly_retention": 12,
-                    "monthly_retention": 12
-                },
-                encryption_enabled=True
+                retention_policies={"daily_retention": 30, "weekly_retention": 12, "monthly_retention": 12},
+                encryption_enabled=True,
             )
             assert backup_result is not None
             assert backup_result.get("configured") is True
@@ -289,7 +272,7 @@ class TestPhase2_40PercentTarget:
                 retry_delay=1.0,
                 batch_size=100,
                 rate_limit=60,
-                compliance_level="enterprise"
+                compliance_level="enterprise",
             )
 
             vectordb_config = VectorDBConfig(
@@ -305,7 +288,7 @@ class TestPhase2_40PercentTarget:
                 search_timeout=5000,
                 batch_insert_size=1000,
                 auto_index=True,
-                compliance_level="enterprise"
+                compliance_level="enterprise",
             )
 
             vector_config = VectorConfig(
@@ -317,14 +300,14 @@ class TestPhase2_40PercentTarget:
                 parallel_processing=True,
                 max_workers=4,
                 compression=True,
-                encryption=True
+                encryption=True,
             )
 
             # Test vector compliance validation
             compliance_result = validate_vector_compliance(
                 config=vector_config,
                 compliance_standards=["GDPR", "CCPA", "DataProtection"],
-                data_classification_level="sensitive"
+                data_classification_level="sensitive",
             )
             assert compliance_result is not None
             assert compliance_result.get("compliant") is True
@@ -335,7 +318,7 @@ class TestPhase2_40PercentTarget:
             optimize_result = optimize_vector_performance(
                 config=vector_config,
                 optimization_focus=["search_speed", "memory_efficiency", "cost"],
-                benchmark_improvements=True
+                benchmark_improvements=True,
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -347,7 +330,7 @@ class TestPhase2_40PercentTarget:
                 config=vector_config,
                 monitoring_scope="comprehensive",
                 include_search_metrics=True,
-                include_embedding_metrics=True
+                include_embedding_metrics=True,
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -361,8 +344,8 @@ class TestPhase2_40PercentTarget:
                 scale_triggers={
                     "search_volume_threshold": 10000,
                     "index_size_threshold": 1000000,
-                    "response_time_threshold": 1000
-                }
+                    "response_time_threshold": 1000,
+                },
             )
             assert scaling_result is not None
             assert scaling_result.get("implemented") is True
@@ -373,12 +356,8 @@ class TestPhase2_40PercentTarget:
             backup_result = setup_vector_backup(
                 config=vector_config,
                 backup_strategy="incremental_continuous",
-                backup_retention={
-                    "hourly": 24,
-                    "daily": 30,
-                    "weekly": 12
-                },
-                cross_region_backup=True
+                backup_retention={"hourly": 24, "daily": 30, "weekly": 12},
+                cross_region_backup=True,
             )
             assert backup_result is not None
             assert backup_result.get("configured") is True
@@ -391,7 +370,7 @@ class TestPhase2_40PercentTarget:
                 security_level="enterprise",
                 encryption_at_rest=True,
                 encryption_in_transit=True,
-                access_control="rbac"
+                access_control="rbac",
             )
             assert security_result is not None
             assert security_result.get("enhanced") is True
@@ -405,10 +384,7 @@ class TestPhase2_40PercentTarget:
         """Complete server/auth.py from 70% to 80%+ (+7 statements)."""
         try:
             from server.auth import (
-                AuthService,
                 BearerToken,
-                RateLimiter,
-                TokenService,
                 configure_auth_monitoring,
                 enforce_auth_policies,
                 enhance_auth_security,
@@ -426,14 +402,14 @@ class TestPhase2_40PercentTarget:
                 expires_at="2024-12-31T23:59:59Z",
                 token_type="access",
                 session_id="phase2-session-12345",
-                metadata={"role": "phase2_admin", "department": "testing", "compliance_level": "enterprise"}
+                metadata={"role": "phase2_admin", "department": "testing", "compliance_level": "enterprise"},
             )
 
             # Test authentication compliance validation
             compliance_result = validate_auth_compliance(
                 auth_system="enterprise_auth",
                 compliance_standards=["OAuth2.1", "OpenID Connect", "FIDO2"],
-                security_level="high"
+                security_level="high",
             )
             assert compliance_result is not None
             assert compliance_result.get("compliant") is True
@@ -446,7 +422,7 @@ class TestPhase2_40PercentTarget:
                     "password_complexity": True,
                     "mfa_required": True,
                     "session_timeout": 3600,
-                    "max_failed_attempts": 3
+                    "max_failed_attempts": 3,
                 }
             )
             assert policy_result is not None
@@ -456,9 +432,7 @@ class TestPhase2_40PercentTarget:
 
             # Test authentication monitoring configuration
             monitoring_result = configure_auth_monitoring(
-                monitoring_level="comprehensive",
-                include_behavioral_analysis=True,
-                include_anomaly_detection=True
+                monitoring_level="comprehensive", include_behavioral_analysis=True, include_anomaly_detection=True
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -469,7 +443,7 @@ class TestPhase2_40PercentTarget:
             alerts_result = setup_auth_alerts(
                 alert_channels=["security_team", "compliance_officer"],
                 alert_types=["suspicious_activity", "compliance_violation", "security_breach"],
-                severity_levels=["critical", "high", "medium"]
+                severity_levels=["critical", "high", "medium"],
             )
             assert alerts_result is not None
             assert alerts_result.get("configured") is True
@@ -479,11 +453,7 @@ class TestPhase2_40PercentTarget:
             # Test authentication scaling implementation
             scaling_result = implement_auth_scaling(
                 scaling_strategy="auto_scale",
-                performance_targets={
-                    "max_response_time": 500,
-                    "max_concurrent_auth": 10000,
-                    "max_failure_rate": 0.01
-                }
+                performance_targets={"max_response_time": 500, "max_concurrent_auth": 10000, "max_failure_rate": 0.01},
             )
             assert scaling_result is not None
             assert scaling_result.get("implemented") is True
@@ -495,7 +465,7 @@ class TestPhase2_40PercentTarget:
                 security_level="enterprise",
                 zero_trust_enabled=True,
                 behavioral_biometrics=True,
-                adaptive_authentication=True
+                adaptive_authentication=True,
             )
             assert security_result is not None
             assert security_result.get("enhanced") is True
@@ -510,8 +480,6 @@ class TestPhase2_40PercentTarget:
         try:
             from server.errors import (
                 ApiError,
-                AuthenticationError,
-                ValidationError,
                 configure_error_monitoring,
                 optimize_error_handling,
                 setup_error_alerts,
@@ -527,15 +495,15 @@ class TestPhase2_40PercentTarget:
                     "component": "phase2-compliance-module",
                     "error_stage": "compliance_validation",
                     "request_id": "phase2-compliance-req-12345",
-                    "compliance_level": "enterprise"
-                }
+                    "compliance_level": "enterprise",
+                },
             )
 
             # Test error compliance validation
             compliance_result = validate_error_compliance(
                 error_handling_system="enterprise_error_system",
                 compliance_standards=["ISO27001", "SOX", "GDPR"],
-                error_classification="critical"
+                error_classification="critical",
             )
             assert compliance_result is not None
             assert compliance_result.get("compliant") is True
@@ -544,8 +512,7 @@ class TestPhase2_40PercentTarget:
 
             # Test error handling optimization
             optimize_result = optimize_error_handling(
-                optimization_targets=["response_time", "error_recovery", "user_experience"],
-                benchmark_improvements=True
+                optimization_targets=["response_time", "error_recovery", "user_experience"], benchmark_improvements=True
             )
             assert optimize_result is not None
             assert optimize_result.get("optimized") is True
@@ -554,9 +521,7 @@ class TestPhase2_40PercentTarget:
 
             # Test error monitoring configuration
             monitoring_result = configure_error_monitoring(
-                monitoring_level="comprehensive",
-                include_error_patterns=True,
-                include_error_correlation=True
+                monitoring_level="comprehensive", include_error_patterns=True, include_error_correlation=True
             )
             assert monitoring_result is not None
             assert monitoring_result.get("configured") is True
@@ -567,7 +532,7 @@ class TestPhase2_40PercentTarget:
             alerts_result = setup_error_alerts(
                 alert_channels=["devops_team", "sre_team", "compliance_officer"],
                 alert_severities=["critical", "high"],
-                alert_types=["system_error", "compliance_violation", "security_incident"]
+                alert_types=["system_error", "compliance_violation", "security_incident"],
             )
             assert alerts_result is not None
             assert alerts_result.get("configured") is True
@@ -584,17 +549,14 @@ class TestPhase2_40PercentTarget:
 
             from config.python.session import JWTConfig, SessionConfig
             from server.auth import BearerToken, validate_auth_compliance
-            from server.errors import ApiError, validate_error_compliance
+            from server.errors import validate_error_compliance
 
             # Phase 2 compliance testing
             start_time = time.time()
 
             # Create compliance configurations
             jwt_config = JWTConfig(
-                secret="phase2-compliance-secret",
-                algorithm="HS256",
-                expire_hours=1,
-                compliance_level="enterprise"
+                secret="phase2-compliance-secret", algorithm="HS256", expire_hours=1, compliance_level="enterprise"
             )
 
             session_config = SessionConfig(
@@ -602,7 +564,7 @@ class TestPhase2_40PercentTarget:
                 cookie_domain="phase2-compliance.test",
                 secure=True,
                 compliance_enforced=True,
-                audit_enabled=True
+                audit_enabled=True,
             )
 
             # Create compliance tokens
@@ -612,7 +574,7 @@ class TestPhase2_40PercentTarget:
                     token=f"phase2-compliance-token-{i}",
                     user_id=f"phase2-compliance-user-{i}",
                     permissions=["read", "write"],
-                    metadata={"compliance_level": "enterprise"}
+                    metadata={"compliance_level": "enterprise"},
                 )
                 compliance_tokens.append(token)
 
@@ -624,7 +586,7 @@ class TestPhase2_40PercentTarget:
             auth_compliance_result = validate_auth_compliance(
                 auth_system="enterprise_auth",
                 compliance_standards=["OAuth2.1", "OpenID Connect"],
-                security_level="high"
+                security_level="high",
             )
             assert auth_compliance_result is not None
             assert auth_compliance_result.get("compliant") is True
@@ -633,7 +595,7 @@ class TestPhase2_40PercentTarget:
             error_compliance_result = validate_error_compliance(
                 error_handling_system="enterprise_error_system",
                 compliance_standards=["ISO27001", "SOX"],
-                error_classification="critical"
+                error_classification="critical",
             )
             assert error_compliance_result is not None
             assert error_compliance_result.get("compliant") is True

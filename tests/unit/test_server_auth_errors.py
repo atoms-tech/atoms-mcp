@@ -1,6 +1,5 @@
 """Server authentication and error testing using established mock framework."""
 
-
 import pytest
 
 # Import our mock framework
@@ -20,24 +19,20 @@ class TestServerAuthComplete:
         with mock_external_services() as services:
             auth_system = MockAuthSystem()
 
-            return {
-                "services": services,
-                "auth_system": auth_system
-            }
+            return {"services": services, "auth_system": auth_system}
 
     def test_server_auth_imports(self):
         """Test server auth module imports."""
         try:
             import server.auth
+
             assert server.auth is not None
         except ImportError:
             pytest.skip("server.auth not available")
 
-    def test_bearer_token_functionality(self, mock_auth_environment):
+    def test_bearer_token_functionality(self, _mock_auth_environment):
         """Test bearer token functionality."""
         try:
-            from datetime import datetime, timezone
-
             from server.auth import BearerToken
 
             # Test with correct signature
@@ -51,6 +46,7 @@ class TestServerAuthComplete:
             # Test with minimal parameters that actually work
             try:
                 from server.auth import BearerToken
+
                 token = BearerToken("test-token")
                 assert token is not None
             except ImportError:
@@ -58,7 +54,7 @@ class TestServerAuthComplete:
             except Exception:
                 pytest.skip(f"BearerToken signature incompatible: {e}")
 
-    def test_extract_bearer_token_function(self, mock_auth_environment):
+    def test_extract_bearer_token_function(self, _mock_auth_environment):
         """Test bearer token extraction."""
         try:
             from server.auth import extract_bearer_token
@@ -93,7 +89,7 @@ class TestServerAuthComplete:
             # Function may have different behavior
             pytest.skip(f"extract_bearer_token behavior different: {e}")
 
-    def test_rate_limiting_functionality(self, mock_auth_environment):
+    def test_rate_limiting_functionality(self, _mock_auth_environment):
         """Test rate limiting functionality."""
         try:
             from server.auth import RateLimiter
@@ -116,7 +112,7 @@ class TestServerAuthComplete:
             else:
                 raise
 
-    def test_authentication_workflow(self, mock_auth_environment):
+    def test_authentication_workflow(self, _mock_auth_environment):
         """Test complete authentication workflow."""
         auth_system = mock_auth_environment["auth_system"]
 
@@ -155,11 +151,12 @@ class TestServerErrorsComplete:
         """Test server errors module imports."""
         try:
             import server.errors
+
             assert server.errors is not None
         except ImportError:
             pytest.skip("server.errors not available")
 
-    def test_api_error_creation(self, mock_error_environment):
+    def test_api_error_creation(self, _mock_error_environment):
         """Test API error creation."""
         try:
             from server.errors import ApiError
@@ -174,7 +171,7 @@ class TestServerErrorsComplete:
                 message="Validation failed",
                 status_code=400,
                 error_code="VALIDATION_ERROR",
-                details={"field": "name", "issue": "required"}
+                details={"field": "name", "issue": "required"},
             )
 
             assert error.message == "Validation failed"
@@ -185,7 +182,7 @@ class TestServerErrorsComplete:
         except ImportError:
             pytest.skip("ApiError not available")
 
-    def test_error_helper_functions(self, mock_error_environment):
+    def test_error_helper_functions(self, _mock_error_environment):
         """Test error helper functions."""
         try:
             from server.errors import (
@@ -221,17 +218,12 @@ class TestServerErrorsComplete:
             # Helper functions may have different signatures
             pytest.skip("Error helper functions have different signatures")
 
-    def test_error_serialization(self, mock_error_environment):
+    def test_error_serialization(self, _mock_error_environment):
         """Test error serialization."""
         try:
             from server.errors import ApiError
 
-            error = ApiError(
-                message="Test error",
-                status_code=400,
-                error_code="TEST_ERROR",
-                details={"field": "test"}
-            )
+            error = ApiError(message="Test error", status_code=400, error_code="TEST_ERROR", details={"field": "test"})
 
             # Test string representation
             error_str = str(error)
@@ -246,7 +238,7 @@ class TestServerErrorsComplete:
         except ImportError:
             pytest.skip("Error serialization not available")
 
-    def test_error_inheritance_hierarchy(self, mock_error_environment):
+    def test_error_inheritance_hierarchy(self, _mock_error_environment):
         """Test error inheritance hierarchy."""
         try:
             from server.errors import ApiError

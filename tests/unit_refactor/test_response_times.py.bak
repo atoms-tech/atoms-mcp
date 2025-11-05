@@ -1,0 +1,730 @@
+"""
+Response time SLA compliance tests for Atoms MCP.
+
+This module validates that all operations complete within acceptable time limits:
+- Command handlers: < 100ms
+- Query handlers: < 200ms (with pagination)
+- Cache operations: < 10ms
+- Relationship operations: < 150ms
+- Service initialization: < 500ms
+
+Includes SLA compliance tracking, timeout handling, and degradation patterns.
+"""
+
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
+from unittest.mock import Mock
+
+import pytest
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from atoms_mcp.application.commands.entity_commands import (
+    CreateEntityCommand,
+    DeleteEntityCommand,
+    EntityCommandHandler,
+    UpdateEntityCommand,
+)
+from atoms_mcp.application.queries.entity_queries import (
+    EntityQueryHandler,
+    GetEntityQuery,
+    ListEntitiesQuery,
+    SearchEntitiesQuery,
+)
+from atoms_mcp.domain.models.entity import EntityStatus, WorkspaceEntity
+from atoms_mcp.domain.models.relationship import Relationship, RelationType
+from atoms_mcp.domain.services.entity_service import EntityService
+from atoms_mcp.domain.services.relationship_service import RelationshipService
+
+
+# =============================================================================
+# SLA CONSTANTS
+# =============================================================================
+
+
+class SLALimits:
+    """Response time SLA limits in milliseconds."""
+
+    COMMAND_HANDLER_MAX = 100  # Command handlers must complete within 100ms
+    QUERY_HANDLER_MAX = 200  # Query handlers within 200ms
+    CACHE_OPERATION_MAX = 10  # Cache operations within 10ms
+    RELATIONSHIP_OPERATION_MAX = 150  # Relationship operations within 150ms
+    SERVICE_INIT_MAX = 500  # Service initialization within 500ms
+
+
+# =============================================================================
+# TIMING UTILITIES
+# =============================================================================
+
+
+def measure_execution_time(func, *args, **kwargs) -> tuple[Any, float]:
+    """
+    Measure execution time of a function.
+
+    Args:
+        func: Function to execute
+        *args: Function positional arguments
+        **kwargs: Function keyword arguments
+
+    Returns:
+        Tuple of (result, duration_ms)
+    """
+    start = time.perf_counter()
+    result = func(*args, **kwargs)
+    end = time.perf_counter()
+    duration_ms = (end - start) * 1000
+    return result, duration_ms
+
+
+def assert_sla_compliance(
+    duration_ms: float, max_ms: float, operation: str
+) -> None:
+    """
+    Assert operation met SLA.
+
+    Args:
+        duration_ms: Actual duration in milliseconds
+        max_ms: Maximum allowed milliseconds
+        operation: Operation name for error message
+
+    Raises:
+        AssertionError: If SLA not met
+    """
+    assert duration_ms <= max_ms, (
+        f"SLA VIOLATION: {operation} took {duration_ms:.2f}ms, "
+        f"SLA requires <= {max_ms}ms (exceeded by {duration_ms - max_ms:.2f}ms)"
+    )
+
+
+# =============================================================================
+# COMMAND HANDLER RESPONSE TIME TESTS
+# =============================================================================
+
+
+@pytest.mark.performance
+class TestCommandHandlerResponseTimes:
+    """Test command handlers meet SLA requirements."""
+
+    def test_create_entity_command_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test CreateEntityCommand completes within SLA.
+
+        Given: A command handler
+        When: Executing create entity command
+        Then: Operation completes within 100ms
+        """
+        handler = EntityCommandHandler(mock_repository, mock_logger)
+        command = CreateEntityCommand(
+            entity_type="workspace", name="Test Workspace", description="Test"
+        )
+
+        result, duration = measure_execution_time(handler.handle_create, command)
+
+        assert result.success is True
+        assert_sla_compliance(
+            duration, SLALimits.COMMAND_HANDLER_MAX, "CreateEntityCommand"
+        )
+
+    def test_update_entity_command_response_time(
+        self, mock_repository, mock_logger, sample_workspace
+    ):
+        """
+        Test UpdateEntityCommand completes within SLA.
+
+        Given: An existing entity
+        When: Executing update entity command
+        Then: Operation completes within 100ms
+        """
+        mock_repository.add_entity(sample_workspace)
+        handler = EntityCommandHandler(mock_repository, mock_logger)
+        command = UpdateEntityCommand(
+            entity_id=sample_workspace.id, updates={"name": "Updated Name"}
+        )
+
+        result, duration = measure_execution_time(handler.handle_update, command)
+
+        assert result.success is True
+        assert_sla_compliance(
+            duration, SLALimits.COMMAND_HANDLER_MAX, "UpdateEntityCommand"
+        )
+
+    def test_delete_entity_command_response_time(
+        self, mock_repository, mock_logger, sample_workspace
+    ):
+        """
+        Test DeleteEntityCommand completes within SLA.
+
+        Given: An existing entity
+        When: Executing delete entity command
+        Then: Operation completes within 100ms
+        """
+        mock_repository.add_entity(sample_workspace)
+        handler = EntityCommandHandler(mock_repository, mock_logger)
+        command = DeleteEntityCommand(entity_id=sample_workspace.id, soft_delete=True)
+
+        result, duration = measure_execution_time(handler.handle_delete, command)
+
+        assert result.success is True
+        assert_sla_compliance(
+            duration, SLALimits.COMMAND_HANDLER_MAX, "DeleteEntityCommand"
+        )
+
+    def test_command_handler_with_validation_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test command with validation meets SLA.
+
+        Given: A command handler
+        When: Executing command with validation
+        Then: Validation overhead keeps total time within 100ms
+        """
+        handler = EntityCommandHandler(mock_repository, mock_logger)
+        command = CreateEntityCommand(entity_type="workspace", name="Test")
+        command.validate()
+
+        result, duration = measure_execution_time(handler.handle_create, command)
+
+        assert result.success is True
+        assert_sla_compliance(
+            duration, SLALimits.COMMAND_HANDLER_MAX, "Command with validation"
+        )
+
+
+# =============================================================================
+# QUERY HANDLER RESPONSE TIME TESTS
+# =============================================================================
+
+
+@pytest.mark.performance
+class TestQueryHandlerResponseTimes:
+    """Test query handlers meet SLA requirements."""
+
+    def test_get_entity_query_response_time(
+        self, mock_repository, mock_logger, sample_workspace
+    ):
+        """
+        Test GetEntityQuery completes within SLA.
+
+        Given: An existing entity
+        When: Executing get entity query
+        Then: Operation completes within 200ms
+        """
+        mock_repository.add_entity(sample_workspace)
+        handler = EntityQueryHandler(mock_repository, mock_logger)
+        query = GetEntityQuery(entity_id=sample_workspace.id)
+
+        result, duration = measure_execution_time(handler.handle_get, query)
+
+        assert result.data is not None
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX, "GetEntityQuery"
+        )
+
+    def test_list_entities_query_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test ListEntitiesQuery completes within SLA.
+
+        Given: 100 entities in repository
+        When: Executing list entities query
+        Then: Operation completes within 200ms
+        """
+        # Populate repository
+        for i in range(100):
+            entity = WorkspaceEntity(name=f"Workspace {i}")
+            mock_repository.add_entity(entity)
+
+        handler = EntityQueryHandler(mock_repository, mock_logger)
+        query = ListEntitiesQuery(limit=50, offset=0)
+
+        result, duration = measure_execution_time(handler.handle_list, query)
+
+        assert len(result.data) > 0
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX, "ListEntitiesQuery"
+        )
+
+    def test_search_entities_query_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test SearchEntitiesQuery completes within SLA.
+
+        Given: 100 entities in repository
+        When: Executing search query
+        Then: Operation completes within 200ms
+        """
+        # Populate repository
+        for i in range(100):
+            entity = WorkspaceEntity(name=f"Workspace {i}")
+            mock_repository.add_entity(entity)
+
+        handler = EntityQueryHandler(mock_repository, mock_logger)
+        query = SearchEntitiesQuery(search_query="Workspace", fields=["name"])
+
+        result, duration = measure_execution_time(handler.handle_search, query)
+
+        assert result.success is True
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX, "SearchEntitiesQuery"
+        )
+
+    def test_query_with_pagination_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test paginated query meets SLA.
+
+        Given: 500 entities in repository
+        When: Querying with pagination (limit=25)
+        Then: Pagination improves response time, stays within 200ms
+        """
+        # Populate repository
+        for i in range(500):
+            entity = WorkspaceEntity(name=f"Workspace {i}")
+            mock_repository.add_entity(entity)
+
+        handler = EntityQueryHandler(mock_repository, mock_logger)
+        query = ListEntitiesQuery(limit=25, offset=0)
+
+        result, duration = measure_execution_time(handler.handle_list, query)
+
+        assert len(result.data) <= 25
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX, "Paginated query"
+        )
+
+    def test_query_with_filters_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test filtered query meets SLA.
+
+        Given: 200 entities with mixed statuses
+        When: Querying with status filter
+        Then: Filter application stays within 200ms
+        """
+        # Populate repository
+        for i in range(200):
+            entity = WorkspaceEntity(
+                name=f"Workspace {i}",
+                status=EntityStatus.ACTIVE if i % 2 == 0 else EntityStatus.ARCHIVED,
+            )
+            mock_repository.add_entity(entity)
+
+        handler = EntityQueryHandler(mock_repository, mock_logger)
+        query = ListEntitiesQuery(filters={"status": EntityStatus.ACTIVE})
+
+        result, duration = measure_execution_time(handler.handle_list, query)
+
+        assert result.success is True
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX, "Filtered query"
+        )
+
+
+# =============================================================================
+# CACHE OPERATION RESPONSE TIME TESTS
+# =============================================================================
+
+
+@pytest.mark.performance
+class TestCacheOperationResponseTimes:
+    """Test cache operations meet SLA requirements."""
+
+    def test_cache_get_response_time(self, mock_cache):
+        """
+        Test cache get completes within SLA.
+
+        Given: A populated cache
+        When: Getting a value
+        Then: Operation completes within 10ms
+        """
+        mock_cache.set("test_key", {"data": "value"})
+
+        result, duration = measure_execution_time(mock_cache.get, "test_key")
+
+        assert result is not None
+        assert_sla_compliance(duration, SLALimits.CACHE_OPERATION_MAX, "Cache get")
+
+    def test_cache_set_response_time(self, mock_cache):
+        """
+        Test cache set completes within SLA.
+
+        Given: An empty cache
+        When: Setting a value
+        Then: Operation completes within 10ms
+        """
+        result, duration = measure_execution_time(
+            mock_cache.set, "test_key", {"data": "value"}, ttl=300
+        )
+
+        assert_sla_compliance(duration, SLALimits.CACHE_OPERATION_MAX, "Cache set")
+
+    def test_cache_delete_response_time(self, mock_cache):
+        """
+        Test cache delete completes within SLA.
+
+        Given: A cache with a value
+        When: Deleting the value
+        Then: Operation completes within 10ms
+        """
+        mock_cache.set("test_key", {"data": "value"})
+
+        result, duration = measure_execution_time(mock_cache.delete, "test_key")
+
+        assert result is True
+        assert_sla_compliance(duration, SLALimits.CACHE_OPERATION_MAX, "Cache delete")
+
+    def test_cache_exists_response_time(self, mock_cache):
+        """
+        Test cache exists check completes within SLA.
+
+        Given: A populated cache
+        When: Checking key existence
+        Then: Operation completes within 10ms
+        """
+        mock_cache.set("test_key", {"data": "value"})
+
+        result, duration = measure_execution_time(mock_cache.exists, "test_key")
+
+        assert result is True
+        assert_sla_compliance(
+            duration, SLALimits.CACHE_OPERATION_MAX, "Cache exists check"
+        )
+
+    def test_cache_clear_response_time(self, mock_cache):
+        """
+        Test cache clear completes within SLA.
+
+        Given: A cache with 100 items
+        When: Clearing the cache
+        Then: Operation completes within 10ms
+        """
+        # Populate cache
+        for i in range(100):
+            mock_cache.set(f"key_{i}", f"value_{i}")
+
+        result, duration = measure_execution_time(mock_cache.clear)
+
+        # Allow slightly more time for bulk operation
+        assert_sla_compliance(
+            duration, SLALimits.CACHE_OPERATION_MAX * 5, "Cache clear"
+        )
+
+
+# =============================================================================
+# RELATIONSHIP OPERATION RESPONSE TIME TESTS
+# =============================================================================
+
+
+@pytest.mark.performance
+class TestRelationshipOperationResponseTimes:
+    """Test relationship operations meet SLA requirements."""
+
+    def test_add_relationship_response_time(self, mock_repository, mock_logger):
+        """
+        Test add relationship completes within SLA.
+
+        Given: A relationship service
+        When: Adding a relationship
+        Then: Operation completes within 150ms
+        """
+        service = RelationshipService(mock_repository, mock_logger)
+
+        result, duration = measure_execution_time(
+            service.add_relationship,
+            source_id="entity_1",
+            target_id="entity_2",
+            relationship_type=RelationType.PARENT_CHILD,
+        )
+
+        assert result is not None
+        assert_sla_compliance(
+            duration, SLALimits.RELATIONSHIP_OPERATION_MAX, "Add relationship"
+        )
+
+    def test_remove_relationship_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test remove relationship completes within SLA.
+
+        Given: An existing relationship
+        When: Removing the relationship
+        Then: Operation completes within 150ms
+        """
+        service = RelationshipService(mock_repository, mock_logger)
+        relationship = service.add_relationship(
+            source_id="entity_1",
+            target_id="entity_2",
+            relationship_type=RelationType.PARENT_CHILD,
+        )
+
+        result, duration = measure_execution_time(
+            service.remove_relationship, relationship.id
+        )
+
+        assert result is True
+        assert_sla_compliance(
+            duration, SLALimits.RELATIONSHIP_OPERATION_MAX, "Remove relationship"
+        )
+
+    def test_get_relationships_response_time(self, mock_repository, mock_logger):
+        """
+        Test get relationships completes within SLA.
+
+        Given: 50 relationships in repository
+        When: Getting relationships by source
+        Then: Operation completes within 150ms
+        """
+        service = RelationshipService(mock_repository, mock_logger)
+
+        # Create relationships
+        for i in range(50):
+            rel = Relationship(
+                source_id="entity_1",
+                target_id=f"entity_{i}",
+                relationship_type=RelationType.PARENT_CHILD,
+            )
+            mock_repository.add_entity(rel)
+
+        result, duration = measure_execution_time(
+            service.get_relationships, source_id="entity_1"
+        )
+
+        assert len(result) > 0
+        assert_sla_compliance(
+            duration, SLALimits.RELATIONSHIP_OPERATION_MAX, "Get relationships"
+        )
+
+    def test_bidirectional_relationship_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test bidirectional relationship creation meets SLA.
+
+        Given: A relationship service
+        When: Creating bidirectional relationship
+        Then: Operation completes within 150ms (includes inverse)
+        """
+        service = RelationshipService(mock_repository, mock_logger)
+
+        result, duration = measure_execution_time(
+            service.add_relationship,
+            source_id="entity_1",
+            target_id="entity_2",
+            relationship_type=RelationType.PARENT_CHILD,
+            bidirectional=True,
+        )
+
+        assert result is not None
+        assert_sla_compliance(
+            duration,
+            SLALimits.RELATIONSHIP_OPERATION_MAX,
+            "Bidirectional relationship",
+        )
+
+
+# =============================================================================
+# SERVICE INITIALIZATION RESPONSE TIME TESTS
+# =============================================================================
+
+
+@pytest.mark.performance
+class TestServiceInitializationResponseTimes:
+    """Test service initialization meets SLA requirements."""
+
+    def test_entity_service_initialization_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test EntityService initialization completes within SLA.
+
+        Given: Repository and logger dependencies
+        When: Creating EntityService instance
+        Then: Initialization completes within 500ms
+        """
+        result, duration = measure_execution_time(
+            EntityService, mock_repository, mock_logger
+        )
+
+        assert result is not None
+        assert_sla_compliance(
+            duration, SLALimits.SERVICE_INIT_MAX, "EntityService initialization"
+        )
+
+    def test_entity_service_with_cache_initialization_response_time(
+        self, mock_repository, mock_logger, mock_cache
+    ):
+        """
+        Test EntityService with cache initialization completes within SLA.
+
+        Given: Repository, logger, and cache dependencies
+        When: Creating EntityService with cache
+        Then: Initialization completes within 500ms
+        """
+        result, duration = measure_execution_time(
+            EntityService, mock_repository, mock_logger, mock_cache
+        )
+
+        assert result is not None
+        assert result.cache is mock_cache
+        assert_sla_compliance(
+            duration,
+            SLALimits.SERVICE_INIT_MAX,
+            "EntityService with cache initialization",
+        )
+
+    def test_relationship_service_initialization_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test RelationshipService initialization completes within SLA.
+
+        Given: Repository and logger dependencies
+        When: Creating RelationshipService instance
+        Then: Initialization completes within 500ms
+        """
+        result, duration = measure_execution_time(
+            RelationshipService, mock_repository, mock_logger
+        )
+
+        assert result is not None
+        assert_sla_compliance(
+            duration, SLALimits.SERVICE_INIT_MAX, "RelationshipService initialization"
+        )
+
+    def test_command_handler_initialization_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test command handler initialization completes within SLA.
+
+        Given: Repository and logger dependencies
+        When: Creating command handler
+        Then: Initialization completes within 500ms
+        """
+        result, duration = measure_execution_time(
+            EntityCommandHandler, mock_repository, mock_logger
+        )
+
+        assert result is not None
+        assert_sla_compliance(
+            duration, SLALimits.SERVICE_INIT_MAX, "Command handler initialization"
+        )
+
+    def test_query_handler_initialization_response_time(
+        self, mock_repository, mock_logger
+    ):
+        """
+        Test query handler initialization completes within SLA.
+
+        Given: Repository and logger dependencies
+        When: Creating query handler
+        Then: Initialization completes within 500ms
+        """
+        result, duration = measure_execution_time(
+            EntityQueryHandler, mock_repository, mock_logger
+        )
+
+        assert result is not None
+        assert_sla_compliance(
+            duration, SLALimits.SERVICE_INIT_MAX, "Query handler initialization"
+        )
+
+
+# =============================================================================
+# DEGRADATION PATTERN TESTS
+# =============================================================================
+
+
+@pytest.mark.performance
+class TestDegradationPatterns:
+    """Test system behavior under degraded conditions."""
+
+    def test_large_dataset_degradation(self, mock_repository, mock_logger):
+        """
+        Test query performance degrades gracefully with large datasets.
+
+        Given: 1000 entities in repository
+        When: Querying without pagination
+        Then: Still completes, but may approach SLA limit
+        """
+        # Populate large dataset
+        for i in range(1000):
+            entity = WorkspaceEntity(name=f"Workspace {i}")
+            mock_repository.add_entity(entity)
+
+        service = EntityService(mock_repository, mock_logger)
+
+        result, duration = measure_execution_time(service.list_entities)
+
+        assert len(result) == 1000
+        # Allow 3x normal SLA for unpaginated large query
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX * 3, "Large dataset query"
+        )
+
+    def test_cache_miss_degradation(
+        self, mock_repository, mock_logger, mock_cache
+    ):
+        """
+        Test performance with cache misses.
+
+        Given: Service with cache enabled
+        When: Requesting uncached entities repeatedly
+        Then: Performance degrades gracefully with cache misses
+        """
+        service = EntityService(mock_repository, mock_logger, mock_cache)
+        entity = WorkspaceEntity(name="Test")
+        mock_repository.add_entity(entity)
+
+        # Clear cache to force miss
+        mock_cache.clear()
+
+        result, duration = measure_execution_time(
+            service.get_entity, entity.id, use_cache=True
+        )
+
+        assert result is not None
+        # Cache miss should still meet SLA (plus small overhead)
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX, "Cache miss query"
+        )
+
+    def test_complex_filter_degradation(self, mock_repository, mock_logger):
+        """
+        Test performance with complex filters.
+
+        Given: 500 entities with various attributes
+        When: Applying multiple filters
+        Then: Complex filtering stays within reasonable bounds
+        """
+        # Populate with varied data
+        for i in range(500):
+            entity = WorkspaceEntity(
+                name=f"Workspace {i}",
+                status=EntityStatus.ACTIVE if i % 3 == 0 else EntityStatus.ARCHIVED,
+            )
+            mock_repository.add_entity(entity)
+
+        service = EntityService(mock_repository, mock_logger)
+
+        result, duration = measure_execution_time(
+            service.list_entities, filters={"status": EntityStatus.ACTIVE}
+        )
+
+        assert len(result) > 0
+        # Allow 2x normal SLA for complex filtering
+        assert_sla_compliance(
+            duration, SLALimits.QUERY_HANDLER_MAX * 2, "Complex filter query"
+        )

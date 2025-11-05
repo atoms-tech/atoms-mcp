@@ -34,7 +34,7 @@ async def server_with_test_data():
         name="TechCorp",
         description="Leading technology company focused on AI and cloud solutions",
         created_at=datetime.now(UTC),
-        metadata={"industry": "technology", "size": "large", "region": "global"}
+        metadata={"industry": "technology", "size": "large", "region": "global"},
     )
 
     org2 = Organization(
@@ -42,7 +42,7 @@ async def server_with_test_data():
         name="DataSystems",
         description="Data management and analytics company",
         created_at=datetime.now(UTC),
-        metadata={"industry": "data", "size": "medium", "region": "north-america"}
+        metadata={"industry": "data", "size": "medium", "region": "north-america"},
     )
 
     # Create projects
@@ -52,7 +52,7 @@ async def server_with_test_data():
         description="Next-generation AI platform for enterprise applications",
         organization_id=org1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "ai", "priority": "high", "status": "active"}
+        metadata={"type": "ai", "priority": "high", "status": "active"},
     )
 
     project2 = Project(
@@ -61,7 +61,7 @@ async def server_with_test_data():
         description="Real-time data processing pipeline",
         organization_id=org2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "data", "priority": "medium", "status": "planning"}
+        metadata={"type": "data", "priority": "medium", "status": "planning"},
     )
 
     # Create requirements
@@ -73,7 +73,7 @@ async def server_with_test_data():
         priority=RequirementPriority.HIGH,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "medium"}
+        metadata={"type": "functional", "complexity": "medium"},
     )
 
     req2 = Requirement(
@@ -84,7 +84,7 @@ async def server_with_test_data():
         priority=RequirementPriority.MEDIUM,
         status=EntityStatus.ACTIVE,
         created_at=datetime.now(UTC),
-        metadata={"type": "functional", "complexity": "low"}
+        metadata={"type": "functional", "complexity": "low"},
     )
 
     # Create tests
@@ -95,7 +95,7 @@ async def server_with_test_data():
         project_id=project1.id,
         status=TestStatus.PASSED,
         created_at=datetime.now(UTC),
-        metadata={"type": "unit", "coverage": "high"}
+        metadata={"type": "unit", "coverage": "high"},
     )
 
     test2 = Test(
@@ -105,7 +105,7 @@ async def server_with_test_data():
         project_id=project2.id,
         status=TestStatus.FAILED,
         created_at=datetime.now(UTC),
-        metadata={"type": "integration", "coverage": "medium"}
+        metadata={"type": "integration", "coverage": "medium"},
     )
 
     # Create documents
@@ -115,7 +115,7 @@ async def server_with_test_data():
         content="Comprehensive API documentation for the AI platform",
         project_id=project1.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "documentation", "format": "markdown"}
+        metadata={"type": "documentation", "format": "markdown"},
     )
 
     doc2 = Document(
@@ -124,7 +124,7 @@ async def server_with_test_data():
         content="Data schema definitions and validation rules",
         project_id=project2.id,
         created_at=datetime.now(UTC),
-        metadata={"type": "schema", "format": "json"}
+        metadata={"type": "schema", "format": "json"},
     )
 
     # Store all entities
@@ -149,8 +149,7 @@ class TestQueryAnalyze:
     async def test_analyze_organizations_by_industry(self, server_with_test_data):
         """Test analyzing organizations by industry."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization"],
-            analysis_type="industry_distribution"
+            entity_types=["Organization"], analysis_type="industry_distribution"
         )
 
         assert result is not None
@@ -166,8 +165,7 @@ class TestQueryAnalyze:
     async def test_analyze_projects_by_priority(self, server_with_test_data):
         """Test analyzing projects by priority."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project"],
-            analysis_type="priority_distribution"
+            entity_types=["Project"], analysis_type="priority_distribution"
         )
 
         assert result is not None
@@ -183,8 +181,7 @@ class TestQueryAnalyze:
     async def test_analyze_requirements_by_complexity(self, server_with_test_data):
         """Test analyzing requirements by complexity."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Requirement"],
-            analysis_type="complexity_analysis"
+            entity_types=["Requirement"], analysis_type="complexity_analysis"
         )
 
         assert result is not None
@@ -199,10 +196,7 @@ class TestQueryAnalyze:
     @pytest.mark.asyncio
     async def test_analyze_tests_by_status(self, server_with_test_data):
         """Test analyzing tests by status."""
-        result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            analysis_type="status_analysis"
-        )
+        result = await server_with_test_data.query_entities(entity_types=["Test"], analysis_type="status_analysis")
 
         assert result is not None
         assert "analysis" in result
@@ -217,8 +211,7 @@ class TestQueryAnalyze:
     async def test_analyze_documents_by_type(self, server_with_test_data):
         """Test analyzing documents by type."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Document"],
-            analysis_type="type_distribution"
+            entity_types=["Document"], analysis_type="type_distribution"
         )
 
         assert result is not None
@@ -234,9 +227,7 @@ class TestQueryAnalyze:
     async def test_analyze_with_filters(self, server_with_test_data):
         """Test analysis with metadata filters."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            analysis_type="coverage_analysis",
-            filters={"metadata.type": "unit"}
+            entity_types=["Test"], analysis_type="coverage_analysis", filters={"metadata.type": "unit"}
         )
 
         assert result is not None
@@ -251,8 +242,7 @@ class TestQueryAnalyze:
     async def test_analyze_multiple_entity_types(self, server_with_test_data):
         """Test analysis across multiple entity types."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project", "Requirement"],
-            analysis_type="cross_entity_analysis"
+            entity_types=["Project", "Requirement"], analysis_type="cross_entity_analysis"
         )
 
         assert result is not None
@@ -267,8 +257,7 @@ class TestQueryAnalyze:
     async def test_analyze_temporal_trends(self, server_with_test_data):
         """Test analyzing temporal trends."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Project", "Requirement", "Test"],
-            analysis_type="temporal_analysis"
+            entity_types=["Project", "Requirement", "Test"], analysis_type="temporal_analysis"
         )
 
         assert result is not None
@@ -283,8 +272,7 @@ class TestQueryAnalyze:
     async def test_analyze_metadata_patterns(self, server_with_test_data):
         """Test analyzing metadata patterns."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization", "Project"],
-            analysis_type="metadata_pattern_analysis"
+            entity_types=["Organization", "Project"], analysis_type="metadata_pattern_analysis"
         )
 
         assert result is not None
@@ -299,8 +287,7 @@ class TestQueryAnalyze:
     async def test_analyze_entity_relationships(self, server_with_test_data):
         """Test analyzing entity relationships."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Organization", "Project", "Requirement"],
-            analysis_type="relationship_analysis"
+            entity_types=["Organization", "Project", "Requirement"], analysis_type="relationship_analysis"
         )
 
         assert result is not None
@@ -316,9 +303,7 @@ class TestQueryAnalyze:
     async def test_analyze_with_search_query(self, server_with_test_data):
         """Test analysis with search query."""
         result = await server_with_test_data.query_entities(
-            entity_types=["Test"],
-            search_query="authentication",
-            analysis_type="query_based_analysis"
+            entity_types=["Test"], search_query="authentication", analysis_type="query_based_analysis"
         )
 
         assert result is not None
@@ -334,7 +319,7 @@ class TestQueryAnalyze:
         """Test analysis across all entity types."""
         result = await server_with_test_data.query_entities(
             entity_types=["Organization", "Project", "Requirement", "Test", "Document"],
-            analysis_type="comprehensive_analysis"
+            analysis_type="comprehensive_analysis",
         )
 
         assert result is not None
