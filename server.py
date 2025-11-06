@@ -337,11 +337,12 @@ def create_consolidated_server() -> FastMCP:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
     # Use native FastMCP AuthKitProvider - handles OAuth, sessions, and endpoints automatically
-    from fastmcp.auth import AuthKitProvider
+    from fastmcp.server.auth.providers.workos import AuthKitProvider
 
     auth_provider = AuthKitProvider(
         authkit_domain=authkit_domain,
-        # FastMCP handles base_url detection, session management, and OAuth endpoints automatically
+        base_url=base_url,
+        # FastMCP handles session management and OAuth endpoints automatically
     )
     logger.info(f"✅ Native AuthKitProvider configured: {authkit_domain}")
     print(f"✅ Native AuthKitProvider configured: {authkit_domain}")

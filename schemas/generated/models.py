@@ -10,13 +10,15 @@ To regenerate:
 from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # Model for table: organizations
 class Organization(BaseModel):
     """Model for organizations table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     slug: str
@@ -27,15 +29,14 @@ class Organization(BaseModel):
     created_by: UUID
     updated_by: UUID
     embedding: Optional[Any] = None
-    
-    class Config:
-        from_attributes = True
 
 
 # Model for table: projects
 class Project(BaseModel):
     """Model for projects table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     slug: str
@@ -47,15 +48,14 @@ class Project(BaseModel):
     updated_by: UUID
     embedding: Optional[Any] = None
     description: Optional[str] = None
-    
-    class Config:
-        from_attributes = True
 
 
 # Model for table: documents
 class Document(BaseModel):
     """Model for documents table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     project_id: UUID
@@ -67,15 +67,14 @@ class Document(BaseModel):
     embedding: Optional[Any] = None
     content: Optional[str] = None
     version: Optional[int] = None
-    
-    class Config:
-        from_attributes = True
 
 
 # Model for table: requirements
 class Requirement(BaseModel):
     """Model for requirements table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     document_id: UUID
@@ -93,15 +92,14 @@ class Requirement(BaseModel):
     external_id: Optional[str] = None
     embedding: Optional[Any] = None
     content: Optional[str] = None
-    
-    class Config:
-        from_attributes = True
 
 
 # Model for table: test_req
 class TestReq(BaseModel):
     """Model for test_req table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     title: str
     project_id: UUID
@@ -114,30 +112,28 @@ class TestReq(BaseModel):
     updated_by: UUID
     embedding: Optional[Any] = None
     description: Optional[str] = None
-    
-    class Config:
-        from_attributes = True
 
 
 # Model for table: profiles
 class Profile(BaseModel):
     """Model for profiles table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     email: Optional[str] = None
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 # Model for table: blocks
 class Block(BaseModel):
     """Model for blocks table."""
-    
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     document_id: UUID
     content: Optional[str] = None
@@ -147,9 +143,6 @@ class Block(BaseModel):
     updated_at: datetime
     created_by: UUID
     updated_by: UUID
-    
-    class Config:
-        from_attributes = True
 
 
 __all__ = [
