@@ -331,30 +331,20 @@ def create_consolidated_server() -> FastMCP:
     logger.info(f"Resolved base URL for AuthKit/public metadata: {base_url}")
     print(f"🌐 AUTH BASE URL -> {base_url}")
 
-    # Manually configure AuthKit provider + add discovery endpoints for MCP client compatibility
-    fastmcp_vars = {k: v for k, v in os.environ.items() if "FASTMCP" in k}
-    logger.info(f"DEBUG: All FASTMCP environment variables: {fastmcp_vars}")
-
-    public_base_url = os.getenv("ATOMS_FASTMCP_PUBLIC_BASE_URL") or base_url
-
-    # Configure AuthKitProvider for OAuth with Standalone Connect
+    # Configure native FastMCP AuthKit provider (simplified from Standalone Connect)
     authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
     if not authkit_domain:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
-    # Use PersistentAuthKitProvider for stateless deployments with Supabase sessions
-    try:
-        from .auth.persistent_authkit_provider import PersistentAuthKitProvider
-    except ImportError:
-        from auth.persistent_authkit_provider import PersistentAuthKitProvider
+    # Use native FastMCP AuthKitProvider - handles OAuth, sessions, and endpoints automatically
+    from fastmcp.auth import AuthKitProvider
 
-    auth_provider = PersistentAuthKitProvider(
+    auth_provider = AuthKitProvider(
         authkit_domain=authkit_domain,
-        base_url=base_url,
-        required_scopes=None,  # Don't require specific scopes - accept any AuthKit token
+        # FastMCP handles base_url detection, session management, and OAuth endpoints automatically
     )
-    logger.info(f"✅ PersistentAuthKitProvider configured: {authkit_domain}")
-    print(f"✅ PersistentAuthKitProvider configured: {authkit_domain}")
+    logger.info(f"✅ Native AuthKitProvider configured: {authkit_domain}")
+    print(f"✅ Native AuthKitProvider configured: {authkit_domain}")
 
     # Initialize rate limiter for API protection
     try:
@@ -658,50 +648,14 @@ def create_consolidated_server() -> FastMCP:
         except Exception as e:
             return {"success": False, "error": str(e), "query_type": query_type}
 
-    # OAuth metadata endpoints for MCP client discovery
-    async def _oauth_protected_resource_handler(request):
-        from starlette.responses import JSONResponse
-        authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
+    # OAuth endpoints are now handled automatically by FastMCP's native AuthKitProvider
+    # No need for custom OAuth endpoints - FastMCP generates them automatically:
+    # - /.well-known/oauth-protected-resource
+    # - /.well-known/oauth-authorization-server
+    # - /auth/start
+    # - /auth/complete
 
-        # Determine resource URL from request headers (for Vercel preview/custom domains)
-        scheme = request.headers.get("x-forwarded-proto", "https")
-        host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-        if host:
-            resource = f"{scheme}://{host}"
-        else:
-            # Fallback to base_url
-            resource = f"{base_url}"
-
-        return JSONResponse({
-            "resource": resource,
-            "authorization_servers": [authkit_domain] if authkit_domain else [],
-            "bearer_methods_supported": ["header"],
-        })
-
-    async def _oauth_authorization_server_handler(request):
-        import httpx
-        from starlette.responses import JSONResponse
-        authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
-        if not authkit_domain:
-            return JSONResponse({"error": "AuthKit not configured"}, status_code=404)
-
-        # Proxy to AuthKit
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{authkit_domain}/.well-known/oauth-authorization-server")
-            return JSONResponse(resp.json())
-
-    mcp.custom_route("/.well-known/oauth-protected-resource", methods=["GET"])(_oauth_protected_resource_handler)
-    mcp.custom_route("/.well-known/oauth-authorization-server", methods=["GET"])(_oauth_authorization_server_handler)
-
-    # SessionMiddleware extracts JWT and sets user context
-    # No session persistence needed - AuthKit manages sessions via JWT
-    try:
-        from .auth.session_middleware import SessionMiddleware
-    except ImportError:
-        from auth.session_middleware import SessionMiddleware
-
-    # SessionMiddleware is added in app.py after calling mcp.http_app()
-    logger.info("✅ Server created - SessionMiddleware handles JWT extraction")
+    logger.info("✅ Server created - FastMCP handles OAuth endpoints and session management automatically")
 
     return mcp
 
