@@ -1,43 +1,64 @@
-# Vercel ignore file
+# Vercel ignore file - Exclude everything except what's needed for deployment
+
+# Development and testing
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
 tests/
+test_*.py
+*.test.py
+*_test.py
 .env.local
 .env.test
 *.log
-.git/
-auth/archived/
-*_old.py
-*_simplified.py
-test_*.py
-*.md
-docs/
-pyproject.toml
 
-# Exclude large directories
-pheno_vendor/
-lib/
-scripts/
-examples/
-archive/
-schemas/
-.vercel/
-*.egg-info/
+# Documentation
+*.md
+!README.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# Build artifacts
 dist/
 build/
+*.egg-info/
 htmlcov/
+
+# Large directories not needed for deployment
+pheno_vendor/
+lib/
 src/
 infrastructure/
-login_page.png
+archive/
+examples/
 
-# Exclude development files
+# Development files
 requirements-dev.txt
 prospector.yaml
 sonar-project.properties
 pytest.ini
-.gitignore
 Makefile
 *.sh
-test_*.py
+pyproject.toml
+
+# Images and media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Old/archived files
+*_old.py
+*_simplified.py
+auth/archived/
+
+# Scripts (not needed at runtime)
+scripts/
+
+# Vercel
+.vercel/
