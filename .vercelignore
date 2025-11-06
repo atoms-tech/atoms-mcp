@@ -27,6 +27,10 @@ schemas/
 *.egg-info/
 dist/
 build/
+htmlcov/
+src/
+infrastructure/
+login_page.png
 
 # Exclude development files
 requirements-dev.txt
@@ -36,3 +40,4 @@ pytest.ini
 .gitignore
 Makefile
 *.sh
+test_*.py
