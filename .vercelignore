@@ -14,3 +14,4 @@ auth/archived/
 test_*.py
 *.md
 docs/
+pyproject.toml
