@@ -6,29 +6,43 @@ Following FastMCP documentation: https://docs.fastmcp.com/deployment/self-hosted
 
 from __future__ import annotations
 import os
+import sys
+import traceback
 import anyio
 from contextlib import asynccontextmanager
-from starlette.responses import JSONResponse
-from server import create_consolidated_server
+from starlette.responses import JSONResponse, PlainTextResponse
 
-# Create the FastMCP server instance
-mcp = create_consolidated_server()
+# Try to create the FastMCP server instance with error handling
+try:
+    from server import create_consolidated_server
+    mcp = create_consolidated_server()
+except Exception as e:
+    # If server creation fails, create a minimal error app
+    print(f"ERROR: Failed to create server: {e}", file=sys.stderr)
+    traceback.print_exc()
+
+    # Create a minimal FastMCP instance for error reporting
+    from fastmcp import FastMCP
+    mcp = FastMCP("atoms-mcp-error", dependencies=[])
 
 # Add root route handler
 @mcp.custom_route("/", methods=["GET"])
 async def root(request):
     """Root endpoint with service information."""
-    return JSONResponse({
-        "service": "Atoms MCP Server",
-        "version": "1.0.0",
-        "endpoints": {
-            "mcp": "/api/mcp",
-            "health": "/health",
-            "auth_start": "/auth/start",
-            "auth_complete": "/auth/complete"
-        },
-        "status": "running"
-    })
+    try:
+        return JSONResponse({
+            "service": "Atoms MCP Server",
+            "version": "1.0.0",
+            "endpoints": {
+                "mcp": "/api/mcp",
+                "health": "/health",
+                "auth_start": "/auth/start",
+                "auth_complete": "/auth/complete"
+            },
+            "status": "running"
+        })
+    except Exception as e:
+        return PlainTextResponse(f"Error: {e}\n{traceback.format_exc()}", status_code=500)
 
 # Add health check endpoint for Vercel monitoring
 @mcp.custom_route("/health", methods=["GET"])
