@@ -15,3 +15,24 @@ test_*.py
 *.md
 docs/
 pyproject.toml
+
+# Exclude large directories
+pheno_vendor/
+lib/
+scripts/
+examples/
+archive/
+schemas/
+.vercel/
+*.egg-info/
+dist/
+build/
+
+# Exclude development files
+requirements-dev.txt
+prospector.yaml
+sonar-project.properties
+pytest.ini
+.gitignore
+Makefile
+*.sh
