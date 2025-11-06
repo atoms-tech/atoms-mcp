@@ -29,7 +29,7 @@ class HybridAuthProvider(AuthProvider):
         supabase_project_id: Optional[str] = None
     ):
         """Initialize hybrid auth provider.
-        
+
         Args:
             oauth_provider: AuthKit provider for OAuth flow
             internal_token: Static token for internal services
@@ -37,6 +37,9 @@ class HybridAuthProvider(AuthProvider):
             supabase_project_id: Supabase project ID for issuer validation
         """
         self.oauth_provider = oauth_provider
+
+        # Expose base_url from OAuth provider for FastMCP compatibility
+        self.base_url = oauth_provider.base_url
         
         # Setup internal token verifier
         self.internal_token_verifier = None
