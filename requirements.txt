@@ -1,5 +1,5 @@
 # Production Requirements for Vercel
-# Essential dependencies for MCP server with RAG/vector search
+# Essential dependencies for MCP server (without RAG to stay under 250MB limit)
 
 # Core MCP
 fastmcp>=2.12.2
@@ -20,8 +20,8 @@ workos>=1.0.0
 PyJWT>=2.8.0
 cryptography>=41.0.0
 
-# AI/ML - Required for RAG semantic search
-google-cloud-aiplatform>=1.49.0
+# AI/ML - Moved to requirements-dev.txt due to size (200MB+)
+# google-cloud-aiplatform>=1.49.0  # RAG optional in serverless
 
 # Utilities
 pydantic[email]>=2.11.7,<3.0.0
