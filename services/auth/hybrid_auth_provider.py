@@ -38,8 +38,10 @@ class HybridAuthProvider(AuthProvider):
         """
         self.oauth_provider = oauth_provider
 
-        # Expose base_url from OAuth provider for FastMCP compatibility
+        # Expose attributes from OAuth provider for FastMCP compatibility
         self.base_url = oauth_provider.base_url
+        self.required_scopes = getattr(oauth_provider, 'required_scopes', [])
+        self.authkit_domain = getattr(oauth_provider, 'authkit_domain', None)
         
         # Setup internal token verifier
         self.internal_token_verifier = None
