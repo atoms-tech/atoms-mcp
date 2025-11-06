@@ -12,6 +12,18 @@ try:
 except ImportError:
     from tools.base import ToolBase
 
+# Import schema helpers for Pydantic validation
+try:
+    from schemas.helpers import (
+        validate_entity_data,
+        partial_validate,
+        get_required_fields,
+        get_model_fields,
+    )
+    _HAS_SCHEMAS = True
+except ImportError:
+    _HAS_SCHEMAS = False
+
 
 slug_pattern = re.compile(r"[^a-z0-9]+")
 
@@ -38,7 +50,28 @@ class EntityManager(ToolBase):
         return bool(uuid_pattern.match(value))
     
     def _get_entity_schema(self, entity_type: str) -> Dict[str, Any]:
-        """Get schema information for entity type."""
+        """Get schema information for entity type.
+
+        Now uses generated Pydantic models when available, falls back to manual schemas.
+        """
+        # Try to get schema from generated Pydantic models
+        if _HAS_SCHEMAS:
+            try:
+                model_fields = get_model_fields(entity_type)
+                if model_fields:
+                    # Convert Pydantic model fields to our schema format
+                    required_fields = get_required_fields(entity_type)
+                    return {
+                        "required_fields": required_fields,
+                        "auto_fields": ["id", "created_at", "updated_at"],
+                        "default_values": {},
+                        "relationships": [],
+                        "pydantic_available": True
+                    }
+            except Exception:
+                pass  # Fall back to manual schemas
+
+        # Manual schemas (legacy - being phased out)
         schemas = {
             "organization": {
                 "required_fields": ["name", "slug"],
@@ -60,7 +93,7 @@ class EntityManager(ToolBase):
                 "relationships": ["blocks", "requirements", "project"]
             },
             "requirement": {
-                "required_fields": ["name", "document_id"],  # block_id is optional
+                "required_fields": ["name", "document_id"],
                 "auto_fields": ["id", "created_at", "updated_at", "version", "external_id"],
                 "default_values": {"is_deleted": False, "status": "active", "properties": {}, "priority": "low", "type": "component", "block_id": None},
                 "relationships": ["document", "tests", "trace_links"]
@@ -72,13 +105,13 @@ class EntityManager(ToolBase):
                 "relationships": ["requirements", "project"]
             },
             "user": {
-                "required_fields": ["id"],  # User/profile lookup by ID
+                "required_fields": ["id"],
                 "auto_fields": ["created_at", "updated_at"],
                 "default_values": {},
                 "relationships": ["organizations", "projects"]
             },
             "profile": {
-                "required_fields": ["id"],  # Profile lookup by ID
+                "required_fields": ["id"],
                 "auto_fields": ["created_at", "updated_at"],
                 "default_values": {},
                 "relationships": ["organizations", "projects"]
@@ -176,12 +209,22 @@ class EntityManager(ToolBase):
         data: Dict[str, Any],
         include_relations: bool = False
     ) -> Dict[str, Any]:
-        """Create a new entity."""
+        """Create a new entity with Pydantic validation."""
         # Resolve smart defaults
         data = await self._resolve_smart_defaults(entity_type, data)
 
-        # Apply defaults and validate
+        # Apply defaults
         data = self._apply_defaults(entity_type, data)
+
+        # Validate with Pydantic if available
+        if _HAS_SCHEMAS:
+            try:
+                data = partial_validate(entity_type, data)
+            except Exception as e:
+                # Log validation error but continue with manual validation
+                print(f"Pydantic validation warning for {entity_type}: {e}")
+
+        # Manual validation (fallback)
         self._validate_required_fields(entity_type, data)
 
         # Get table name
@@ -255,7 +298,7 @@ class EntityManager(ToolBase):
         data: Dict[str, Any],
         include_relations: bool = False
     ) -> Dict[str, Any]:
-        """Update an entity."""
+        """Update an entity with Pydantic validation."""
         import logging
         logger = logging.getLogger(__name__)
 
@@ -263,6 +306,14 @@ class EntityManager(ToolBase):
 
         # Prepare update data
         update_data = data.copy()
+
+        # Validate with Pydantic if available (partial validation for updates)
+        if _HAS_SCHEMAS:
+            try:
+                update_data = partial_validate(entity_type, update_data)
+            except Exception as e:
+                # Log validation error but continue
+                print(f"Pydantic validation warning for {entity_type} update: {e}")
         # Don't set updated_at manually - let database trigger handle it
         # This prevents "Concurrent update detected" errors from optimistic locking
 
