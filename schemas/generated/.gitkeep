@@ -1,0 +1,3 @@
+# This directory contains auto-generated Pydantic models
+# Run: python scripts/generate_schemas.py
+

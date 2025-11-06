@@ -6,6 +6,7 @@ fastmcp>=2.12.2
 
 # Database
 supabase>=2.5.0
+supabase-pydantic>=0.13.0
 
 # Configuration
 python-dotenv>=1.0.1
