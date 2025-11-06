@@ -338,8 +338,13 @@ def create_consolidated_server() -> FastMCP:
 
     # Get optional bearer token configuration
     internal_token = os.getenv("ATOMS_INTERNAL_TOKEN")
-    supabase_jwt_secret = os.getenv("SUPABASE_JWT_SECRET")
-    supabase_project_id = os.getenv("SUPABASE_PROJECT_ID")
+    authkit_client_id = os.getenv("WORKOS_CLIENT_ID")
+
+    # Construct AuthKit JWKS URI from domain
+    authkit_jwks_uri = None
+    if authkit_domain:
+        # AuthKit JWKS endpoint is at /.well-known/jwks.json
+        authkit_jwks_uri = f"{authkit_domain}/.well-known/jwks.json"
 
     # Use hybrid auth provider supporting both OAuth and Bearer tokens
     try:
@@ -351,16 +356,16 @@ def create_consolidated_server() -> FastMCP:
         authkit_domain=authkit_domain,
         base_url=base_url,
         internal_token=internal_token,
-        supabase_jwt_secret=supabase_jwt_secret,
-        supabase_project_id=supabase_project_id
+        authkit_client_id=authkit_client_id,
+        authkit_jwks_uri=authkit_jwks_uri
     )
 
     logger.info(f"✅ Hybrid authentication configured:")
     logger.info(f"  - OAuth (AuthKit): {authkit_domain}")
     if internal_token:
         logger.info(f"  - Internal bearer token: enabled")
-    if supabase_jwt_secret:
-        logger.info(f"  - Supabase JWT: enabled")
+    if authkit_client_id and authkit_jwks_uri:
+        logger.info(f"  - AuthKit JWT: enabled")
 
     print(f"✅ Hybrid authentication configured: OAuth + Bearer tokens")
 

@@ -1,9 +1,9 @@
 """Hybrid authentication provider supporting both OAuth and Bearer tokens.
 
 This provider enables the same MCP server to handle:
-1. OAuth (AuthKit) for public clients
-2. Bearer tokens for internal services (atomsAgent)
-3. Supabase JWTs for frontend token forwarding (optional)
+1. OAuth (AuthKit) for public clients - full OAuth flow
+2. Bearer tokens for internal services (atomsAgent) - static token
+3. AuthKit JWTs for frontend token forwarding - validates AuthKit JWT from frontend/backend
 """
 
 from __future__ import annotations
@@ -20,21 +20,21 @@ logger = logging.getLogger(__name__)
 
 class HybridAuthProvider(AuthProvider):
     """Hybrid auth provider supporting OAuth and Bearer tokens simultaneously."""
-    
+
     def __init__(
         self,
         oauth_provider: AuthKitProvider,
         internal_token: Optional[str] = None,
-        supabase_jwt_secret: Optional[str] = None,
-        supabase_project_id: Optional[str] = None
+        authkit_client_id: Optional[str] = None,
+        authkit_jwks_uri: Optional[str] = None
     ):
         """Initialize hybrid auth provider.
 
         Args:
             oauth_provider: AuthKit provider for OAuth flow
             internal_token: Static token for internal services
-            supabase_jwt_secret: Supabase JWT secret for frontend tokens
-            supabase_project_id: Supabase project ID for issuer validation
+            authkit_client_id: AuthKit client ID for JWT audience validation
+            authkit_jwks_uri: AuthKit JWKS URI for JWT verification
         """
         self.oauth_provider = oauth_provider
 
@@ -42,7 +42,7 @@ class HybridAuthProvider(AuthProvider):
         self.base_url = oauth_provider.base_url
         self.required_scopes = getattr(oauth_provider, 'required_scopes', [])
         self.authkit_domain = getattr(oauth_provider, 'authkit_domain', None)
-        
+
         # Setup internal token verifier
         self.internal_token_verifier = None
         if internal_token:
@@ -56,39 +56,40 @@ class HybridAuthProvider(AuthProvider):
                 required_scopes=["read:data"]
             )
             logger.info("✅ Internal bearer token authentication enabled")
-        
-        # Setup Supabase JWT verifier
-        self.supabase_jwt_verifier = None
-        if supabase_jwt_secret and supabase_project_id:
-            self.supabase_jwt_verifier = JWTVerifier(
-                public_key=supabase_jwt_secret,
-                issuer=f"https://{supabase_project_id}.supabase.co/auth/v1",
-                audience="authenticated",
-                algorithm="HS256"
+
+        # Setup AuthKit JWT verifier for frontend/backend tokens
+        self.authkit_jwt_verifier = None
+        if authkit_jwks_uri and authkit_client_id:
+            self.authkit_jwt_verifier = JWTVerifier(
+                jwks_uri=authkit_jwks_uri,
+                audience=authkit_client_id,
+                # AuthKit issuer will be validated from JWKS
             )
-            logger.info("✅ Supabase JWT authentication enabled")
+            logger.info("✅ AuthKit JWT authentication enabled")
     
     async def authenticate(self, request) -> Optional[Dict[str, Any]]:
         """Authenticate request using OAuth or Bearer token.
-        
+
         Flow:
         1. Check for Authorization: Bearer <token> header
-        2. If present, try bearer token verification
+        2. If present, try bearer token verification:
+           a. Try internal static token (for system services)
+           b. Try AuthKit JWT (from frontend/backend)
         3. If not present or verification fails, fall back to OAuth
-        
+
         Args:
             request: HTTP request object
-            
+
         Returns:
             Authentication context dict or None
         """
         # Check for Bearer token
         auth_header = request.headers.get("Authorization", "")
-        
+
         if auth_header.startswith("Bearer "):
             token = auth_header.replace("Bearer ", "").strip()
-            
-            # Try internal token first
+
+            # Try internal token first (for system services)
             if self.internal_token_verifier:
                 try:
                     result = await self.internal_token_verifier.verify_token(token)
@@ -96,20 +97,20 @@ class HybridAuthProvider(AuthProvider):
                     return result
                 except Exception as e:
                     logger.debug(f"Internal token verification failed: {e}")
-            
-            # Try Supabase JWT
-            if self.supabase_jwt_verifier:
+
+            # Try AuthKit JWT (from frontend/backend)
+            if self.authkit_jwt_verifier:
                 try:
-                    result = await self.supabase_jwt_verifier.verify_token(token)
-                    logger.info(f"✅ Authenticated via Supabase JWT: {result.get('email')}")
+                    result = await self.authkit_jwt_verifier.verify_token(token)
+                    logger.info(f"✅ Authenticated via AuthKit JWT: {result.get('sub')}")
                     return result
                 except Exception as e:
-                    logger.debug(f"Supabase JWT verification failed: {e}")
-            
+                    logger.debug(f"AuthKit JWT verification failed: {e}")
+
             # Bearer token provided but verification failed
             logger.warning("Bearer token provided but verification failed")
             return None
-        
+
         # No bearer token, fall back to OAuth
         logger.debug("No bearer token, using OAuth flow")
         return await self.oauth_provider.authenticate(request)
@@ -130,25 +131,25 @@ class HybridAuthProvider(AuthProvider):
     @property
     def supports_bearer_tokens(self) -> bool:
         """Indicate that bearer tokens are supported."""
-        return self.internal_token_verifier is not None or self.supabase_jwt_verifier is not None
+        return self.internal_token_verifier is not None or self.authkit_jwt_verifier is not None
 
 
 def create_hybrid_auth_provider(
     authkit_domain: str,
     base_url: str,
     internal_token: Optional[str] = None,
-    supabase_jwt_secret: Optional[str] = None,
-    supabase_project_id: Optional[str] = None
+    authkit_client_id: Optional[str] = None,
+    authkit_jwks_uri: Optional[str] = None
 ) -> HybridAuthProvider:
     """Factory function to create hybrid auth provider.
-    
+
     Args:
         authkit_domain: AuthKit domain for OAuth
         base_url: Base URL for OAuth callbacks
         internal_token: Static token for internal services
-        supabase_jwt_secret: Supabase JWT secret
-        supabase_project_id: Supabase project ID
-        
+        authkit_client_id: AuthKit client ID for JWT validation
+        authkit_jwks_uri: AuthKit JWKS URI for JWT verification
+
     Returns:
         Configured HybridAuthProvider
     """
@@ -157,12 +158,12 @@ def create_hybrid_auth_provider(
         authkit_domain=authkit_domain,
         base_url=base_url
     )
-    
+
     # Create hybrid provider
     return HybridAuthProvider(
         oauth_provider=oauth_provider,
         internal_token=internal_token,
-        supabase_jwt_secret=supabase_jwt_secret,
-        supabase_project_id=supabase_project_id
+        authkit_client_id=authkit_client_id,
+        authkit_jwks_uri=authkit_jwks_uri
     )
 
