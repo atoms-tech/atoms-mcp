@@ -22,24 +22,28 @@ if '/var/task' not in sys.path and os.path.exists('/var/task'):
     sys.path.insert(0, '/var/task')
 
 # Try to create the FastMCP server instance with error handling
+server_creation_error = None
 try:
     from server import create_consolidated_server
     mcp = create_consolidated_server()
+    print("✅ Server created successfully with tools", file=sys.stderr)
 except Exception as e:
     # If server creation fails, create a minimal error app
-    print(f"ERROR: Failed to create server: {e}", file=sys.stderr)
+    server_creation_error = str(e)
+    print(f"❌ ERROR: Failed to create server: {e}", file=sys.stderr)
     traceback.print_exc()
 
     # Create a minimal FastMCP instance for error reporting
     from fastmcp import FastMCP
     mcp = FastMCP("atoms-mcp-error", dependencies=[])
+    print("⚠️  Created error MCP instance (no tools)", file=sys.stderr)
 
 # Add root route handler
 @mcp.custom_route("/", methods=["GET"])
 async def root(request):
     """Root endpoint with service information."""
     try:
-        return JSONResponse({
+        response_data = {
             "service": "Atoms MCP Server",
             "version": "1.0.0",
             "endpoints": {
@@ -48,8 +52,12 @@ async def root(request):
                 "auth_start": "/auth/start",
                 "auth_complete": "/auth/complete"
             },
-            "status": "running"
-        })
+            "status": "running" if not server_creation_error else "degraded"
+        }
+        if server_creation_error:
+            response_data["error"] = server_creation_error
+            response_data["warning"] = "Server created with error - tools may not be available"
+        return JSONResponse(response_data)
     except Exception as e:
         return PlainTextResponse(f"Error: {e}\n{traceback.format_exc()}", status_code=500)
 
