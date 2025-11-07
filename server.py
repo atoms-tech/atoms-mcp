@@ -5,15 +5,21 @@ from __future__ import annotations
 import os
 import logging
 import warnings
+import sys
 from typing import Any, Dict, Optional
 
 # Suppress websockets deprecation warnings from uvicorn
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets")
 
+# Fix Python path for Vercel deployment
+# This ensures all modules are available in the serverless environment
+if not os.path.dirname(os.path.abspath(__file__)) in sys.path:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_access_token
 
-# Support both relative and absolute imports
+# Import tools with fallback for different environments
 try:
     from .tools import (
         workspace_operation,
@@ -23,6 +29,7 @@ try:
         data_query,
     )
 except ImportError:
+    # For Vercel deployment and other flat structures
     from tools import (
         workspace_operation,
         entity_operation,
@@ -294,41 +301,36 @@ def create_consolidated_server() -> FastMCP:
         f"🔍 DEBUG: FASTMCP environment variables after loading .env: {fastmcp_vars}"
     )
 
-    # Create auth provider with base URL, preferring public URLs configured for AuthKit/Cloudflare
-    base_url = os.getenv("ATOMS_FASTMCP_BASE_URL")
+    # Create auth provider with base URL
+    # Use FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL which is set per environment:
+    # - Local: http://localhost:8000 or http://127.0.0.1:8000
+    # - Vercel Preview: https://mcpdev.atoms.tech
+    # - Vercel Production: https://mcp.atoms.tech
+
+    base_url_raw = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
+    logger.info(f"🔍 DEBUG: Raw FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL from env: '{base_url_raw}'")
+    print(f"🔍 DEBUG: Raw BASE_URL from env: '{base_url_raw}'")
+
+    base_url = base_url_raw
+
+    # Clean up the URL (remove /api/mcp or /mcp suffix if present)
+    if base_url:
+        base_url = base_url.rstrip("/")
+        if base_url.endswith("/api/mcp"):
+            base_url = base_url[: -len("/api/mcp")]
+            logger.info(f"🔍 DEBUG: Stripped /api/mcp suffix")
+        elif base_url.endswith("/mcp"):
+            base_url = base_url[: -len("/mcp")]
+            logger.info(f"🔍 DEBUG: Stripped /mcp suffix")
+
+    # Fallback if not set
     if not base_url:
-        # Construct from environment if not provided
         host = os.getenv("ATOMS_FASTMCP_HOST", "127.0.0.1")
         port = os.getenv("ATOMS_FASTMCP_PORT", "8000")
-        transport = os.getenv("ATOMS_FASTMCP_TRANSPORT", "stdio")
+        base_url = f"http://{host}:{port}"
+        logger.warning(f"⚠️  FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL not set, using fallback: {base_url}")
 
-        if transport == "http":
-            base_url = f"http://{host}:{port}"
-
-    public_base_url = (
-        os.getenv("ATOMS_FASTMCP_PUBLIC_BASE_URL")
-        or os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
-        or os.getenv("PUBLIC_URL")
-    )
-    if public_base_url:
-        cleaned = public_base_url.rstrip("/")
-        if cleaned.endswith("/api/mcp"):
-            cleaned = cleaned[: -len("/api/mcp")]
-        if cleaned.endswith("/mcp"):
-            cleaned = cleaned[: -len("/mcp")]
-        base_url = cleaned
-
-    # Vercel-specific: use VERCEL_URL if no public URL is configured
-    vercel_url = os.getenv("VERCEL_URL")
-    if not public_base_url and vercel_url:
-        guess = f"https://{vercel_url}".rstrip("/")
-        # Strip /api/mcp suffix if present
-        if guess.endswith("/api/mcp"):
-            guess = guess[: -len("/api/mcp")]
-        base_url = guess
-        logger.info(f"Using VERCEL_URL for base URL: {base_url}")
-
-    logger.info(f"Resolved base URL for AuthKit/public metadata: {base_url}")
+    logger.info(f"✅ Resolved base URL for OAuth resource: {base_url}")
     print(f"🌐 AUTH BASE URL -> {base_url}")
 
     # Configure hybrid authentication (OAuth + Bearer tokens)

@@ -38,10 +38,13 @@ class HybridAuthProvider(AuthProvider):
         """
         self.oauth_provider = oauth_provider
 
-        # Expose attributes from OAuth provider for FastMCP compatibility
+        # Expose ALL attributes from OAuth provider for FastMCP compatibility
+        # This ensures HybridAuthProvider is a drop-in replacement for AuthKitProvider
         self.base_url = oauth_provider.base_url
         self.required_scopes = getattr(oauth_provider, 'required_scopes', [])
         self.authkit_domain = getattr(oauth_provider, 'authkit_domain', None)
+        self.resource_server_url = getattr(oauth_provider, 'resource_server_url', None)
+        self.authorization_servers = getattr(oauth_provider, 'authorization_servers', [])
 
         # Setup internal token verifier
         self.internal_token_verifier = None
@@ -132,6 +135,45 @@ class HybridAuthProvider(AuthProvider):
     def supports_bearer_tokens(self) -> bool:
         """Indicate that bearer tokens are supported."""
         return self.internal_token_verifier is not None or self.authkit_jwt_verifier is not None
+
+    def get_routes(self, mcp_path: Optional[str] = None):
+        """Get OAuth discovery routes from the underlying OAuth provider.
+
+        This is CRITICAL for MCP clients to discover OAuth endpoints.
+        The HybridAuthProvider must expose the same routes as AuthKitProvider.
+
+        Args:
+            mcp_path: The MCP endpoint path (passed by FastMCP, but not used by AuthKitProvider)
+        """
+        # Delegate to the OAuth provider to get all OAuth discovery routes
+        # Note: AuthKitProvider.get_routes() doesn't accept parameters, so we ignore mcp_path
+        # FastMCP may pass mcp_path in newer versions, but AuthKitProvider doesn't use it
+        return self.oauth_provider.get_routes()
+
+    def get_resource_metadata_url(self):
+        """Get the resource metadata URL from the underlying OAuth provider."""
+        return self.oauth_provider.get_resource_metadata_url()
+
+    def get_middleware(self):
+        """Get middleware from the underlying OAuth provider.
+
+        This method may be called by newer versions of FastMCP.
+        If the OAuth provider doesn't have this method, return an empty list.
+        """
+        if hasattr(self.oauth_provider, 'get_middleware'):
+            return self.oauth_provider.get_middleware()
+        return []
+
+    def _get_resource_url(self, mcp_path: str):
+        """Get the resource URL for the given MCP path.
+
+        This method may be called by newer versions of FastMCP.
+        Delegate to the OAuth provider if it has this method.
+        """
+        if hasattr(self.oauth_provider, '_get_resource_url'):
+            return self.oauth_provider._get_resource_url(mcp_path)
+        # Fallback: construct from base_url and mcp_path
+        return f"{self.base_url.rstrip('/')}{mcp_path}"
 
 
 def create_hybrid_auth_provider(
