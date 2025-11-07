@@ -32,7 +32,7 @@ htmlcov/
 pheno_vendor/
 lib/
 src/
-infrastructure/
+# infrastructure/ - NEEDED for deployment! Contains adapters and rate limiter
 archive/
 examples/
 
