@@ -13,8 +13,12 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="websocket
 
 # Fix Python path for Vercel deployment
 # This ensures all modules are available in the serverless environment
-if not os.path.dirname(os.path.abspath(__file__)) in sys.path:
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+# Also add /var/task explicitly for Vercel
+if '/var/task' not in sys.path and os.path.exists('/var/task'):
+    sys.path.insert(0, '/var/task')
 
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_access_token

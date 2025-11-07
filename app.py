@@ -14,8 +14,12 @@ from starlette.responses import JSONResponse, PlainTextResponse
 
 # Add the current directory to Python path for Vercel serverless environment
 # This ensures that imports like 'infrastructure', 'tools', etc. work correctly
-if os.path.dirname(__file__) not in sys.path:
-    sys.path.insert(0, os.path.dirname(__file__))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+# Also add /var/task explicitly for Vercel
+if '/var/task' not in sys.path and os.path.exists('/var/task'):
+    sys.path.insert(0, '/var/task')
 
 # Try to create the FastMCP server instance with error handling
 try:
