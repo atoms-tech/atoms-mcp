@@ -12,7 +12,6 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 # Import shared fixtures
 pytest_plugins = ["tests.unit.tools.conftest_query"]
 class TestQuerySort:
-    @pytest.mark.story("Data Management - User can sort results")
     """Test sorting and ordering of query results."""
     
     

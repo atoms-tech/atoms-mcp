@@ -13,8 +13,8 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestEntityArchive:
     """ARCHIVE/RESTORE operations for all entity types."""
 
-    async def test_soft_delete_entity(self, call_mcp):
-        """Test soft-deleting an entity.
+    async def test_archive_entity(self, call_mcp):
+        """Test archiving an entity.
 
         User story: User can archive an entity
         """
@@ -31,22 +31,22 @@ class TestEntityArchive:
         if isinstance(create_result, dict) and "id" in create_result:
             org_id = create_result["id"]
 
-            # Soft delete it
-            delete_result, _ = await call_mcp(
+            # Archive it using explicit archive operation
+            archive_result, _ = await call_mcp(
                 "entity_tool",
                 {
-                    "operation": "delete",
+                    "operation": "archive",
                     "entity_type": "organization",
-                    "entity_id": org_id,
-                    "soft_delete": True
+                    "entity_id": org_id
                 }
             )
 
-            assert delete_result is not None
-            assert delete_result.get("success") is not False
+            assert archive_result is not None
+            assert archive_result.get("success") is True
+            assert archive_result.get("operation") == "archive"
 
     async def test_restore_archived_entity(self, call_mcp):
-        """Test restoring a soft-deleted entity.
+        """Test restoring an archived entity.
 
         User story: User can restore an archived entity
         """
@@ -67,25 +67,25 @@ class TestEntityArchive:
             await call_mcp(
                 "entity_tool",
                 {
-                    "operation": "delete",
+                    "operation": "archive",
                     "entity_type": "organization",
-                    "entity_id": org_id,
-                    "soft_delete": True
+                    "entity_id": org_id
                 }
             )
 
-            # Restore it
+            # Restore it using explicit restore operation
             restore_result, _ = await call_mcp(
                 "entity_tool",
                 {
-                    "operation": "update",
+                    "operation": "restore",
                     "entity_type": "organization",
-                    "entity_id": org_id,
-                    "data": {"is_deleted": False}
+                    "entity_id": org_id
                 }
             )
 
             assert restore_result is not None
+            assert restore_result.get("success") is True
+            assert restore_result.get("operation") == "restore"
 
 
 class TestArchiveUserStories:

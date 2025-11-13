@@ -526,6 +526,7 @@ def create_consolidated_server() -> FastMCP:
         pagination: Optional[dict] = None,
         filter_list: Optional[list] = None,
         sort_list: Optional[list] = None,
+        include_archived: bool = False,
     ) -> dict:
         """Unified CRUD operations with smart parameter inference and fuzzy matching.
 

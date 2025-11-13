@@ -668,7 +668,7 @@ _entity_manager = EntityManager()
 
 async def entity_operation(
     auth_token: str,
-    operation: Literal["create", "read", "update", "delete", "search", "list", "batch_create"],
+    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create"],
     entity_type: str,
     data: Optional[Dict[str, Any]] = None,
     filters: Optional[Dict[str, Any]] = None,
@@ -863,6 +863,45 @@ async def entity_operation(
                 "soft_delete": soft_delete
             }
             return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "archive":
+            if not entity_id:
+                raise ValueError("entity_id is required for archive operation")
+            t_op_start = time.time()
+            # Archive is soft-delete with is_deleted=true
+            success = await _entity_manager.delete_entity(
+                entity_type, entity_id, soft_delete=True
+            )
+            timings["archive"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result = {
+                "success": success,
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "operation": "archive",
+                "message": f"{entity_type} archived successfully"
+            }
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "restore":
+            if not entity_id:
+                raise ValueError("entity_id is required for restore operation")
+            t_op_start = time.time()
+            # Restore is update setting is_deleted=false
+            result = await _entity_manager.update_entity(
+                entity_type, entity_id, {"is_deleted": False}, include_relations
+            )
+            timings["restore"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            formatted = _entity_manager._format_result(result, format_type)
+            restore_result = {
+                "success": result is not None,
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "operation": "restore",
+                "data": formatted
+            }
+            return _entity_manager._add_timing_metrics(restore_result, timings)
 
         elif operation == "search":
             t_op_start = time.time()

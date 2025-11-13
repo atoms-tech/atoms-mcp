@@ -275,7 +275,9 @@ class TestHybridAuthProviderOAuthDelegation:
 
     def test_get_middleware_returns_empty_if_not_available(self):
         """Test get_middleware returns empty list if not available on OAuth provider."""
-        mock_oauth = MagicMock(spec=[])  # No get_middleware method
+        mock_oauth = MagicMock()
+        # Remove get_middleware to simulate it not being available
+        del mock_oauth.get_middleware
         
         provider = HybridAuthProvider(oauth_provider=mock_oauth)
         
