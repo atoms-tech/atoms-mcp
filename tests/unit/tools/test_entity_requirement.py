@@ -25,7 +25,14 @@ class TestRequirementCRUD:
     @pytest.mark.story("Requirements Traceability - User can create requirement")
     @pytest.mark.unit
     async def test_create_requirement(self, call_mcp, test_organization):
-        """User can create requirements."""
+        """User can create requirements.
+        
+        User Story: User can create requirements
+        Acceptance Criteria:
+        - Requirement can be created with name and document_id
+        - Requirement gets unique ID
+        - Requirement is stored successfully
+        """
         # Create project first
         project_result, _ = await call_mcp(
             "entity_tool",
@@ -41,19 +48,38 @@ class TestRequirementCRUD:
 
         # Handle project_result parsing
         if hasattr(project_result, "data"):
-            project_success = project_result.data.get("success", True)
             project_data = project_result.data.get("data", {})
-            project_id = project_data.get("id")
         else:
-            project_success = project_result.get("success", True)
             project_data = project_result.get("data", {})
-            project_id = project_data.get("id")
         
-        # Skip test if project creation failed
+        project_id = project_data.get("id")
         if not project_id:
             pytest.skip("Could not create test project")
 
-        # Create requirement
+        # Create document (requirement needs document_id, not project_id)
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "document",
+                "data": {
+                    "name": f"Req Doc {uuid.uuid4().hex[:8]}",
+                    "project_id": project_id,
+                },
+            },
+        )
+
+        # Parse document result
+        if hasattr(doc_result, "data"):
+            doc_data = doc_result.data.get("data", {})
+        else:
+            doc_data = doc_result.get("data", {})
+        
+        document_id = doc_data.get("id")
+        if not document_id:
+            pytest.skip("Could not create test document")
+
+        # Create requirement (requires document_id, not project_id)
         result, _ = await call_mcp(
             "entity_tool",
             {
@@ -61,9 +87,8 @@ class TestRequirementCRUD:
                 "entity_type": "requirement",
                 "data": {
                     "name": f"Test Requirement {uuid.uuid4().hex[:8]}",
-                    "project_id": project_id,
+                    "document_id": document_id,
                     "description": "Requirement description",
-                    "requirement_type": "functional",
                     "priority": "high",
                 },
             },
@@ -77,17 +102,22 @@ class TestRequirementCRUD:
             success = result.get("success", False)
             data = result.get("data", {})
 
-        # Skip if requirement creation failed
-        if not success:
-            pytest.skip("Could not create requirement for testing")
-        
-        assert "id" in data
-        assert data.get("project_id") == project_id
+        # Verify requirement was created
+        assert success, f"Requirement creation failed: {result}"
+        assert "id" in data, "Requirement should have an ID"
+        assert data.get("document_id") == document_id, "Requirement should reference correct document"
 
     @pytest.mark.story("Requirements Traceability - User can view requirement")
     @pytest.mark.unit
     async def test_read_requirement(self, call_mcp, test_organization):
-        """User can pull requirements from system."""
+        """User can pull requirements from system.
+        
+        User Story: User can view requirement
+        Acceptance Criteria:
+        - Requirement can be retrieved by ID
+        - Retrieved requirement has correct fields
+        - Requirement data is accurate
+        """
         # Create project first
         project_result, _ = await call_mcp(
             "entity_tool",
@@ -104,13 +134,35 @@ class TestRequirementCRUD:
         # Parse project result
         if hasattr(project_result, "data"):
             project_data = project_result.data.get("data", {})
-            project_id = project_data.get("id")
         else:
             project_data = project_result.get("data", {})
-            project_id = project_data.get("id")
         
+        project_id = project_data.get("id")
         if not project_id:
             pytest.skip("Could not create test project")
+
+        # Create document (requirement needs document_id)
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "document",
+                "data": {
+                    "name": f"Req Doc {uuid.uuid4().hex[:8]}",
+                    "project_id": project_id,
+                },
+            },
+        )
+
+        # Parse document result
+        if hasattr(doc_result, "data"):
+            doc_data = doc_result.data.get("data", {})
+        else:
+            doc_data = doc_result.get("data", {})
+        
+        document_id = doc_data.get("id")
+        if not document_id:
+            pytest.skip("Could not create test document")
 
         # Create requirement
         req_result, _ = await call_mcp(
@@ -120,7 +172,7 @@ class TestRequirementCRUD:
                 "entity_type": "requirement",
                 "data": {
                     "name": f"Req to Read {uuid.uuid4().hex[:8]}",
-                    "project_id": project_id,
+                    "document_id": document_id,
                 },
             },
         )
@@ -128,11 +180,10 @@ class TestRequirementCRUD:
         # Parse requirement result
         if hasattr(req_result, "data"):
             req_data = req_result.data.get("data", {})
-            req_id = req_data.get("id")
         else:
             req_data = req_result.get("data", {})
-            req_id = req_data.get("id")
         
+        req_id = req_data.get("id")
         if not req_id:
             pytest.skip("Could not create test requirement")
 
@@ -154,8 +205,10 @@ class TestRequirementCRUD:
             success = result.get("success", False)
             data = result.get("data", {})
 
-        assert success, "Requirement read failed"
-        assert data.get("id") == req_id
+        # Verify requirement was read successfully
+        assert success, f"Requirement read failed: {result}"
+        assert data.get("id") == req_id, "Retrieved requirement should have correct ID"
+        assert data.get("document_id") == document_id, "Retrieved requirement should reference correct document"
 
 
 class TestRequirementSearch:
