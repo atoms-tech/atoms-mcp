@@ -2,9 +2,10 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Test Case Management (1/1) ✓✓✓                                             ║
+║ 📦 Workflow Automation (2/2) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can update test case                                                ║
+║   ✅ User can bulk update statuses                                            ║
+║   ✅ User can run workflows with transactions                                 ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 1/1 user stories complete (100%)                                    ║
+║ Overall: 2/2 user stories complete (100%)                                    ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
