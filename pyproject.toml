@@ -57,7 +57,7 @@ dev-dependencies = [
 ]
 
 [project.scripts]
-atoms = "cli:main"
+atoms = "atoms_mcp:main"
 
 [tool.uv.sources]
 # SST Python SDK from GitHub
