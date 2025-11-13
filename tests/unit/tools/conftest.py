@@ -310,6 +310,7 @@ def fast_mcp_server():
         include_relations: bool = False,
         batch: list = None,
         search_term: str = None,
+        query: str = None,  # Alias for search_term
         parent_type: str = None,
         parent_id: str = None,
         limit: int = None,
@@ -327,6 +328,8 @@ def fast_mcp_server():
     ) -> dict:
         """Entity CRUD operations."""
         try:
+            # Use query as alias for search_term if search_term not provided
+            search_term_final = search_term or query
             return await entity_operation(
                 auth_token="test-token",
                 entity_type=entity_type,
@@ -336,7 +339,7 @@ def fast_mcp_server():
                 entity_id=entity_id,
                 include_relations=include_relations,
                 batch=batch,
-                search_term=search_term,
+                search_term=search_term_final,
                 parent_type=parent_type,
                 parent_id=parent_id,
                 limit=limit,
