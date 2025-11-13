@@ -1,14 +1,35 @@
-"""Tests for performance edge cases and large data handling."""
+"""Performance tests for entity operations at scale.
+
+Tests for:
+- Large dataset handling and pagination
+- Bulk operations at scale
+- Search performance with large indexes
+- Export/import performance
+- Deep and wide relationship graphs
+- Concurrent operation handling
+- Memory efficiency
+- Edge cases in pagination
+
+Consolidated from: test_performance_ext11.py (with @pytest.mark.performance marker)
+
+These tests verify system behavior under load and with large datasets.
+Run with: pytest -m performance tests/unit/tools/test_performance.py -v
+"""
 
 import pytest
 import asyncio
 import time
+import sys
+import json
+
+
+pytestmark = [pytest.mark.asyncio, pytest.mark.unit, pytest.mark.performance]
 
 
 class TestLargeDatasetHandling:
     """Test handling of large datasets."""
 
-    @pytest.mark.asyncio
+    @pytest.mark.performance
     async def test_list_1000_items_pagination(self, call_mcp):
         """Test listing 1000 items with pagination."""
         # Simulate creating 1000 items
@@ -19,11 +40,9 @@ class TestLargeDatasetHandling:
         pages = item_count // page_size
         assert pages == 10
 
-    @pytest.mark.asyncio
+    @pytest.mark.performance
     async def test_list_large_dataset_memory_efficient(self):
         """Test listing large dataset uses memory efficiently."""
-        import sys
-        
         # Create a list of mock objects
         items = [{"id": f"item-{i}", "data": f"data-{i}"} for i in range(10000)]
         
@@ -32,6 +51,7 @@ class TestLargeDatasetHandling:
         # Rough check: 10000 items shouldn't be more than a few MB
         assert size < 10_000_000  # 10 MB
 
+    @pytest.mark.performance
     def test_pagination_offset_limit_calculation(self):
         """Test pagination math for large datasets."""
         total_items = 50000
@@ -45,6 +65,7 @@ class TestLargeDatasetHandling:
             assert offset < total_items
             assert offset + limit <= total_items + page_size
 
+    @pytest.mark.performance
     def test_large_result_set_sorting(self):
         """Test sorting large result sets."""
         items = [{"id": i, "value": 1000 - i} for i in range(1000)]
@@ -59,6 +80,7 @@ class TestLargeDatasetHandling:
 class TestBulkOperationsAtScale:
     """Test bulk operations with large numbers."""
 
+    @pytest.mark.performance
     def test_bulk_update_10000_items(self):
         """Test bulk updating 10000 items."""
         entity_ids = [f"entity-{i}" for i in range(10000)]
@@ -67,6 +89,7 @@ class TestBulkOperationsAtScale:
         # All items should be processable
         assert len(entity_ids) == 10000
 
+    @pytest.mark.performance
     def test_bulk_delete_5000_items(self):
         """Test bulk deleting 5000 items."""
         entity_ids = [f"entity-{i}" for i in range(5000)]
@@ -74,6 +97,7 @@ class TestBulkOperationsAtScale:
         # Should handle deletion of large batch
         assert len(entity_ids) == 5000
 
+    @pytest.mark.performance
     def test_bulk_operation_batch_processing(self):
         """Test bulk operations process in batches."""
         total_items = 10000
@@ -82,6 +106,7 @@ class TestBulkOperationsAtScale:
         batches = total_items // batch_size
         assert batches == 100
 
+    @pytest.mark.performance
     def test_bulk_operation_error_tracking(self):
         """Test error tracking in bulk operations."""
         total = 1000
@@ -94,7 +119,7 @@ class TestBulkOperationsAtScale:
 class TestSearchPerformanceAtScale:
     """Test search performance with large indexes."""
 
-    @pytest.mark.asyncio
+    @pytest.mark.performance
     async def test_search_large_index_performance(self):
         """Test search on large index completes reasonably."""
         start = time.time()
@@ -111,6 +136,7 @@ class TestSearchPerformanceAtScale:
         assert elapsed < 5.0
         assert len(sorted_results) == 10000
 
+    @pytest.mark.performance
     def test_search_facet_aggregation_performance(self):
         """Test facet aggregation performance."""
         results = [
@@ -130,6 +156,7 @@ class TestSearchPerformanceAtScale:
         assert len(facets) == 2
         assert len(facets["status"]) == 10
 
+    @pytest.mark.performance
     def test_search_result_limiting(self):
         """Test result limiting prevents excessive data."""
         all_results = [{"id": i} for i in range(10000)]
@@ -143,6 +170,7 @@ class TestSearchPerformanceAtScale:
 class TestExportPerformance:
     """Test export performance with large datasets."""
 
+    @pytest.mark.performance
     def test_export_large_dataset_csv_formatting(self):
         """Test exporting large dataset to CSV."""
         items = [
@@ -154,10 +182,9 @@ class TestExportPerformance:
         rows = len(items)
         assert rows == 5000
 
+    @pytest.mark.performance
     def test_export_json_serialization_large_dataset(self):
         """Test JSON serialization of large dataset."""
-        import json
-        
         items = [{"id": i, "data": f"data-{i}"} for i in range(1000)]
         
         # Serialize to JSON
@@ -166,10 +193,9 @@ class TestExportPerformance:
         # Should produce valid JSON
         assert json.loads(json_str) == items
 
+    @pytest.mark.performance
     def test_export_memory_usage_large_dataset(self):
         """Test memory usage during large export."""
-        import sys
-        
         # Create large dataset
         items = [{"id": i, "value": i * 2} for i in range(10000)]
         
@@ -183,10 +209,9 @@ class TestExportPerformance:
 class TestImportPerformance:
     """Test import performance."""
 
+    @pytest.mark.performance
     def test_import_parse_large_json(self):
         """Test parsing large JSON file."""
-        import json
-        
         # Create large data structure
         data = [{"id": i, "name": f"Item {i}"} for i in range(5000)]
         json_str = json.dumps(data)
@@ -195,6 +220,7 @@ class TestImportPerformance:
         parsed = json.loads(json_str)
         assert len(parsed) == 5000
 
+    @pytest.mark.performance
     def test_import_duplicate_detection_large_dataset(self):
         """Test duplicate detection on large dataset."""
         items = list(range(5000)) + list(range(100))  # 5100 items, 100 duplicates
@@ -215,6 +241,7 @@ class TestImportPerformance:
 class TestDeepRelationshipGraphs:
     """Test handling of deep relationship graphs."""
 
+    @pytest.mark.performance
     def test_deep_relationship_traversal(self):
         """Test traversing deep relationship graph."""
         # Create a chain of relationships: A -> B -> C -> ... -> Z
@@ -227,6 +254,7 @@ class TestDeepRelationshipGraphs:
         
         assert len(relationships) == 100
 
+    @pytest.mark.performance
     def test_wide_relationship_graph(self):
         """Test handling wide relationship graph (many children)."""
         # One parent with 1000 children
@@ -235,6 +263,7 @@ class TestDeepRelationshipGraphs:
         
         assert len(children) == 1000
 
+    @pytest.mark.performance
     def test_complex_relationship_graph(self):
         """Test complex multi-directional relationships."""
         graph = {}
@@ -250,7 +279,7 @@ class TestDeepRelationshipGraphs:
 class TestConcurrentLoadHandling:
     """Test handling concurrent operations at scale."""
 
-    @pytest.mark.asyncio
+    @pytest.mark.performance
     async def test_concurrent_operations_100(self):
         """Test 100 concurrent operations."""
         async def mock_operation():
@@ -264,7 +293,7 @@ class TestConcurrentLoadHandling:
         assert len(results) == 100
         assert all(r == "success" for r in results)
 
-    @pytest.mark.asyncio
+    @pytest.mark.performance
     async def test_concurrent_bulk_updates(self):
         """Test concurrent bulk updates."""
         async def bulk_update(batch_id):
@@ -282,6 +311,7 @@ class TestConcurrentLoadHandling:
 class TestMemoryLeakPrevention:
     """Test prevention of memory leaks."""
 
+    @pytest.mark.performance
     def test_result_set_cleanup(self):
         """Test result sets are properly cleaned up."""
         # Create large result set
@@ -292,6 +322,7 @@ class TestMemoryLeakPrevention:
         
         assert len(results) == 0
 
+    @pytest.mark.performance
     def test_cache_eviction(self):
         """Test cache eviction for large datasets."""
         cache = {}
@@ -316,6 +347,7 @@ class TestMemoryLeakPrevention:
 class TestPaginationEdgeCases:
     """Test pagination edge cases."""
 
+    @pytest.mark.performance
     def test_pagination_exact_boundary(self):
         """Test pagination at exact boundary."""
         total = 1000
@@ -325,6 +357,7 @@ class TestPaginationEdgeCases:
         last_page_num = (total - 1) // page_size
         assert last_page_num == 9
 
+    @pytest.mark.performance
     def test_pagination_single_item(self):
         """Test pagination with single item."""
         total = 1
@@ -335,6 +368,7 @@ class TestPaginationEdgeCases:
         count = min(limit, total - offset)
         assert count == 1
 
+    @pytest.mark.performance
     def test_pagination_empty_result(self):
         """Test pagination beyond end."""
         total = 100
