@@ -251,9 +251,17 @@ class TestProjectList:
 class TestProjectBatch:
     """Test batch project operations."""
 
+    @pytest.mark.story("Data Management - User can batch create multiple entities")
     @pytest.mark.unit
     async def test_batch_create_projects(self, call_mcp, test_organization):
-        """Test batch creation of projects."""
+        """Test batch creation of projects.
+        
+        User Story: User can batch create multiple entities
+        Acceptance Criteria:
+        - Multiple entities can be created in a single batch operation
+        - All entities in batch are created successfully
+        - Each entity gets a unique ID
+        """
         batch_data = [
             {
                 "name": f"Batch Project {i}",
