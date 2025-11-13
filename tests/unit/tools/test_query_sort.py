@@ -13,6 +13,8 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 pytest_plugins = ["tests.unit.tools.conftest_query"]
 class TestQuerySort:
     """Test sorting and ordering of query results."""
+
+    @pytest.mark.story("Data Management - User can sort results")
     
     
     async def test_sort_ascending_by_name(self, call_mcp, test_entities):
