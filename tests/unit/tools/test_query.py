@@ -80,6 +80,7 @@ async def test_entities(call_mcp, test_entities_fixture):
 class TestQuerySearch:
     """Test search query type."""
     
+    @pytest.mark.story("Search & Discovery - User can search all entities")
     async def test_basic_search(self, call_mcp, test_entities):
         """Test basic text search across entities."""
         # Works with or without test entities
@@ -134,6 +135,7 @@ class TestQuerySearch:
         # Should return result (success or error), not crash
         assert result is not None
     
+    @pytest.mark.story("Data Management - User can sort results")
     async def test_search_with_limit(self, call_mcp, test_entities):
         """Test search respects limit parameter."""
         result, _ = await call_mcp("query_tool", {
@@ -150,6 +152,7 @@ class TestQuerySearch:
 class TestQueryAggregate:
     """Test aggregate query type."""
     
+    @pytest.mark.story("Search & Discovery - User can count aggregates")
     async def test_aggregate_count(self, call_mcp):
         """Test aggregation with count."""
         result, _ = await call_mcp("query_tool", {
@@ -198,6 +201,7 @@ class TestQueryRAGSearch:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Search & Discovery - User can semantic search")
     async def test_rag_search_semantic_mode(self, call_mcp, test_entities):
         """Test RAG search with semantic mode."""
         result, _ = await call_mcp("query_tool", {
@@ -211,6 +215,7 @@ class TestQueryRAGSearch:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Search & Discovery - User can keyword search")
     async def test_rag_search_keyword_mode(self, call_mcp, test_entities):
         """Test RAG search with keyword mode."""
         result, _ = await call_mcp("query_tool", {
@@ -223,6 +228,7 @@ class TestQueryRAGSearch:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Search & Discovery - User can hybrid search")
     async def test_rag_search_hybrid_mode(self, call_mcp, test_entities):
         """Test RAG search with hybrid mode."""
         result, _ = await call_mcp("query_tool", {
@@ -267,6 +273,7 @@ class TestQueryRelationships:
 class TestQuerySimilarity:
     """Test similarity query type."""
     
+    @pytest.mark.story("Search & Discovery - User can find similar items")
     async def test_similarity_search(self, call_mcp):
         """Test finding similar content."""
         result, _ = await call_mcp("query_tool", {

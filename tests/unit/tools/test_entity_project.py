@@ -27,6 +27,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestProjectCRUD:
     """Test project CRUD operations."""
 
+    @pytest.mark.story("Project Management - User can create a project")
     @pytest.mark.unit
     async def test_create_project_with_auto_context(self, call_mcp, test_organization):
         """User can create a project (with auto context)."""
@@ -56,6 +57,7 @@ class TestProjectCRUD:
         assert data["organization_id"] == test_organization
         assert "slug" in data  # Auto-generated slug
 
+    @pytest.mark.story("Project Management - User can create a project")
     @pytest.mark.unit
     async def test_create_project_with_explicit_id(self, call_mcp, test_organization):
         """User can create a project (with explicit org ID)."""
@@ -84,6 +86,7 @@ class TestProjectCRUD:
         assert "id" in data
         assert data["organization_id"] == test_organization
 
+    @pytest.mark.story("Project Management - User can view project details")
     @pytest.mark.unit
     async def test_read_project_with_relations(self, call_mcp, test_organization):
         """User can view project details (with relations)."""
@@ -130,6 +133,7 @@ class TestProjectCRUD:
         assert "id" in data
         assert data["id"] == project_id
 
+    @pytest.mark.story("Project Management - User can update project")
     @pytest.mark.unit
     async def test_update_project(self, call_mcp, test_organization):
         """User can update project information."""
@@ -177,6 +181,7 @@ class TestProjectCRUD:
         assert success, "Project update failed"
         assert data.get("name") == new_name
 
+    @pytest.mark.story("Project Management - User can delete project")
     @pytest.mark.unit
     async def test_hard_delete_project(self, call_mcp, test_organization):
         """User can archive a project (hard delete)."""
@@ -205,7 +210,7 @@ class TestProjectCRUD:
                 "operation": "delete",
                 "entity_type": "project",
                 "entity_id": project_id,
-                "soft": False
+                "soft_delete": False
             }
         )
 
@@ -221,6 +226,7 @@ class TestProjectCRUD:
 class TestProjectList:
     """Test project listing."""
 
+    @pytest.mark.story("Project Management - User can list all projects")
     @pytest.mark.unit
     async def test_list_projects_by_organization(self, call_mcp, test_organization):
         """User can list projects in organization."""
@@ -262,7 +268,7 @@ class TestProjectBatch:
             {
                 "operation": "batch_create",
                 "entity_type": "project",
-                "entities": batch_data
+                "batch": batch_data
             }
         )
 

@@ -17,6 +17,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestWorkspaceGetContext:
     """Test getting current workspace context."""
     
+    @pytest.mark.story("Workspace Navigation - User can view current context")
     async def test_get_current_context(self, call_mcp):
         """Test getting current workspace context."""
         result, _ = await call_mcp("workspace_tool", {
@@ -38,6 +39,7 @@ class TestWorkspaceGetContext:
 class TestWorkspaceSetContext:
     """Test setting workspace context."""
     
+    @pytest.mark.story("Workspace Navigation - User can switch to organization")
     async def test_set_organization_context(self, call_mcp):
         """Test setting organization context."""
         result, _ = await call_mcp("workspace_tool", {
@@ -48,6 +50,7 @@ class TestWorkspaceSetContext:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Workspace Navigation - User can switch to project")
     async def test_set_project_context(self, call_mcp):
         """Test setting project context."""
         result, _ = await call_mcp("workspace_tool", {
@@ -58,6 +61,7 @@ class TestWorkspaceSetContext:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Workspace Navigation - User can switch to document")
     async def test_set_document_context(self, call_mcp):
         """Test setting document context."""
         result, _ = await call_mcp("workspace_tool", {
@@ -83,6 +87,7 @@ class TestWorkspaceSetContext:
 class TestWorkspaceListWorkspaces:
     """Test listing available workspaces."""
     
+    @pytest.mark.story("Workspace Navigation - User can list workspaces")
     async def test_list_all_workspaces(self, call_mcp):
         """Test listing all available workspaces."""
         result, _ = await call_mcp("workspace_tool", {
@@ -113,6 +118,7 @@ class TestWorkspaceListWorkspaces:
 class TestWorkspaceGetDefaults:
     """Test getting smart default values."""
     
+    @pytest.mark.story("Workspace Navigation - User can get default context")
     async def test_get_defaults(self, call_mcp):
         """Test getting smart defaults."""
         result, _ = await call_mcp("workspace_tool", {

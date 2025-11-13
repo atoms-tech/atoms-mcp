@@ -66,6 +66,7 @@ class TestOrganizationCRUD:
         assert "name" in data
         assert "type" in data
 
+    @pytest.mark.story("Organization Management - User can view organization details")
     @pytest.mark.unit
     async def test_read_organization_basic(self, call_mcp, test_organization):
         """User can view organization details."""
@@ -90,6 +91,7 @@ class TestOrganizationCRUD:
         assert "id" in data
         assert data["id"] == test_organization
 
+    @pytest.mark.story("Entity Relationships - User can view related entities")
     @pytest.mark.unit
     async def test_read_organization_with_relations(self, call_mcp, test_organization):
         """Test reading organization with related entities."""
@@ -148,6 +150,7 @@ class TestOrganizationCRUD:
         assert success, "Organization update failed"
         assert data.get("name") == new_name
 
+    @pytest.mark.story("Organization Management - User can delete an organization")
     @pytest.mark.unit
     async def test_soft_delete_organization(self, call_mcp):
         """Test soft delete (archive) organization."""
@@ -220,6 +223,7 @@ class TestOrganizationList:
         assert success, "List organizations failed"
         # Should return list of organizations
 
+    @pytest.mark.story("Search & Discovery - User can search all entities")
     @pytest.mark.unit
     async def test_search_organizations_by_term(self, call_mcp):
         """User can search organizations."""
@@ -240,6 +244,7 @@ class TestOrganizationList:
 
         assert success, "Search organizations failed"
 
+    @pytest.mark.story("Search & Discovery - User can filter results")
     @pytest.mark.unit
     async def test_search_organizations_with_filters(self, call_mcp):
         """User can filter search results."""

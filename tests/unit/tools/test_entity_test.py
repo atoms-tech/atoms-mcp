@@ -20,6 +20,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestTestEntityCRUD:
     """Test case entity CRUD operations."""
 
+    @pytest.mark.story("Test Case Management - User can create test case")
     @pytest.mark.unit
     async def test_create_test_case(self, call_mcp, test_organization):
         """User can create test cases."""
@@ -69,6 +70,7 @@ class TestTestEntityCRUD:
         assert "id" in data
         assert data.get("project_id") == project_id
 
+    @pytest.mark.story("Test Case Management - User can view test results")
     @pytest.mark.unit
     async def test_read_test_results(self, call_mcp, test_organization):
         """User can view test results."""

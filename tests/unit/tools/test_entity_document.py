@@ -22,6 +22,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestDocumentCRUD:
     """Test document CRUD operations."""
 
+    @pytest.mark.story("Document Management - User can create document")
     @pytest.mark.unit
     async def test_create_document(self, call_mcp, test_organization):
         """User can create a document."""
@@ -70,6 +71,7 @@ class TestDocumentCRUD:
         assert "id" in data
         assert data.get("project_id") == project_id
 
+    @pytest.mark.story("Document Management - User can view document")
     @pytest.mark.unit
     async def test_read_document(self, call_mcp, test_organization):
         """User can view document content."""
@@ -134,6 +136,7 @@ class TestDocumentCRUD:
 class TestDocumentList:
     """Test document listing."""
 
+    @pytest.mark.story("Document Management - User can list documents")
     @pytest.mark.unit
     async def test_list_documents_by_project(self, call_mcp, test_organization):
         """User can list documents in project."""

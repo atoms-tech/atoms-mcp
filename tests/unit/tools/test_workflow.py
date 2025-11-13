@@ -24,6 +24,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestWorkflowBasic:
     """Test basic workflow execution."""
     
+    @pytest.mark.story("Workflow Automation - User can setup project workflow")
     async def test_setup_project_workflow(self, call_mcp):
         """Test setup_project workflow."""
         result, _ = await call_mcp("workflow_tool", {
@@ -37,6 +38,7 @@ class TestWorkflowBasic:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Workflow Automation - User can import requirements")
     async def test_import_requirements_workflow(self, call_mcp):
         """Test import_requirements workflow."""
         result, _ = await call_mcp("workflow_tool", {
@@ -62,6 +64,7 @@ class TestWorkflowBasic:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Workflow Automation - User can bulk update statuses")
     async def test_bulk_status_update_workflow(self, call_mcp):
         """Test bulk_status_update workflow."""
         result, _ = await call_mcp("workflow_tool", {
@@ -75,6 +78,7 @@ class TestWorkflowBasic:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Workflow Automation - User can onboard organization")
     async def test_organization_onboarding_workflow(self, call_mcp):
         """Test organization_onboarding workflow."""
         result, _ = await call_mcp("workflow_tool", {
@@ -90,6 +94,7 @@ class TestWorkflowBasic:
 class TestWorkflowTransactionMode:
     """Test transaction mode parameter."""
     
+    @pytest.mark.story("Workflow Automation - User can run with transactions")
     async def test_with_transaction_mode_true(self, call_mcp):
         """Test workflow with transaction mode enabled."""
         result, _ = await call_mcp("workflow_tool", {

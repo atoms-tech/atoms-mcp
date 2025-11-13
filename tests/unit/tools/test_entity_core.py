@@ -205,7 +205,7 @@ class TestBatchOperations:
             {
                 "operation": "batch_create",
                 "entity_type": "organization",
-                "entities": batch_data
+                "batch": batch_data
             }
         )
 
@@ -233,7 +233,7 @@ class TestFormatTypes:
                 "operation": "read",
                 "entity_type": "organization",
                 "entity_id": test_organization,
-                "format": "detailed"
+                "format_type": "detailed"
             }
         )
 
@@ -253,7 +253,7 @@ class TestFormatTypes:
                 "operation": "read",
                 "entity_type": "organization",
                 "entity_id": test_organization,
-                "format": "summary"
+                "format_type": "summary"
             }
         )
 

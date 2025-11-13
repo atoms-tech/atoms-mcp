@@ -22,6 +22,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestRequirementCRUD:
     """Test requirement CRUD operations."""
 
+    @pytest.mark.story("Requirements Traceability - User can create requirement")
     @pytest.mark.unit
     async def test_create_requirement(self, call_mcp, test_organization):
         """User can create requirements."""
@@ -71,6 +72,7 @@ class TestRequirementCRUD:
         assert "id" in data
         assert data.get("project_id") == project_id
 
+    @pytest.mark.story("Requirements Traceability - User can view requirement")
     @pytest.mark.unit
     async def test_read_requirement(self, call_mcp, test_organization):
         """User can pull requirements from system."""
@@ -134,6 +136,7 @@ class TestRequirementCRUD:
 class TestRequirementSearch:
     """Test requirement search."""
 
+    @pytest.mark.story("Requirements Traceability - User can search requirements")
     @pytest.mark.unit
     async def test_search_requirements(self, call_mcp):
         """User can search requirements."""

@@ -18,6 +18,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestRelationshipLink:
     """Test linking operations."""
     
+    @pytest.mark.story("Entity Relationships - User can link entities")
     async def test_link_basic(self, call_mcp):
         """Test basic relationship link operation."""
         result, _ = await call_mcp("relationship_tool", {
@@ -41,6 +42,7 @@ class TestRelationshipLink:
         
         assert result is not None, "Should return result"
     
+    @pytest.mark.story("Entity Relationships - User can link entities")
     async def test_link_different_types(self, call_mcp):
         """Test linking different relationship types."""
         for rel_type in ["member", "assignment", "trace_link"]:
@@ -84,6 +86,7 @@ class TestRelationshipUnlink:
 class TestRelationshipList:
     """Test listing operations."""
     
+    @pytest.mark.story("Entity Relationships - User can view related entities")
     async def test_list_relationships(self, call_mcp):
         """Test listing relationships."""
         result, _ = await call_mcp("relationship_tool", {
@@ -127,6 +130,7 @@ class TestRelationshipCheck:
 class TestRelationshipUpdate:
     """Test updating operations."""
     
+    @pytest.mark.story("Entity Relationships - User can update relationships")
     async def test_update_relationship(self, call_mcp):
         """Test updating relationship metadata."""
         result, _ = await call_mcp("relationship_tool", {
