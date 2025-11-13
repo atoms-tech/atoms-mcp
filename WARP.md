@@ -82,33 +82,153 @@ For any debugging or change session executed via Warp:
 
 ## 5. Test File Naming Convention (Canonical Standard)
 
-**Critical**: Test file names must describe **what's being tested**, not how it's tested.
+**Critical**: Test file names must describe **what's being tested**, not how it's tested or when it was written.
 
-### **Examples**
+### **The Core Principle**
+
+A test file name should answer: **"What component/concern does this test?"**
+
+NOT:
+- "How fast is it?" (speed/performance)
+- "What variant?" (unit/integration/e2e)
+- "How mature is it?" (old/new/final/draft/v2)
+- "What phase of testing?" (smoke/integration/e2e)
+
+### **Examples with Detailed Rationale**
 
 ✅ **Good (canonical - concern-based):**
 ```
-test_entity.py                 # Tests the entity tool
-test_entity_validation.py      # Tests entity validation (specific concern)
-test_auth_supabase.py          # Tests Supabase auth integration
-test_relationship_member.py    # Tests member relationship type
+test_entity.py                 # Tests entity tool; all entity operations belong here
+test_entity_validation.py      # Tests validation concern within entity (narrower scope)
+test_auth_supabase.py          # Tests Supabase integration (different provider = different concern)
+test_auth_authkit.py           # Tests AuthKit integration (different provider, separate file)
+test_relationship_member.py    # Tests member relationship type (specific domain)
+test_database_adapter.py       # Tests database adapter (component/infrastructure concern)
+test_embedding_factory.py      # Tests embedding factory (component concern)
 ```
+
+**Why each is canonical:**
+- Each name describes the **component** (entity, auth, relationship) or **integration point** (supabase, authkit)
+- Two files with overlapping names signal consolidation opportunity
+- File name and responsibility are tightly coupled
+- Adding tests to this component naturally extends the existing file
 
 ❌ **Bad (metadata-based - avoid):**
 ```
-test_entity_fast.py            # "fast" is performance trait, not content
-test_entity_unit.py            # "unit" is execution scope, not content
-test_auth_v2.py                # Versioning belongs in git history, not names
-test_relationship_final.py     # "final" adds no semantic info
-test_api_integration.py        # File is already in tests/; "integration" belongs in fixtures
+test_entity_fast.py            # ❌ "fast" is performance trait, not content
+                               # Use: @pytest.mark.performance or same file with markers
+
+test_entity_unit.py            # ❌ "unit" is execution scope, not what's tested
+                               # Use: conftest fixtures (mcp_client_inmemory)
+
+test_entity_integration.py     # ❌ "integration" is client type, not component
+                               # Use: fixture parametrization in same file
+
+test_entity_e2e.py             # ❌ "e2e" is test phase, not concern
+                               # Use: markers + fixtures in same file
+
+test_auth_v2.py                # ❌ Versioning belongs in git history (branch/tag), not names
+                               # If truly different code: name by concern (test_auth_authkit.py)
+                               # If refactored version: delete old, just commit as update
+
+test_entity_old.py             # ❌ Temporal metadata; indicates abandoned code
+test_entity_new.py             # ❌ "new" is also temporal; just refactor
+test_entity_draft.py           # ❌ "draft" suggests WIP; either finish or delete
+test_entity_final.py           # ❌ "final" is vague and temporal; what's "final" to you is not to others
+
+test_api_integration.py        # ❌ Redundant; file is already in tests/
+                               # Better: test_api_google.py or test_api_openai.py (specific integration)
 ```
 
-### **Why This Matters**
+**Recognition checklist:**
+- Does suffix describe *how fast/slow*? → Bad (use markers)
+- Does suffix describe *execution scope* (unit/integration/e2e)? → Bad (use fixtures)
+- Does suffix describe *development phase* (old/new/draft/final)? → Bad (refactor/delete)
+- Does suffix describe *temporal state*? → Bad (use commit history instead)
+- Does suffix describe *test stage*? → Bad (use markers or fixtures)
+- Could two files with similar names be testing the same thing? → Yes = merge them
 
-1. **Prevents accidental test duplication**: If two files have same name pattern, they should probably be merged
-2. **Enables auto-discovery**: Maintainers can scan test/ directory and understand what's covered at a glance
-3. **Supports intelligent consolidation**: When refactoring, canonical names highlight redundancy
-4. **Reduces directory clutter**: No `_old`, `_new`, `_backup`, `_test`, `_draft` suffixes
+### **Why Canonical Naming Matters**
+
+1. **Prevents accidental duplication**
+   - `test_entity_unit.py` + `test_entity_integration.py` both test entity → obvious merge candidate
+   - `test_entity_fast.py` + `test_entity_comprehensive.py` might test same thing but you won't notice
+   - Canonical naming makes duplication *visible*
+
+2. **Enables discovery**
+   - Maintainer scans `tests/unit/tools/` → sees `test_entity.py`, `test_query.py`, `test_workspace.py`
+   - Immediately knows what's covered without opening files
+   - Non-canonical: `test_entity_fast.py`, `test_query_slow.py`, `test_workspace_draft.py` → confusing
+
+3. **Supports intelligent consolidation**
+   - Same component? → Same file. Merge `test_entity.py` + `test_entity_crud.py` if both exist
+   - Different components? → Different files. Keep `test_auth_supabase.py` separate from `test_auth_authkit.py`
+   - Use decision tree (see § 5.1 below) to determine merge vs. separate
+
+4. **Reduces directory clutter**
+   - Canonical names → no `_old`, `_new`, `_draft`, `_v2`, `_final`, `_test`, `_backup` suffixes
+   - One source of truth per concern
+   - Old code: refactor/delete via PR, not stored as separate files
+
+5. **Enables automation**
+   - CI/CD can identify which tests to run based on changed component
+   - Tools can scan test directory and suggest consolidation automatically
+   - Agents (like Claude) can make intelligent decisions about test organization
+
+### **Variant Handling: Fixtures + Markers, NOT Separate Files**
+
+The **single most important decision** in test file organization:
+
+❌ **Bad**: Create separate files for variants
+```python
+# tests/unit/tools/test_entity.py (10 tests × 3 = 30 lines)
+async def test_entity_creation(mcp_client_inmemory):
+    ...
+
+# tests/integration/tools/test_entity.py (same 10 tests, 30 lines)
+async def test_entity_creation(mcp_client_http):  # Same test name!
+    ...
+
+# tests/e2e/tools/test_entity.py (same 10 tests, 30 lines)
+async def test_entity_creation(mcp_client_e2e):  # Same test name again!
+    ...
+
+# Total: 90 lines of code duplication
+# Maintenance nightmare: change test → update 3 places
+```
+
+✅ **Good**: Use fixtures + parametrization
+```python
+# tests/unit/tools/test_entity.py (10 tests, 30 lines)
+@pytest.fixture(params=["unit", "integration", "e2e"])
+def mcp_client(request):
+    """Parametrized client: tests run 3x, once per variant."""
+    if request.param == "unit":
+        return InMemoryMcpClient()
+    elif request.param == "integration":
+        return HttpMcpClient(...)
+    elif request.param == "e2e":
+        return DeploymentMcpClient(...)
+
+async def test_entity_creation(mcp_client):
+    """Runs 3 times automatically: unit, integration, e2e."""
+    ...
+
+# Total: 30 lines (same logic, no duplication)
+# Change test once → all variants update
+# Add new variant → just update fixture
+```
+
+**Benefits:**
+- Single source of truth
+- Same logic runs across variants
+- No code duplication
+- Easier maintenance
+- Same coverage with less code
+
+### **Consolidation Decision Tree**
+
+When you find test files with overlapping concerns:
 
 ### **When to Consolidate Test Files**
 
