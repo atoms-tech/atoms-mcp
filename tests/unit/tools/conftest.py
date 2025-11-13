@@ -240,7 +240,7 @@ def mock_auth_for_unit_tests():
     async def mock_validate_auth(self, auth_token: str) -> Dict[str, Any]:
         """Mock auth validation for testing."""
         # For unit tests, any token is valid and returns a mock user context
-        return {
+        user_info = {
             "user_id": "12345678-1234-1234-1234-123456789012",
             "username": "testuser",
             "email": "test@example.com",
@@ -250,6 +250,9 @@ def mock_auth_for_unit_tests():
             },
             "is_system_admin": True  # Admin in tests to bypass permission checks
         }
+        # Cache user context for this operation (same as real implementation)
+        self._user_context = user_info
+        return user_info
     
     # Patch the _validate_auth method
     ToolBase._validate_auth = mock_validate_auth

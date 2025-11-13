@@ -54,7 +54,7 @@ class TestBasicOperations:
             {
                 "operation": "search",
                 "entity_type": "document",
-                "query": "Search Test Document",
+                "search_term": "Search Test Document",
                 "filters": {"project_id": test_project},
             },
         )
@@ -260,7 +260,7 @@ class TestBulkOperations:
             {
                 "operation": "bulk_create",
                 "entity_type": "document",
-                "data": bulk_data,
+                "batch": list(bulk_data.values()),
             },
         )
 
