@@ -13,7 +13,7 @@
 ║ Search & Discovery            │       7 │        7 │         ✓✓✓ ║
 ║ Workflow Automation           │       5 │        5 │         ✓✓✓ ║
 ║ Data Management               │       3 │        3 │         ✓✓✓ ║
-║ Security & Access             │       4 │        2 │         ✓○○ ║
+║ Security & Access             │       4 │        3 │         ✓✓○ ║
 ╠──────────────────────────────────────────────────────────────────────────────╣
-║ Total: 40/48 user stories complete (83%)                                     ║
+║ Total: 41/48 user stories complete (85%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

@@ -549,9 +549,10 @@ class TestEntityManagerComplete:
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only
+    @pytest.mark.skip(reason="list_entities doesn't accept filters parameter")
     async def test_list_entities_with_filters(self):
         """Test list_entities with filters - SKIPPED: API mismatch."""
-        pytest.skip("list_entities doesn't accept filters parameter")
+        pass
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only
@@ -592,21 +593,24 @@ class TestEntityManagerComplete:
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only
+    @pytest.mark.skip(reason="batch_create_entities method not implemented in EntityManager")
     async def test_batch_create_entities(self):
         """Test batch_create_entities - SKIPPED: Method not implemented."""
-        pytest.skip("batch_create_entities method not implemented in EntityManager")
+        pass
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only
+    @pytest.mark.skip(reason="batch_update_entities method not implemented in EntityManager")
     async def test_batch_update_entities(self):
         """Test batch_update_entities - SKIPPED: Method not implemented."""
-        pytest.skip("batch_update_entities method not implemented in EntityManager")
+        pass
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only
+    @pytest.mark.skip(reason="batch_delete_entities method not implemented in EntityManager")
     async def test_batch_delete_entities(self):
         """Test batch_delete_entities - SKIPPED: Method not implemented."""
-        pytest.skip("batch_delete_entities method not implemented in EntityManager")
+        pass
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only
