@@ -267,7 +267,8 @@ class TestTestEntityCRUD:
             "entity_tool",
             {"operation": "list", "entity_type": "test", "filters": {"project_id": project_id}},
         )
-        assert all(d["id"] != test_id for d in list_result.get("data", {}).get("items", []))
+        items = list_result.get("results", list_result.get("data", []))
+        assert all(d["id"] != test_id for d in items)
 
         # Verify can include with filter
         list_inc_result, _ = await call_mcp(
