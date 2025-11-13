@@ -76,26 +76,118 @@ This repository is designed to work seamlessly with Claude (and other advanced A
 ## Test File Governance (from CLAUDE.md § 3.1)
 
 **Canonical Test Naming Standard:**
-- **File names describe what's tested**, not how (speed/variant)
-- ✅ Good: `test_entity.py`, `test_auth_supabase.py`, `test_relationship_member.py`
-- ❌ Bad: `test_entity_fast.py`, `test_entity_unit.py`, `test_auth_v2.py`
 
-**Variant handling:**
-- Use pytest **fixtures and markers**, not separate files
-- `@pytest.fixture(params=["unit", "integration"])` parametrizes variants within one file
-- `@pytest.mark.performance` marks slow tests; run separately if needed
+Test file names must answer: **"What component/concern does this test?"** – not **"How fast is it?" or "What variant?"**
 
-**Consolidation trigger:**
-If two test files cover the same concern:
-1. Do they test the same module/tool? → Merge (canonical form)
-2. Use different clients? → Parametrize one file with fixture
-3. Different test types? → Use markers, keep one file
-4. Genuinely different subsystems? → Split by subsystem, not variant
+✅ **Good (canonical - concern-based):**
+- `test_entity.py` – all entity tool tests
+- `test_auth_supabase.py` – Supabase-specific auth integration
+- `test_auth_authkit.py` – AuthKit integration (different provider, different concern)
+- `test_relationship_member.py` – member relationship type tests
+- `test_database_adapter.py` – all database adapter tests
+
+❌ **Bad (metadata-based - avoid):**
+- `test_entity_fast.py` – "fast" describes speed, not content (use `@pytest.mark.performance`)
+- `test_entity_unit.py` – "unit" describes scope, not what's tested (use conftest fixtures)
+- `test_entity_integration.py` – "integration" describes client type (use fixture parametrization)
+- `test_entity_e2e.py` – "e2e" describes test stage (use markers)
+- `test_auth_v2.py` – versioning belongs in git history, not file names
+- `test_entity_old.py`, `test_entity_new.py` – temporal metadata (refactor, merge, or delete)
+
+**Why canonical naming matters:**
+1. **Detects duplication** – Similar file names signal they should merge
+2. **Enables discovery** – File name immediately tells what's tested, no need to open the file
+3. **Supports consolidation** – When refactoring, canonical names highlight redundancy
+4. **Reduces clutter** – No `_old`, `_new`, `_fast`, `_slow`, `_draft`, `_v2`, `_final` suffixes
+5. **Enables automation** – Tools and CI/CD can understand test structure and make smart decisions
+
+**Variant handling (critical distinction):**
+
+Use pytest **fixtures and markers**, NOT separate files:
+
+```python
+# ✅ GOOD: One file, multiple variants via fixture
+@pytest.fixture(params=["unit", "integration", "e2e"])
+def mcp_client(request):
+    """Parametrized client: tests run 3 times, once per variant."""
+    if request.param == "unit":
+        return InMemoryMcpClient()  # Fast, deterministic
+    elif request.param == "integration":
+        return HttpMcpClient(...)   # Live database
+    elif request.param == "e2e":
+        return DeploymentMcpClient(...)  # Production setup
+
+async def test_entity_creation(mcp_client):
+    """Runs 3 times automatically: unit, integration, e2e."""
+    result = await mcp_client.call_tool("entity_tool", {...})
+    assert result.success
+
+# ❌ BAD: Three separate files with redundant code
+# test_entity_unit.py, test_entity_integration.py, test_entity_e2e.py
+# (same test, written 3 times = code duplication & maintenance burden)
+```
+
+**Benefits of fixture parametrization:**
+- Single source of truth (one test file)
+- Same logic runs across variants automatically
+- Change test once, all variants update
+- Adding new variant only requires fixture change
+- No code duplication
+
+**Consolidation Decision Tree:**
+
+When multiple test files have overlapping concerns:
+
+| Question | Answer | Action |
+|----------|--------|--------|
+| Same component/tool? | Yes | Merge into single canonical file |
+| Different clients? | Yes | Use `@pytest.fixture(params=[...])` in one file |
+| Different test types (fast vs slow)? | Yes | Use `@pytest.mark.performance` / `@pytest.mark.smoke` |
+| Different subsystems? | Yes | Keep separate, ensure canonical names |
+| Different subsystems? | No | Merge; duplicate concerns |
 
 **Real-world example (from this repo):**
-- ❌ Before: 3,245-line `test_relationship.py` with 14 test classes (3-variant structure)
-- ✅ After: 228-line canonical `test_relationship.py` (unit tests only, focused concerns)
-- Impact: 93% size reduction, no "too many open files" errors, clearer intent
+
+Before refactoring:
+- **File**: 3,245-line `test_relationship.py`
+- **Structure**: 14 test classes, complex 3-variant setup (unit/integration/e2e)
+- **Problem**: Massive file, "too many open files" errors, hard to maintain, redundant test logic
+
+After refactoring:
+- **File**: 228-line canonical `test_relationship.py`
+- **Structure**: 8 focused test classes, unit tests only (variants via fixtures)
+- **Result**: 93% size reduction, no collection errors, clearer intent, same coverage
+
+**Impact table:**
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Lines | 3,245 | 228 | -93% (3,017 lines removed) |
+| Test classes | 14 | 8 | Consolidated redundancy |
+| Code duplication | High (3x) | None (fixture-based) | Eliminated |
+| Variants | 3 variants (3 files) | 1 file + fixtures | Same coverage, cleaner |
+| Collection errors | Frequent | None | ✅ Fixed |
+| Developer confusion | High (many files) | Low (clear naming) | Improved clarity |
+
+**Agent behavior when creating/reviewing test files:**
+
+1. **Discovery**: Always check for existing test files covering same concern
+   - `rg "def test_" tests/` to find similar test names
+   - Look for files with similar prefixes → consolidation candidates
+   
+2. **Naming**: Ensure new test file name is **canonical**
+   - Does it describe "what's tested"? ✅ Good
+   - Does it describe "how fast"? ❌ Use markers instead
+   - Does it describe "which variant"? ❌ Use fixtures instead
+   
+3. **Consolidation**: If two files cover same tool/component
+   - Use checklist above to decide: merge vs. separate
+   - Prefer fixture parametrization over separate files
+   - Prefer markers over creating slow/fast variants
+   
+4. **Documentation**: When consolidating
+   - Update file docstring to list all concerns/variants covered
+   - Document fixture parameters and what each provides
+   - Add consolidation note to git commit message
 
 ## Interaction Rules (from llms-full.txt §17)
 

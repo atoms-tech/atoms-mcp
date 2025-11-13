@@ -119,67 +119,236 @@ For every task (bug, feature, infra, test):
 
 ## 3.1 Test File Naming & Organization (Canonical Standard)
 
-**Critical principle**: Test files must use **canonical naming** that reflects their content's concern, not speed or variant.
+**Critical principle**: Test files must use **canonical naming** that reflects their content's concern, not speed, variant, or development phase.
 
-### **Naming Rules**
+The name of a test file should answer: **"What component/concern does this test?"** not **"How fast is it?" or "What variant is it?"**
 
-✅ **Good (canonical):**
-- `test_entity.py` – tests the entity tool
-- `test_entity_crud.py` – tests CREATE/READ/UPDATE/DELETE operations
-- `test_entity_validation.py` – tests entity validation logic
-- `test_auth_supabase.py` – tests Supabase-specific auth
-- `test_auth_authkit.py` – tests AuthKit integration
-- `test_relationship_member.py` – tests member relationship type
-- `test_relationship_assignment.py` – tests assignment relationship type
+### **Naming Rules with Detailed Rationale**
 
-❌ **Bad (not canonical):**
-- `test_entity_fast.py` – "fast" is about performance, not content (use `@pytest.mark.performance` instead)
-- `test_entity_slow.py` – same issue; use markers
-- `test_entity_unit.py` – "unit" is about execution scope, not content (use conftest fixtures)
-- `test_entity_integration.py` – "integration" is about client type, not content
-- `test_auth_final.py` – "final" adds no semantic information
-- `test_auth_v2.py` – versioning belongs in commit history, not file names
+✅ **Good (canonical - concern-based):**
+- `test_entity.py` – tests the entity tool; any implementation detail for entity operations belongs here
+- `test_entity_crud.py` – tests CREATE/READ/UPDATE/DELETE operations; separated by operation domain
+- `test_entity_validation.py` – tests entity validation logic; separated by technical concern (validation)
+- `test_auth_supabase.py` – tests Supabase-specific auth; separated by provider (integration point)
+- `test_auth_authkit.py` – tests AuthKit integration; different provider, different concern
+- `test_relationship_member.py` – tests member relationship type; separated by relationship domain
+- `test_relationship_assignment.py` – tests assignment relationship type; separate domain, can be merged if overlap grows
+- `test_database_adapter.py` – all database adapter tests; adapter is the concern
+- `test_embedding_factory.py` – all embedding factory tests; factory is the component
+
+**Why each is canonical:**
+- Each name describes *what's being tested* (the component, tool, domain, or integration point)
+- Two files with same test names would indicate duplication → consolidate
+- File name and implementation are tightly coupled; changing implementation invites consolidation review
+
+❌ **Bad (not canonical - metadata-based):**
+- `test_entity_fast.py` – ❌ "fast" describes *speed*, not *content*. Use `@pytest.mark.performance` or `@pytest.mark.smoke` instead
+- `test_entity_slow.py` – ❌ "slow" describes *duration*, not *concern*. Use markers in the same file
+- `test_entity_unit.py` – ❌ "unit" describes *execution scope*, not *what's tested*. Use conftest fixtures (`mcp_client_inmemory`)
+- `test_entity_integration.py` – ❌ "integration" describes *client type*, not *component*. Use fixture parametrization
+- `test_entity_e2e.py` – ❌ "e2e" describes *test stage*, not *concern*. Use fixtures and markers instead
+- `test_auth_final.py` – ❌ "final" is vague and temporal; adds no semantic information. Remove or name by concern
+- `test_auth_v2.py` – ❌ Versioning belongs in git history (branch/tag), not file names. If truly different code, name by concern
+- `test_entity_old.py`, `test_entity_new.py` – ❌ Temporal metadata. Refactor, merge, or delete instead
+- `test_api_integration.py` – ❌ "integration" is redundant; file is in `tests/`. Name by *which API* is integrated
+
+**How to recognize bad naming:**
+- Does the suffix describe *how* to run the test? → Bad (use markers/fixtures)
+- Does the suffix describe *when* it was written? → Bad (belongs in commit message)
+- Does the suffix describe *temporal state*? (old/new/final/draft) → Bad (refactor instead)
+- Does the suffix describe *test execution speed*? → Bad (use markers)
+- Could two files have the same test name if they tested slightly different concerns? → They should consolidate
 
 ### **Why Canonical Naming Matters**
 
-1. **Prevents accidental duplication**: Two files with different concerns never use same test names
-2. **Aids discovery**: File name immediately tells what's being tested
-3. **Supports consolidation**: When refactoring, canonical names make it obvious which files should merge
-4. **Reduces clutter**: No `_old`, `_new`, `_backup`, `_temp` suffixes cluttering the tree
+1. **Prevents accidental duplication**: When two test files have *nearly canonical* names, it signals they should be merged.
+   - Example: `test_entity_unit.py` + `test_entity_integration.py` both test entity → merge, parametrize with fixtures
+   - Non-canonical names hide duplication: `test_entity_fast.py` + `test_entity_comprehensive.py` might test the same thing but you won't notice
+
+2. **Aids discovery**: File name immediately tells what's being tested without opening the file.
+   - Maintainer looking at `test_auth_supabase.py` knows: "ah, this is Supabase auth integration"
+   - Maintainer looking at `test_auth_v2.py` knows: ???
+
+3. **Supports consolidation**: When refactoring, canonical names make it obvious which files should merge.
+   - Same component? → Same concern → Same file. If `test_entity.py` and `test_entity_crud.py` both exist, merge.
+   - Different components? → Different concerns → Different files. `test_auth_supabase.py` and `test_auth_authkit.py` have different integration points, keep separate (unless they converge later)
+
+4. **Reduces clutter**: No `_old`, `_new`, `_backup`, `_temp`, `_draft` suffixes cluttering the tree.
+   - Canonical names → code review → merge or delete. Not: save old versions as separate files
+   - One source of truth per concern
+
+5. **Enables automation**: Tools and scripts can scan test/ directory and understand structure.
+   - CI/CD can identify which tests to run based on changed component (if naming is consistent)
+   - Agents (like Claude) can suggest consolidation automatically (if naming is canonical)
 
 ### **Variant Testing (Unit/Integration/E2E)**
 
-Use **fixtures and markers**, NOT file names:
+**Core principle**: Use **fixtures and markers**, NOT separate files, to handle test variants.
+
+**Why?**
+- One file = one concern = one source of truth
+- Fixtures parametrize execution without duplication
+- Markers categorize tests for selective runs
+- Reduces code duplication dramatically
+
+#### **Pattern 1: Fixture Parametrization (Recommended)**
 
 ```python
 # ✅ GOOD: One file, fixture parametrization determines variant
+# tests/unit/tools/test_entity.py
+
 @pytest.fixture(params=["unit", "integration", "e2e"])
-def client(request):
+def mcp_client(request):
+    """Parametrized client fixture.
+    
+    Provides different clients based on test location:
+    - tests/unit/ → unit (in-memory client)
+    - tests/integration/ → integration (HTTP client)
+    - tests/e2e/ → e2e (full deployment client)
+    
+    All tests in this file run 3 times, once per variant.
+    """
+    if request.param == "unit":
+        return InMemoryMcpClient()  # Fast, deterministic
+    elif request.param == "integration":
+        return HttpMcpClient(...)   # Live database
+    elif request.param == "e2e":
+        return DeploymentMcpClient(...)  # Production setup
+    
     return get_client(request.param)
 
-@pytest.mark.parametrize("variant", ["unit", "integration"])
-async def test_entity_creation(client, variant):
+async def test_entity_creation(mcp_client):
+    """Test entity creation across all variants.
+    
+    This test runs 3 times:
+    1. With in-memory client (unit)
+    2. With HTTP client (integration)
+    3. With deployment client (e2e)
+    """
+    result = await mcp_client.call_tool("entity_tool", {...})
+    assert result.success
+```
+
+**Benefits:**
+- Single file, not three
+- Same test logic runs across variants automatically
+- Adding new variant only requires updating fixture
+- Test collection finds all variants at once
+
+#### **Pattern 2: Markers (For Test Categorization)**
+
+```python
+# ✅ GOOD: Markers for categorizing tests within one file
+
+@pytest.mark.asyncio
+@pytest.mark.performance
+async def test_entity_creation_performance(mcp_client):
+    """Performance test: measure entity creation speed.
+    
+    Run with: pytest -m performance
+    Skip with: pytest -m "not performance"
+    """
     ...
 
-# ❌ BAD: Three separate files with redundant tests
-# test_entity_unit.py, test_entity_integration.py, test_entity_e2e.py
+@pytest.mark.asyncio
+@pytest.mark.smoke
+async def test_entity_basic_creation(mcp_client):
+    """Smoke test: quick sanity check.
+    
+    Run with: pytest -m smoke  # <1 second
+    """
+    ...
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_entity_with_real_database(mcp_client):
+    """Integration test: requires real database.
+    
+    Run with: pytest -m integration
+    Skip in CI with: pytest -m "not integration"
+    """
+    ...
 ```
+
+**CI/CD Usage:**
+```bash
+# Quick smoke tests only
+pytest -m smoke  # 5 seconds
+
+# All unit + smoke tests
+pytest tests/unit -m "not integration and not performance"  # 30 seconds
+
+# Full suite including integration + performance
+pytest tests/ -m ""  # 5 minutes
+
+# Only performance tests
+pytest -m performance  # 2 minutes (run separately)
+```
+
+#### **❌ BAD Pattern: Separate Files for Variants**
+
+```python
+# ❌ BAD: Three files with redundant test code
+# tests/unit/tools/test_entity.py
+async def test_entity_creation(mcp_client_inmemory):
+    ...
+
+# tests/integration/tools/test_entity.py
+async def test_entity_creation(mcp_client_http):  # Same test name!
+    ...
+
+# tests/e2e/tools/test_entity.py
+async def test_entity_creation(mcp_client_e2e):  # Same test name again!
+    ...
+```
+
+**Problems:**
+- Code duplication (test logic repeated 3 times)
+- Maintenance burden (change test → update in 3 places)
+- Confusing directory structure
+- Easy to miss a variant when adding tests
+- Larger code footprint = harder to maintain
 
 ### **Consolidation Checklist**
 
-When multiple test files cover the same concern:
+When multiple test files cover overlapping concerns, use this decision tree:
 
-1. **Do they test the same component?** → Merge into single canonical file
-2. **Do they use different clients?** → Use fixture parametrization instead of separate files
-3. **Are they different test types (slow perf tests vs quick unit tests)?** → Use markers (`@pytest.mark.performance`)
-4. **Do they test genuinely different subsystems?** → Split by subsystem, not speed/variant
+**Question 1: Do they test the same component/tool?**
+- **Yes** → They should be one file
+- **No** → Proceed to Q2
 
-**Example: Relationship Tests Refactoring**
-- **Before**: 3,245-line monolithic file with 14 test classes
-- **Problem**: File too large, caused "too many open files" errors, complex 3-variant structure
-- **After**: Single 228-line canonical `test_relationship.py` with focused unit tests
-- **Solution**: Removed variant duplication, simplified to canonical form
-- **Result**: 93% size reduction, faster collection, no resource errors
+**Question 2: Do they use different clients?**
+- **Yes** → Use fixture parametrization (see Pattern 1 above), same file
+- **No** → Proceed to Q3
+
+**Question 3: Are they fundamentally different test types?**
+- **Yes** (e.g., slow perf tests vs quick unit tests) → Use markers (see Pattern 2), same file
+- **No** → Proceed to Q4
+
+**Question 4: Do they test genuinely different subsystems?**
+- **Yes** → Split by subsystem concern, keep separate
+- **No** → Merge them; they have duplicate concerns
+
+**Action Items:**
+| Scenario | Decision | Implementation |
+|----------|----------|-----------------|
+| Same tool, different clients | Merge | Use `@pytest.fixture(params=[...])` |
+| Same tool, different speeds | Merge | Use `@pytest.mark.performance`, `@pytest.mark.smoke` |
+| Same tool, same everything | Definitely merge | Delete duplicate, consolidate |
+| Different tools, same concern | Merge by concern | Rename file canonically by concern |
+| Different tools, different concerns | Keep separate | Ensure each file has canonical name |
+
+**Real-World Example: How We Fixed test_relationship.py**
+
+| Aspect | Before | After | Action |
+|--------|--------|-------|--------|
+| **Lines** | 3,245 | 228 | Removed 3-variant duplication |
+| **Test Classes** | 14 | 8 | Consolidated redundant classes |
+| **Variants** | 3 (unit/integration/e2e) | 1 (unit via fixtures) | Removed file duplication, used fixtures |
+| **Errors** | "too many open files" | None | Smaller file, no resource exhaustion |
+| **Readability** | Complex | Clear | Focused on core functionality |
+
+**Key insight**: The original file had the *same test logic* repeated across 3 variants. By using fixtures instead of separate files, we eliminated duplication while maintaining variant coverage.
 
 ## 3.2 Test File Organization Principles
 
