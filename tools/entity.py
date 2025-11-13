@@ -1004,7 +1004,7 @@ _entity_manager = EntityManager()
 
 async def entity_operation(
     auth_token: str,
-    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version", "trace", "coverage"],
+    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version", "trace", "coverage", "list_workflows", "create_workflow", "update_workflow", "delete_workflow", "execute_workflow"],
     entity_type: str,
     data: Optional[Dict[str, Any]] = None,
     filters: Optional[Dict[str, Any]] = None,
@@ -1023,7 +1023,9 @@ async def entity_operation(
     filter_list: Optional[List[Dict[str, Any]]] = None,
     sort_list: Optional[List[Dict[str, Any]]] = None,
     entity_ids: Optional[List[str]] = None,
-    version: Optional[int] = None
+    version: Optional[int] = None,
+    workflow_id: Optional[str] = None,
+    input_data: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
@@ -1365,6 +1367,65 @@ async def entity_operation(
             )
             timings["coverage"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "list_workflows":
+            t_op_start = time.time()
+            result = await _entity_manager.list_workflows(
+                limit=limit or 20,
+                offset=offset or 0
+            )
+            timings["list_workflows"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "create_workflow":
+            if not data or "name" not in data:
+                raise ValueError("data with 'name' is required for create_workflow operation")
+            t_op_start = time.time()
+            result = await _entity_manager.create_workflow(
+                name=data.get("name"),
+                description=data.get("description"),
+                entity_type=entity_type,
+                definition=data.get("definition")
+            )
+            timings["create_workflow"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "create_workflow"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "update_workflow":
+            if not workflow_id or not data:
+                raise ValueError("workflow_id and data are required for update_workflow operation")
+            t_op_start = time.time()
+            result = await _entity_manager.update_workflow(
+                workflow_id, data
+            )
+            timings["update_workflow"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "update_workflow"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "delete_workflow":
+            if not workflow_id:
+                raise ValueError("workflow_id is required for delete_workflow operation")
+            t_op_start = time.time()
+            result = await _entity_manager.delete_workflow(workflow_id)
+            timings["delete_workflow"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "delete_workflow"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "execute_workflow":
+            if not workflow_id:
+                raise ValueError("workflow_id is required for execute_workflow operation")
+            t_op_start = time.time()
+            result = await _entity_manager.execute_workflow(
+                workflow_id, input_data
+            )
+            timings["execute_workflow"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "execute_workflow"
             return _entity_manager._add_timing_metrics(result, timings)
         
         else:

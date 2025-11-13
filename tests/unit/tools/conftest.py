@@ -239,6 +239,8 @@ def fast_mcp_server():
         sort_list: list = None,
         entity_ids: list = None,
         version: int = None,
+        workflow_id: str = None,
+        input_data: dict = None,
     ) -> dict:
         """Entity CRUD operations."""
         try:
@@ -264,6 +266,8 @@ def fast_mcp_server():
                 sort_list=sort_list,
                 entity_ids=entity_ids,
                 version=version,
+                workflow_id=workflow_id,
+                input_data=input_data,
             )
         except Exception as e:
             return {"success": False, "error": str(e), "operation": operation}
