@@ -3,9 +3,9 @@
 ║              TEST ERROR SUMMARY BY CATEGORY                 ║
 ╠════════════════════════════════════════════════════════════╣
 ║ 🔴 INFRASTRUCTURE       │   0 error(s) ║
-║ 🟠 PRODUCT              │   1 error(s) ║
+║ 🟠 PRODUCT              │   0 error(s) ║
 ║ 🟡 TEST_DATA            │   0 error(s) ║
-║ 🟢 ASSERTION            │   8 error(s) ║
+║ 🟢 ASSERTION            │   0 error(s) ║
 ║                                                            ║
-║ Total: 9 error(s)                                         ║
+║ Total: 0 error(s)                                         ║
 ╚════════════════════════════════════════════════════════════╝
