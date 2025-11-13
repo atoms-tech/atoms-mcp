@@ -243,12 +243,15 @@ def fast_mcp_server():
     @server.tool(tags={"relationship", "association"})
     async def relationship_tool(
         operation: str,
-        relationship_type: str = None,
-        source_type: str = None,
-        source_id: str = None,
-        target_type: str = None,
-        target_id: str = None,
+        relationship_type: str,
+        source: dict,
+        target: dict = None,
+        metadata: dict = None,
         filters: dict = None,
+        source_context: str = None,
+        soft_delete: bool = True,
+        limit: int = 100,
+        offset: int = 0,
         format_type: str = "detailed",
     ) -> dict:
         """Manage relationships between entities."""
@@ -257,57 +260,72 @@ def fast_mcp_server():
                 auth_token="test-token",
                 operation=operation,
                 relationship_type=relationship_type,
-                source_type=source_type,
-                source_id=source_id,
-                target_type=target_type,
-                target_id=target_id,
+                source=source,
+                target=target,
+                metadata=metadata,
                 filters=filters,
+                source_context=source_context,
+                soft_delete=soft_delete,
+                limit=limit,
+                offset=offset,
                 format_type=format_type,
             )
         except Exception as e:
-            return {"success": False, "error": str(e), "operation": operation}
+            return {"success": False, "error": str(e), "operation": operation, "relationship_type": relationship_type}
 
     @server.tool(tags={"workflow", "automation"})
     async def workflow_tool(
-        operation: str,
-        workflow_id: str = None,
-        workflow_name: str = None,
-        data: dict = None,
+        workflow: str,
+        parameters: dict,
+        transaction_mode: bool = True,
         format_type: str = "detailed",
     ) -> dict:
-        """Execute and manage workflows."""
+        """Execute complex multi-step workflows."""
         try:
             return await workflow_execute(
                 auth_token="test-token",
-                operation=operation,
-                workflow_id=workflow_id,
-                workflow_name=workflow_name,
-                data=data,
+                workflow=workflow,
+                parameters=parameters,
+                transaction_mode=transaction_mode,
                 format_type=format_type,
             )
         except Exception as e:
-            return {"success": False, "error": str(e), "operation": operation}
+            return {"success": False, "error": str(e), "workflow": workflow}
 
     @server.tool(tags={"query", "analysis", "rag"})
     async def query_tool(
-        query: str,
-        entity_types: list = None,
-        filters: dict = None,
-        limit: int = 10,
+        query_type: str,
+        entities: list,
+        conditions: dict = None,
+        projections: list = None,
+        search_term: str = None,
+        limit: int = None,
         format_type: str = "detailed",
+        rag_mode: str = "auto",
+        similarity_threshold: float = 0.7,
+        content: str = None,
+        entity_type: str = None,
+        exclude_id: str = None,
     ) -> dict:
-        """Query and search data."""
+        """Query and analyze data across multiple entity types with RAG capabilities."""
         try:
             return await data_query(
                 auth_token="test-token",
-                query=query,
-                entity_types=entity_types,
-                filters=filters,
+                query_type=query_type,
+                entities=entities,
+                conditions=conditions,
+                projections=projections,
+                search_term=search_term,
                 limit=limit,
                 format_type=format_type,
+                rag_mode=rag_mode,
+                similarity_threshold=similarity_threshold,
+                content=content,
+                entity_type=entity_type,
+                exclude_id=exclude_id,
             )
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": str(e), "query_type": query_type}
 
     return server
 
@@ -463,3 +481,57 @@ def query_types() -> List[str]:
         "field_search",
         "aggregation",
     ]
+
+
+@pytest_asyncio.fixture
+async def test_organization(call_mcp):
+    """Create and return a test organization."""
+    result, _ = await call_mcp("entity_tool", {
+        "operation": "create",
+        "entity_type": "organization",
+        "data": {
+            "name": f"Test Organization {time.time()}",
+        }
+    })
+    
+    if result.get("success"):
+        org_id = result["data"]["id"]
+        yield org_id
+        # Cleanup
+        await call_mcp("entity_tool", {
+            "operation": "delete",
+            "entity_id": org_id
+        })
+    else:
+        yield None
+
+
+@pytest_asyncio.fixture
+async def test_user():
+    """Return a test user ID (UUID)."""
+    import uuid
+    return str(uuid.uuid4())
+
+
+@pytest_asyncio.fixture
+async def test_project(call_mcp, test_organization):
+    """Create and return a test project."""
+    result, _ = await call_mcp("entity_tool", {
+        "operation": "create",
+        "entity_type": "project",
+        "data": {
+            "name": f"Test Project {time.time()}",
+            "organization_id": test_organization
+        }
+    })
+    
+    if result.get("success"):
+        project_id = result["data"]["id"]
+        yield project_id
+        # Cleanup
+        await call_mcp("entity_tool", {
+            "operation": "delete",
+            "entity_id": project_id
+        })
+    else:
+        yield None
