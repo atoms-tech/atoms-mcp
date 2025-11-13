@@ -28,9 +28,18 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestOrganizationCRUD:
     """Test organization CRUD operations."""
 
+    @pytest.mark.story("Organization Management - User can create an organization")
     @pytest.mark.unit
     async def test_create_organization_basic(self, call_mcp):
-        """User can create an organization."""
+        """User can create an organization.
+        
+        User Story: User can create an organization
+        Acceptance Criteria:
+        - POST /entity_tool creates new organization
+        - Returns organization ID
+        - Name is required
+        - Timestamps are set (created_at, updated_at)
+        """
         result, duration = await call_mcp(
             "entity_tool",
             {
@@ -107,8 +116,12 @@ class TestOrganizationCRUD:
         # May include projects, members, etc.
 
     @pytest.mark.unit
+    @pytest.mark.story("Organization Management - User can update organization settings")
     async def test_update_organization(self, call_mcp, test_organization):
-        """User can update organization settings."""
+        """User can update organization settings.
+        
+        User Story: User can update organization settings
+        """
         new_name = f"Updated Org {uuid.uuid4().hex[:8]}"
 
         result, duration = await call_mcp(
@@ -178,11 +191,16 @@ class TestOrganizationCRUD:
 
 
 class TestOrganizationList:
+    """Test organization listing and search operations."""
     """Test organization listing and search."""
 
     @pytest.mark.unit
+    @pytest.mark.story("Workspace Navigation - User can view all organizations")
     async def test_list_organizations(self, call_mcp):
-        """User can list all organizations."""
+        """User can list all organizations.
+        
+        User Story: User can navigate workspace and view all organizations
+        """
         result, duration = await call_mcp(
             "entity_tool",
             {
@@ -247,11 +265,20 @@ class TestOrganizationList:
 
 
 class TestOrganizationPagination:
+    """Test organization list pagination."""
     """Test pagination for organization lists."""
 
     @pytest.mark.unit
+    @pytest.mark.story("Data Management - User can paginate through large lists")
     async def test_list_organizations_with_pagination(self, call_mcp):
-        """User can paginate through large lists."""
+        """User can paginate through large lists.
+        
+        User Story: User can paginate through large lists of organizations
+        Acceptance Criteria:
+        - offset and limit parameters work
+        - Returns correct count
+        - Respects pagination bounds
+        """
         result, duration = await call_mcp(
             "entity_tool",
             {
