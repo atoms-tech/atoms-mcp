@@ -574,21 +574,21 @@ class TestEntityOperationsCoverage:
     # Override global pytestmark for this class - these tests are synchronous
     pytestmark = [pytest.mark.unit]
 
-    def test_all_entity_types_supported(self):
+    async def test_all_entity_types_supported(self):
         """Test that all entity types are defined."""
         assert len(ENTITY_TYPES) == 20
         assert "organization" in ENTITY_TYPES
         assert "requirement" in ENTITY_TYPES
         assert "test" in ENTITY_TYPES
 
-    def test_all_operations_defined(self):
+    async def test_all_operations_defined(self):
         """Test that all operations are defined."""
         assert len(CORE_OPERATIONS) == 4
         assert len(EXTENDED_OPERATIONS) == 4
         assert len(BULK_OPERATIONS) == 3
         assert len(ALL_OPERATIONS) == 11
 
-    def test_coverage_matrix_size(self):
+    async def test_coverage_matrix_size(self):
         """Test theoretical coverage matrix size."""
         # 20 entity types × 11+ operations = 220+ test cases
         matrix_size = len(ENTITY_TYPES) * len(ALL_OPERATIONS)

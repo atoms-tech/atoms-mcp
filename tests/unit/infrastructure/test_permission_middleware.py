@@ -14,7 +14,7 @@ from infrastructure.permissions import (
     create_resource_context
 )
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit, pytest.mark.skip(reason="Permission checker test infrastructure issue - needs investigation")]
+pytestmark = [pytest.mark.asyncio, pytest.mark.unit, pytest.mark.skip(reason="Async permission checker requires get_user_context async function setup")]
 
 
 class TestPermissionMiddleware:
