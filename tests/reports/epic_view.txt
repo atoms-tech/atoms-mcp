@@ -24,12 +24,12 @@
 ║   ❌ User can view document content (No matching tests found)                 ║
 ║   ❌ User can list documents in project (No matching tests found)             ║
 ║                                                                              ║
-║ 📦 Requirements Traceability (1/4) ✓○○                                        ║
+║ 📦 Requirements Traceability (0/4) ○○○                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create requirements (No matching tests found)                   ║
 ║   ❌ User can pull requirements from system (No matching tests found)         ║
 ║   ❌ User can search requirements (No matching tests found)                   ║
-║   ✅ User can trace links between requirements and t... (6 passing, 5 fail... ║
+║   ❌ User can trace links between requirements and t... (1 test(s) failing)   ║
 ║                                                                              ║
 ║ 📦 Test Case Management (0/2) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -83,5 +83,5 @@
 ║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 1/48 user stories complete (2%)                                     ║
+║ Overall: 0/48 user stories complete (0%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
