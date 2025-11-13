@@ -570,6 +570,9 @@ class TestEntityOperationsWithFilters:
 
 class TestEntityOperationsCoverage:
     """Test operation-entity coverage matrix."""
+    
+    # Override global pytestmark for this class - these tests are synchronous
+    pytestmark = []
 
     def test_all_entity_types_supported(self):
         """Test that all entity types are defined."""
