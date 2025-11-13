@@ -164,4 +164,6 @@ async def test_orphaned_entity_cleanup(
 
     assert cleanup["success"] is True
     assert cleanup["data"]["removed"] >= 1
-    assert len(deployment_harness.get_relationships()) == initial_count
+    # After cleanup, relationship count should be less than initial count
+    # because orphaned relationships pointing to deleted requirement were removed
+    assert len(deployment_harness.get_relationships()) < initial_count

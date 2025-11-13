@@ -1,2 +1,30 @@
 
-✅ No warnings detected
+======================================================================
+⚠️  TEST WARNINGS & PERFORMANCE ISSUES
+======================================================================
+
+🔄 FLAKY (8):
+  🟡 tests/e2e/test_resilience.py::TestErrorRecoveryResilience::test_database_connection_retry
+     → Test passed after retry (potentially flaky)
+  🟡 tests/regression/test_regression_suite.py::test_concurrent_update_retry_succeeds_on_fresh_snapshot
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_automatic_retry_on_transient_error[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_exponential_backoff[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_retry_respects_max_attempts[unit]
+     → Test passed after retry (potentially flaky)
+  ... and 3 more
+
+🐌 SLOW (3):
+  🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
+     → Slow: 1.10s (threshold: 1.0s)
+  🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
+     → Slow: 1.11s (threshold: 1.0s)
+  🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_hybrid_mode[unit]
+     → Slow: 1.49s (threshold: 1.0s)
+
+----------------------------------------------------------------------
+Total Warnings: 11
+  🔴 High: 0  🟡 Medium: 11  🟢 Low: 0
+======================================================================

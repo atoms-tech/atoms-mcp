@@ -11,7 +11,7 @@ from services.auth.hybrid_auth_provider import (
 )
 
 
-pytestmark = [pytest.mark.unit]
+pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
 
 
 class TestHybridAuthProviderInitialization:
@@ -79,6 +79,7 @@ class TestHybridAuthProviderInitialization:
 class TestHybridAuthProviderAuthentication:
     """Hybrid auth provider authentication flow."""
 
+    @pytest.mark.asyncio
     async def test_authenticate_with_bearer_token_internal(self):
         """Test authentication with internal bearer token."""
         mock_oauth = MagicMock()
