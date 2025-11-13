@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-# Support both package and standalone imports
+# Import infrastructure and error handling modules
 try:
     from ..infrastructure.factory import get_adapters
     from ..errors import normalize_error
@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 class ToolBase:
     """Base class for consolidated tools with common functionality."""
     
-    def __init__(self):
-        self._adapters = None
-        self._user_context = {}
+    def __init__(self) -> None:
+        self._adapters: Optional[Dict[str, Any]] = None
+        self._user_context: Dict[str, Any] = {}
     
     def _get_adapters(self) -> Dict[str, Any]:
         """Get adapters, cached."""
@@ -177,7 +177,7 @@ class ToolBase:
             'ai_analysis',  # Can be very large with history
             'fts_vector',  # Full-text search vectors
             'content',  # Document content can be huge
-            'description',  # Descriptions can be very long
+            # 'description',  # Keep description - it's often important for entity identification
             'preferences',  # User preferences object
         }
 
@@ -207,12 +207,21 @@ class ToolBase:
 
         return sanitized
 
-    def _add_timing_metrics(self, result: Dict[str, Any], timings: Dict[str, float]) -> Dict[str, Any]:
+    def _add_timing_metrics(self, result: Dict[str, Any], timings: Dict[str, Any]) -> Dict[str, Any]:
         """Add timing metrics to result for performance debugging."""
+        # Separate numeric timings from metadata
+        numeric_timings = {k: v for k, v in timings.items() if isinstance(v, (int, float))}
+        metadata = {k: v for k, v in timings.items() if not isinstance(v, (int, float))}
+
         result["_performance"] = {
-            "timings_ms": {k: round(v * 1000, 2) for k, v in timings.items()},
-            "total_time_ms": round(sum(timings.values()) * 1000, 2)
+            "timings_ms": {k: round(v * 1000, 2) for k, v in numeric_timings.items()},
+            "total_time_ms": round(sum(numeric_timings.values()) * 1000, 2)
         }
+
+        # Add metadata separately if present
+        if metadata:
+            result["_performance"]["metadata"] = metadata
+
         return result
 
     def _format_result(self, data: Any, format_type: str = "detailed") -> Dict[str, Any]:
