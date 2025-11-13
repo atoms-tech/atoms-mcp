@@ -815,6 +815,133 @@ class EntityManager(ToolBase):
             "status": "pending",
             "note": "Workflow execution requires database configuration"
         }
+    
+    # Phase 3 - Advanced Features
+    
+    async def advanced_search(
+        self,
+        entity_type: str,
+        query: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
+        limit: int = 20,
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        """Advanced search with facets and suggestions.
+        
+        Args:
+            entity_type: Type of entity to search
+            query: Search query string
+            filters: Advanced filters
+            limit: Results per page
+            offset: Pagination offset
+        
+        Returns:
+            Dict with search results and facets
+        """
+        return {
+            "results": [],
+            "total": 0,
+            "facets": {},
+            "suggestions": [],
+            "limit": limit,
+            "offset": offset,
+            "note": "Advanced search requires database configuration"
+        }
+    
+    async def export_entities(
+        self,
+        entity_type: str,
+        format: str = "json",
+        filters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Export entities in specified format.
+        
+        Args:
+            entity_type: Type of entity to export
+            format: Export format (json, csv)
+            filters: Filter entities before export
+        
+        Returns:
+            Dict with export status and data
+        """
+        return {
+            "success": False,
+            "format": format,
+            "entity_type": entity_type,
+            "record_count": 0,
+            "file_url": None,
+            "note": "Export requires database configuration"
+        }
+    
+    async def import_entities(
+        self,
+        entity_type: str,
+        format: str = "json",
+        file_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Import entities from file.
+        
+        Args:
+            entity_type: Type of entity to import
+            format: File format (json, csv)
+            file_path: Path to import file
+        
+        Returns:
+            Dict with import results
+        """
+        return {
+            "success": False,
+            "entity_type": entity_type,
+            "format": format,
+            "imported_count": 0,
+            "failed_count": 0,
+            "note": "Import requires database configuration"
+        }
+    
+    async def get_entity_permissions(
+        self,
+        entity_type: str,
+        entity_id: str
+    ) -> Dict[str, Any]:
+        """Get permissions for an entity.
+        
+        Args:
+            entity_type: Type of entity
+            entity_id: Entity ID
+        
+        Returns:
+            Dict with permission information
+        """
+        return {
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "permissions": {},
+            "owner": None,
+            "note": "Permissions require database configuration"
+        }
+    
+    async def update_entity_permissions(
+        self,
+        entity_type: str,
+        entity_id: str,
+        permissions: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update permissions for an entity.
+        
+        Args:
+            entity_type: Type of entity
+            entity_id: Entity ID
+            permissions: Permission updates
+        
+        Returns:
+            Dict with result
+        """
+        return {
+            "success": False,
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "note": "Permission updates require database configuration"
+        }
 
     async def list_entities(
         self,
@@ -1004,7 +1131,7 @@ _entity_manager = EntityManager()
 
 async def entity_operation(
     auth_token: str,
-    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version", "trace", "coverage", "list_workflows", "create_workflow", "update_workflow", "delete_workflow", "execute_workflow"],
+    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version", "trace", "coverage", "list_workflows", "create_workflow", "update_workflow", "delete_workflow", "execute_workflow", "advanced_search", "export", "import", "get_permissions", "update_permissions"],
     entity_type: str,
     data: Optional[Dict[str, Any]] = None,
     filters: Optional[Dict[str, Any]] = None,
@@ -1426,6 +1553,69 @@ async def entity_operation(
             timings["execute_workflow"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
             result["operation"] = "execute_workflow"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        # Phase 3 Operations
+        elif operation == "advanced_search":
+            t_op_start = time.time()
+            result = await _entity_manager.advanced_search(
+                entity_type,
+                query=search_term,
+                filters=filters,
+                limit=limit or 20,
+                offset=offset or 0
+            )
+            timings["advanced_search"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "export":
+            t_op_start = time.time()
+            result = await _entity_manager.export_entities(
+                entity_type,
+                format=data.get("format", "json") if data else "json",
+                filters=filters
+            )
+            timings["export"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "export"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "import":
+            if not data or "file_path" not in data:
+                raise ValueError("data with 'file_path' is required for import operation")
+            t_op_start = time.time()
+            result = await _entity_manager.import_entities(
+                entity_type,
+                format=data.get("format", "json"),
+                file_path=data.get("file_path")
+            )
+            timings["import"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "import"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "get_permissions":
+            if not entity_id:
+                raise ValueError("entity_id is required for get_permissions operation")
+            t_op_start = time.time()
+            result = await _entity_manager.get_entity_permissions(
+                entity_type, entity_id
+            )
+            timings["get_permissions"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "update_permissions":
+            if not entity_id or not data:
+                raise ValueError("entity_id and data are required for update_permissions operation")
+            t_op_start = time.time()
+            result = await _entity_manager.update_entity_permissions(
+                entity_type, entity_id, data
+            )
+            timings["update_permissions"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "update_permissions"
             return _entity_manager._add_timing_metrics(result, timings)
         
         else:
