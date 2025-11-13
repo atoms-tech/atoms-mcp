@@ -47,7 +47,7 @@ class TestOrganizationCRUD:
                 "entity_type": "organization",
                 "data": {
                     "name": f"Test Org {uuid.uuid4().hex[:8]}",
-                    "type": "company",
+                    "type": "team",
                     "description": "Test organization"
                 }
             }
@@ -162,7 +162,7 @@ class TestOrganizationCRUD:
                 "entity_type": "organization",
                 "data": {
                     "name": f"To Delete {uuid.uuid4().hex[:8]}",
-                    "type": "company"
+                    "type": "team"
                 }
             }
         )
@@ -254,7 +254,7 @@ class TestOrganizationList:
                 "operation": "search",
                 "entity_type": "organization",
                 "filters": {
-                    "type": "company",
+                    "type": "team",
                     "limit": 10
                 }
             }

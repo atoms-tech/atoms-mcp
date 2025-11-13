@@ -194,7 +194,37 @@ def force_all_mock_mode(monkeypatch):
     monkeypatch.setenv("ATOMS_SERVICE_MODE", "mock")
     try:
         from infrastructure.mock_config import reset_service_config
+        from infrastructure.factory import reset_factory
         reset_service_config()
+        reset_factory()
+    except ImportError:
+        pass
+
+
+@pytest.fixture(autouse=True)
+def bypass_permission_checks(monkeypatch):
+    """Bypass permission checks in tests for easier testing."""
+    from unittest.mock import AsyncMock
+    
+    # Mock PermissionMiddleware to always allow operations
+    async def mock_check_create_permission(*args, **kwargs):
+        return True
+    
+    async def mock_check_read_permission(*args, **kwargs):
+        return True
+    
+    async def mock_check_update_permission(*args, **kwargs):
+        return True
+    
+    async def mock_check_delete_permission(*args, **kwargs):
+        return True
+    
+    try:
+        from infrastructure.permission_middleware import PermissionMiddleware
+        monkeypatch.setattr(PermissionMiddleware, "check_create_permission", mock_check_create_permission)
+        monkeypatch.setattr(PermissionMiddleware, "check_read_permission", mock_check_read_permission)
+        monkeypatch.setattr(PermissionMiddleware, "check_update_permission", mock_check_update_permission)
+        monkeypatch.setattr(PermissionMiddleware, "check_delete_permission", mock_check_delete_permission)
     except ImportError:
         pass
 

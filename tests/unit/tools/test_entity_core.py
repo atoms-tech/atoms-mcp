@@ -214,7 +214,7 @@ class TestBatchOperations:
         - Each entity gets a unique ID
         """
         batch_data = [
-            {"name": f"Batch Org {i}", "type": "company"}
+            {"name": f"Batch Org {i}", "type": "team"}
             for i in range(3)
         ]
 
