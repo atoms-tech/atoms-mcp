@@ -2,10 +2,29 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Workflow Automation (2/2) ✓✓✓                                              ║
+║ 📦 Data Management (0/1) ○○○                                                  ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can bulk update statuses                                            ║
-║   ✅ User can run workflows with transactions                                 ║
+║   ❌ User can paginate through large lists (1/1 failing)                      ║
+║                                                                              ║
+║ 📦 Entity Relationships (0/1) ○○○                                             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can view related entities (1/1 failing)                             ║
+║                                                                              ║
+║ 📦 Organization Management (0/4) ○○○                                          ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can create an organization (1/1 failing)                            ║
+║   ❌ User can delete an organization (1/1 failing)                            ║
+║   ❌ User can update organization settings (1/1 failing)                      ║
+║   ❌ User can view organization details (1/1 failing)                         ║
+║                                                                              ║
+║ 📦 Search & Discovery (0/2) ○○○                                               ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can filter results (1/1 failing)                                    ║
+║   ❌ User can search all entities (1/1 failing)                               ║
+║                                                                              ║
+║ 📦 Workspace Navigation (0/1) ○○○                                             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can view all organizations (1/1 failing)                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 2/2 user stories complete (100%)                                    ║
+║ Overall: 0/9 user stories complete (0%)                                      ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
