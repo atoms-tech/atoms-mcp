@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Union
+import json
+import logging
+from datetime import datetime, date
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from uuid import UUID
+
+if TYPE_CHECKING:
+    from supabase import Client  # noqa: F401
 
 try:
     from .adapters import DatabaseAdapter
@@ -13,16 +21,84 @@ except ImportError:
     from supabase_client import get_supabase
     from errors import normalize_error
 
+logger = logging.getLogger(__name__)
+
+
+def _clean_for_json(obj: Any) -> Any:
+    """Clean data for JSON serialization, handling UUIDs, infinity, and other non-serializable types.
+    
+    Args:
+        obj: Data to clean
+        
+    Returns:
+        JSON-serializable data
+    """
+    if obj is None:
+        return None
+    
+    # Handle UUID objects
+    if isinstance(obj, UUID):
+        return str(obj)
+    
+    # Handle Decimal (common in database results)
+    if isinstance(obj, Decimal):
+        return float(obj)
+    
+    # Handle datetime objects
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    
+    # Handle infinity values (PostgreSQL can return these)
+    if isinstance(obj, float):
+        if obj == float('inf'):
+            return None  # Convert infinity to None
+        if obj == float('-inf'):
+            return None
+        if obj != obj:  # NaN check
+            return None
+        return obj
+    
+    # Handle dicts recursively
+    if isinstance(obj, dict):
+        return {k: _clean_for_json(v) for k, v in obj.items()}
+    
+    # Handle lists recursively
+    if isinstance(obj, list):
+        return [_clean_for_json(item) for item in obj]
+    
+    # Handle tuples
+    if isinstance(obj, tuple):
+        return tuple(_clean_for_json(item) for item in obj)
+    
+    # Handle sets
+    if isinstance(obj, set):
+        return [_clean_for_json(item) for item in obj]
+    
+    # Handle bytes
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
+    
+    # Try to serialize, fallback to string representation
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        # If it can't be serialized, convert to string
+        return str(obj)
+
 
 class SupabaseDatabaseAdapter(DatabaseAdapter):
     """Supabase-based database adapter with caching for serverless performance."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._access_token: Optional[str] = None
-        self._query_cache: Dict[str, Any] = {}  # Simple in-memory cache
-        self._cache_ttl = 30  # seconds
+        self._query_cache: Dict[str, Tuple[Any, float]] = {}  # Simple in-memory cache: (data, timestamp)
+        self._cache_ttl: float = 30.0  # seconds
 
-    def set_access_token(self, token: str):
+    def set_access_token(self, token: str) -> None:
         """Set user's access token for RLS context.
 
         This must be called before any database operations to ensure
@@ -30,7 +106,7 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         """
         self._access_token = token
 
-    def _get_client(self):
+    def _get_client(self) -> Any:  # Returns supabase.Client but avoiding import
         """Get Supabase client with user's JWT for RLS context.
 
         Creates a fresh client with the user's access token to ensure
@@ -38,12 +114,34 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         """
         return get_supabase(access_token=self._access_token)
     
-    def _apply_filters(self, query, filters: Optional[Dict[str, Any]]):
+    def _apply_filters(self, query: Any, filters: Optional[Dict[str, Any]]) -> Any:
         """Apply filters to a Supabase query."""
         if not filters:
             return query
-        
+
         for key, value in filters.items():
+            # Handle OR filtering (special key)
+            if key == "_or":
+                if isinstance(value, list) and len(value) > 0:
+                    # Build OR filter using Supabase .or_() method
+                    or_conditions = []
+                    for or_filter in value:
+                        for field, condition in or_filter.items():
+                            if isinstance(condition, dict):
+                                for op, val in condition.items():
+                                    if op == "ilike":
+                                        or_conditions.append(f"{field}.ilike.{val}")
+                                    elif op == "eq":
+                                        or_conditions.append(f"{field}.eq.{val}")
+                                    elif op == "contains":
+                                        or_conditions.append(f"{field}.cs.{val}")
+                            else:
+                                or_conditions.append(f"{field}.eq.{condition}")
+
+                    if or_conditions:
+                        query = query.or_(",".join(or_conditions))
+                continue
+
             if value is None:
                 query = query.is_(key, None)
             elif isinstance(value, dict):
@@ -69,9 +167,11 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
                         query = query.in_(key, val)
                     elif op == "not_in":
                         query = query.not_.in_(key, val)
+                    elif op == "contains":
+                        query = query.contains(key, val)
             else:
                 query = query.eq(key, value)
-        
+
         return query
     
     def _get_cache_key(self, operation: str, **kwargs) -> str:
@@ -93,7 +193,7 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
                 del self._query_cache[cache_key]
         return None
 
-    def _set_cache(self, cache_key: str, data: Any):
+    def _set_cache(self, cache_key: str, data: Any) -> None:
         """Cache result with timestamp."""
         import time
         self._query_cache[cache_key] = (data, time.time())
@@ -139,10 +239,20 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             result = query.execute()
             data = getattr(result, "data", []) or []
 
-            # Cache result
-            self._set_cache(cache_key, data)
+            # Clean data for JSON serialization (handle UUIDs, infinity, etc.)
+            cleaned_data = _clean_for_json(data)
+            
+            # Type assertion: cleaned_data should be List[Dict[str, Any]]
+            if not isinstance(cleaned_data, list):
+                cleaned_data = []  # Fallback to empty list if cleaning changed type
+            
+            # Ensure all items are dicts
+            cleaned_data = [item if isinstance(item, dict) else {} for item in cleaned_data]
 
-            return data
+            # Cache result
+            self._set_cache(cache_key, cleaned_data)
+
+            return cleaned_data
 
         except Exception as e:
             raise normalize_error(e, f"Failed to query table {table}")
@@ -162,7 +272,17 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             query = self._apply_filters(query, filters)
             
             result = query.single().execute()
-            return getattr(result, "data", None)
+            data = getattr(result, "data", None)
+            
+            # Clean data for JSON serialization (handle UUIDs, infinity, etc.)
+            if data is not None:
+                cleaned_data = _clean_for_json(data)
+                # Type assertion: cleaned_data should be Dict[str, Any]
+                if isinstance(cleaned_data, dict):
+                    return cleaned_data
+                return None  # If cleaning changed type, return None
+            
+            return None
         
         except Exception as e:
             # Supabase raises exception for not found, we want None
@@ -170,7 +290,7 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
                 return None
             raise normalize_error(e, f"Failed to get single record from {table}")
     
-    def _invalidate_cache_for_table(self, table: str):
+    def _invalidate_cache_for_table(self, table: str) -> None:
         """Invalidate all cached queries for a table."""
         keys_to_remove = [k for k in self._query_cache.keys() if table in str(k)]
         for key in keys_to_remove:
@@ -197,13 +317,23 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             if result_data is None:
                 raise ValueError("Insert operation returned no data")
 
+            # Clean data for JSON serialization
+            cleaned_data = _clean_for_json(result_data)
+            
+            # Type assertion: cleaned_data should be List[Dict[str, Any]]
+            if not isinstance(cleaned_data, list):
+                cleaned_data = []
+            
+            # Ensure all items are dicts
+            cleaned_data = [item if isinstance(item, dict) else {} for item in cleaned_data]
+
             # Invalidate cache for this table
             self._invalidate_cache_for_table(table)
 
             # Return single dict if input was single dict, list otherwise
             if isinstance(data, dict):
-                return result_data[0] if result_data else {}
-            return result_data
+                return cleaned_data[0] if cleaned_data else {}
+            return cleaned_data
 
         except Exception as e:
             raise normalize_error(e, f"Failed to insert into {table}")
@@ -229,13 +359,23 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             result = query.execute()
             result_data = getattr(result, "data", []) or []
 
+            # Clean data for JSON serialization
+            cleaned_data = _clean_for_json(result_data)
+            
+            # Type assertion: cleaned_data should be List[Dict[str, Any]]
+            if not isinstance(cleaned_data, list):
+                cleaned_data = []
+            
+            # Ensure all items are dicts
+            cleaned_data = [item if isinstance(item, dict) else {} for item in cleaned_data]
+
             # Invalidate cache for this table
             self._invalidate_cache_for_table(table)
 
             # Return single dict if only one record updated
-            if len(result_data) == 1:
-                return result_data[0]
-            return result_data
+            if len(cleaned_data) == 1:
+                return cleaned_data[0]
+            return cleaned_data
 
         except Exception as e:
             raise normalize_error(e, f"Failed to update {table}")
@@ -257,10 +397,17 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             result = query.execute()
             deleted_rows = getattr(result, "data", []) or []
 
+            # Clean data for JSON serialization (though we only need count)
+            cleaned_rows = _clean_for_json(deleted_rows)
+            
+            # Type assertion: cleaned_rows should be a list
+            if not isinstance(cleaned_rows, list):
+                cleaned_rows = []
+
             # Invalidate cache for this table
             self._invalidate_cache_for_table(table)
 
-            return len(deleted_rows)
+            return len(cleaned_rows)
 
         except Exception as e:
             raise normalize_error(e, f"Failed to delete from {table}")
@@ -284,12 +431,19 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
             query = self._apply_filters(query, filters)
 
             result = query.execute()
-            count = getattr(result, "count", 0) or 0
+            count_value = getattr(result, "count", 0) or 0
+            
+            # Ensure count is an integer
+            if not isinstance(count_value, int):
+                try:
+                    count_value = int(count_value)
+                except (ValueError, TypeError):
+                    count_value = 0
 
             # Cache result
-            self._set_cache(cache_key, count)
+            self._set_cache(cache_key, count_value)
 
-            return count
+            return count_value
 
         except Exception as e:
             raise normalize_error(e, f"Failed to count records in {table}")

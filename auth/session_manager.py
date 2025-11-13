@@ -60,11 +60,11 @@ class SessionManager:
                 "expires_at": expires_at.isoformat(),
             }
 
-            logger.info(f"🔧 Attempting to insert session into mcp_sessions table...")
-            print(f"🔧 Attempting to insert session into mcp_sessions table...")
+            logger.info("🔧 Attempting to insert session into mcp_sessions table...")
+            print("🔧 Attempting to insert session into mcp_sessions table...")
             print(f"🔧 Session ID: {session_id}, User ID: {user_id}")
 
-            result = self.client.table("mcp_sessions").insert(insert_data).execute()
+            self.client.table("mcp_sessions").insert(insert_data).execute()
 
             logger.info(f"✅ Created session {session_id} for user {user_id}")
             print(f"✅ Session created successfully: {session_id}")

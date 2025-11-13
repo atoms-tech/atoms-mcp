@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 import asyncio
 import logging
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class WorkflowExecutor(ToolBase):
     """Executes complex workflows with multiple steps."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     async def _setup_project_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:

@@ -1,0 +1,19 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           ATOMS MCP - EPIC SUMMARY                           ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Epic                          │ Stories │ Complete │ Status      ║
+╠───────────────────────────────┼─────────┼──────────┼─────────────╣
+║ Organization Management       │       5 │        5 │         ✓✓✓ ║
+║ Project Management            │       5 │        5 │         ✓✓✓ ║
+║ Document Management           │       3 │        3 │         ✓✓✓ ║
+║ Requirements Traceability     │       4 │        4 │         ✓✓✓ ║
+║ Test Case Management          │       2 │        2 │         ✓✓✓ ║
+║ Workspace Navigation          │       6 │        6 │         ✓✓✓ ║
+║ Entity Relationships          │       4 │        4 │         ✓✓✓ ║
+║ Search & Discovery            │       7 │        7 │         ✓✓✓ ║
+║ Workflow Automation           │       5 │        5 │         ✓✓✓ ║
+║ Data Management               │       3 │        2 │         ✓○○ ║
+║ Security & Access             │       4 │        0 │         ○○○ ║
+╠──────────────────────────────────────────────────────────────────────────────╣
+║ Total: 43/48 user stories complete (89%)                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝

@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # Claude Usage Guide
 
 This repository is optimized for Claude (and similar LLM agents) acting as an autonomous senior software engineer for the Atoms MCP / FastMCP server.
@@ -407,7 +426,179 @@ Server / runtime (examples, adjust per env vars):
 - **When refactoring, identify ALL callers and update them simultaneously.** No staggered migrations.
 - **Remove old code paths entirely when replaced.** Zero tolerance for legacy conditionals or shims.
 
-## 6. When Claude Must Ask
+## 6. Session Documentation Management (Critical - Prevent Doc Proliferation)
+
+**Problem:** Agents frequently generate documentation artifacts (SUMMARY, STATUS, COMPLETE, GUIDE files) that accumulate in repo roots and subdirectories, creating noise and obscuring current information.
+
+**Solution:** Strict session-based documentation with aggressive consolidation.
+
+### Session Documentation Structure
+
+All agent work artifacts MUST go in:
+
+```
+docs/sessions/<YYYYMMDD-descriptive-name>/
+```
+
+**Required session documents (living docs, continuously updated):**
+
+1. **`00_SESSION_OVERVIEW.md`**
+   - Session goals and success criteria
+   - Key decisions with rationale
+   - Links to PRs, issues, discussions
+
+2. **`01_RESEARCH.md`**
+   - External API/documentation research
+   - Precedents from codebase
+   - Third-party library patterns discovered
+
+3. **`02_SPECIFICATIONS.md`**
+   - Full feature specifications
+   - Acceptance criteria
+   - **ARUs (Assumptions, Risks, Uncertainties)** with mitigation plans
+   - API contracts and data models
+
+4. **`03_DAG_WBS.md`**
+   - Dependency graph (DAG) showing task dependencies
+   - Work breakdown structure (WBS) with estimates
+   - Critical path analysis
+   - Blockers and their resolutions
+
+5. **`04_IMPLEMENTATION_STRATEGY.md`**
+   - Technical approach and design patterns
+   - Architecture decisions and alternatives considered
+   - Code organization rationale
+   - Performance and security considerations
+
+6. **`05_KNOWN_ISSUES.md`**
+   - Current bugs and their severity/impact
+   - Workarounds applied
+   - Technical debt introduced
+   - Future work recommendations
+
+7. **`06_TESTING_STRATEGY.md`**
+   - Test plan and coverage goals
+   - Testing approach (unit/integration/e2e)
+   - Test data strategies
+   - Acceptance test scenarios
+
+### Documentation Update Protocol
+
+**When to update (prefer updating over creating new files):**
+- Discovery → update `01_RESEARCH.md`
+- Requirements change → update `02_SPECIFICATIONS.md` + `03_DAG_WBS.md`
+- Implementation pivot → update `04_IMPLEMENTATION_STRATEGY.md`
+- Bug found/fixed → update `05_KNOWN_ISSUES.md`
+
+**Frequency:**
+- After significant discoveries
+- Before context switches
+- When blocked by uncertainty (document in ARUs)
+
+**Never create:** Files with `FINAL`, `COMPLETE`, `V2`, `_NEW`, `_OLD`, `_DRAFT` suffixes.
+
+### Documentation Consolidation Policy (Aggressive)
+
+**When encountering doc proliferation (anywhere in repo):**
+
+1. **Detect orphaned docs**
+   ```bash
+   find . -name "*.md" -type f | grep -E "(SUMMARY|STATUS|REPORT|COMPLETE|FINAL|CHECKLIST|V[0-9]|_OLD|_NEW|_DRAFT)"
+   ```
+
+2. **Apply decision tree**
+   ```
+   Is doc still relevant?
+   ├─ NO  → Delete immediately (after reviewing for unique info)
+   └─ YES → Is it session-specific?
+          ├─ YES → Move to docs/sessions/<session-id>/
+          └─ NO  → Is it canonical repo doc?
+                 ├─ YES → Keep in docs/ (README, ARCHITECTURE, etc.)
+                 └─ NO  → Merge into canonical doc or delete
+   ```
+
+3. **Consolidation actions**
+   - Extract unique information from temporal docs
+   - Merge into appropriate session document
+   - Delete redundant files without hesitation
+   - Update session folder structure if needed
+
+**Examples:**
+```bash
+# Session-specific, still relevant → move to session
+mv OAUTH_COMPLETION_SUMMARY.md docs/sessions/20251110-oauth-impl/06_COMPLETION.md
+
+# Temporal doc, info now in 05_KNOWN_ISSUES.md → delete
+rm TEST_STATUS_FINAL.md
+
+# Three overlapping guides → consolidate
+cat GUIDE_V1.md GUIDE_V2.md GUIDE_FINAL.md > docs/GUIDE.md
+rm GUIDE_V1.md GUIDE_V2.md GUIDE_FINAL.md
+```
+
+### Canonical Repository Documentation (Exceptions)
+
+These live in `docs/` root and persist across sessions:
+- `docs/README.md` - Project overview, getting started
+- `docs/ARCHITECTURE.md` - System architecture, design patterns
+- `docs/API_REFERENCE.md` - Tool/API documentation
+- `docs/DEPLOYMENT.md` - Deployment guides, infrastructure
+- `docs/TESTING.md` - Testing philosophy, frameworks
+- `docs/TROUBLESHOOTING.md` - Common issues, debugging
+
+**Update protocol:**
+- Session details → session folder
+- Permanent architectural changes → canonical docs
+- Uncertain → start in session folder, promote if universally relevant
+
+### Claude Behavioral Rules
+
+**Session start:**
+1. Create `docs/sessions/<session-id>/` directory
+2. Initialize `00_SESSION_OVERVIEW.md` with goals
+3. Reference (don't duplicate) canonical docs
+
+**During session:**
+1. Update session docs continuously (living documents)
+2. Never create temporal suffixed docs
+3. Consolidate new findings into existing session docs
+4. When creating diagrams/artifacts → save to `artifacts/` subdirectory
+
+**Before ending session:**
+1. Review all session docs for completeness
+2. Scan repo for orphaned docs created during work
+3. Move/consolidate docs outside session folder
+4. Update canonical docs if permanent changes made
+
+**When finding doc proliferation:**
+1. Immediately flag for consolidation
+2. Apply decision tree (above)
+3. Delete temporal/redundant docs aggressively
+4. Move relevant session-specific docs to appropriate session folder
+
+### Benefits
+
+- **Discoverability**: All session work in one place
+- **Context preservation**: Full history without clutter
+- **Easy cleanup**: Archive/delete old sessions cleanly
+- **Prevents duplication**: Clear home for session-specific docs
+- **Living documents**: Update instead of versioning
+- **Reduced noise**: Root/tests/ stay clean
+
+### Real-World Impact
+
+**Before:**
+- Root: 37 .md files (various STATUS, SUMMARY, FINAL docs)
+- tests/: 49 .md files (GUIDE, REPORT, CHECKLIST docs)
+- Difficult to find current information
+
+**After:**
+- Root: ~4 .md files (AGENTS.md, CLAUDE.md, warp.md, README.md)
+- tests/: 1 .md file (README.md)
+- All session work in `docs/sessions/<date-name>/`
+- Clear, discoverable, maintainable
+
+## 7. When Claude Must Ask
 
 Only pause for user input when:
 - Credentials, domains, or external IDs are required and cannot be inferred.

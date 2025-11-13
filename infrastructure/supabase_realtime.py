@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
 
 try:
     from .adapters import RealtimeAdapter
     from ..supabase_client import get_supabase
-    from ..errors import normalize_error, ApiError
+    from ..errors import normalize_error  # noqa: F401
 except ImportError:
     from infrastructure.adapters import RealtimeAdapter
     from supabase_client import get_supabase
-    from errors import normalize_error, ApiError
+    from errors import normalize_error
 
 
 class SupabaseRealtimeAdapter(RealtimeAdapter):
@@ -31,7 +31,7 @@ class SupabaseRealtimeAdapter(RealtimeAdapter):
     async def subscribe(
         self,
         table: str,
-        callback: callable,
+        callback: Callable,
         *,
         filters: Optional[Dict[str, Any]] = None,
         events: Optional[List[str]] = None

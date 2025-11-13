@@ -232,22 +232,29 @@ class ToolBase:
         elif isinstance(data, dict):
             data = self._sanitize_entity(data)
 
+        # Always include success field in all response formats
+        base_response = {"success": True}
+
         if format_type == "raw":
-            return {"data": data}
+            return {**base_response, "data": data}
         elif format_type == "summary":
             if isinstance(data, list):
                 return {
+                    **base_response,
                     "count": len(data),
                     "items": data[:3] if len(data) > 3 else data,
                     "truncated": len(data) > 3
                 }
             else:
-                return {"summary": str(data)[:200] + "..." if len(str(data)) > 200 else str(data)}
+                return {
+                    **base_response,
+                    "summary": str(data)[:200] + "..." if len(str(data)) > 200 else str(data)
+                }
         else:  # detailed
             # Auto-paginate if list is too large (>10 items for MCP)
             if isinstance(data, list) and len(data) > 10:
                 return {
-                    "success": True,
+                    **base_response,
                     "data": data[:10],  # Only return first 10
                     "count": len(data),
                     "truncated": True,
@@ -259,7 +266,7 @@ class ToolBase:
                 }
             else:
                 return {
-                    "success": True,
+                    **base_response,
                     "data": data,
                     "count": len(data) if isinstance(data, list) else 1,
                     "user_id": self._get_user_id(),

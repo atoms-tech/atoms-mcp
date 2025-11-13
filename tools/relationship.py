@@ -14,7 +14,7 @@ except ImportError:
 class RelationshipManager(ToolBase):
     """Manages relationships between entities."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
     
     def _get_relationship_config(self, relationship_type: str) -> Dict[str, Any]:
@@ -242,6 +242,26 @@ class RelationshipManager(ToolBase):
             query_filters["is_deleted"] = False
         
         # Query the relationship table with pagination
+        # For member relationships, try to optimize with profile join in query
+        if relationship_type == "member":
+            try:
+                # Try to use Supabase's join syntax for better performance
+                # This avoids a separate query for profiles
+                relationships = await self._db_query(
+                    table,
+                    select="*, profiles!inner(*)",
+                    filters=query_filters,
+                    limit=limit,
+                    offset=offset,
+                    order_by="created_at:desc"
+                )
+                return relationships
+            except Exception as e:
+                # Fallback to manual join if the optimized query fails
+                print(f"⚠️ Profile join optimization failed, using fallback: {e}")
+                pass
+
+        # Standard query without profile join
         relationships = await self._db_query(
             table,
             select="*",
@@ -251,7 +271,8 @@ class RelationshipManager(ToolBase):
             order_by="created_at:desc"
         )
 
-        # For member relationships, manually join profile data (workaround for missing FK)
+        # For member relationships, manually join profile data if needed
+        # (only executes if optimized query above failed)
         if relationship_type == "member" and relationships:
             # Extract unique user IDs
             user_ids = list(set([
@@ -261,13 +282,13 @@ class RelationshipManager(ToolBase):
             ]))
 
             if user_ids:
-                # Fetch profiles
+                # Batch fetch all profiles in single query (optimized over N+1)
                 profiles = await self._db_query(
                     "profiles",
                     filters={"id": {"in": user_ids}}
                 )
 
-                # Create lookup map
+                # Create lookup map for O(1) access
                 profile_map = {p["id"]: p for p in profiles}
 
                 # Join profiles to relationships

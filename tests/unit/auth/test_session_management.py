@@ -15,7 +15,7 @@ Run with: pytest tests/unit/auth/test_session_management.py -v
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import uuid
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
@@ -39,8 +39,8 @@ class TestSessionCreation:
         session_data = {
             "session_id": session_id,
             "user_id": "user_123",
-            "created_at": datetime.utcnow().isoformat(),
-            "expires_at": (datetime.utcnow() + timedelta(hours=24)).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "expires_at": (datetime.now(UTC) + timedelta(hours=24)).isoformat(),
             "access_token": "test_token",
             "state": "active"
         }
@@ -66,7 +66,7 @@ class TestSessionCreation:
                 "user_id": "user_456",
                 "access_token": "token_xyz",
                 "state": "active",
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(UTC).isoformat()
             }
         }
         
@@ -162,19 +162,19 @@ class TestTokenRefresh:
         """
         refresh_token = {
             "token": "refresh_token_123",
-            "issued_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(days=30),
+            "issued_at": datetime.now(UTC),
+            "expires_at": datetime.now(UTC) + timedelta(days=30),
             "is_expired": False
         }
         
         # Check expiration logic
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         is_expired = now > refresh_token["expires_at"]
         
         assert not is_expired  # Token not yet expired
         
         # Simulate time passing
-        refresh_token["expires_at"] = datetime.utcnow() - timedelta(days=1)
+        refresh_token["expires_at"] = datetime.now(UTC) - timedelta(days=1)
         is_expired = now > refresh_token["expires_at"]
         
         assert is_expired  # Token is now expired
@@ -237,7 +237,7 @@ class TestSessionValidation:
             "user_id": "user_456",
             "client_ip": "192.168.1.100",
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(UTC).isoformat()
         }
         
         # Verify session has client binding
@@ -257,7 +257,7 @@ class TestSessionValidation:
         """
         max_concurrent = 5
         user_sessions = [
-            {"session_id": f"sess_{i}", "created_at": datetime.utcnow()}
+            {"session_id": f"sess_{i}", "created_at": datetime.now(UTC)}
             for i in range(max_concurrent)
         ]
         
@@ -265,7 +265,7 @@ class TestSessionValidation:
         assert len(user_sessions) == max_concurrent
         
         # Adding new session beyond limit
-        new_session = {"session_id": "sess_new", "created_at": datetime.utcnow()}
+        new_session = {"session_id": "sess_new", "created_at": datetime.now(UTC)}
         user_sessions.append(new_session)
         
         # Need to remove oldest if over limit
@@ -291,13 +291,13 @@ class TestSessionCleanup:
         """
         session = {
             "session_id": "sess_timeout",
-            "created_at": datetime.utcnow() - timedelta(hours=2),
-            "last_activity": datetime.utcnow() - timedelta(minutes=35),
+            "created_at": datetime.now(UTC) - timedelta(hours=2),
+            "last_activity": datetime.now(UTC) - timedelta(minutes=35),
             "inactivity_timeout": 30  # 30 minutes
         }
         
         # Check if session is inactive
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         inactive_minutes = (now - session["last_activity"]).total_seconds() / 60
         is_inactive = inactive_minutes > session["inactivity_timeout"]
         

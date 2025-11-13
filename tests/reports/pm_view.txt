@@ -1,0 +1,18 @@
+╔════════════════════════════════════════════════════════════════════╗
+║                        ATOMS MCP - PM VIEW                         ║
+║                    User Story Completion Status                    ║
+╠════════════════════════════════════════════════════════════════════╣
+║ Feature Area      │ Stories │ Complete │ In Progress │ Status     ║
+╠───────────────────┼─────────┼──────────┼─────────────┼────────────╣
+║ Entity CRUD       │      12 │        8 │           4 │        ✓○○ ║
+║ Workspace Mgmt    │       7 │        7 │           0 │        ✓✓✓ ║
+║ Relationship Ops  │       8 │        8 │           0 │        ✓✓✓ ║
+║ Query & Search    │       9 │        9 │           0 │        ✓✓✓ ║
+║ Workflow Execution │       6 │        6 │           0 │        ✓✓✓ ║
+║ Auth & Permissions │       4 │        0 │           4 │        ○○○ ║
+╠────────────────────────────────────────────────────────────────────╣
+║ Overall Progress: 38/46 stories complete (82%)                     ║
+║                                                                    ║
+║ Blockers:                                                          ║
+║    • Auth & Permissions requires attention                         ║
+╚════════════════════════════════════════════════════════════════════╝

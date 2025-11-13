@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import asyncio
 from typing import Dict, Any, List, Optional, Literal
 
@@ -15,7 +14,7 @@ except ImportError:
 class DataQueryEngine(ToolBase):
     """Advanced data querying and analysis engine with RAG capabilities."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._embedding_service = None
         self._vector_search_service = None

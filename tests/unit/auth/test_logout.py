@@ -15,7 +15,7 @@ Run with: pytest tests/unit/auth/test_logout.py -v
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import uuid
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
@@ -46,7 +46,7 @@ class TestLogoutFlow:
         # Logout operation
         session["state"] = "terminated"
         session["access_token"] = None
-        session["terminated_at"] = datetime.utcnow().isoformat()
+        session["terminated_at"] = datetime.now(UTC).isoformat()
         
         assert session["state"] == "terminated"
         assert session["access_token"] is None
@@ -69,11 +69,11 @@ class TestLogoutFlow:
         # Token blacklist
         token_blacklist = {
             access_token: {
-                "revoked_at": datetime.utcnow().isoformat(),
+                "revoked_at": datetime.now(UTC).isoformat(),
                 "reason": "logout"
             },
             refresh_token: {
-                "revoked_at": datetime.utcnow().isoformat(),
+                "revoked_at": datetime.now(UTC).isoformat(),
                 "reason": "logout"
             }
         }
@@ -132,7 +132,7 @@ class TestLogoutFlow:
         for session_id, session in user_sessions.items():
             if session["user_id"] == user_id:
                 session["active"] = False
-                session["terminated_at"] = datetime.utcnow().isoformat()
+                session["terminated_at"] = datetime.now(UTC).isoformat()
         
         # Verify all are terminated
         assert all(not s["active"] for s in user_sessions.values())
@@ -237,7 +237,7 @@ class TestLogoutSecurity:
             "user_id": "user_123",
             "ip_address": "192.168.1.100",
             "user_agent": "Mozilla/5.0...",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "status": "success"
         }
         
@@ -326,7 +326,7 @@ class TestLogoutEdgeCases:
         # Cancel all pending requests
         for req_id, req in pending_requests.items():
             req["status"] = "cancelled"
-            req["cancelled_at"] = datetime.utcnow().isoformat()
+            req["cancelled_at"] = datetime.now(UTC).isoformat()
         
         # Verify all cancelled
         assert all(r["status"] == "cancelled" for r in pending_requests.values())

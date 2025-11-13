@@ -105,30 +105,46 @@ class TestAuthKitLogin:
         - Invalid URIs are rejected
         - Protocol validation (https in production)
         """
-        valid_redirect_uris = [
+        # Simulate validation function
+        def is_valid_redirect_uri(uri: str, registered_uris: list) -> bool:
+            """Simple validation for testing."""
+            # Check for dangerous schemes
+            if uri.startswith("javascript:"):
+                return False
+            # Check for protocol-relative URLs
+            if uri.startswith("//"):
+                return False
+            # Check if URI is in registered list
+            return uri in registered_uris
+        
+        # Test with registered URIs
+        registered_uris = [
             "http://localhost:3000/auth/callback",
             "http://localhost:8000/auth/callback",
-        ]
-        
-        production_valid = [
             "https://app.example.com/auth/callback",
             "https://secure.example.com/auth/callback",
         ]
         
+        # Test valid URIs
+        valid_uris = [
+            "http://localhost:3000/auth/callback",
+            "http://localhost:8000/auth/callback",
+            "https://app.example.com/auth/callback",
+            "https://secure.example.com/auth/callback",
+        ]
+        
+        for uri in valid_uris:
+            assert is_valid_redirect_uri(uri, registered_uris), f"Valid URI should pass: {uri}"
+        
+        # Test invalid URIs
         invalid_uris = [
             "http://evil.com/callback",  # Not registered
             "javascript:alert('xss')",    # JavaScript injection
             "//example.com/callback",     # Protocol-relative
         ]
         
-        # Validate redirect URIs
-        for uri in valid_redirect_uris:
-            assert uri.startswith("http"), f"Valid URI should use http/https: {uri}"
-        
         for uri in invalid_uris:
-            # These should be rejected by validation logic
-            assert not uri.startswith("javascript:"), "JavaScript URIs rejected"
-            assert not uri.startswith("//"), "Protocol-relative URLs rejected"
+            assert not is_valid_redirect_uri(uri, registered_uris), f"Invalid URI should be rejected: {uri}"
 
     @pytest.mark.story("Security & Access - User can log in with AuthKit")
     async def test_login_error_handling(self):

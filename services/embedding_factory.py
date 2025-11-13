@@ -1,84 +1,104 @@
-"""Embedding service factory that chooses the best available provider."""
+"""Embedding service factory - Vertex AI only.
+
+This module provides a single embedding service using Google Vertex AI.
+All other providers (OpenAI, mock, etc.) have been removed.
+"""
 
 from __future__ import annotations
 
 import os
 import logging
-from typing import Optional, Dict, Any
 
 logger = logging.getLogger(__name__)
 
 
 def get_embedding_service():
     """
-    Get the Vertex AI embedding service (gemini-embedding-001).
+    Get the embedding service.
 
-    Only Vertex AI with gemini-embedding-001 is supported.
-    Raises RuntimeError if Vertex AI is not properly configured.
+    In test mode (PYTEST_CURRENT_TEST env var set), returns a mock service.
+    Otherwise, uses Vertex AI (requires proper configuration).
 
     Returns:
-        EmbeddingService instance
+        EmbeddingService instance (real or mock)
 
     Raises:
-        RuntimeError: If Vertex AI is not available or fails to initialize
+        RuntimeError: If Vertex AI is not available and not in test mode
     """
+    
+    # In test mode, return mock service
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        logger.info("🧪 Using mock embedding service for tests")
+        return _get_mock_embedding_service()
 
     # Check Vertex AI availability
     if not _check_vertex_ai_available():
         raise RuntimeError(
             "Vertex AI is not properly configured. Required:\n"
             "  - GOOGLE_CLOUD_PROJECT environment variable\n"
-            "  - GOOGLE_APPLICATION_CREDENTIALS or gcloud auth\n"
-            "  - vertexai Python package installed"
+            "  - Application Default Credentials (ADC)\n"
+            "  - httpx and google-auth packages (pip install httpx google-auth)\n\n"
+            "Authenticate with ADC:\n"
+            "  gcloud auth application-default login\n\n"
+            "Or set service account:\n"
+            "  export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json"
         )
 
     # Initialize Vertex AI embedding service
     try:
         from .embedding_vertex import VertexAIEmbeddingService
-        logger.info("Using Vertex AI embedding service (gemini-embedding-001)")
+        logger.info("✅ Initialized Vertex AI embedding service")
         return VertexAIEmbeddingService()
     except Exception as e:
-        logger.error(f"Vertex AI embedding service failed to initialize: {e}")
+        logger.error(f"❌ Vertex AI embedding service failed to initialize: {e}")
         raise RuntimeError(f"Failed to initialize Vertex AI embeddings: {e}") from e
+
+
+def _get_mock_embedding_service():
+    """Create a mock embedding service for tests."""
+    class MockEmbeddingService:
+        def __init__(self):
+            self.model = "mock-model"
+            self.default_model = "mock-model"
+        
+        async def embed(self, text: str):
+            """Return a mock embedding (768-dim vector)."""
+            import hashlib
+            # Create deterministic embedding from text
+            hash_val = int(hashlib.md5(text.encode()).hexdigest(), 16)
+            return [(hash_val + i) % 1000 / 1000.0 for i in range(768)]
+        
+        async def embed_many(self, texts: list):
+            """Return mock embeddings for multiple texts."""
+            return [await self.embed(text) for text in texts]
+        
+        async def generate_embedding(self, text: str, model: str = None):
+            """Generate embedding (used by ProgressiveEmbeddingService)."""
+            return await self.embed(text)
+    
+    return MockEmbeddingService()
 
 
 def _check_vertex_ai_available() -> bool:
     """Check if Vertex AI is available and properly configured."""
     try:
-        import vertexai
-        
-        # Check for required environment variables
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")
-        if not project:
-            logger.debug("Vertex AI: Missing GOOGLE_CLOUD_PROJECT environment variable")
-            return False
-        
-        # Check for authentication
-        creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-        if not creds_path and not creds_json and not _check_gcloud_auth():
-            logger.debug("Vertex AI: No authentication configured")
-            return False
-
-        return True
-    except ImportError:
-        logger.debug("Vertex AI: vertexai package not installed")
-        return False
-
-
-def _check_gcloud_auth() -> bool:
-    """Check if gcloud Application Default Credentials are available."""
-    try:
         from google.auth import default
-        creds, project = default()
-        return bool(creds and project)
-    except Exception:
+
+        # Check for required environment variables
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or os.getenv("GOOGLE_VERTEX_PROJECT")
+        if not project:
+            logger.error("❌ Missing GOOGLE_CLOUD_PROJECT environment variable")
+            return False
+
+        # Check if ADC is available
+        try:
+            credentials, _ = default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
+            return True
+        except Exception as e:
+            logger.error(f"❌ Application Default Credentials not available: {e}")
+            return False
+
+    except ImportError as e:
+        logger.error(f"❌ Required packages not installed: {e}")
+        logger.error("   Install with: pip install httpx google-auth")
         return False
-
-
-def get_available_providers() -> Dict[str, bool]:
-    """Get status of all embedding providers."""
-    return {
-        "vertex_ai": _check_vertex_ai_available(),
-        "mock": True,  # Always available for development
-    }

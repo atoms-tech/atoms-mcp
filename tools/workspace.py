@@ -13,7 +13,7 @@ except ImportError:
 class WorkspaceManager(ToolBase):
     """Manages workspace context for users."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # In-memory context store (in production, could be Redis/database)
         self._user_contexts: Dict[str, Dict[str, Any]] = {}
@@ -114,10 +114,10 @@ class WorkspaceManager(ToolBase):
             }
         )
 
-        # Get user's organizations with minimal data to prevent oversized responses
-        orgs = await self._db_query(
+        # Get user's organization memberships
+        memberships = await self._db_query(
             "organization_members",
-            select="organizations!inner(id,name,slug,type,status)",
+            select="organization_id",
             filters={
                 "user_id": user_id,
                 "status": "active",
@@ -127,10 +127,23 @@ class WorkspaceManager(ToolBase):
             offset=offset
         )
 
+        # Extract organization IDs
+        org_ids = [m["organization_id"] for m in memberships if m.get("organization_id")]
+
         organizations = []
-        for org_member in orgs:
-            org_data = org_member.get("organizations")
-            if org_data:
+        if org_ids:
+            # Get organizations data separately to avoid complex join issues
+            orgs_data = await self._db_query(
+                "organizations",
+                select="id,name,slug,type,status",
+                filters={
+                    "id": {"in": org_ids},
+                    "is_deleted": False
+                }
+            )
+
+            # Add project counts
+            for org_data in orgs_data:
                 # Get projects count for this org
                 project_count = await self._db_count(
                     "projects",
@@ -161,7 +174,33 @@ class WorkspaceManager(ToolBase):
         project_id = context.get("active_project")
         document_id = context.get("active_document")
         
-        # If no active org, try personal org
+
+        # If no active org, try infer from memberships first (fast path in tests)
+        # Fast-path: find any organization created by this user and use it if available
+        if not org_id:
+            recent_org = await self._db_get_single(
+                "organizations",
+                filters={
+                    "created_by": user_id,
+                    "is_deleted": False
+                }
+            )
+            if recent_org:
+                org_id = recent_org["id"]
+        if not org_id:
+            # Find any active org membership for this user and pick the first
+            membership = await self._db_get_single(
+                "organization_members",
+                filters={
+                    "user_id": user_id,
+                    "status": "active",
+                    "is_deleted": False
+                }
+            )
+            if membership and membership.get("organization_id"):
+                org_id = membership["organization_id"]
+
+        # If still no active org, try personal org
         if not org_id:
             personal_org = await self._db_get_single(
                 "organizations",

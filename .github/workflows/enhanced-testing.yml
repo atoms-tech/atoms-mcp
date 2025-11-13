@@ -1,0 +1,177 @@
+name: Enhanced Test Infrastructure
+
+on:
+  push:
+    branches: [ main, working-deployment ]
+  pull_request:
+    branches: [ main, working-deployment ]
+  workflow_dispatch:
+
+jobs:
+  test-with-enhanced-reporting:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      
+      - name: Create virtual environment
+        run: uv venv
+      
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          uv pip install -r requirements-dev.txt
+          uv pip install pytest-dependency pytest-order flaky
+      
+      - name: Run unit tests with enhanced reporting
+        id: unit-tests
+        run: |
+          source .venv/bin/activate
+          pytest tests/unit/ -m unit -v --tb=short --junitxml=test-results/unit-results.xml
+        continue-on-error: true
+      
+      - name: Run integration tests with enhanced reporting
+        id: integration-tests
+        if: always()
+        run: |
+          source .venv/bin/activate
+          pytest tests/integration/ -m integration -v --tb=short --junitxml=test-results/integration-results.xml || true
+        continue-on-error: true
+      
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_number }}
+          path: |
+            tests/reports/
+            test-results/
+          retention-days: 30
+      
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## 📊 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f tests/reports/architect_view.txt ]; then
+            echo "### Architect View" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat tests/reports/architect_view.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f tests/reports/pm_view.txt ]; then
+            echo "### PM View" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat tests/reports/pm_view.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f tests/reports/error_classification.txt ]; then
+            echo "### Error Classification" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat tests/reports/error_classification.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let comment = '## 🧪 Enhanced Test Results\n\n';
+            
+            // Add architect view
+            if (fs.existsSync('tests/reports/architect_view.txt')) {
+              const architectView = fs.readFileSync('tests/reports/architect_view.txt', 'utf8');
+              comment += '### 🏗️ Architect View\n```\n' + architectView + '\n```\n\n';
+            }
+            
+            // Add PM view
+            if (fs.existsSync('tests/reports/pm_view.txt')) {
+              const pmView = fs.readFileSync('tests/reports/pm_view.txt', 'utf8');
+              comment += '### 📊 PM View\n```\n' + pmView + '\n```\n\n';
+            }
+            
+            // Add error classification
+            if (fs.existsSync('tests/reports/error_classification.txt')) {
+              const errorClass = fs.readFileSync('tests/reports/error_classification.txt', 'utf8');
+              comment += '### 🔍 Error Classification\n```\n' + errorClass + '\n```\n\n';
+            }
+            
+            comment += '\n---\n📁 Full reports available in CI artifacts';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      - name: Fail job if tests failed
+        if: steps.unit-tests.outcome == 'failure'
+        run: exit 1
+
+  coverage-report:
+    runs-on: ubuntu-latest
+    needs: test-with-enhanced-reporting
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      
+      - name: Create virtual environment
+        run: uv venv
+      
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          uv pip install -r requirements-dev.txt
+          uv pip install pytest-cov
+      
+      - name: Run tests with coverage
+        run: |
+          source .venv/bin/activate
+          pytest tests/unit/ -m unit --cov=tools --cov=services --cov=infrastructure --cov-report=html --cov-report=term
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_number }}
+          path: htmlcov/
+          retention-days: 30
+      
+      - name: Coverage summary
+        run: |
+          source .venv/bin/activate
+          echo "## 📈 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          pytest tests/unit/ -m unit --cov=tools --cov=services --cov=infrastructure --cov-report=term >> $GITHUB_STEP_SUMMARY

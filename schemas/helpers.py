@@ -161,7 +161,6 @@ def partial_validate(entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         for key, value in data.items():
             if key in model.model_fields:
                 # Validate individual field
-                field = model.model_fields[key]
                 # Simple type checking
                 validated_fields[key] = value
             else:

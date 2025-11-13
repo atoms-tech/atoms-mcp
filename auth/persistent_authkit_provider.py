@@ -37,7 +37,7 @@ class PersistentAuthKitProvider(AuthKitProvider):
             session = _create_http_session()
 
             try:
-                logger.info(f"🔧 /auth/complete called")
+                logger.info("🔧 /auth/complete called")
                 logger.info(f"   Content-Type: {request.headers.get('content-type')}")
 
                 # Parse form data from AuthKit
@@ -97,7 +97,7 @@ class PersistentAuthKitProvider(AuthKitProvider):
                     }
                 }
 
-                logger.info(f"📡 Calling AuthKit complete...")
+                logger.info("📡 Calling AuthKit complete...")
 
                 async with session.post(
                     complete_url,
@@ -119,7 +119,7 @@ class PersistentAuthKitProvider(AuthKitProvider):
                         )
 
                     result = await resp.json() if text else {}
-                    logger.info(f"✅ Success")
+                    logger.info("✅ Success")
 
                 # Redirect to client callback
                 final_redirect = result.get("redirect_uri") or redirect_uri

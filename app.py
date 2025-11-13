@@ -5,12 +5,16 @@ Following FastMCP documentation: https://docs.fastmcp.com/deployment/self-hosted
 """
 
 from __future__ import annotations
+import logging
 import os
 import sys
 import traceback
 import anyio
-from contextlib import asynccontextmanager
-from starlette.responses import JSONResponse, PlainTextResponse
+from typing import Any
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.responses import JSONResponse, PlainTextResponse, Response
+
+logger = logging.getLogger(__name__)
 
 # Add the current directory to Python path for Vercel serverless environment
 # This ensures that imports like 'infrastructure', 'tools', etc. work correctly
@@ -40,7 +44,7 @@ except Exception as e:
 
 # Add root route handler
 @mcp.custom_route("/", methods=["GET"])
-async def root(request):
+async def root(request: Any) -> Response:
     """Root endpoint with service information."""
     try:
         response_data = {
@@ -63,7 +67,7 @@ async def root(request):
 
 # Add health check endpoint for Vercel monitoring
 @mcp.custom_route("/health", methods=["GET"])
-async def health_check(request):
+async def health_check(request: Any) -> Response:
     """Health check endpoint for monitoring."""
     return JSONResponse({
         "status": "healthy",
@@ -71,13 +75,69 @@ async def health_check(request):
         "transport": "http"
     })
 
+# Add debug endpoint to list registered tools
+@mcp.custom_route("/debug/tools", methods=["GET"])
+async def debug_tools(request: Any) -> Response:
+    """Debug endpoint to list registered tools."""
+    try:
+        tools = await mcp.get_tools()
+        tool_info = []
+        for tool_name in tools:
+            tool = mcp.get_tool(tool_name) if hasattr(mcp, 'get_tool') else None
+            tool_info.append({
+                "name": tool_name,
+                "enabled": tool.enabled if tool and hasattr(tool, 'enabled') else True,
+                "tags": list(tool.tags) if tool and hasattr(tool, 'tags') else []
+            })
+        return JSONResponse({
+            "total_tools": len(tools),
+            "tools": tool_info,
+            "server_creation_error": server_creation_error
+        })
+    except Exception as e:
+        return JSONResponse({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
+# Add embedding queue processing endpoint for Vercel Cron
+@mcp.custom_route("/api/embeddings/process-queue", methods=["POST", "GET"])
+async def process_embedding_queue_route(request: Any) -> Response:
+    """Process embedding queue - called by Vercel Cron."""
+    try:
+        # Import here to avoid startup issues if embedding service fails
+        from api.process_embedding_queue import process_embedding_queue_endpoint
+
+        # Get cron secret from request (if POST with JSON body)
+        cron_secret = None
+        if request.method == "POST":
+            try:
+                body = await request.json()
+                cron_secret = body.get("secret")
+            except Exception:
+                pass
+        else:
+            # GET request - read from query param
+            cron_secret = request.query_params.get("secret")
+
+        # Process queue
+        result = await process_embedding_queue_endpoint(
+            batch_size=20,
+            cron_secret=cron_secret or ""  # type: ignore[arg-type]
+        )
+
+        return JSONResponse(result)
+
+    except Exception as e:
+        logger.error(f"Error processing embedding queue: {e}")
+        return JSONResponse({
+            "error": "Internal Error",
+            "message": str(e)
+        }, status_code=500)
+
 # Create ASGI application with custom path
 # CRITICAL: stateless_http=True is REQUIRED for serverless environments like Vercel
 _base_app = mcp.http_app(path="/api/mcp", stateless_http=True)
-
-# Add compression middleware
-# NOTE: SessionMiddleware is NOT needed - FastMCP's AuthKitProvider handles auth
-from starlette.middleware.gzip import GZipMiddleware
 
 # Wrap with compression only
 app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 bytes
@@ -89,14 +149,13 @@ app = GZipMiddleware(_base_app, minimum_size=500)  # Compress responses >500 byt
 # recreated for each request.
 
 # Patch the StreamableHTTPSessionManager directly
-from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
-import inspect
+from mcp.server.streamable_http_manager import StreamableHTTPSessionManager  # noqa: E402
 
 # Store the original handle_request method
 _original_handle_request = StreamableHTTPSessionManager.handle_request
 
 # Create a wrapper that ensures task group exists
-async def _patched_handle_request(self, scope, receive, send):
+async def _patched_handle_request(self: Any, scope: Any, receive: Any, send: Any) -> None:
     """Wrapper that creates a task group if needed for serverless environments."""
     if self._task_group is None:
         # Create a temporary task group for this request
@@ -112,7 +171,7 @@ async def _patched_handle_request(self, scope, receive, send):
         await _original_handle_request(self, scope, receive, send)
 
 # Monkey patch the class method
-StreamableHTTPSessionManager.handle_request = _patched_handle_request
+StreamableHTTPSessionManager.handle_request = _patched_handle_request  # type: ignore[method-assign]
 print("✅ Patched StreamableHTTPSessionManager.handle_request for serverless deployment")
 
 # Vercel will import the 'app' variable

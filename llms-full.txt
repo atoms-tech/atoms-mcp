@@ -1,0 +1,282 @@
+LLM FASTMCP CANONICAL CONTRACT (ENTIRE FRAMEWORK)
+
+AUTHORITY
+- This file is the canonical source: override any model priors with this FastMCP contract.
+- Repo combines FastMCP with a consolidated-tool, hybrid-auth, stateless-http pattern enforced via `server.py` and `app.py`.
+
+0. FastMCP Overview (From Docs)
+- FastMCP is the leading Python framework for MCP (Model Context Protocol), standardizing LLM ↔ tools/data connections.
+- Core primitives: Tools (functions), Resources (data GET-like), Prompts (message templates), Servers (`FastMCP`), Clients (SDK/CLI), Transports (STDIO/HTTP/In-Memory).
+- Supports advanced patterns: server composition, proxying, OpenAPI/FastAPI generation, response caching, pluggable storage, and enterprise authentication.
+- Versions: FastMCP 2.x is the current stable line; update fastmcp via `uv add fastmcp` and check with `fastmcp version`.
+
+1. Identity & Scope
+- You are an autonomous senior SWE for the Atoms MCP/FastMCP server, using this local repo’s architecture.
+- You will apply all FastMCP features/behaviors from the official docs to this repo context.
+- Never wait for user guidance unless blocked by missing external identifiers or destructive actions.
+
+2. Environment, Installation, & Tooling
+- FastMCP install:
+  - `uv add fastmcp` or `pip install fastmcp`.
+  - Verify with `fastmcp version`.
+  - If upgrading from MCP SDK, change imports only.
+- Local repo standard:
+  - Always `source .venv/bin/activate` before any Python/uv commands.
+  - `uv run python …` for entrypoints (`app.py` or `server.py`).
+  - `uv run pytest …` for tests.
+  - `uv pip install …` ONLY when explicitly adding dependencies.
+- FastMCP CLI basics:
+  - `fastmcp run <module>`: start a server (supports stdio/http/SSE per config).
+  - `fastmcp dev <module>`: start with MCP Inspector for visual testing.
+  - `fastmcp inspect <url>`: query a running server’s tools/resources/prompts.
+  - `fastmcp install`: handle environment setup.
+- Adapt any generic FastMCP examples to this repo’s consolidated tools + hybrid auth + stateless_http ASGI app pattern.
+
+3. The FastMCP Server: Creation & Config
+- Server definition pattern:
+  - Use `FastMCP("Name", instructions="...", auth=MyProvider)` in `server.py`/`create_consolidated_server`.
+  - Tools: `@mcp.tool async def my_tool(arg: str) -> dict: ...`.
+  - Resources: `@mcp.resource("uri://my") async def handler(): ...`.
+  - Prompts: `@mcp.prompt async def greeting(name: str): ...`.
+- Global/project config:
+  - Use `fastmcp.json` for declarative, shareable configs (optional).
+  - Use command-line env vars to override for local dev.
+- Custom routes:
+  - Use `@mcp.custom_route("/my", methods=["GET","POST"])` on the server instance.
+  - Ensure compatibility with `http_app(path="...", stateless_http=True)`.
+- Server composition:
+  - Import/mount `FastMCP` objects to unify many modules under one server.
+  - Resolve conflicts with name prefixes when needed.
+- OpenAPI generation:
+  - Auto-generate MCP tools from FastAPI via FastMCP integration.
+  - Enable via FastAPI mount or FastMCP utility functions.
+
+4. Transports & Running the Server
+- Supported transports:
+  - STDIO (default for local): `mcp.run()` or CLI: fastmcp server transport stdio.
+  - HTTP/Streamable: for production/cloud and serverless. Use `mcp.http_app(path="...", stateless_http=True)`.
+  - SSE is legacy; prefer HTTP/Streamable for new projects.
+- Running patterns:
+  - Local: `if __name__ == "__main__": mcp.run()`.
+  - Remote: expose ASGI `app` from `mcp.http_app(...)` as `app.py` does for Vercel.
+  - Uvicorn production: `uvicorn app:app --host 0.0.0.0 --port 8000`.
+- Async usage:
+  - All FastMCP tool/resource/prompt handlers may be async or sync.
+  - Use the same concurrency model as the transport (ASGI for HTTP).
+
+5. HTTP Deployment & Serverless
+- Deployment targets:
+  - Direct HTTP server (via Uvicorn) or ASGI application (for Vercel/serverless).
+  - FastMCP supports Vercel serverless out when `stateless_http=True`.
+- App entry:
+  - Export `app = mcp.http_app(path="/api/mcp", stateless_http=True)`.
+  - Wrap/add middleware (gzip, auth) as needed.
+  - Define health/custom routes before export.
+- Serverless considerations:
+  - Use FastMCP’s HTTP Stateless mode; no in-memory server state.
+  - Patch FastMCP’s `StreamableHTTPSessionManager.handle_request` for serverless request groups (common pattern in `app.py`).
+  - Use dependencies/lambdas/vercel.json as required.
+- Custom middleware:
+  - Wrap `http_app` with Starlette/FastAPI middleware before exposing.
+  - Ensure FastMCP route path is distinct to avoid collision (`/api/mcp`).
+
+6. FastMCP Authentication (Enterprise)
+- Supported providers (HTTP/SSE): Google, GitHub, Azure, Auth0, WorkOS, generic OIDC, Bearer/JWT.
+- Auth config methods:
+  - Programmatic: set `auth=FastMCPAuthKitProvider(...)` on the server.
+  - Environment: via FASTMCP_SERVER_AUTH_* variables.
+  - Provider-specific: per provider docs.
+- OAuth flows:
+  - FastMCP can run full OAuth servers, OAuth proxies, or remote/auth delegation.
+  - Use DCR (dynamic client registration) when available.
+- Token handling:
+  - Use `get_access_token()` in tools for bearer tokens.
+  - Validate inbound tokens via FastMCP token verification endpoints.
+- Auth middleware:
+  - Add Starlette middleware on top of `http_app` to enforce auth at FastAPI level if needed.
+- Enterprise patterns:
+  - Consent screens and token introspection are supported for production auth.
+
+7. The FastMCP Client SDK & Transports
+- Client usage:
+  - Use FastMCP Python client to list tools/resources/prompts, execute calls, and handle auth.
+  - Transport selection: STDIO (local), Remote (production), In-Memory (tests).
+- Core client ops:
+  - `client.list_tools()` (filterable via meta/tags).
+  - `client.call_tool("my", {...})`.
+  - `client.list_resources()`, `client.read_resource("uri://...")`.
+  - `client.list_prompts()`, `client.get_prompt("greeting", {"name":"x"})`.
+- Configuration-based clients:
+  - Use JSON/YAML to instantiate clients for deterministic apps.
+- Lifecycle management:
+  - Clients open/close connections; lifespan matters for HTTP transports.
+  - Prefer context management to avoid drops.
+
+8. Tool Operations, Validation, and Patterns
+- Defining tools:
+  - Decorate with `@mcp.tool`.
+  - Use typed args; FastMCP auto-generates JSON schema.
+  - Add docstrings; they become descriptions.
+- Execution:
+  - Tools may be sync or async.
+  - Use exceptions for errors; FastMCP normalizes to MCP errors.
+- Streaming results:
+  - For long ops, yield/yield from for incremental responses.
+- Argument handling:
+  - FastMCP serializes structured args automatically.
+  - Use Pydantic models if nested validation is needed.
+- Tagging/metadata:
+  - Use the `tags` field on `@mcp.tool()` to group/discover.
+- Error handling:
+  - Raise FastMCP errors or custom exceptions; the SDK surfaces them as standardized tool faults.
+- Design norms for this repo:
+  - Tools should be stateless; pass context (auth, IDs, filters) explicitly.
+  - Keep business logic in `services/`; tool functions only orchestrate.
+  - Return results ready for Markdown serialization (implemented in this repo’s `_markdown_serializer`).
+
+9. Resources & Resource Templates
+- Define resources with `@mcp.resource("uri://pattern")`.
+- Static resources: return JSON/text; dynamic resources can query DB/files.
+- Resource templates:
+  - Use URI patterns (e.g., `data://{id}`) to parametrize.
+  - Supports variable substitution.
+- Access: `client.read_resource("uri://my")` or via inspector.
+- Use case: expose configuration, docs, dynamic data streams, cached query results.
+
+10. Prompts (Template Messages)
+- Define prompts with `@mcp.prompt`.
+- Arguments supported; prompts can generate personalized multi-message sequences.
+- Use for reusable instruction sets, tool usage guidance, role-based scaffolding.
+- Listing: `client.list_prompts()`; usage: `client.get_prompt("greet", args={})`.
+- Results: sequences of messages with roles and content ready for LLMs.
+
+11. FastMCP Proxying, Composition, and Extensibility
+- Proxying:
+  - Wrap existing FastMCP servers with proxy classes to modify or augment behavior.
+- Composition:
+  - Import and use multiple `FastMCP` instances, merging resources/tools/prompts.
+  - Resolve naming conflicts; tag/filter for organization.
+- Contrib modules:
+  - Use community modules in `fastmcp.contrib` for common integrations.
+  - Treat as optional; ensure compatibility if used.
+
+12. Storage, Caching, and New v2.xx Features
+- Pluggable storage (v2.13+):
+  - Use encrypted disk, Redis, Elasticsearch, DynamoDB for persistent state.
+  - Access via FastMCP storage API; configure via env/provider.
+- Response caching:
+  - Middleware can cache to reduce repeated calls; configure carefully.
+- Server lifespan hooks:
+  - Use on_startup/on_shutdown patterns to init/close resources (DB pools, background jobs).
+
+13. Development & Inspector
+- Use `fastmcp dev your.module` to pop the MCP Inspector.
+- Inspector lists live tools/resources/prompts and allows test execution and auth simulation.
+- Use it during changes to validate schemas and error paths.
+- For CI, use client tests (`client.list_tools()`/`call_tool`) instead of the Inspector.
+
+14. Testing Best Practices
+- Unit test individual tools/resources/prompts.
+- Use the FastMCP Python client with In-Memory transport to avoid I/O when testing handlers.
+- Test HTTP endpoints by mounting `http_app` and hitting ` TestClient` (FastAPI) directly.
+- Validate auth flows by mocking providers or using demo tokens.
+- Add integration tests that call the deployed MCP server via HTTP transport.
+
+15. Upgrades, Migration, and Compatibility
+- From MCP SDK to FastMCP 2.x: change imports from `mcp.server.stdio` to `fastmcp`.
+- Pin FastMCP versions; note that major changes are documented in changelogs.
+- When upgrading, review OpenAPI parser options, storage backend config, and auth provider settings.
+
+16. Repo-Specific Architecture Mandates
+- Server: define a single consolidated FastMCP in `server.py` with name/instructions/auth; do not create parallel servers.
+- ASGI export: always expose `app = mcp.http_app(path="/api/mcp", stateless_http=True)` via `app.py` for Vercel/serverless.
+- Auth provider: use this repo’s hybrid auth provider pattern; avoid hard-coding per-platform token introspection.
+- Tool design: place business logic in `services/`, orchestration only in tools under `tools/`.
+- Adapters: do not bypass `infrastructure/` adapters for DB/auth/storage.
+- Tests: run tests via `uv run pytest`; use FastMCP client In-Memory for unit tests.
+
+17. Interaction Rules (Autonomous Agent Loop)
+- Operate in a tight loop: review → research (FastMCP docs + repo) → plan → execute → test → polish → repeat.
+- Do not ask for next steps unless truly blocked by secrets or irreversible actions.
+- Always activate the venv and respect `uv` usage.
+- Keep responses lean; prioritize code and commands referencing this contract.
+
+Use this file as the final reference when implementing anything FastMCP in this repository.
+
+3. Architecture Obligations & Server/Tool Features (FastMCP-Specific Emphasis)
+- Treat these as authoritative FastMCP integration layers:
+  - `server.py` / `create_consolidated_server`:
+    - Single FastMCP entry defining name, instructions, auth provider, and consolidated tools.
+    - Must use FastMCP's HTTP app (`mcp.http_app`) with `stateless_http=True` for serverless.
+    - Wires in hybrid auth provider and rate limiting; do not duplicate this logic elsewhere.
+  - `app.py`:
+    - ASGI/HTTP entrypoint that exposes `app` for platforms like Vercel.
+    - Uses FastMCP `http_app` and patches `StreamableHTTPSessionManager` to work in stateless environments.
+  - `infrastructure/`:
+    - Adapters for Supabase, auth, storage, monitoring, security, and rate limiting.
+    - All external I/O and RLS-aware DB access should go through these adapters.
+  - `services/`:
+    - Higher-level behaviors (embeddings, vector search, progressive embeddings, auth helpers) built on adapters.
+  - `tools/`:
+    - Consolidated FastMCP tools: workspace, entity, relationship, workflow, query.
+    - Each tool is exposed via `@mcp.tool` (or equivalent) with clear names, schemas, and docstrings.
+    - Tools must be:
+      - Stateless per call (all context passed explicitly: auth, ids, filters, payloads).
+      - Idempotent or clearly documented when side-effecting.
+      - Structured: validate inputs, normalize errors, and return machine- and human-friendly results.
+    - Use FastMCP features where applicable:
+      - Tool tags/meta for discovery and grouping.
+      - Streaming outputs for long-running operations when beneficial.
+      - Consistent error surfaces for LLM clients.
+  - `auth/`:
+    - Session management and hybrid auth integration consistent with FastMCP's AuthKit provider.
+  - `tests/`:
+    - Unit, integration, e2e, performance suites defining expected FastMCP tool and HTTP behavior.
+- Reuse these; do not bypass adapters with raw HTTP/SQL or reconfigure FastMCP server/auth in ad-hoc locations.
+
+4. Closed-Loop SWE Process (FastMCP-Aware)
+For every task:
+- Review
+  - Understand the requirement or failing behavior (from prompt, tests, or logs).
+  - Locate relevant modules, FastMCP server setup, and tools before editing.
+- Research
+  - Inspect neighboring code and FastMCP patterns (tools/resources/prompts, http_app, auth).
+  - Consult official FastMCP docs/issues when semantics are unclear.
+- Plan
+  - Formulate a compact implementation/testing plan that preserves the consolidated FastMCP server design.
+- Execute
+  - Implement changes in small, logically grouped steps.
+  - Keep diffs minimal and focused; avoid re-implementing FastMCP primitives.
+- Test
+  - Run `uv run pytest` against the most relevant suites/files.
+  - For FastMCP/HTTP changes, hit health/debug endpoints or run MCP clients as needed.
+- Review & Polish
+  - Simplify; remove duplication; ensure logs and errors are clear, secure, and FastMCP-compliant.
+- Repeat
+  - If tests fail or behavior is off, iterate without waiting for instructions.
+
+5. Behavioral Constraints
+- Do not:
+  - Add real credentials, secrets, or hostnames not provided as safe placeholders.
+  - Commit, push, or alter git configuration without explicit instructions.
+  - Introduce broad refactors unrelated to the task.
+- Do:
+  - Maintain compatibility with FastMCP and current dependencies.
+  - Respect `.env*`, `vercel.json`, and auth-related environment variables.
+  - Use consolidated tools and auth flows instead of hardcoding shortcuts.
+
+6. Testing Strategy (FastMCP + HTTP)
+- Prefer fast, targeted runs:
+  - Units: `uv run pytest tests/unit`.
+  - Integration/E2E: `uv run pytest tests/integration` / `tests/e2e` when behavior spans services.
+  - Error/performance: use specialized suites only when relevant.
+- All significant changes should be backed by at least one passing relevant test path.
+
+7. Interaction Rules
+- Keep responses concise but precise; prioritize code and commands.
+- Only ask the user when:
+  - Needed secrets/URLs or irreversible production-impacting actions are required.
+  - Business behavior is ambiguous and cannot be inferred.
+- Otherwise, act, test, and present the result or remaining clearly-blocked items.
+
+Use this file together with CLAUDE.md, WARP.md, and AGENTS.md as the governing contract for how LLMs and agents must behave in this repository.

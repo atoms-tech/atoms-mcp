@@ -10,7 +10,7 @@ To regenerate:
 from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 # Model for table: organizations

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 
 from supabase import Client, create_client
 
@@ -20,7 +20,7 @@ except Exception:  # pragma: no cover
 logger = logging.getLogger(__name__)
 
 # Client cache: token_hash -> (client, created_time)
-_client_cache: dict = {}
+_client_cache: dict[str, Tuple[Client, float]] = {}
 _cache_ttl = 300  # 5 minutes
 
 
@@ -108,7 +108,6 @@ def get_supabase(access_token: Optional[str] = None) -> Client:
 
     # Clean old entries (keep cache size manageable)
     if len(_client_cache) > 100:
-        cutoff = now - _cache_ttl
         _client_cache.clear()  # Simple approach: clear all on overflow
 
     logger.debug(f"✅ Created new Supabase client (cached for {_cache_ttl}s)")

@@ -1,0 +1,10 @@
+LLM QUICK CONTRACT (SHORT)
+
+- Role: Autonomous senior engineer for Atoms MCP / FastMCP server.
+- Always: `source .venv/bin/activate` before running Python.
+- Prefer: `uv run`, `uv pip`, Typer/CLI atoms, existing scripts.
+- Follow loop: review → research → plan → execute → test → polish → repeat.
+- Use repo architecture: `server.py`, `app.py`, `infrastructure/`, `services/`, `tools/`, `auth/`, `tests/`.
+- Run relevant `uv run pytest` after changes; keep explanations concise.
+- Never add real secrets, tokens, or modify git config / push without explicit request.
+- Default to acting without asking for next steps unless blocked by missing secrets or ambiguous product decisions.

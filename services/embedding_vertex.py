@@ -1,13 +1,18 @@
 """Vertex AI embedding service (Gemini) for RAG functionality.
 
-Uses Google Cloud Vertex AI's gemini-embedding-001 model exclusively.
-Requires Google ADC credentials or service account JSON via `GOOGLE_APPLICATION_CREDENTIALS`,
-and the env vars `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION`.
+Uses Google Cloud Vertex AI's text-embedding-004 model exclusively via REST API.
+Uses Application Default Credentials (ADC) for authentication.
+
+Required:
+- google-auth package (pip install google-auth)
+- httpx package (pip install httpx)
+- GOOGLE_CLOUD_PROJECT environment variable
+- GOOGLE_CLOUD_LOCATION environment variable (optional, defaults to us-central1)
+- ADC configured: gcloud auth application-default login
 """
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 from typing import Dict, List, Optional, NamedTuple
 import os
@@ -16,19 +21,17 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Check for required packages
 try:
-    import vertexai
-    try:
-        from vertexai.language_models import TextEmbeddingModel  # type: ignore
-    except Exception:  # fallback for older SDKs
-        from vertexai.preview.language_models import TextEmbeddingModel  # type: ignore
+    from google.auth import default
+    from google.auth.transport.requests import Request
+    from google.oauth2 import service_account
+    import json as json_module
     VERTEX_AI_AVAILABLE = True
-except ImportError:
-    logger.warning("vertexai package not installed. Install with: pip install google-cloud-aiplatform")
+except ImportError as e:
+    logger.warning(f"Required packages not installed: {e}")
+    logger.warning("Install with: pip install httpx google-auth")
     VERTEX_AI_AVAILABLE = False
-    # Create dummy classes for type hints
-    class TextEmbeddingModel:
-        pass
 
 
 class EmbeddingResult(NamedTuple):
@@ -48,52 +51,71 @@ class BatchEmbeddingResult(NamedTuple):
 
 
 class VertexAIEmbeddingService:
-    """Service for generating Vertex AI (Gemini) embeddings with caching."""
+    """Service for generating Vertex AI embeddings with caching using ADC."""
 
-    def __init__(self, api_key: Optional[str] = None, cache_size: int = 1000):
+    def __init__(self, cache_size: int = 1000):
         if not VERTEX_AI_AVAILABLE:
             raise RuntimeError(
-                "Vertex AI not available. Install with: pip install google-cloud-aiplatform\n"
-                "Or use the embedding factory to get an alternative provider."
+                "Required packages not available. Install with:\n"
+                "  pip install httpx google-auth\n\n"
+                "Also configure ADC:\n"
+                "  gcloud auth application-default login"
             )
-        
-        # api_key is ignored; Vertex AI uses ADC / service account
-        project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")
-        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+
+        # Get project and location from environment
+        project = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or os.getenv("GOOGLE_VERTEX_PROJECT")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1") or os.getenv("GOOGLE_VERTEX_LOCATION", "us-central1")
+
         if not project:
-            raise RuntimeError("GOOGLE_CLOUD_PROJECT (or GCP_PROJECT) must be set for Vertex AI embeddings")
+            raise RuntimeError(
+                "GOOGLE_CLOUD_PROJECT must be set.\n"
+                "Example: export GOOGLE_CLOUD_PROJECT=serious-mile-462615-a2"
+            )
 
-        # For Vercel serverless: use credentials from JSON env var
-        creds_json_str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-        credentials = None
-        if creds_json_str:
+        # Store project and location
+        self.project = project
+        self.location = location
+
+        # Initialize credentials from service account JSON env var or ADC
+        service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+        if service_account_json:
+            # Load from environment variable (for Vercel serverless)
             try:
-                import json
-                import tempfile
-                from google.oauth2 import service_account
-
-                # Parse JSON and create credentials
-                creds_dict = json.loads(creds_json_str)
-
-                # For authorized_user type, use default credentials
-                if creds_dict.get("type") == "authorized_user":
-                    # Write to temp file for ADC
-                    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-                        json.dump(creds_dict, f)
-                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
-                    logger.debug(f"✅ Using Google credentials from env var (authorized_user)")
-                else:
-                    # Service account credentials
-                    credentials = service_account.Credentials.from_service_account_info(creds_dict)
-                    logger.debug(f"✅ Using Google credentials from env var (service_account)")
+                service_account_info = json_module.loads(service_account_json)
+                self.credentials = service_account.Credentials.from_service_account_info(
+                    service_account_info,
+                    scopes=['https://www.googleapis.com/auth/cloud-platform']
+                )
+                logger.info("✅ Using service account from environment variable")
             except Exception as e:
-                logger.warning(f"Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: {e}")
+                raise RuntimeError(
+                    f"Failed to parse service account JSON from environment: {e}\n\n"
+                    "Make sure GOOGLE_SERVICE_ACCOUNT_JSON contains valid JSON"
+                ) from e
+        else:
+            # Fall back to ADC (for local development)
+            try:
+                self.credentials, self.adc_project = default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
+                logger.info("✅ Using Application Default Credentials (local dev)")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to get credentials: {e}\n\n"
+                    "For Vercel/serverless:\n"
+                    "  Set GOOGLE_SERVICE_ACCOUNT_JSON environment variable\n\n"
+                    "For local development:\n"
+                    "  gcloud auth application-default login"
+                ) from e
 
-        try:
-            vertexai.init(project=project, location=location, credentials=credentials)
-            logger.debug(f"✅ Vertex AI initialized: {project}/{location}")
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize Vertex AI: {e}")
+        # Use Vertex AI aiplatform endpoint with ADC
+        # Model: text-embedding-004 (768 dimensions)
+        self.endpoint = (
+            f"https://{self.location}-aiplatform.googleapis.com/v1/"
+            f"projects/{self.project}/locations/{self.location}/"
+            f"publishers/google/models/text-embedding-004:predict"
+        )
+
+        logger.info(f"✅ Vertex AI initialized: {project}/{location}")
 
         # In-memory cache
         self.cache: Dict[str, EmbeddingResult] = {}
@@ -106,8 +128,6 @@ class VertexAIEmbeddingService:
         # Only gemini-embedding-001 is supported
         self.default_model = "gemini-embedding-001"
         self.large_model = self.default_model
-        # Cache the model instance to avoid reloading on every call
-        self._model_instance = None
 
     def _load_persistent_cache(self):
         """Load cache from disk if it exists."""
@@ -166,12 +186,12 @@ class VertexAIEmbeddingService:
         model: Optional[str] = None,
         use_cache: bool = True
     ) -> EmbeddingResult:
-        """Generate embedding for a single text.
+        """Generate embedding for a single text using REST API.
 
         Args:
             text: Text to embed
             model: Must be gemini-embedding-001 (ignored if different)
-            use_cache: Whether to use caching
+            use_cache: Whether to use caching (local + Upstash Redis)
 
         Returns:
             EmbeddingResult with embedding vector and metadata
@@ -182,8 +202,8 @@ class VertexAIEmbeddingService:
         # Only gemini-embedding-001 is supported
         model = self.default_model
         cache_key = self._get_cache_key(text, model)
-        
-        # Check cache first
+
+        # Check in-memory cache first (local)
         if use_cache and cache_key in self.cache:
             cached_result = self.cache[cache_key]
             return EmbeddingResult(
@@ -193,33 +213,85 @@ class VertexAIEmbeddingService:
                 cached=True
             )
         
-        try:
-            # Use cached model instance to avoid reloading on every call
-            if self._model_instance is None:
-                self._model_instance = TextEmbeddingModel.from_pretrained(model)
+        # Check Redis cache (Upstash) if available
+        if use_cache:
+            try:
+                from .embedding_cache import get_embedding_cache
+                embedding_cache = await get_embedding_cache()
+                redis_embedding = await embedding_cache.get(text, model)
+                
+                if redis_embedding:
+                    logger.debug(f"Cache hit (Upstash) for embedding: {text[:50]}")
+                    # Also cache in local memory for fast access
+                    self.cache[cache_key] = EmbeddingResult(
+                        embedding=redis_embedding,
+                        tokens_used=0,
+                        model=model,
+                        cached=True
+                    )
+                    return EmbeddingResult(
+                        embedding=redis_embedding,
+                        tokens_used=0,
+                        model=model,
+                        cached=True
+                    )
+            except Exception as e:
+                logger.debug(f"Redis embedding cache miss or error: {e}")
 
-            # Run blocking Vertex AI API call in thread pool to allow true concurrency
-            embeddings = await asyncio.to_thread(
-                self._model_instance.get_embeddings,
-                [text],
-                output_dimensionality=768
-            )
-            values = embeddings[0].values if embeddings else []
+        try:
+            # Get fresh access token from ADC
+            if not self.credentials.valid:
+                self.credentials.refresh(Request())
+
+            access_token = self.credentials.token
+
+            # Use REST API with ADC bearer token
+            import httpx
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.endpoint,
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "instances": [{"content": text}]  # Vertex AI format
+                    },
+                    timeout=30.0
+                )
+
+                response.raise_for_status()
+                data = response.json()
+
+                # Extract embedding from Vertex AI response
+                values = data["predictions"][0]["embeddings"]["values"]
 
             result = EmbeddingResult(
                 embedding=values,
-                tokens_used=0,  # Vertex API does not expose token usage for embeddings
+                tokens_used=0,  # REST API does not expose token usage for embeddings
                 model=model,
                 cached=False,
             )
 
             if use_cache:
+                # Cache locally
                 self.cache[cache_key] = result
                 self._manage_cache_size()
 
                 # Periodically save to disk (every 100 new embeddings)
                 if len(self.cache) % 100 == 0:
                     self._save_persistent_cache()
+                
+                # Cache in Redis (Upstash) for distributed access
+                try:
+                    from .embedding_cache import get_embedding_cache
+                    embedding_cache = await get_embedding_cache()
+                    cache_ttl = int(__import__('os').getenv("CACHE_TTL_EMBEDDING", "86400"))
+                    await embedding_cache.set(text, values, model, cache_ttl)
+                    logger.debug("Cached embedding to Upstash Redis")
+                except Exception as e:
+                    logger.debug(f"Failed to cache to Upstash Redis: {e}")
 
             return result
 
@@ -233,7 +305,7 @@ class VertexAIEmbeddingService:
         use_cache: bool = True,
         batch_size: int = 100
     ) -> BatchEmbeddingResult:
-        """Generate embeddings for multiple texts efficiently.
+        """Generate embeddings for multiple texts efficiently using REST API.
 
         Args:
             texts: List of texts to embed
@@ -252,20 +324,20 @@ class VertexAIEmbeddingService:
         all_embeddings = []
         total_tokens = 0
         cached_count = 0
-        
+
         # Process in batches to respect API limits
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i:i + batch_size]
             batch_results = []
-            
+
             # Check cache for each text in batch
             uncached_texts = []
             uncached_indices = []
-            
+
             for j, text in enumerate(batch_texts):
                 if not text.strip():
                     continue
-                    
+
                 cache_key = self._get_cache_key(text, model)
                 if use_cache and cache_key in self.cache:
                     cached_result = self.cache[cache_key]
@@ -275,36 +347,59 @@ class VertexAIEmbeddingService:
                 else:
                     uncached_texts.append(text)
                     uncached_indices.append(j)
-            
-            # Generate embeddings for uncached texts
+
+            # Generate embeddings for uncached texts using REST API with ADC
             if uncached_texts:
                 try:
-                    model_inst = TextEmbeddingModel.from_pretrained(model)
-                    responses = model_inst.get_embeddings(uncached_texts, output_dimensionality=768)
+                    # Get fresh access token
+                    if not self.credentials.valid:
+                        self.credentials.refresh(Request())
 
-                    # Cache and collect results
-                    for idx, (original_idx, emb_obj) in enumerate(zip(uncached_indices, responses)):
-                        embedding = emb_obj.values
-                        if use_cache:
-                            cache_key = self._get_cache_key(uncached_texts[idx], model)
-                            self.cache[cache_key] = EmbeddingResult(
-                                embedding=embedding,
-                                tokens_used=0,
-                                model=model,
-                                cached=False,
+                    access_token = self.credentials.token
+
+                    import httpx
+
+                    async with httpx.AsyncClient() as client:
+                        # Make individual requests for each text
+                        for idx, text in enumerate(uncached_texts):
+                            response = await client.post(
+                                self.endpoint,
+                                headers={
+                                    "Authorization": f"Bearer {access_token}",
+                                    "Content-Type": "application/json"
+                                },
+                                json={
+                                    "instances": [{"content": text}]  # Vertex AI format
+                                },
+                                timeout=30.0
                             )
-                        batch_results.append((original_idx, embedding))
+
+                            response.raise_for_status()
+                            data = response.json()
+
+                            embedding = data["predictions"][0]["embeddings"]["values"]
+                            original_idx = uncached_indices[idx]
+
+                            if use_cache:
+                                cache_key = self._get_cache_key(text, model)
+                                self.cache[cache_key] = EmbeddingResult(
+                                    embedding=embedding,
+                                    tokens_used=0,
+                                    model=model,
+                                    cached=False,
+                                )
+                            batch_results.append((original_idx, embedding))
 
                 except Exception as e:
                     raise RuntimeError(f"Failed to generate batch embeddings (Vertex AI): {str(e)}")
-            
+
             # Sort results by original order and add to all_embeddings
             batch_results.sort(key=lambda x: x[0])
             all_embeddings.extend([result[1] for result in batch_results])
-        
+
         if use_cache:
             self._manage_cache_size()
-        
+
         return BatchEmbeddingResult(
             embeddings=all_embeddings,
             total_tokens=total_tokens,

@@ -16,6 +16,10 @@
       "dest": "app.py"
     },
     {
+      "src": "/api/embeddings/process-queue",
+      "dest": "app.py"
+    },
+    {
       "src": "/auth/complete",
       "dest": "app.py"
     },
@@ -31,5 +35,11 @@
   "env": {
     "ATOMS_FASTMCP_TRANSPORT": "http",
     "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/embeddings/process-queue?secret=$CRON_SECRET",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

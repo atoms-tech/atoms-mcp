@@ -1,0 +1,110 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -U pip
+          pip install -e .
+          pip install pytest pytest-asyncio pytest-cov
+      - name: Run unit tests
+        run: |
+          source .venv/bin/activate
+          pytest -m unit --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=95
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage.xml
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -e .
+          pip install pytest pytest-asyncio
+      - name: Run security tests
+        run: |
+          source .venv/bin/activate
+          pytest -m security -q
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: [unit, security]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -e .
+          pip install pytest pytest-asyncio pytest-cov httpx
+      - name: Run integration tests
+        env:
+          ATOMS_FASTMCP_TRANSPORT: http
+          ATOMS_FASTMCP_PORT: 8000
+        run: |
+          source .venv/bin/activate
+          pytest -m integration --tb=short
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [integration]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -e .
+          pip install pytest pytest-asyncio
+      - name: Run e2e tests
+        run: |
+          source .venv/bin/activate
+          pytest -m e2e --tb=short
+
+  performance:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -e .
+          pip install pytest pytest-asyncio
+      - name: Run performance tests
+        run: |
+          source .venv/bin/activate
+          pytest -m performance --durations=20

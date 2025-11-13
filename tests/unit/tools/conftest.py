@@ -500,7 +500,8 @@ async def test_organization(call_mcp):
         # Cleanup
         await call_mcp("entity_tool", {
             "operation": "delete",
-            "entity_id": org_id
+            "entity_id": org_id,
+            "entity_type": "organization"
         })
     else:
         yield None
@@ -531,7 +532,8 @@ async def test_project(call_mcp, test_organization):
         # Cleanup
         await call_mcp("entity_tool", {
             "operation": "delete",
-            "entity_id": project_id
+            "entity_id": project_id,
+            "entity_type": "project"
         })
     else:
         yield None

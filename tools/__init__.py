@@ -1,6 +1,6 @@
 """Consolidated, agent-optimized tools for atoms_fastmcp."""
 
-# Support both package and standalone imports
+# Import all tool operations with fallback for different environments
 try:
     from .workspace import workspace_operation
     from .entity import entity_operation

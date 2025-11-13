@@ -278,8 +278,8 @@ def pytest_runtest_makereport(item, call):
             
             category, reason = ErrorClassifier.classify(exception)
             
-            # Attach to report
-            report.error_category = category
+            # Attach to report (ensure category is string for serialization)
+            report.error_category = str(category.value) if hasattr(category, 'value') else str(category)
             report.error_reason = reason
             report.error_icon = ErrorClassifier.get_icon(category)
             
@@ -291,7 +291,9 @@ def pytest_runtest_makereport(item, call):
                 reason=reason
             )
             
-            matrix_collector.add_error(category.name, item.nodeid)
+            # Ensure category.name is string for serialization
+            cat_name = category.name if hasattr(category, 'name') else str(category)
+            matrix_collector.add_error(cat_name, item.nodeid)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):

@@ -12,8 +12,8 @@ Usage:
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
-from datetime import datetime, timedelta
+from typing import Dict, Any
+from datetime import datetime, timezone
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -69,9 +69,9 @@ class EmbeddingStatusChecker:
 
         if total_missing > 0:
             print(f"\n⚠️  {total_missing:,} entities need embeddings")
-            print(f"\nRun backfill: python scripts/backfill_embeddings.py")
+            print("\nRun backfill: python scripts/backfill_embeddings.py")
         else:
-            print(f"\n✅ All entities have embeddings!")
+            print("\n✅ All entities have embeddings!")
 
         return {
             "timestamp": datetime.now().isoformat(),
@@ -125,7 +125,7 @@ class EmbeddingStatusChecker:
                     .execute()
 
                 if recent_missing.data:
-                    print(f"\nRecent entities without embeddings:")
+                    print("\nRecent entities without embeddings:")
                     for entity in recent_missing.data:
                         name = entity.get('name', 'N/A')
                         created = entity.get('created_at', 'N/A')
@@ -150,7 +150,7 @@ class EmbeddingStatusChecker:
 
     def check_recent_creations(self, hours: int = 24) -> Dict[str, Any]:
         """Check if recently created entities have embeddings."""
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         cutoff_str = cutoff.isoformat()
 
         print(f"\n{'='*60}")
@@ -246,7 +246,7 @@ def main():
 
     # Check status
     checker = EmbeddingStatusChecker(supabase)
-    status = checker.check_all_status(verbose=args.verbose)
+    _ = checker.check_all_status(verbose=args.verbose)  # Status printed to console
 
     # Check recent creations
     if args.recent:

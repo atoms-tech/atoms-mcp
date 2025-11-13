@@ -32,10 +32,9 @@ except ImportError:
     from infrastructure.supabase_realtime import SupabaseRealtimeAdapter
     from infrastructure.mock_adapters import (
         InMemoryDatabaseAdapter, InMemoryAuthAdapter,
-        InMemoryStorageAdapter, InMemoryRealtimeAdapter,
-        HttpMcpClient
+        InMemoryStorageAdapter, InMemoryRealtimeAdapter
     )
-    from infrastructure.mock_config import get_service_config, ServiceMode
+    from infrastructure.mock_config import get_service_config
 
 
 class AdapterFactory:
@@ -47,6 +46,15 @@ class AdapterFactory:
     def __init__(self) -> None:
         self._adapters: Dict[str, Any] = {}
         self._backend_type = os.getenv("ATOMS_BACKEND_TYPE", "supabase").lower()
+        
+        # Validate backend type
+        valid_backends = ["supabase", "mock"]
+        if self._backend_type not in valid_backends:
+            raise ValueError(
+                f"Unknown backend type: {self._backend_type}. "
+                f"Valid options: {', '.join(valid_backends)}"
+            )
+        
         self._config = get_service_config()
     
     def get_auth_adapter(self) -> AuthAdapter:

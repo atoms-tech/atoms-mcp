@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Any, NamedTuple
 from datetime import datetime
+import inspect
 
 from supabase import Client
 
@@ -72,7 +73,14 @@ class VectorSearchService:
             "project": "search_projects_fts",
             "organization": "search_organizations_fts",
         }
-    
+
+    @staticmethod
+    async def _resolve_value(result):
+        """Return synchronous results directly and await coroutine results."""
+        if inspect.isawaitable(result):
+            return await result
+        return result
+
     async def semantic_search(
         self,
         query: str,
@@ -128,7 +136,9 @@ class VectorSearchService:
                 if filters:
                     params["filters"] = filters
 
-                response = self.supabase.rpc(rpc_name, params).execute()
+                rpc_call = self.supabase.rpc(rpc_name, params)
+                execute_result = rpc_call.execute()
+                response = await self._resolve_value(execute_result)
 
                 for row in getattr(response, "data", []) or []:
                     similarity = row.get("similarity")
@@ -145,7 +155,15 @@ class VectorSearchService:
 
             except Exception as e:
                 # Log error but continue with other entity types
-                print(f"Error searching {entity_type}: {str(e)}")
+                # Safely format exception to avoid triggering async calls on AsyncMock attributes
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    try:
+                        error_msg = str(e)
+                    except Exception:
+                        error_msg = f"Error searching {entity_type}"
+                    print(f"Error searching {entity_type}: {error_msg}")
                 continue
         
         # Sort all results by similarity score (highest first)
@@ -205,14 +223,16 @@ class VectorSearchService:
 
                     try:
                         # Call FTS RPC function
-                        response = self.supabase.rpc(
+                        rpc_call = self.supabase.rpc(
                             rpc_name,
                             {
                                 "search_query": query,
                                 "match_limit": limit,
                                 "filters": filters
                             }
-                        ).execute()
+                        )
+                        execute_result = rpc_call.execute()
+                        response = await self._resolve_value(execute_result)
 
                         # Process FTS results (have rank scores)
                         for row in (response.data or []):
@@ -234,23 +254,37 @@ class VectorSearchService:
 
                     except Exception as fts_error:
                         # FTS RPC doesn't exist yet - fall back to ILIKE
-                        print(f"⚠️ FTS not available for {entity_type}, using ILIKE fallback: {fts_error}")
+                        # Safely format exception to avoid triggering async calls on AsyncMock attributes
+                        import warnings
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", RuntimeWarning)
+                            try:
+                                error_msg = str(fts_error)
+                            except Exception:
+                                error_msg = "FTS RPC not available"
+                            print(f"⚠️ FTS not available for {entity_type}, using ILIKE fallback: {error_msg}")
                         use_fts = False  # Disable FTS for remaining entities
 
                 # Fallback: ILIKE search (slower but works without FTS setup)
                 table_name = self.searchable_entities[entity_type]
 
-                query_builder = self.supabase.table(table_name).select("*")
+                query_builder = await self._resolve_value(
+                    self.supabase.table(table_name).select("*")
+                )
 
                 # Apply default filters
                 tables_without_soft_delete = {'test_req', 'properties'}
                 if table_name not in tables_without_soft_delete:
-                    query_builder = query_builder.eq("is_deleted", False)
+                    query_builder = await self._resolve_value(
+                        query_builder.eq("is_deleted", False)
+                    )
 
                 # Apply additional filters
                 if filters:
                     for key, value in filters.items():
-                        query_builder = query_builder.eq(key, value)
+                        query_builder = await self._resolve_value(
+                            query_builder.eq(key, value)
+                        )
 
                 # Build search conditions
                 search_conditions = []
@@ -262,9 +296,17 @@ class VectorSearchService:
                     search_conditions.append(f"description.ilike.%{query}%")
 
                 if search_conditions:
-                    response = query_builder.or_(",".join(search_conditions)).limit(limit).execute()
+                    query_builder = await self._resolve_value(
+                        query_builder.or_(",".join(search_conditions))
+                    )
                 else:
-                    response = query_builder.ilike("name", f"%{query}%").limit(limit).execute()
+                    query_builder = await self._resolve_value(
+                        query_builder.ilike("name", f"%{query}%")
+                    )
+
+                query_builder = await self._resolve_value(query_builder.limit(limit))
+                execute_result = query_builder.execute()
+                response = await self._resolve_value(execute_result)
 
                 # Process results
                 for row in (response.data or []):
@@ -283,11 +325,19 @@ class VectorSearchService:
 
             except Exception as e:
                 import logging
+                import warnings
                 logger = logging.getLogger(__name__)
-                logger.error(f"❌ Keyword search failed for {entity_type}: {e}")
-                print(f"❌ Keyword search error [{entity_type}]: {e}")
-                import traceback
-                print(traceback.format_exc())
+                # Safely format exception to avoid triggering async calls on AsyncMock attributes
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", RuntimeWarning)
+                    try:
+                        error_msg = str(e)
+                    except Exception:
+                        error_msg = f"Keyword search failed for {entity_type}"
+                    logger.error(f"❌ Keyword search failed for {entity_type}: {error_msg}")
+                    print(f"❌ Keyword search error [{entity_type}]: {error_msg}")
+                    import traceback
+                    print(traceback.format_exc())
                 continue
         
         # Apply global limit

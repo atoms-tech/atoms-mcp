@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # Agents and Automation Guide
 
 This repository is designed to work seamlessly with Claude (and other advanced AI agents) as an autonomous software engineer.
@@ -9,24 +28,119 @@ This repository is designed to work seamlessly with Claude (and other advanced A
 
 ## Core Expectations for Agents
 
-- Act as an autonomous SWE:
-  - Follow a continuous loop: review → research (FastMCP docs + repo) → plan → execute → review → test → polish → repeat.
-  - Do not ask the user for step-by-step guidance unless blocked by missing secrets, external access, or product decisions.
-- Always use the project environment and tooling (FastMCP-first):
-  - `source .venv/bin/activate` before running Python or tests.
-  - Prefer `uv` for running apps, tests, and tooling.
-  - Use existing Typer/CLI atoms and scripts when available.
-- **Honor repo architecture AND file size constraints (see mandates below):**
-  - Use the abstractions in `infrastructure/`, `services/`, `tools/`, and `auth/` instead of duplicating logic.
-  - Keep changes minimal, composable, and well-tested.
-  - **Keep all modules ≤500 lines (target ≤350) to maintain readability and testability.**
-- **Aggressive Change Policy (CRITICAL):**
-  - **Avoid ANY backwards compatibility shims, legacy fallbacks, or gentle migrations.**
-  - **Always perform FULL, COMPLETE changes** when refactoring or modernizing code.
-  - **Do NOT preserve deprecated patterns** for transition periods.
-  - **Remove old code paths entirely** when replacing them; don't leave conditional logic.
-  - **Update all callers simultaneously** when changing signatures or behavior.
-  - **This enables clarity, performance, and maintainability.** No technical debt accumulation from migration cruft.
+### Autonomous Operation (Critical - Minimal Human Intervention)
+
+Agents MUST operate with **maximum autonomy**:
+
+**When to proceed without asking:**
+- Implementation details and technical approach decisions
+- Library/framework choices aligned with existing patterns
+- Code structure and organization
+- Test strategies and coverage approaches
+- Refactoring and optimization decisions
+- Bug fixes and performance improvements
+- Documentation updates
+
+**Only ask when truly blocked by:**
+- Missing credentials/secrets (cannot be inferred from environment)
+- External service access permissions
+- Genuine product ambiguity (behavior not determinable from specs/code/tests)
+- Destructive operations (production data deletion, forced pushes)
+
+**Default behavior: Research → Decide → Implement → Validate → Continue**
+
+### Research-First Development (CRITICAL)
+
+Before implementing ANY feature or fix, agents MUST conduct comprehensive research:
+
+**1. Codebase Research (Always Required):**
+```bash
+# Find similar implementations
+rg "pattern_name" --type py -A 5 -B 5
+
+# Trace call chains
+rg "function_name\(" --type py
+
+# Find test patterns
+rg "def test_.*pattern" tests/ -A 10
+
+# Check architecture patterns
+rg "class.*Adapter\|class.*Factory\|class.*Provider" --type py
+```
+
+**2. Web Research (When Needed):**
+- External API documentation (WorkOS, Supabase, FastMCP)
+- Library usage patterns (when introducing new dependencies)
+- Best practices for performance/security patterns
+- Debugging rare errors or edge cases
+
+**3. Research Documentation:**
+- Document findings in `docs/sessions/<session-id>/01_RESEARCH.md`
+- Include URLs, code examples, and decision rationale
+- Update continuously as new information discovered
+
+**Research Protocol:**
+1. **Search codebase first** - 90% of patterns already exist
+2. **Web search for external docs** - API contracts, library patterns
+3. **Document decisions** - Why this approach over alternatives
+4. **No guessing** - Research until confident, then implement
+
+### Autonomous SWE Loop
+
+- Follow continuous loop: **research → plan → execute → validate → polish → repeat**
+- Do not ask for step-by-step guidance unless blocked by secrets/external access
+- Make decisions based on:
+  - Existing codebase patterns
+  - FastMCP canonical contract (`llms-full.txt`)
+  - Research findings (documented in session)
+  - Test results and validation
+
+### Environment & Tooling (FastMCP-First)
+
+- Always activate project environment: `source .venv/bin/activate`
+- Prefer `uv` for Python execution: `uv run`, `uv pip`, `uvx`
+- Use existing Typer/CLI atoms and scripts when available
+- Respect repo architecture abstractions:
+  - `infrastructure/` - adapters (DB, auth, storage, monitoring)
+  - `services/` - domain logic
+  - `tools/` - orchestration only
+  - `auth/` - session, middleware, providers
+
+### File Size & Modularity Constraints
+
+**Hard constraint: All modules ≤500 lines (target ≤350)**
+
+- Check line count before adding features
+- If file approaches 350+ lines → decompose immediately
+- Extract cohesive responsibilities (caching, validation, adapters)
+- Use clear, narrow interfaces
+- Update imports in all callers; test thoroughly
+
+### Aggressive Change Policy (CRITICAL)
+
+**NO backwards compatibility. NO gentle migrations. NO MVP-grade implementations.**
+
+- **Avoid ANY backwards compatibility shims or legacy fallbacks**
+- **Always perform FULL, COMPLETE changes** when refactoring
+- **Do NOT preserve deprecated patterns** for transition periods
+- **Remove old code paths entirely** when replacing them
+- **Update ALL callers simultaneously** when changing signatures
+- **This enables clarity, performance, and maintainability**
+
+**Forward-Only Progression:**
+- NO `git revert` or `git reset` (fix forward instead)
+- NO haphazard delete-and-rewrite cycles
+- Push forward to clean, working states via incremental fixes
+- If broken: fix with targeted changes, not rollbacks
+- Document issues in `05_KNOWN_ISSUES.md`, resolve systematically
+
+**Full Production-Grade Implementation:**
+- NO minimal implementations or MVPs
+- NO "we'll add this later" placeholder code
+- Every feature: production-ready, fully tested, documented
+- Complete error handling, edge cases, logging, monitoring
+- Full test coverage (unit + integration + e2e where applicable)
+- No TODO comments without immediate resolution plan
 
 ## Repo-Specific Architecture Mandates (from llms-full.txt §16)
 
@@ -189,10 +303,382 @@ After refactoring:
    - Document fixture parameters and what each provides
    - Add consolidation note to git commit message
 
+## OpenSpec Spec-Driven Development (CRITICAL - Use For All Features)
+
+**OpenSpec is INSTALLED and MUST be used for all non-trivial feature work.**
+
+### When to Use OpenSpec
+
+**ALWAYS use OpenSpec for:**
+- New features or capabilities
+- Breaking changes or architecture shifts
+- Cross-cutting concerns (auth, caching, monitoring)
+- Performance or security improvements
+- Database schema changes
+- API contract changes
+
+**Optional for:**
+- Bug fixes (unless significant behavior change)
+- Documentation updates
+- Minor refactoring (< 50 lines)
+
+### OpenSpec Workflow (3 Phases)
+
+#### Phase 1: Proposal (Spec-First, Before ANY Code)
+
+```bash
+# Agent creates proposal BEFORE writing code
+openspec init
+
+# This creates:
+# openspec/changes/<change-id>/
+#   proposal.md    # Why, what, scope, alternatives
+#   tasks.md       # Step-by-step implementation checklist
+#   specs/         # Delta showing spec changes (ADDED/MODIFIED/REMOVED)
+#     <domain>/spec.md
+```
+
+**Proposal Structure (`proposal.md`):**
+```markdown
+# <Feature Name>
+
+## Summary
+One-paragraph overview of the change.
+
+## Motivation
+Why is this change needed? What problem does it solve?
+
+## Scope
+- What IS included in this change
+- What is NOT included (out of scope)
+- Dependencies and prerequisites
+
+## Design Decisions
+- Approach chosen and why
+- Alternatives considered and rejected
+- Trade-offs and implications
+
+## Implementation Tasks
+See tasks.md for detailed checklist.
+
+## Rollout Plan
+- Deployment strategy
+- Migration path (if applicable)
+- Rollback plan
+```
+
+**Tasks Structure (`tasks.md`):**
+```markdown
+## 1. <Phase Name>
+- [ ] 1.1 Specific atomic task
+- [ ] 1.2 Another atomic task
+  - Acceptance: What "done" looks like
+  - Testing: How to verify
+
+## 2. <Next Phase>
+- [ ] 2.1 Task
+...
+```
+
+**Spec Delta Format (`specs/<domain>/spec.md`):**
+```markdown
+# Delta for <Domain>
+
+## ADDED Requirements
+### Requirement: <Name>
+The system MUST/SHALL <behavior>.
+
+#### Scenario: <situation>
+- GIVEN <preconditions>
+- WHEN <action>
+- THEN <expected outcome>
+
+## MODIFIED Requirements
+### Requirement: <Name>
+(Include complete updated text, not just changes)
+
+## REMOVED Requirements
+### Requirement: <Name>
+(Explain deprecation rationale)
+```
+
+**Agent Behavior During Proposal:**
+1. **Research FIRST** (codebase + web if needed)
+2. **Document findings** in `01_RESEARCH.md`
+3. **Create OpenSpec proposal** via `openspec init`
+4. **Write comprehensive proposal.md** (no "TBD" or "TODO")
+5. **Break down tasks.md** (atomic, testable steps)
+6. **Define spec deltas** (ADDED/MODIFIED/REMOVED with scenarios)
+7. **Validate proposal** via `openspec validate <change-id>`
+8. **Proceed to implementation** autonomously (no approval needed unless destructive)
+
+#### Phase 2: Apply (Implement According to Spec)
+
+```bash
+# Agent follows tasks.md checklist
+# Check off tasks as completed
+# Update specs/ if requirements evolve during implementation
+```
+
+**Implementation Protocol:**
+1. **Follow tasks.md order** (respect dependencies)
+2. **Check off tasks** as completed (update tasks.md)
+3. **Test each task** before moving to next
+4. **Update specs/** if requirements evolve
+5. **Document issues** in `05_KNOWN_ISSUES.md`
+6. **No shortcuts** - full production-grade implementation
+
+**Task Completion Criteria:**
+- Code written and tested
+- All callers updated (if signature changed)
+- Tests passing (unit + integration where applicable)
+- Documentation updated
+- No breaking changes without migration path
+
+#### Phase 3: Archive (Merge Specs After Completion)
+
+```bash
+# After ALL tasks complete and tests pass
+openspec archive <change-id>
+
+# This merges specs/changes/<change-id>/specs/ into openspec/specs/
+# Archives change folder to openspec/archive/
+```
+
+**Archive Criteria:**
+- ✅ All tasks in tasks.md checked off
+- ✅ All tests passing (`uv run pytest`)
+- ✅ Code reviewed (or self-reviewed if autonomous)
+- ✅ Documentation complete
+- ✅ No known critical bugs
+
+**Agent Behavior During Archive:**
+1. **Verify all tasks complete** - no unchecked items
+2. **Run full test suite** - `uv run pytest tests/`
+3. **Update specs/** if any final adjustments
+4. **Run `openspec archive <change-id>`**
+5. **Commit changes** with descriptive message
+6. **Update session docs** (`06_COMPLETION_SUMMARY.md`)
+
+### OpenSpec + Session Documentation Integration
+
+**Parallel structures (both required):**
+
+```
+openspec/changes/<change-id>/       # OpenSpec structure
+  proposal.md                        # Feature specification
+  tasks.md                           # Implementation checklist
+  specs/<domain>/spec.md             # Spec deltas
+
+docs/sessions/<session-id>/         # Session documentation
+  00_SESSION_OVERVIEW.md             # Goals, decisions
+  01_RESEARCH.md                     # Research findings
+  02_SPECIFICATIONS.md               # Extended context (link to OpenSpec)
+  03_DAG_WBS.md                      # Dependencies, WBS
+  04_IMPLEMENTATION_STRATEGY.md      # Technical deep-dive
+  05_KNOWN_ISSUES.md                 # Bugs, workarounds
+  06_TESTING_STRATEGY.md             # Test approach
+```
+
+**How they relate:**
+- **OpenSpec** = Machine-readable specs, tasks, and validation
+- **Session Docs** = Human context, research, decisions, issues
+
+**Cross-references:**
+- `02_SPECIFICATIONS.md` → Link to `openspec/changes/<change-id>/`
+- `proposal.md` → Reference research in `01_RESEARCH.md`
+- `05_KNOWN_ISSUES.md` → Track issues encountered during apply phase
+
+### OpenSpec Commands Reference
+
+```bash
+# List active changes
+openspec list
+
+# View dashboard
+openspec view
+
+# Show change details
+openspec show <change-id>
+
+# Validate spec format
+openspec validate <change-id>
+
+# Archive completed change (non-interactive)
+openspec archive <change-id> -y
+```
+
+### OpenSpec Best Practices
+
+1. **Proposal before code** - Always create OpenSpec proposal first
+2. **Atomic tasks** - Each task should be independently testable
+3. **Comprehensive scenarios** - Every requirement needs scenario blocks
+4. **Update during implementation** - If requirements evolve, update specs/
+5. **Validate frequently** - Run `openspec validate` before commits
+6. **Archive promptly** - Don't leave completed changes unarchived
+
+### Example: Adding Rate Limiting Feature
+
+```bash
+# 1. Research (codebase + web)
+rg "rate.*limit" --type py -A 5
+# (Document findings in docs/sessions/20251113-rate-limiting/01_RESEARCH.md)
+
+# 2. Create OpenSpec proposal
+openspec init
+# Change ID: add-distributed-rate-limiting
+
+# 3. Write comprehensive proposal
+# openspec/changes/add-distributed-rate-limiting/proposal.md
+# (See structure above - full production-grade spec)
+
+# 4. Define tasks
+# openspec/changes/add-distributed-rate-limiting/tasks.md
+## 1. Infrastructure Setup
+- [ ] 1.1 Add Upstash Redis adapter
+- [ ] 1.2 Add distributed rate limiter class
+- [ ] 1.3 Add rate limit middleware
+
+## 2. Integration
+- [ ] 2.1 Integrate into server.py
+- [ ] 2.2 Add per-tool rate limits
+- [ ] 2.3 Add per-user rate limits
+
+## 3. Testing
+- [ ] 3.1 Unit tests for rate limiter
+- [ ] 3.2 Integration tests with Redis
+- [ ] 3.3 Load testing
+
+## 4. Documentation
+- [ ] 4.1 Update README.md
+- [ ] 4.2 Add RATE_LIMITING.md guide
+- [ ] 4.3 Update environment variables docs
+
+# 5. Implement (follow tasks, check off as done)
+# (Full production-grade implementation - no MVPs)
+
+# 6. Archive after completion
+openspec archive add-distributed-rate-limiting -y
+```
+
+## Session Documentation Management (Critical - Prevent Doc Proliferation)
+
+**Problem:** Agent-generated documentation accumulates rapidly, creating noise in repository roots and subdirectories. This makes it difficult to locate current, relevant information and obscures architectural intent.
+
+**Solution:** Strict session-based documentation structure with aggressive consolidation policies.
+
+### Session Documentation Structure
+
+All agent-generated work artifacts MUST be placed in:
+
+```
+docs/sessions/<YYYYMMDD-descriptive-name>/
+```
+
+**Required core session documents:**
+
+1. **`00_SESSION_OVERVIEW.md`** - Goals, decisions, PR/issue links
+2. **`01_RESEARCH.md`** - External documentation, API findings, precedents
+3. **`02_SPECIFICATIONS.md`** - Full feature specs with **ARUs (Assumptions, Risks, Uncertainties)**
+4. **`03_DAG_WBS.md`** - Dependency graph (DAG) and work breakdown structure (WBS)
+5. **`04_IMPLEMENTATION_STRATEGY.md`** - Technical approach, architecture decisions
+6. **`05_KNOWN_ISSUES.md`** - Current bugs, workarounds, technical debt, future work
+7. **`06_TESTING_STRATEGY.md`** - Test plan, coverage goals, acceptance criteria
+
+### Documentation Update Protocol
+
+**Update triggers (prefer updating over creating new files):**
+- New information → update `01_RESEARCH.md`
+- Requirements change → update `02_SPECIFICATIONS.md` and `03_DAG_WBS.md`
+- Implementation pivots → update `04_IMPLEMENTATION_STRATEGY.md`
+- Bug discovered/fixed → update `05_KNOWN_ISSUES.md`
+
+**Never create:** `FINAL`, `COMPLETE`, `V2`, `_NEW`, `_OLD`, `_DRAFT` suffixed documents.
+
+### Documentation Consolidation Policy (Aggressive)
+
+**When encountering doc proliferation:**
+
+1. **Detect orphaned docs**
+   ```bash
+   find . -name "*.md" -type f | grep -E "(SUMMARY|STATUS|REPORT|COMPLETE|FINAL|CHECKLIST|V[0-9]|_OLD|_NEW)"
+   ```
+
+2. **Apply decision tree**
+   ```
+   Is doc still relevant?
+   ├─ NO  → Delete immediately
+   └─ YES → Is it session-specific?
+          ├─ YES → Move to docs/sessions/<session-id>/
+          └─ NO  → Is it canonical repo doc?
+                 ├─ YES → Keep in docs/ (README, ARCHITECTURE, etc.)
+                 └─ NO  → Merge into canonical doc or delete
+   ```
+
+3. **Consolidate aggressively**
+   - Extract unique information from temporal docs
+   - Merge into existing session documents
+   - Delete redundant files without hesitation
+   - Move session artifacts to appropriate session folder
+
+### Canonical Repository Documentation (Exceptions)
+
+These live in `docs/` root and persist across sessions:
+- `docs/README.md` - Project overview
+- `docs/ARCHITECTURE.md` - System design patterns
+- `docs/API_REFERENCE.md` - Tool/API contracts
+- `docs/DEPLOYMENT.md` - Infrastructure guides
+- `docs/TESTING.md` - Test philosophy and frameworks
+- `docs/TROUBLESHOOTING.md` - Common issues and debugging
+
+**Update protocol:**
+- Session-specific details → session folder
+- Permanent architectural changes → canonical docs
+- When uncertain → start in session folder, promote if universally relevant
+
+### Agent Behavioral Rules
+
+**Session start:**
+1. Create `docs/sessions/<session-id>/` directory
+2. Initialize with `00_SESSION_OVERVIEW.md`
+3. Reference (don't duplicate) canonical docs
+
+**During session:**
+1. Update session docs continuously (living documents)
+2. Never create temporal suffixed docs (`_FINAL`, `_V2`, etc.)
+3. Consolidate discoveries into existing session docs
+
+**Session end:**
+1. Review all session docs for completeness
+2. Scan repo for orphaned docs created during session
+3. Move/consolidate docs outside session folder
+4. Update canonical docs if permanent changes made
+
+**When finding proliferation:**
+1. Flag immediately for consolidation
+2. Apply decision tree (above)
+3. Delete temporal/redundant docs
+4. Move session-specific docs to appropriate folder
+
+### Expected Outcomes
+
+**Before (proliferation state):**
+- Root: 37+ .md files (STATUS, SUMMARY, FINAL, etc.)
+- tests/: 49+ .md files (GUIDE, REPORT, CHECKLIST, etc.)
+- Impossible to find current information
+
+**After (session-based structure):**
+- Root: ~4 .md files (AGENTS.md, CLAUDE.md, warp.md, README.md)
+- tests/: 1 .md file (README.md)
+- All session artifacts in `docs/sessions/<date-name>/`
+- Clear separation of concerns
+- Easy cleanup (archive old sessions)
+
 ## Interaction Rules (from llms-full.txt §17)
 
 - Operate in the tight loop referenced above.
 - Do not ask for next steps unless truly blocked by secrets or irreversible actions.
 - Keep communication lean; prioritize code and commands referencing this contract and `llms-full.txt`.
+- **Document work in session folders; consolidate aggressively to prevent proliferation.**
 
 Agents should treat this document, `CLAUDE.md`, and `WARP.md` as supportive summaries; the full, authoritative FastMCP contract always lives in `llms-full.txt`.

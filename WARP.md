@@ -292,4 +292,237 @@ Ask these questions about test files with overlapping concerns:
 - Tests: run via `uv run pytest`; use FastMCP client In-Memory for unit tests.
 - **File size: keep all modules ≤500 lines (target ≤350) to maintain clarity and testability.**
 
+## 7. Session Documentation Management (Critical - Prevent Doc Proliferation)
+
+**Problem:** Agent-generated documentation frequently proliferates in repo roots and subdirectories, creating noise and making it difficult to locate current, relevant information.
+
+**Solution:** Structured session-based documentation with aggressive consolidation policies.
+
+### **7.1 Session Documentation Structure**
+
+All agent-generated documentation for a work session MUST be placed in:
+
+```
+docs/sessions/<session-id>/
+```
+
+Where `<session-id>` follows the pattern: `YYYYMMDD-<descriptive-name>`
+
+Example structure:
+```
+docs/
+  sessions/
+    20251113-oauth-implementation/
+      00_SESSION_OVERVIEW.md          # Session goals, context, decisions
+      01_RESEARCH.md                  # External docs, API research, findings
+      02_SPECIFICATIONS.md            # Full feature specs with ARUs
+      03_DAG_WBS.md                   # Dependency graph, work breakdown
+      04_IMPLEMENTATION_STRATEGY.md   # Technical approach, patterns used
+      05_KNOWN_ISSUES.md              # Bugs found, workarounds, future work
+      06_TESTING_STRATEGY.md          # Test plan, coverage goals
+      artifacts/                      # Generated files, diagrams, exports
+    20251112-rate-limiting/
+      ...
+```
+
+### **7.2 Core Session Documents (Required)**
+
+Every non-trivial session MUST maintain these living documents:
+
+1. **`00_SESSION_OVERVIEW.md`**
+   - High-level goals and success criteria
+   - Key decisions and rationale
+   - Links to related PRs, issues, discussions
+
+2. **`02_SPECIFICATIONS.md`**
+   - Full feature specifications
+   - Acceptance criteria
+   - **ARUs (Assumptions, Risks, Uncertainties)** with mitigation plans
+   - API contracts and data models
+
+3. **`03_DAG_WBS.md`**
+   - Dependency graph (DAG) of all tasks
+   - Work breakdown structure (WBS) with time estimates
+   - Critical path analysis
+   - Task dependencies and blockers
+
+4. **`04_IMPLEMENTATION_STRATEGY.md`**
+   - Technical approach and patterns
+   - Architecture decisions
+   - Code organization rationale
+   - Performance/security considerations
+
+5. **`05_KNOWN_ISSUES.md`**
+   - Current bugs and their impact
+   - Workarounds and fixes applied
+   - Technical debt introduced
+   - Future work recommendations
+
+### **7.3 Documentation Update Protocol**
+
+**When to Update Session Docs:**
+- New information discovered → update `01_RESEARCH.md`
+- Requirements change → update `02_SPECIFICATIONS.md` and `03_DAG_WBS.md`
+- Implementation approach shifts → update `04_IMPLEMENTATION_STRATEGY.md`
+- Bug found/fixed → update `05_KNOWN_ISSUES.md`
+
+**Update Frequency:**
+- After each significant discovery or decision
+- Before context switches (end of work session)
+- When blocked by uncertainty (document in ARUs)
+
+**Prefer Updates Over New Files:**
+- ✅ Update `02_SPECIFICATIONS.md` with new requirements
+- ❌ Create `SPECIFICATIONS_V2.md` or `NEW_SPECS.md`
+
+### **7.4 Documentation Consolidation Policy (Aggressive)**
+
+**When encountering doc proliferation elsewhere in repo:**
+
+1. **Identify orphaned/redundant docs**
+   - Run: `find . -name "*.md" -type f | grep -E "(SUMMARY|STATUS|REPORT|COMPLETE|FINAL)"`
+   - Flag files with temporal suffixes (`_FINAL`, `_V2`, `_OLD`, `_NEW`)
+
+2. **Consolidation decision tree**
+   ```
+   Is doc still relevant?
+   ├─ NO  → Delete immediately
+   └─ YES → Is it session-specific?
+          ├─ YES → Move to docs/sessions/<session-id>/
+          └─ NO  → Is it canonical repo doc?
+                 ├─ YES → Keep in docs/ (examples: README.md, ARCHITECTURE.md)
+                 └─ NO  → Merge into existing canonical doc or delete
+   ```
+
+3. **Consolidation actions**
+   ```bash
+   # Example: Found OAUTH_COMPLETION_SUMMARY.md in root
+   # Decision: Session-specific, still relevant
+   mv OAUTH_COMPLETION_SUMMARY.md docs/sessions/20251110-oauth-implementation/06_COMPLETION_SUMMARY.md
+   
+   # Example: Found TEST_STATUS_FINAL.md in tests/
+   # Decision: Temporal doc, information now in 05_KNOWN_ISSUES.md
+   rm tests/TEST_STATUS_FINAL.md  # Delete after extracting any unique info
+   
+   # Example: Found three similar guides
+   # Decision: Consolidate into single canonical guide
+   cat GUIDE_V1.md GUIDE_V2.md GUIDE_FINAL.md > docs/CONSOLIDATED_GUIDE.md
+   rm GUIDE_V1.md GUIDE_V2.md GUIDE_FINAL.md
+   ```
+
+### **7.5 Canonical Repo Documentation (Exceptions to Session Rule)**
+
+These docs live in `docs/` root and are maintained across sessions:
+
+- **`docs/README.md`** - Project overview, getting started
+- **`docs/ARCHITECTURE.md`** - System architecture, design patterns
+- **`docs/API_REFERENCE.md`** - Tool/API documentation
+- **`docs/DEPLOYMENT.md`** - Deployment guides, infrastructure
+- **`docs/TESTING.md`** - Testing philosophy, frameworks, patterns
+- **`docs/TROUBLESHOOTING.md`** - Common issues, debugging guides
+
+**Update Protocol:**
+- Session-specific details → session folder
+- Permanent architectural/API changes → canonical docs in `docs/`
+- When unsure → start in session folder, promote to canonical if universally relevant
+
+### **7.6 Detection and Cleanup Commands**
+
+**Find doc proliferation:**
+```bash
+# Find temporal/status docs (candidates for deletion/consolidation)
+find . -name "*.md" -type f | grep -E "(SUMMARY|STATUS|REPORT|COMPLETE|FINAL|CHECKLIST|V[0-9]|_OLD|_NEW|_DRAFT)"
+
+# Count docs in problematic locations
+ls -1 *.md 2>/dev/null | wc -l          # Root (should be <10)
+ls -1 tests/*.md 2>/dev/null | wc -l    # Tests (should be <5)
+```
+
+**Automated consolidation check:**
+```bash
+# Run before committing to detect proliferation
+./scripts/check_doc_proliferation.sh   # (TODO: create this script)
+```
+
+### **7.7 Agent Behavioral Rules**
+
+**When starting a new session:**
+1. Create `docs/sessions/<session-id>/` directory
+2. Initialize with `00_SESSION_OVERVIEW.md`
+3. Reference canonical docs; don't duplicate them
+
+**During session work:**
+1. Update session docs continuously (living documents)
+2. Never create "FINAL" or "COMPLETE" suffixed docs
+3. Consolidate discoveries into existing session docs
+
+**Before ending session:**
+1. Review all session docs for completeness
+2. Scan repo for orphaned docs created during session
+3. Move/consolidate any docs created outside session folder
+4. Update canonical docs if permanent architectural changes made
+
+**When finding doc proliferation:**
+1. Immediately flag for consolidation
+2. Apply decision tree (§ 7.4)
+3. Delete temporal/redundant docs without hesitation
+4. Move relevant session-specific docs to appropriate session folder
+
+### **7.8 Benefits of Session-Based Documentation**
+
+- **Discoverability**: All session artifacts in one place
+- **Context preservation**: Full work history without clutter
+- **Easier cleanup**: Old sessions can be archived/deleted cleanly
+- **Prevents duplication**: Clear home for session-specific docs
+- **Enforces living docs**: Update existing docs instead of creating new ones
+- **Reduces noise**: Root/tests directories stay clean
+
+### **7.9 Real-World Example: Before/After**
+
+**Before (proliferation state):**
+```
+.
+├── OAUTH_COMPLETION_SUMMARY.md
+├── OAUTH_IMPLEMENTATION_SUMMARY.md
+├── OAUTH_DOCUMENTATION_INDEX.md
+├── OAUTH_MOCK_USAGE_GUIDE.md
+├── TEST_FIX_COMPLETION_SUMMARY.md
+├── TEST_INFRASTRUCTURE_FINAL_STATUS.md
+├── TESTING_COMPLETE.md
+├── FINAL_ASSESSMENT.md
+├── VERIFICATION_CHECKLIST.md
+└── tests/
+    ├── COMPREHENSIVE_TEST_PLAN.md
+    ├── IMPLEMENTATION_GUIDE.md
+    ├── PHASE_2_COMPLETION_REPORT.md
+    └── (46+ more .md files)
+```
+
+**After (session-based structure):**
+```
+docs/
+  sessions/
+    20251110-oauth-implementation/
+      00_SESSION_OVERVIEW.md           # Goals: OAuth + mock clients
+      01_RESEARCH.md                   # WorkOS docs, FastMCP patterns
+      02_SPECIFICATIONS.md             # OAuth flow, mock client design
+      03_DAG_WBS.md                    # Task breakdown, dependencies
+      04_IMPLEMENTATION_STRATEGY.md    # Adapter pattern, persistent auth
+      05_KNOWN_ISSUES.md               # CORS issues, session persistence edge cases
+      06_COMPLETION_SUMMARY.md         # Final status, lessons learned
+    20251112-test-infrastructure/
+      00_SESSION_OVERVIEW.md           # Goals: Canonical test patterns
+      02_SPECIFICATIONS.md             # Test naming standard, fixture design
+      03_DAG_WBS.md                    # Test refactoring plan
+      04_IMPLEMENTATION_STRATEGY.md    # Parametrization approach
+      05_KNOWN_ISSUES.md               # test_relationship.py collection errors
+  README.md                            # Permanent project overview
+  ARCHITECTURE.md                      # Permanent architecture guide
+```
+
+**Impact:**
+- Root: 37 .md files → 4 .md files (AGENTS.md, CLAUDE.md, warp.md, README.md)
+- tests/: 49 .md files → 1 .md file (README.md)
+- All session artifacts organized, discoverable, cleanly separated
+
 Configure Warp so the canonical flows are a keystroke away, aligned with this guide and the full contract in `llms-full.txt`.

@@ -29,9 +29,7 @@ import warnings
 import logging
 from pathlib import Path
 from typing import List, Optional, Dict, Any
-from datetime import datetime
 from tqdm.asyncio import tqdm
-from concurrent.futures import ThreadPoolExecutor
 
 # Suppress warnings
 warnings.filterwarnings('ignore', category=UserWarning)
@@ -46,8 +44,8 @@ os.environ['GRPC_TRACE'] = ''
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from dotenv import load_dotenv
-from supabase import create_client, Client
+from dotenv import load_dotenv  # noqa: E402
+from supabase import create_client, Client  # noqa: E402
 
 # Load environment variables
 # Load .env first (has correct Supabase URL), then .env.production for other vars
@@ -329,7 +327,7 @@ class EmbeddingBackfiller:
 
         # Show error details if any failures occurred
         if stats['failed'] > 0 and stats.get('errors'):
-            print(f"\n⚠️  Error Details:")
+            print("\n⚠️  Error Details:")
             for i, error in enumerate(stats['errors'][:5], 1):  # Show first 5 errors
                 print(f"  {i}. {error['name'][:40]}: {error['error'][:60]}")
             if len(stats['errors']) > 5:
@@ -469,7 +467,9 @@ async def main():
         print(f"✅ Embedding service initialized: {service.__class__.__name__}")
     except Exception as e:
         print(f"❌ Error initializing embedding service: {e}")
-        print("   Make sure Vertex AI or OpenAI credentials are configured")
+        print("   Make sure Vertex AI credentials are configured:")
+        print("   - GOOGLE_CLOUD_PROJECT")
+        print("   - GOOGLE_VERTEX_API_KEY")
         sys.exit(1)
 
     # Create Supabase client

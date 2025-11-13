@@ -9,6 +9,7 @@ Classifies errors as:
 
 import re
 from typing import Optional, Tuple
+from enum import Enum
 from dataclasses import dataclass
 
 
@@ -21,6 +22,11 @@ class ErrorDiagnostic:
     detailed_explanation: str
     fix_suggestions: list
     code_snippet: Optional[str] = None
+    
+    def __post_init__(self):
+        """Ensure category is always a string for serialization."""
+        if isinstance(self.category, Category):
+            self.category = str(self.category.value)
     
     def to_string(self) -> str:
         """Format diagnostic as readable error report."""
@@ -49,6 +55,13 @@ How to fix it:
         
         return report
 
+
+class Category(str, Enum):
+    """String enum for better serialization with pytest-xdist."""
+    INFRASTRUCTURE = "INFRASTRUCTURE"
+    PRODUCT = "PRODUCT"
+    TEST_DATA = "TEST_DATA"
+    ASSERTION = "ASSERTION"
 
 class ErrorClassifier:
     """Classifies test failures and generates rich diagnostics."""
@@ -83,7 +96,7 @@ class ErrorClassifier:
     ]
     
     @staticmethod
-    def classify(error_msg: str, error_type: str = None) -> str:
+    def classify(error_msg: str, error_type: str = None):
         """Classify error into category based on message.
         Accepts any exception or message-like object; coerces to safe string.
         """
@@ -95,22 +108,32 @@ class ErrorClassifier:
             error_lower = ""
         
         # Check infrastructure patterns
-        for pattern, _ in ErrorClassifier.INFRA_PATTERNS:
+        for pattern, reason in ErrorClassifier.INFRA_PATTERNS:
             if re.search(pattern, error_lower, re.IGNORECASE):
-                return "INFRASTRUCTURE"
+                return (Category.INFRASTRUCTURE, reason)
         
         # Check test data patterns
-        for pattern, _ in ErrorClassifier.TEST_DATA_PATTERNS:
+        for pattern, reason in ErrorClassifier.TEST_DATA_PATTERNS:
             if re.search(pattern, error_lower, re.IGNORECASE):
-                return "TEST_DATA"
+                return (Category.TEST_DATA, reason)
         
         # Check product patterns
-        for pattern, _ in ErrorClassifier.PRODUCT_PATTERNS:
+        for pattern, reason in ErrorClassifier.PRODUCT_PATTERNS:
             if re.search(pattern, error_lower, re.IGNORECASE):
-                return "PRODUCT"
+                return (Category.PRODUCT, reason)
         
         # Default to assertion
-        return "ASSERTION"
+        return (Category.ASSERTION, "Assertion mismatch or unclassified error")
+
+    @staticmethod
+    def get_icon(category):
+        mapping = {
+            Category.INFRASTRUCTURE: "🔴",
+            Category.PRODUCT: "🟠",
+            Category.TEST_DATA: "🟡",
+            Category.ASSERTION: "🟢",
+        }
+        return mapping.get(category, "⚪")
     
     @staticmethod
     def get_root_cause(error_msg: str, category: str) -> str:
@@ -247,16 +270,25 @@ class ErrorReport:
     
     def __init__(self):
         self.errors_by_category = {
-            "INFRASTRUCTURE": [],
-            "PRODUCT": [],
-            "TEST_DATA": [],
-            "ASSERTION": [],
+            Category.INFRASTRUCTURE: [],
+            Category.PRODUCT: [],
+            Category.TEST_DATA: [],
+            Category.ASSERTION: [],
         }
         self.total_errors = 0
     
-    def add_error(self, diagnostic: ErrorDiagnostic):
-        """Add classified error to report."""
-        self.errors_by_category[diagnostic.category].append(diagnostic)
+    def add_error(self, test_name=None, exception: Exception = None, category=None, reason: str = ""):
+        """Add classified error to report (conftest-compatible signature)."""
+        cat_enum = category if isinstance(category, Category) else Category(str(category)) if category else Category.ASSERTION
+        # Ensure category is stored as string for serialization
+        cat_str = str(cat_enum.value) if hasattr(cat_enum, 'value') else str(cat_enum)
+        diag = ErrorDiagnostic(
+            category=cat_str,
+            root_cause=reason or (str(exception)[:100] if exception else ""),
+            detailed_explanation=f"{str(exception)[:200] if exception else ''}",
+            fix_suggestions=[],
+        )
+        self.errors_by_category[cat_enum].append(diag)
         self.total_errors += 1
     
     def summary(self) -> str:
@@ -266,19 +298,23 @@ class ErrorReport:
         report += "╠════════════════════════════════════════════════════════════╣\n"
         
         emojis = {
-            "INFRASTRUCTURE": "🔴",
-            "PRODUCT": "🟠",
-            "TEST_DATA": "🟡",
-            "ASSERTION": "🟢"
+            Category.INFRASTRUCTURE: "🔴",
+            Category.PRODUCT: "🟠",
+            Category.TEST_DATA: "🟡",
+            Category.ASSERTION: "🟢"
         }
         
-        for category in ["INFRASTRUCTURE", "PRODUCT", "TEST_DATA", "ASSERTION"]:
+        for category in [Category.INFRASTRUCTURE, Category.PRODUCT, Category.TEST_DATA, Category.ASSERTION]:
             count = len(self.errors_by_category[category])
             emoji = emojis[category]
-            report += f"║ {emoji} {category:20} │ {count:3} error(s) ║\n"
+            report += f"║ {emoji} {category.value:20} │ {count:3} error(s) ║\n"
         
         report += f"║                                                            ║\n"
         report += f"║ Total: {self.total_errors} error(s)                                         ║\n"
         report += "╚════════════════════════════════════════════════════════════╝\n"
         
         return report
+
+    # Backwards-compatible alias expected by conftest
+    def generate_summary(self) -> str:
+        return self.summary()

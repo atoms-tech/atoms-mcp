@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Callable
 from typing import Any, Dict, List, Optional, Union
 
 
@@ -272,7 +273,7 @@ class RealtimeAdapter(ABC):
     async def subscribe(
         self,
         table: str,
-        callback: callable,
+        callback: Callable,
         *,
         filters: Optional[Dict[str, Any]] = None,
         events: Optional[List[str]] = None

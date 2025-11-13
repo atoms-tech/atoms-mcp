@@ -62,3 +62,13 @@ bun.lock
 atoms-mcp-sa-key.json
 *-sa-key.json
 service-account*.json
+
+# SST
+.sst/
+.sst-*
+sst-env.d.ts
+
+# Python virtual environment (uv)
+.venv/
+.python-version
+uv.lock

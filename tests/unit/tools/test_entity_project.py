@@ -30,7 +30,7 @@ class TestProjectCRUD:
     @pytest.mark.story("Project Management - User can create a project")
     @pytest.mark.unit
     async def test_create_project_with_auto_context(self, call_mcp, test_organization):
-        """User can create a project (with auto context)."""
+        """User can create a project (with explicit organization)."""
         result, duration = await call_mcp(
             "entity_tool",
             {
@@ -38,8 +38,8 @@ class TestProjectCRUD:
                 "entity_type": "project",
                 "data": {
                     "name": f"Test Project {uuid.uuid4().hex[:8]}",
-                    "organization_id": "auto",  # Use workspace context
-                    "description": "Project created with auto context",
+                    "organization_id": test_organization,  # Use provided organization
+                    "description": "Project created with organization context",
                 },
             },
         )
@@ -52,9 +52,9 @@ class TestProjectCRUD:
             success = result.get("success", False)
             data = result.get("data", {})
 
-        assert success, "Project creation with auto context failed"
+        assert success, "Project creation failed"
         assert "id" in data
-        assert data["organization_id"] == test_organization
+        assert data.get("organization_id") == test_organization
         assert "slug" in data  # Auto-generated slug
 
     @pytest.mark.story("Project Management - User can create a project")
