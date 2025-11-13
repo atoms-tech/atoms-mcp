@@ -1515,8 +1515,11 @@ async def entity_operation(
                 # Store note about fuzzy match for user awareness
                 timings["fuzzy_match_note"] = resolution["note"]
 
-        if operation in ("create", "batch_create"):
+        if operation in ("create", "batch_create", "bulk_create"):
             # Allow batch-only create (data optional when batch provided)
+            # Note: bulk_create is an alias for batch_create
+            if operation == "bulk_create":
+                operation = "batch_create"
             if not data and not batch:
                 raise ValueError("data or batch is required for create operation")
 
