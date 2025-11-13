@@ -295,13 +295,13 @@ class TestEntityResolverEdgeCases:
 class TestEntityResolverSoftDeleteTables:
     """Test handling of tables without soft delete."""
 
-    def test_uuid_is_recognized(self, resolver):
+    async def test_uuid_is_recognized(self, resolver):
         """Test that UUID recognition works for valid UUIDs."""
         # Simple test to ensure the UUID detection pattern works
         uuid_str = "550e8400-e29b-41d4-a716-446655440000"
         assert resolver._is_uuid(uuid_str) is True
     
-    def test_uuid_not_recognized_for_invalid(self, resolver):
+    async def test_uuid_not_recognized_for_invalid(self, resolver):
         """Test that UUID recognition rejects invalid UUIDs."""
         # Ensure invalid patterns are rejected
         assert resolver._is_uuid("not-a-uuid") is False
