@@ -1,2 +1,19 @@
 
-✅ No warnings detected
+======================================================================
+⚠️  TEST WARNINGS & PERFORMANCE ISSUES
+======================================================================
+
+🔄 FLAKY (4):
+  🟡 tests/unit/extensions/test_error_handling_ext8.py::TestRetryMechanism::test_automatic_retry_on_transient_error[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/extensions/test_error_handling_ext8.py::TestRetryMechanism::test_exponential_backoff[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/extensions/test_error_handling_ext8.py::TestRetryMechanism::test_retry_respects_max_attempts[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/extensions/test_error_handling_ext8.py::TestRetryMechanism::test_retry_not_for_permanent_errors[unit]
+     → Test passed after retry (potentially flaky)
+
+----------------------------------------------------------------------
+Total Warnings: 4
+  🔴 High: 0  🟡 Medium: 4  🟢 Low: 0
+======================================================================

@@ -344,8 +344,6 @@ class TestRequirementSearch:
             req_id = result["data"].get("id")
         else:
             req_id = result.get("id")
-            else:
-        req_id = result.get("id")
 
         # Hard delete
         delete_result, _ = await call_mcp(
