@@ -11,11 +11,13 @@ try:
     from .base import ToolBase
     from ..infrastructure.workflow_adapter import WorkflowStorageAdapter
     from ..infrastructure.advanced_features_adapter import AdvancedFeaturesAdapter
+    from ..infrastructure.permission_middleware import PermissionMiddleware
 except ImportError:
     from tools.base import ToolBase
     try:
         from infrastructure.workflow_adapter import WorkflowStorageAdapter
         from infrastructure.advanced_features_adapter import AdvancedFeaturesAdapter
+        from infrastructure.permission_middleware import PermissionMiddleware
     except ImportError:
         WorkflowStorageAdapter = None
         AdvancedFeaturesAdapter = None
@@ -48,6 +50,22 @@ class EntityManager(ToolBase):
 
     def __init__(self) -> None:
         super().__init__()
+        self._permission_middleware = None
+    
+    def _get_permission_middleware(self) -> PermissionMiddleware:
+        """Get or create permission middleware instance."""
+        if self._permission_middleware is None:
+            async def get_user_context():
+                # Return user context from tool base
+                return {
+                    "user_id": self._get_user_id(),
+                    "username": self._get_username(),
+                    "email": self._user_context.get("email"),
+                    "workspace_memberships": self._user_context.get("workspace_memberships", {}),
+                    "is_system_admin": self._user_context.get("is_system_admin", False)
+                }
+            self._permission_middleware = PermissionMiddleware(get_user_context)
+        return self._permission_middleware
 
     def _is_uuid_format(self, value: str) -> bool:
         """Check if string is a valid UUID format."""
@@ -211,6 +229,9 @@ class EntityManager(ToolBase):
         include_relations: bool = False
     ) -> Dict[str, Any]:
         """Create a new entity with Pydantic validation."""
+        # Permission check before any operations
+        middleware = self._get_permission_middleware()
+        await middleware.check_create_permission(entity_type, data)
         # Resolve smart defaults
         data = await self._resolve_smart_defaults(entity_type, data)
 
@@ -287,6 +308,11 @@ class EntityManager(ToolBase):
             filters={"id": entity_id}
         )
         
+        # Permission check after fetching entity
+        middleware = self._get_permission_middleware()
+        if result:
+            await middleware.check_read_permission(entity_type, entity_id, result)
+        
         if result and include_relations:
             result = await self._include_relationships(entity_type, result)
         
@@ -303,7 +329,16 @@ class EntityManager(ToolBase):
         import logging
         logger = logging.getLogger(__name__)
 
+        # Get existing entity data for permission check
         table = self._resolve_entity_table(entity_type)
+        existing_entity = await self._db_get_single(
+            table,
+            filters={"id": entity_id}
+        )
+        
+        # Permission check before making changes
+        middleware = self._get_permission_middleware()
+        await middleware.check_update_permission(entity_type, entity_id, data, existing_entity)
 
         # Prepare update data
         update_data = data.copy()
@@ -379,6 +414,17 @@ class EntityManager(ToolBase):
     ) -> bool:
         """Delete an entity (soft delete by default)."""
         table = self._resolve_entity_table(entity_type)
+        
+        # Get existing entity data for permission check
+        existing_entity = await self._db_get_single(
+            table,
+            filters={"id": entity_id}
+        )
+        
+        # Permission check before deletion
+        middleware = self._get_permission_middleware()
+        if existing_entity:
+            await middleware.check_delete_permission(entity_type, entity_id, existing_entity)
         
         if soft_delete:
             # Soft delete
