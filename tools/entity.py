@@ -474,6 +474,11 @@ class EntityManager(ToolBase):
     ) -> List[Dict[str, Any]]:
         """Search for entities with filters."""
         table = self._resolve_entity_table(entity_type)
+        
+        # Check workspace access for search operations
+        if filters and "workspace_id" in filters:
+            middleware = self._get_permission_middleware()
+            await middleware.check_list_permission(entity_type, filters["workspace_id"])
 
         # Build query filters
         query_filters = filters.copy() if filters else {}
