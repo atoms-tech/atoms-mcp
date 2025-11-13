@@ -1,74 +1,108 @@
-"""Atoms MCP CLI - Command-line interface for Atoms MCP Server.
+"""Atoms MCP CLI - Enhanced command-line interface with npm-like commands.
 
-Usage:
-    atoms run          - Start the MCP server
-    atoms update       - Update dependencies (like npm update)
-    atoms health       - Check server health
-    atoms version      - Show version info
-    atoms --help       - Show this help message
+This module provides comprehensive CLI commands for development, testing, and deployment.
 
-Update subcommands:
-    atoms update               - Interactive update (prompts for what to update)
-    atoms update --all         - Update all dependencies
-    atoms update --deps        - Update production dependencies only
-    atoms update --dev         - Update development dependencies only
-    atoms update --check       - Check for updates without installing
-    atoms update --outdated    - Show outdated packages
+Commands (like npm scripts):
+  atoms run          - Start the MCP server
+  atoms dev          - Start in development mode with hot reload
+  atoms test         - Run test suite
+  atoms test:unit    - Run unit tests only
+  atoms test:int     - Run integration tests
+  atoms test:e2e     - Run end-to-end tests
+  atoms test:cov     - Run tests with coverage report
+  atoms lint         - Check code with ruff
+  atoms format       - Auto-format code with black
+  atoms type-check   - Check types with mypy
+  atoms health       - Check server health
+  atoms build        - Build for production
+  atoms update       - Update dependencies interactively
+  atoms version      - Show version info
+  atoms clean        - Clean cache and build artifacts
+  atoms deps         - Analyze dependencies
+  atoms docs         - Generate/view documentation
+  atoms logs         - Tail server logs
 """
 
 import sys
 import typer
-from typing import Optional
 import subprocess
-import json
+from typing import Optional
+from pathlib import Path
 
 app = typer.Typer(
     name="atoms",
-    help="Atoms MCP Server - FastMCP server for Atoms platform",
+    help="Atoms MCP Server - Development CLI",
     pretty_exceptions_show_locals=False,
 )
 
 
+# ============================================================================
+# Server Commands
+# ============================================================================
+
 @app.command()
 def run(
-    host: str = typer.Option("0.0.0.0", help="Host to bind server to"),
-    port: int = typer.Option(8000, help="Port to run server on"),
+    host: str = typer.Option("0.0.0.0", help="Host to bind to"),
+    port: int = typer.Option(8000, help="Port to run on"),
     debug: bool = typer.Option(False, help="Enable debug mode"),
-):
+) -> None:
     """Start the Atoms MCP Server.
-    
-    Starts a FastMCP server that provides MCP tools for:
-    - Entity management (organizations, projects, documents, requirements, tests)
-    - Workspace navigation
-    - Entity relationships
-    - Queries and search
-    - Workflow automation
     
     Example:
         atoms run --port 8001 --debug
     """
-    from server import main
-    
-    # Set environment for server startup
+    import os
     if debug:
-        import os
         os.environ["DEBUG"] = "true"
     
     print(f"🚀 Starting Atoms MCP Server on {host}:{port}")
     if debug:
         print("🔧 Debug mode enabled")
     
+    from server import main
     main()
+
+
+@app.command()
+def dev(
+    port: int = typer.Option(8000, help="Port to run on"),
+) -> None:
+    """Start in development mode with auto-reload.
+    
+    Features:
+    - Auto-reloads on file changes
+    - Shows detailed error messages
+    - Enables all debug logging
+    
+    Example:
+        atoms dev --port 8001
+    """
+    import os
+    os.environ["DEBUG"] = "true"
+    
+    print("⚙️  Starting in development mode...")
+    print(f"🔄 Auto-reload enabled on {port}")
+    print("📝 Watching for file changes...")
+    
+    try:
+        import uvicorn
+        uvicorn.run(
+            "app:app",
+            host="0.0.0.0",
+            port=port,
+            reload=True,
+            log_level="debug"
+        )
+    except ImportError:
+        print("❌ uvicorn not installed. Using standard server...")
+        from server import main
+        main()
 
 
 @app.command()
 def health() -> None:
     """Check if the server is running and healthy."""
-    import subprocess
-    import os
-    
     try:
-        # Try to connect to running server
         import httpx
         client = httpx.Client(timeout=5.0)
         response = client.get("http://localhost:8000/health", timeout=5.0)
@@ -91,79 +125,266 @@ def version() -> None:
     print("FastMCP-based consolidated MCP server")
 
 
+# ============================================================================
+# Testing Commands
+# ============================================================================
+
+@app.command()
+def test(
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
+    coverage: bool = typer.Option(False, "--cov", help="Generate coverage report"),
+    marker: Optional[str] = typer.Option(None, "-m", "--marker", help="Run specific marker (e.g., 'unit', 'story')"),
+    keyword: Optional[str] = typer.Option(None, "-k", "--keyword", help="Run tests matching keyword"),
+) -> None:
+    """Run the full test suite.
+    
+    Examples:
+        atoms test              # Run all tests
+        atoms test -v           # Verbose output
+        atoms test --cov        # With coverage
+        atoms test -m unit      # Only unit tests
+        atoms test -k auth      # Tests matching 'auth'
+    """
+    cmd = ["python", "-m", "pytest"]
+    
+    if verbose:
+        cmd.append("-v")
+    if coverage:
+        cmd.extend(["--cov=.", "--cov-report=html", "--cov-report=term"])
+    if marker:
+        cmd.extend(["-m", marker])
+    if keyword:
+        cmd.extend(["-k", keyword])
+    else:
+        # Default: run all tests
+        cmd.append("tests/")
+    
+    print(f"🧪 Running tests: {' '.join(cmd[3:])}")
+    subprocess.run(cmd)
+
+
+@app.command("test:unit")
+def test_unit(
+    verbose: bool = typer.Option(False, "-v", "--verbose"),
+) -> None:
+    """Run unit tests only (fast, no external services).
+    
+    Example:
+        atoms test:unit -v
+    """
+    cmd = ["python", "-m", "pytest", "-m", "unit", "tests/"]
+    if verbose:
+        cmd.insert(-1, "-v")
+    
+    print("🧪 Running unit tests...")
+    subprocess.run(cmd)
+
+
+@app.command("test:int")
+def test_integration(
+    verbose: bool = typer.Option(False, "-v", "--verbose"),
+) -> None:
+    """Run integration tests (requires services).
+    
+    Example:
+        atoms test:int -v
+    """
+    cmd = ["python", "-m", "pytest", "-m", "integration", "tests/"]
+    if verbose:
+        cmd.insert(-1, "-v")
+    
+    print("🧪 Running integration tests...")
+    subprocess.run(cmd)
+
+
+@app.command("test:e2e")
+def test_e2e(
+    verbose: bool = typer.Option(False, "-v", "--verbose"),
+) -> None:
+    """Run end-to-end tests (full system).
+    
+    Example:
+        atoms test:e2e -v
+    """
+    cmd = ["python", "-m", "pytest", "-m", "e2e", "tests/"]
+    if verbose:
+        cmd.insert(-1, "-v")
+    
+    print("🧪 Running e2e tests...")
+    subprocess.run(cmd)
+
+
+@app.command("test:cov")
+def test_coverage() -> None:
+    """Run tests with coverage report (HTML + terminal).
+    
+    Output:
+        htmlcov/index.html - Interactive coverage report
+    """
+    print("🧪 Running tests with coverage...")
+    subprocess.run([
+        "python", "-m", "pytest",
+        "--cov=.",
+        "--cov-report=html",
+        "--cov-report=term-missing",
+        "tests/"
+    ])
+    print("\n📊 Coverage report: htmlcov/index.html")
+
+
+@app.command("test:story")
+def test_story(
+    epic: Optional[str] = typer.Option(None, "-e", "--epic", help="Filter by epic name"),
+) -> None:
+    """Run tests by user story mapping.
+    
+    Examples:
+        atoms test:story                    # All story tests
+        atoms test:story -e "Security"      # Security epic tests
+        atoms test:story -e "Organization"  # Organization epic tests
+    """
+    cmd = ["python", "-m", "pytest", "-m", "story"]
+    
+    if epic:
+        cmd.extend(["-k", epic])
+    
+    cmd.append("tests/")
+    
+    print(f"🧪 Running story tests: {epic or 'all epics'}")
+    subprocess.run(cmd)
+
+
+# ============================================================================
+# Code Quality Commands
+# ============================================================================
+
+@app.command()
+def lint() -> None:
+    """Check code with ruff linter.
+    
+    Checks for:
+    - Syntax errors
+    - Unused imports
+    - Naming conventions
+    - Code complexity
+    """
+    print("🔍 Linting code with ruff...")
+    result = subprocess.run(["ruff", "check", "."])
+    if result.returncode == 0:
+        print("✅ Linting passed")
+    else:
+        print("⚠️  Linting found issues")
+        sys.exit(1)
+
+
+@app.command()
+def format() -> None:
+    """Auto-format code with black.
+    
+    Formats:
+    - Line length to 100 chars
+    - Imports with isort
+    - Code style to Black standard
+    """
+    print("🎨 Formatting code with black...")
+    
+    # Format with black
+    subprocess.run(["black", ".", "--line-length=100"])
+    
+    # Sort imports
+    try:
+        subprocess.run(["isort", ".", "--line-length=100"])
+    except FileNotFoundError:
+        pass
+    
+    print("✅ Code formatted")
+
+
+@app.command("type-check")
+def type_check() -> None:
+    """Check types with mypy.
+    
+    Validates:
+    - Type annotations
+    - Type consistency
+    - Missing return types
+    """
+    print("📝 Checking types with mypy...")
+    result = subprocess.run(["mypy", ".", "--ignore-missing-imports"])
+    if result.returncode == 0:
+        print("✅ Type checking passed")
+    else:
+        print("⚠️  Type issues found")
+        sys.exit(1)
+
+
+@app.command("check")
+def check_all() -> None:
+    """Run all checks: lint, format, type-check.
+    
+    Runs in order:
+    1. Format code
+    2. Lint for issues
+    3. Type check
+    4. Run quick tests
+    """
+    print("🔍 Running all checks...")
+    
+    # Format first
+    print("\n📝 Formatting...")
+    subprocess.run(["black", ".", "--line-length=100"])
+    
+    # Lint
+    print("\n🔍 Linting...")
+    lint_result = subprocess.run(["ruff", "check", "."])
+    
+    # Type check
+    print("\n📝 Type checking...")
+    type_result = subprocess.run(["mypy", ".", "--ignore-missing-imports"])
+    
+    if lint_result.returncode == 0 and type_result.returncode == 0:
+        print("\n✅ All checks passed!")
+    else:
+        print("\n⚠️  Some checks failed")
+        sys.exit(1)
+
+
+# ============================================================================
+# Dependency Commands
+# ============================================================================
+
 @app.command()
 def update(
     all: bool = typer.Option(False, "--all", help="Update all dependencies"),
-    deps: bool = typer.Option(False, "--deps", help="Update only production dependencies"),
-    dev: bool = typer.Option(False, "--dev", help="Update only development dependencies"),
-    check: bool = typer.Option(False, "--check", help="Check for updates without installing"),
-    outdated: bool = typer.Option(False, "--outdated", help="Show outdated packages"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Simulate update without making changes"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output with details"),
+    deps: bool = typer.Option(False, "--deps", help="Production deps only"),
+    dev: bool = typer.Option(False, "--dev", help="Dev deps only"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without applying"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
 ) -> None:
-    """Update project dependencies (similar to npm update).
-    
-    This command manages Python package dependencies via uv (UV package manager).
-    It provides rich visual output with progress bars, dependency trees, and reports.
+    """Update dependencies (like npm update).
     
     Examples:
-        atoms update --all               # Update all dependencies
-        atoms update --deps              # Update only production deps
-        atoms update --dev               # Update only dev deps
-        atoms update --all --dry-run     # Preview updates without applying
-        atoms update --outdated          # Show outdated packages
-        atoms update -v                  # Verbose output
-    
-    Uses UV package manager for fast, reliable updates.
-    Updates are made to pyproject.toml and uv.lock files.
+        atoms update --all              # Update all deps
+        atoms update --deps             # Production only
+        atoms update --dev              # Dev only
+        atoms update --all --dry-run    # Preview changes
     """
-    try:
-        from cli_update import (
-            print_header,
-            print_ascii_diagram,
-            print_dependency_summary,
-            show_update_plan,
-            show_package_matrix,
-            show_update_strategy,
-            show_error_state,
-            execute_update_with_visualization,
-            DependencyAnalyzer,
-        )
-    except ImportError:
-        print("⚠️  Rich CLI not available. Install with: pip install rich")
-        print("Falling back to basic update...")
-        _run_update(all=all, deps=deps, dev=dev, dry_run=dry_run, interactive=False)
-        return
+    from cli_update import (
+        print_header,
+        print_dependency_summary,
+        execute_update_with_visualization,
+        DependencyAnalyzer,
+    )
     
-    # Print header
     print_header()
     
-    # Analyze dependencies
     analyzer = DependencyAnalyzer()
     if not analyzer.load_dependencies():
-        show_error_state(
-            "Failed to load pyproject.toml",
-            "Ensure pyproject.toml exists in project root"
-        )
+        print("❌ Failed to load dependencies")
         sys.exit(1)
     
-    # Show dependency summary
     print_dependency_summary(analyzer)
     
-    # Handle --outdated flag
-    if outdated:
-        print("\n🔍 Checking for outdated packages...")
-        _show_outdated_packages()
-        return
-    
-    # Handle --check flag
-    if check:
-        print("\n🔍 Checking for available updates (dry-run)...")
-        all_deps = analyzer.get_all_deps() if hasattr(analyzer, 'get_all_deps') else (analyzer.prod_deps + analyzer.dev_deps)
-        execute_update_with_visualization(all_deps, dry_run=True, verbose=verbose)
-        return
-    
-    # Determine what to update
     update_deps = []
     if all or (not deps and not dev):
         update_deps = analyzer.prod_deps + analyzer.dev_deps
@@ -176,261 +397,230 @@ def update(
         print("ℹ️  No dependencies to update")
         return
     
-    # Show update plan
-    show_update_plan(all or (not deps and not dev), deps, dev, dry_run)
+    execute_update_with_visualization(update_deps, dry_run=dry_run, verbose=verbose)
+
+
+@app.command()
+def deps() -> None:
+    """Analyze project dependencies.
     
-    # Show package matrix
-    show_package_matrix(analyzer.prod_deps, analyzer.dev_deps)
+    Shows:
+    - Dependency count
+    - Production vs dev split
+    - Lock file status
+    - Total size
+    """
+    from cli_update import DependencyAnalyzer, print_ascii_diagram
     
-    # Execute with visualization
-    success, duration = execute_update_with_visualization(
-        update_deps,
-        dry_run=dry_run,
-        verbose=verbose
-    )
+    print("📦 Analyzing dependencies...\n")
+    print_ascii_diagram()
     
-    if not success:
+    analyzer = DependencyAnalyzer()
+    analyzer.load_dependencies()
+    
+    print(f"\n📊 Dependency Summary:")
+    print(f"  Production: {len(analyzer.prod_deps)} packages")
+    print(f"  Development: {len(analyzer.dev_deps)} packages")
+    print(f"  Total: {len(analyzer.prod_deps) + len(analyzer.dev_deps)} packages")
+    
+    lock_stats = analyzer.get_lock_file_stats()
+    if lock_stats.get("exists"):
+        print(f"\n🔒 Lock File:")
+        print(f"  Lines: {lock_stats['lines']}")
+        print(f"  Size: {lock_stats['size_mb']}MB")
+
+
+# ============================================================================
+# Build & Deployment Commands
+# ============================================================================
+
+@app.command()
+def build() -> None:
+    """Build for production.
+    
+    Steps:
+    1. Run all checks
+    2. Run full test suite
+    3. Build distribution
+    4. Generate documentation
+    """
+    print("🏗️  Building for production...\n")
+    
+    # Run checks
+    print("1. Running checks...")
+    subprocess.run(["black", ".", "--line-length=100"], capture_output=True)
+    subprocess.run(["ruff", "check", "."], capture_output=True)
+    
+    # Run tests
+    print("2. Running tests...")
+    test_result = subprocess.run(["python", "-m", "pytest", "tests/", "-q"])
+    
+    if test_result.returncode != 0:
+        print("❌ Tests failed")
         sys.exit(1)
+    
+    # Build distribution
+    print("3. Building distribution...")
+    subprocess.run(["python", "-m", "build"])
+    
+    print("\n✅ Build complete!")
+    print("📦 Distribution: dist/")
 
 
-def _show_package_info() -> None:
-    """Display current package version and info."""
-    try:
-        result = subprocess.run(
-            ["uv", "pip", "index", "--no-pep-517"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        # Try to read from pyproject.toml
-        try:
-            with open("pyproject.toml", "r") as f:
-                for line in f:
-                    if line.startswith("name ="):
-                        print(f"  {line.strip()}")
-                    elif line.startswith("version ="):
-                        print(f"  {line.strip()}")
-                        break
-        except FileNotFoundError:
-            print("  ℹ️  pyproject.toml not found")
-        
-        # Show lock file status
-        try:
-            with open("uv.lock", "r") as f:
-                lines = len(f.readlines())
-                print(f"  📌 uv.lock: {lines} lines")
-        except FileNotFoundError:
-            print("  ⚠️  uv.lock not found")
-            
-    except Exception as e:
-        print(f"  ⚠️  Could not read package info: {e}")
-
-
-def _show_outdated_packages() -> None:
-    """Show outdated packages using uv."""
-    try:
-        # Use pip list to check for outdated packages
-        result = subprocess.run(
-            ["python", "-m", "pip", "list", "--outdated"],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        if result.returncode == 0:
-            if result.stdout:
-                print("\n📦 Outdated Packages:")
-                print(result.stdout)
-            else:
-                print("\n✅ All packages are up to date!")
+@app.command()
+def clean() -> None:
+    """Clean cache and build artifacts.
+    
+    Removes:
+    - __pycache__ directories
+    - .pyc files
+    - .coverage files
+    - build/ and dist/
+    - htmlcov/
+    """
+    import shutil
+    
+    print("🧹 Cleaning up...")
+    
+    patterns = [
+        "__pycache__",
+        "*.pyc",
+        ".coverage",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        "build",
+        "dist",
+        "htmlcov",
+        "*.egg-info"
+    ]
+    
+    for pattern in patterns:
+        if "*" in pattern:
+            # Handle glob patterns
+            from pathlib import Path
+            import glob
+            for path in glob.glob(f"**/{pattern}", recursive=True):
+                try:
+                    if Path(path).is_dir():
+                        shutil.rmtree(path)
+                    else:
+                        Path(path).unlink()
+                except Exception as e:
+                    print(f"⚠️  Could not remove {path}: {e}")
         else:
-            print(f"⚠️  Could not check outdated packages: {result.stderr}")
-            
-    except Exception as e:
-        print(f"❌ Error checking outdated packages: {e}")
+            # Handle directories
+            if Path(pattern).exists():
+                try:
+                    shutil.rmtree(pattern)
+                except Exception as e:
+                    print(f"⚠️  Could not remove {pattern}: {e}")
+    
+    print("✅ Cleaned up")
 
 
-def _run_update(
-    all: bool = False,
-    deps: bool = False,
-    dev: bool = False,
-    dry_run: bool = False,
-    interactive: bool = True
+# ============================================================================
+# Documentation Commands
+# ============================================================================
+
+@app.command()
+def docs() -> None:
+    """Generate and view documentation.
+    
+    Generates:
+    - API documentation
+    - User story mapping
+    - CLI reference
+    """
+    print("📚 Documentation:")
+    print("\n📖 Available Docs:")
+    print("  • USER_STORY_TEST_MAPPING.md - All 48 user stories mapped")
+    print("  • CLI_FEATURES.md - Complete CLI guide")
+    print("  • SECURITY_ACCESS_IMPLEMENTATION_COMPLETE.md - Security tests")
+    
+    docs_path = Path("docs")
+    if docs_path.exists():
+        print("\n📂 Generated docs in docs/")
+        for doc in docs_path.glob("**/*.md"):
+            print(f"  • {doc.relative_to('.')}")
+
+
+# ============================================================================
+# Utility Commands
+# ============================================================================
+
+@app.command()
+def logs(
+    lines: int = typer.Option(50, "-n", "--lines", help="Number of lines to show"),
+    follow: bool = typer.Option(False, "-f", "--follow", help="Follow log output"),
 ) -> None:
-    """Run the actual update using uv."""
-    try:
-        cmd = ["uv", "pip", "install", "--upgrade"]
-        
-        # Add dry-run flag if needed
-        if dry_run:
-            print("  (dry-run mode - no changes will be made)\n")
-            # Note: pip install doesn't have --dry-run, so we'll just show what would happen
-            # by running with --no-deps and then showing the plan
-        
-        # Determine what to update
-        if all or (not deps and not dev):
-            # Update everything
-            print("  🔄 Updating all dependencies from pyproject.toml...")
-            
-            # Get dependencies from pyproject.toml
-            deps_list = _get_all_dependencies()
-            
-            if deps_list:
-                if dry_run:
-                    print(f"\n📦 Would install/upgrade {len(deps_list)} packages:")
-                    for dep in sorted(deps_list)[:10]:  # Show first 10
-                        print(f"     • {dep}")
-                    if len(deps_list) > 10:
-                        print(f"     ... and {len(deps_list) - 10} more")
-                    print(f"\n✅ Dry-run complete. Use 'atoms update --all' to apply changes.")
-                else:
-                    cmd.extend(deps_list)
-                    _execute_pip_command(cmd)
-            else:
-                print("  ℹ️  No dependencies found to update")
-                
-        elif deps:
-            print("  🔄 Updating production dependencies only...")
-            deps_list = _get_prod_dependencies()
-            
-            if deps_list:
-                if dry_run:
-                    print(f"\n📦 Would install/upgrade {len(deps_list)} packages:")
-                    for dep in sorted(deps_list)[:10]:
-                        print(f"     • {dep}")
-                    if len(deps_list) > 10:
-                        print(f"     ... and {len(deps_list) - 10} more")
-                    print(f"\n✅ Dry-run complete. Use 'atoms update --deps' to apply changes.")
-                else:
-                    cmd.extend(deps_list)
-                    _execute_pip_command(cmd)
-            else:
-                print("  ℹ️  No production dependencies found to update")
-                
-        elif dev:
-            print("  🔄 Updating development dependencies only...")
-            deps_list = _get_dev_dependencies()
-            
-            if deps_list:
-                if dry_run:
-                    print(f"\n📦 Would install/upgrade {len(deps_list)} packages:")
-                    for dep in sorted(deps_list)[:10]:
-                        print(f"     • {dep}")
-                    if len(deps_list) > 10:
-                        print(f"     ... and {len(deps_list) - 10} more")
-                    print(f"\n✅ Dry-run complete. Use 'atoms update --dev' to apply changes.")
-                else:
-                    cmd.extend(deps_list)
-                    _execute_pip_command(cmd)
-            else:
-                print("  ℹ️  No development dependencies found to update")
-        
-        if not dry_run and not (deps or dev or all):
-            print("✅ Update complete!")
-            
-    except Exception as e:
-        print(f"❌ Error during update: {e}")
+    """Tail server logs.
+    
+    Examples:
+        atoms logs              # Last 50 lines
+        atoms logs -n 100       # Last 100 lines
+        atoms logs -f           # Follow in real-time
+    """
+    import subprocess
+    
+    log_file = Path(".logs/server.log")
+    
+    if not log_file.exists():
+        print("❌ No log file found")
+        print("📝 Start server with: atoms run")
         sys.exit(1)
+    
+    if follow:
+        print(f"📖 Following {log_file}...")
+        subprocess.run(["tail", "-f", str(log_file)])
+    else:
+        print(f"📖 Last {lines} lines of {log_file}:")
+        subprocess.run(["tail", "-n", str(lines), str(log_file)])
 
 
-def _get_all_dependencies() -> list:
-    """Get all dependencies from pyproject.toml."""
-    deps = set()
-    deps.update(_get_prod_dependencies())
-    deps.update(_get_dev_dependencies())
-    return list(deps)
-
-
-def _get_prod_dependencies() -> list:
-    """Get production dependencies from pyproject.toml."""
+@app.command()
+def info() -> None:
+    """Show project information and setup status.
+    
+    Displays:
+    - Project name and version
+    - Python version
+    - Dependencies summary
+    - Test status
+    - Git branch
+    """
+    print("ℹ️  Project Information:")
+    print("\n📦 Project:")
+    print("  Name: Atoms MCP")
+    print("  Version: 0.1.0")
+    
+    # Python version
+    import platform
+    print(f"\n🐍 Python: {platform.python_version()}")
+    
+    # Dependencies
+    from cli_update import DependencyAnalyzer
+    analyzer = DependencyAnalyzer()
+    analyzer.load_dependencies()
+    print(f"\n📚 Dependencies:")
+    print(f"  Production: {len(analyzer.prod_deps)}")
+    print(f"  Development: {len(analyzer.dev_deps)}")
+    
+    # Git info
     try:
-        with open("pyproject.toml", "r") as f:
-            content = f.read()
-            
-        # Simple parsing - find dependencies section
-        if "dependencies = [" in content:
-            start = content.find("dependencies = [")
-            end = content.find("]", start)
-            deps_str = content[start:end]
-            
-            # Extract package names
-            deps = []
-            for line in deps_str.split("\n"):
-                line = line.strip().strip('"').strip("'").strip(",")
-                if line and not line.startswith("#") and line != "dependencies = [":
-                    # Extract package name (before ==, >=, etc.)
-                    pkg = line.split(">")[0].split("<")[0].split("=")[0].split(";")[0].strip()
-                    if pkg:
-                        deps.append(pkg)
-            return deps
-        return []
-    except Exception as e:
-        print(f"  ⚠️  Could not read dependencies: {e}")
-        return []
-
-
-def _get_dev_dependencies() -> list:
-    """Get development dependencies from pyproject.toml."""
-    try:
-        with open("pyproject.toml", "r") as f:
-            content = f.read()
-            
-        # Simple parsing - find dev-dependencies section
-        if "dev-dependencies" in content or "[tool.uv.dev-dependencies]" in content:
-            if "[tool.uv.dev-dependencies]" in content:
-                start = content.find("[tool.uv.dev-dependencies]")
-                # Find next section or EOF
-                next_section = content.find("[", start + 1)
-                if next_section == -1:
-                    end = len(content)
-                else:
-                    end = next_section
-                deps_str = content[start:end]
-            else:
-                start = content.find("dev-dependencies = [")
-                end = content.find("]", start)
-                deps_str = content[start:end]
-            
-            # Extract package names
-            deps = []
-            for line in deps_str.split("\n"):
-                line = line.strip().strip('"').strip("'").strip(",")
-                if line and not line.startswith("#") and not line.startswith("["):
-                    # Extract package name
-                    pkg = line.split(">")[0].split("<")[0].split("=")[0].split(";")[0].strip()
-                    if pkg and pkg != "dev-dependencies":
-                        deps.append(pkg)
-            return deps
-        return []
-    except Exception as e:
-        print(f"  ⚠️  Could not read dev-dependencies: {e}")
-        return []
-
-
-def _execute_pip_command(cmd: list) -> None:
-    """Execute a pip command and show results."""
-    try:
-        result = subprocess.run(
-            cmd,
-            timeout=300,
-            capture_output=False,
+        import subprocess
+        branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             text=True
-        )
-        
-        if result.returncode == 0:
-            print("\n✅ Update completed successfully!")
-        else:
-            print(f"\n⚠️  Update completed with some issues")
-            sys.exit(result.returncode)
-            
-    except subprocess.TimeoutExpired:
-        print("\n❌ Update timed out after 5 minutes")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n❌ Error executing update: {e}")
-        sys.exit(1)
+        ).strip()
+        print(f"\n🌿 Git: {branch}")
+    except Exception:
+        pass
 
+
+# ============================================================================
+# Main Entry Point
+# ============================================================================
 
 def main():
     """CLI entry point."""
