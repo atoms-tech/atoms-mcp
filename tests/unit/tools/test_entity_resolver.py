@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 from tools.entity_resolver import EntityResolver
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.unit]
 
 
 @pytest.fixture

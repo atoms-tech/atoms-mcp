@@ -2,83 +2,24 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Data Management (3/3) ✓✓✓                                                  ║
+║ 📦 Data Management (1/1) ✓✓✓                                                  ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can batch create multiple entities                                  ║
-║   ✅ User can paginate through large lists                                    ║
 ║   ✅ User can sort results                                                    ║
 ║                                                                              ║
-║ 📦 Document Management (3/3) ✓✓✓                                              ║
+║ 📦 Entity Relationships (4/4) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create document                                                 ║
-║   ✅ User can list documents                                                  ║
-║   ✅ User can view document                                                   ║
-║                                                                              ║
-║ 📦 Entity Relationships (2/2) ✓✓✓                                             ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can link entities                                                   ║
-║   ✅ User can view related entities                                           ║
-║                                                                              ║
-║ 📦 Organization Management (4/4) ✓✓✓                                          ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create an organization                                          ║
-║   ✅ User can delete an organization                                          ║
-║   ✅ User can update organization settings                                    ║
-║   ✅ User can view organization details                                       ║
-║                                                                              ║
-║ 📦 Project Management (5/5) ✓✓✓                                               ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create a project                                                ║
-║   ✅ User can delete project                                                  ║
-║   ✅ User can list all projects                                               ║
-║   ✅ User can update project                                                  ║
-║   ✅ User can view project details                                            ║
-║                                                                              ║
-║ 📦 Requirements Traceability (3/3) ✓✓✓                                        ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create requirement                                              ║
-║   ✅ User can search requirements                                             ║
-║   ✅ User can view requirement                                                ║
-║                                                                              ║
-║ 📦 Search & Discovery (7/7) ✓✓✓                                               ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can count aggregates                                                ║
-║   ✅ User can filter results                                                  ║
-║   ✅ User can find similar items                                              ║
-║   ✅ User can hybrid search                                                   ║
-║   ✅ User can keyword search                                                  ║
-║   ✅ User can search all entities                                             ║
-║   ✅ User can semantic search                                                 ║
-║                                                                              ║
-║ 📦 Security & Access (4/4) ✓✓✓                                                ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can log in with AuthKit                                             ║
-║   ✅ User can log out securely                                                ║
-║   ✅ User can maintain active session                                         ║
-║   ✅ User data is protected by row-level security                             ║
-║                                                                              ║
-║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create test case                                                ║
-║   ✅ User can view test results                                               ║
+║   ✅ User can check if entities are related                                   ║
+║   ✅ User can link entities together                                          ║
+║   ✅ User can unlink related entities                                         ║
+║   ✅ User can view entity relationships                                       ║
 ║                                                                              ║
 ║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can bulk update statuses                                            ║
-║   ✅ User can import requirements                                             ║
-║   ✅ User can onboard organization                                            ║
-║   ✅ User can run with transactions                                           ║
-║   ✅ User can setup project workflow                                          ║
-║                                                                              ║
-║ 📦 Workspace Navigation (7/7) ✓✓✓                                             ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can get default context                                             ║
-║   ✅ User can list workspaces                                                 ║
-║   ✅ User can switch to document                                              ║
-║   ✅ User can switch to organization                                          ║
-║   ✅ User can switch to project                                               ║
-║   ✅ User can view all organizations                                          ║
-║   ✅ User can view current context                                            ║
+║   ✅ User can import requirements via workflow                                ║
+║   ✅ User can onboard new organization                                        ║
+║   ✅ User can run workflows with transactions                                 ║
+║   ✅ User can set up new project workflow                                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 45/45 user stories complete (100%)                                  ║
+║ Overall: 10/10 user stories complete (100%)                                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
