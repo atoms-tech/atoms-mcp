@@ -1,251 +1,284 @@
-"""
-Error Classification Framework
+"""Rich error classification system - transforms test failures into actionable diagnostics.
 
-Classifies test failures into categories for better debugging and triage.
+Classifies errors as:
+- INFRASTRUCTURE: DB, API, service connectivity issues
+- PRODUCT: Business logic bugs, implementation gaps
+- TEST_DATA: Invalid fixtures, missing test data
+- ASSERTION: Test expectation mismatches
 """
 
 import re
-from enum import Enum
-from typing import Optional, Pattern, Union
+from typing import Optional, Tuple
+from dataclasses import dataclass
 
 
-class ErrorCategory(Enum):
-    """Categories of test failures."""
+@dataclass
+class ErrorDiagnostic:
+    """Rich diagnostic report for a test failure."""
     
-    INFRA = "infrastructure"          # DB, network, external services
-    PRODUCT = "product"                # Business logic bugs
-    TRANSIENT = "transient"            # Temporary failures, retry-able
-    CONFIG = "configuration"           # Env vars, secrets, deployment config
-    DATA = "test_data"                 # Test fixtures, seed data issues
-    UNKNOWN = "unknown"                # Unable to classify
+    category: str  # "INFRASTRUCTURE" | "PRODUCT" | "TEST_DATA" | "ASSERTION"
+    root_cause: str
+    detailed_explanation: str
+    fix_suggestions: list
+    code_snippet: Optional[str] = None
+    
+    def to_string(self) -> str:
+        """Format diagnostic as readable error report."""
+        emoji = {
+            "INFRASTRUCTURE": "🔴",
+            "PRODUCT": "🟠",
+            "TEST_DATA": "🟡",
+            "ASSERTION": "🟢"
+        }.get(self.category, "⚪")
+        
+        report = f"""
+{emoji} {self.category} ERROR
+
+Root Cause: {self.root_cause}
+
+What went wrong:
+{self.detailed_explanation}
+
+How to fix it:
+"""
+        for i, suggestion in enumerate(self.fix_suggestions, 1):
+            report += f"{i}. {suggestion}\n"
+        
+        if self.code_snippet:
+            report += f"\nCode to add/fix:\n{self.code_snippet}\n"
+        
+        return report
 
 
 class ErrorClassifier:
-    """Classifies exceptions into error categories."""
+    """Classifies test failures and generates rich diagnostics."""
     
     # Infrastructure error patterns
     INFRA_PATTERNS = [
-        (ConnectionRefusedError, "Service connection refused"),
-        (ConnectionResetError, "Connection reset by peer"),
-        (TimeoutError, "Service timeout"),
-        (r"permission denied.*42501", "Database permission denied (RLS policy)"),
-        (r"connection pool exhausted", "Database connection pool exhausted"),
-        (r"network unreachable", "Network infrastructure issue"),
-        (r"row-level security policy", "RLS policy blocking access"),
-        (r"could not connect to server", "Database server unreachable"),
-        (r"SSL connection has been closed unexpectedly", "SSL/TLS connection failed"),
-        (r"no route to host", "Network routing issue"),
-        (r"name resolution failed", "DNS resolution failed"),
-        # Atoms MCP specific infrastructure patterns
-        (r"MissingSupabaseConfig", "Supabase configuration missing"),
-        (r"NEXT_PUBLIC_SUPABASE_URL.*not set", "Supabase URL not configured"),
-        (r"SUPABASE_SERVICE_ROLE_KEY.*not set", "Supabase service key missing"),
-        (r"TABLE_ACCESS_RESTRICTED", "Table access restricted (RLS or GRANT)"),
-        (r"Vertex AI.*not configured", "Vertex AI embedding service not configured"),
-        (r"Redis.*connection.*failed", "Redis/Upstash connection failed"),
-        (r"rate limit.*upstash", "Upstash rate limit exceeded"),
+        (r"ConnectionError|Connection.*refused|Connection.*timeout", "Database connection failed"),
+        (r"asyncio|await|async", "Async/event loop issue"),
+        (r"timeout|timed out|TimeoutError", "Service timeout"),
+        (r"404.*not found|endpoint.*not found", "API endpoint not found"),
+        (r"500|Internal Server Error|gateway", "Server error"),
+        (r"FAILED.*conftest|fixture.*not found", "Test fixture missing"),
+        (r"ImportError|ModuleNotFoundError", "Import/dependency issue"),
     ]
     
-    # Product/business logic error patterns
+    # Product error patterns
     PRODUCT_PATTERNS = [
-        (AssertionError, "Business logic assertion failed"),
-        (r"validation.*failed", "Input validation error"),
-        (r"invalid.*state", "Invalid application state"),
-        (r"constraint.*violated", "Business rule constraint violated"),
-        (r"expected.*but got", "Unexpected behavior (logic bug)"),
-        (ValueError, "Invalid value (likely business logic)"),
-        (KeyError, "Missing expected data key"),
-        # Atoms MCP specific product patterns
-        (r"ApiError.*UNAUTHORIZED_ORG_ACCESS", "Organization membership validation failed"),
-        (r"ApiError.*DUPLICATE_ENTRY", "Duplicate entity creation attempt"),
-        (r"ApiError.*INVALID_REFERENCE", "Foreign key reference validation failed"),
-        (r"entity.*type.*not supported", "Unsupported entity type"),
-        (r"workspace.*context.*missing", "Workspace context not set"),
-        (r"embedding.*generation.*failed", "Embedding generation logic error"),
+        (r"NotImplementedError|not implemented", "Feature not implemented"),
+        (r"assert.*None|returned None|is None", "Missing return value"),
+        (r"KeyError|key.*not found", "Missing field/key"),
+        (r"TypeError|type.*mismatch", "Type mismatch"),
+        (r"ValidationError|invalid.*payload", "Validation failed"),
+        (r"RLS|row.*level.*security|permission denied", "RLS/permission issue"),
     ]
     
-    # Transient error patterns (retry-able)
-    TRANSIENT_PATTERNS = [
-        (r"429.*rate limit", "Rate limit exceeded"),
-        (r"503.*service unavailable", "Service temporarily unavailable"),
-        (r"deadlock detected", "Database deadlock (transient)"),
-        (r"lock wait timeout", "Lock timeout (transient)"),
-        (r"connection.*temporarily unavailable", "Temporary connection issue"),
-        (r"too many connections", "Connection pool temporarily full"),
-        (r"retry", "Explicit retry condition"),
+    # Test data patterns
+    TEST_DATA_PATTERNS = [
+        (r"factory|fixture.*missing|undefined.*fixture", "Fixture not defined"),
+        (r"required.*field|missing.*required", "Required test data missing"),
+        (r"invalid.*payload|malformed.*data", "Test data format invalid"),
+        (r"constraint.*violation|unique.*constraint", "Data constraint violated"),
     ]
     
-    # Configuration error patterns
-    CONFIG_PATTERNS = [
-        (r"environment variable.*not (set|found)", "Missing environment variable"),
-        (r"secret.*not found", "Missing secret/credential"),
-        (r"invalid.*configuration", "Invalid configuration value"),
-        (r"(NEXT_PUBLIC_SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY).*not set", "Missing Supabase config"),
-        (r"auth.*not configured", "Authentication not configured"),
-        (r"missing.*required.*setting", "Missing required setting"),
-        # Atoms MCP specific config patterns
-        (r"ATOMS_SERVICE_MODE.*not set", "Service mode not configured (mock/live)"),
-        (r"WORKOS_.*not set", "WorkOS authentication config missing"),
-        (r"GOOGLE_CLOUD_PROJECT.*not set", "GCP project not configured"),
-        (r"UPSTASH_REDIS_.*not set", "Upstash Redis config missing"),
-        (r"mock.*mode.*enabled", "Running in mock mode (not an error, but notable)"),
-    ]
-    
-    # Test data error patterns
-    DATA_PATTERNS = [
-        (r"fixture.*not found", "Missing test fixture"),
-        (r"seed data.*failed", "Test seed data issue"),
-        (r"factory.*error", "Test data factory error"),
-        (r"mock.*setup.*failed", "Mock configuration issue"),
-    ]
-    
-    @classmethod
-    def classify(
-        cls,
-        exception: Exception,
-        test_context: Optional[dict] = None
-    ) -> tuple[ErrorCategory, str]:
+    @staticmethod
+    def classify(error_msg: str, error_type: str = None) -> str:
+        """Classify error into category based on message.
+        Accepts any exception or message-like object; coerces to safe string.
         """
-        Classify an exception into an error category.
-        
-        Args:
-            exception: The exception to classify
-            test_context: Optional context about the test (markers, path, etc.)
-        
-        Returns:
-            Tuple of (ErrorCategory, human-readable reason)
-        """
-        exc_str = str(exception)
-        exc_type = type(exception)
+        try:
+            # Coerce to string first, then lowercase safely
+            error_text = str(error_msg) if error_msg is not None else ""
+            error_lower = error_text.lower()
+        except Exception:
+            error_lower = ""
         
         # Check infrastructure patterns
-        for pattern, reason in cls.INFRA_PATTERNS:
-            if cls._matches_pattern(exception, exc_str, pattern):
-                return ErrorCategory.INFRA, reason
-        
-        # Check transient patterns (before product, as they're more specific)
-        for pattern, reason in cls.TRANSIENT_PATTERNS:
-            if cls._matches_pattern(exception, exc_str, pattern):
-                return ErrorCategory.TRANSIENT, reason
-        
-        # Check configuration patterns
-        for pattern, reason in cls.CONFIG_PATTERNS:
-            if cls._matches_pattern(exception, exc_str, pattern):
-                return ErrorCategory.CONFIG, reason
+        for pattern, _ in ErrorClassifier.INFRA_PATTERNS:
+            if re.search(pattern, error_lower, re.IGNORECASE):
+                return "INFRASTRUCTURE"
         
         # Check test data patterns
-        for pattern, reason in cls.DATA_PATTERNS:
-            if cls._matches_pattern(exception, exc_str, pattern):
-                return ErrorCategory.DATA, reason
+        for pattern, _ in ErrorClassifier.TEST_DATA_PATTERNS:
+            if re.search(pattern, error_lower, re.IGNORECASE):
+                return "TEST_DATA"
         
-        # Check product patterns (last, as they're more generic)
-        for pattern, reason in cls.PRODUCT_PATTERNS:
-            if cls._matches_pattern(exception, exc_str, pattern):
-                return ErrorCategory.PRODUCT, reason
+        # Check product patterns
+        for pattern, _ in ErrorClassifier.PRODUCT_PATTERNS:
+            if re.search(pattern, error_lower, re.IGNORECASE):
+                return "PRODUCT"
         
-        # Unable to classify
-        return ErrorCategory.UNKNOWN, f"Unclassified: {exc_type.__name__}: {exc_str[:100]}"
+        # Default to assertion
+        return "ASSERTION"
     
     @staticmethod
-    def _matches_pattern(
-        exception: Exception,
-        exc_str: str,
-        pattern: Union[type, str]
-    ) -> bool:
-        """Check if exception matches a pattern (type or regex)."""
-        if isinstance(pattern, type):
-            return isinstance(exception, pattern)
-        elif isinstance(pattern, str):
-            return bool(re.search(pattern, exc_str, re.IGNORECASE))
-        return False
-    
-    @staticmethod
-    def get_icon(category: ErrorCategory) -> str:
-        """Get emoji icon for error category."""
-        icons = {
-            ErrorCategory.INFRA: "🔧",
-            ErrorCategory.PRODUCT: "🐛",
-            ErrorCategory.TRANSIENT: "⏱️",
-            ErrorCategory.CONFIG: "⚙️",
-            ErrorCategory.DATA: "📊",
-            ErrorCategory.UNKNOWN: "❓",
+    def get_root_cause(error_msg: str, category: str) -> str:
+        """Extract specific root cause from error message.
+        Handles non-string messages robustly.
+        """
+        try:
+            error_lower = (str(error_msg) if error_msg is not None else "").lower()
+        except Exception:
+            error_lower = ""
+        
+        patterns = {
+            "INFRASTRUCTURE": ErrorClassifier.INFRA_PATTERNS,
+            "PRODUCT": ErrorClassifier.PRODUCT_PATTERNS,
+            "TEST_DATA": ErrorClassifier.TEST_DATA_PATTERNS,
         }
-        return icons.get(category, "❓")
+        
+        for pattern, description in patterns.get(category, []):
+            if re.search(pattern, error_lower, re.IGNORECASE):
+                return description
+        
+        return error_msg[:100]
     
     @staticmethod
-    def get_action(category: ErrorCategory) -> str:
-        """Get recommended action for error category."""
-        actions = {
-            ErrorCategory.INFRA: "Contact ops team; check infrastructure",
-            ErrorCategory.PRODUCT: "Fix code; review business logic",
-            ErrorCategory.TRANSIENT: "Retry test; check service health",
-            ErrorCategory.CONFIG: "Update environment variables; check deployment",
-            ErrorCategory.DATA: "Fix test fixtures; regenerate seed data",
-            ErrorCategory.UNKNOWN: "Manual investigation required",
-        }
-        return actions.get(category, "Unknown")
+    def diagnose(exception: Exception, test_name: str) -> ErrorDiagnostic:
+        """Generate rich diagnostic for exception."""
+        error_msg = str(exception)
+        error_type = type(exception).__name__
+        category = ErrorClassifier.classify(error_msg, error_type)
+        root_cause = ErrorClassifier.get_root_cause(error_msg, category)
+        
+        # Generate category-specific diagnostics
+        if category == "INFRASTRUCTURE":
+            return ErrorClassifier._diagnose_infra(error_msg, test_name, root_cause)
+        elif category == "PRODUCT":
+            return ErrorClassifier._diagnose_product(error_msg, test_name, root_cause)
+        elif category == "TEST_DATA":
+            return ErrorClassifier._diagnose_test_data(error_msg, test_name, root_cause)
+        else:
+            return ErrorClassifier._diagnose_assertion(error_msg, test_name, root_cause)
+    
+    @staticmethod
+    def _diagnose_infra(error_msg: str, test_name: str, root_cause: str) -> ErrorDiagnostic:
+        """Diagnose infrastructure errors."""
+        suggestions = [
+            "Check service health: `docker ps` or `systemctl status atoms-mcp`",
+            "Verify database connection: Check SUPABASE_URL and SUPABASE_KEY env vars",
+            "Check logs: `docker logs atoms_mcp` or `journalctl -u atoms-mcp`",
+            "Run health check: `pytest tests/unit/infrastructure/test_adapters.py -v`",
+            "Increase timeout: Some services need more time, retry with `--timeout=30`",
+        ]
+        
+        return ErrorDiagnostic(
+            category="INFRASTRUCTURE",
+            root_cause=root_cause,
+            detailed_explanation=f"Test '{test_name}' failed due to infrastructure issue: {error_msg[:200]}",
+            fix_suggestions=suggestions,
+        )
+    
+    @staticmethod
+    def _diagnose_product(error_msg: str, test_name: str, root_cause: str) -> ErrorDiagnostic:
+        """Diagnose product/business logic errors."""
+        suggestions = [
+            "Review business logic implementation",
+            "Check if feature is complete: Look for NotImplementedError or TODO comments",
+            "Verify API contract matches test expectations",
+            "Review recent commits that may have broken this feature",
+            "Check tool implementation in tools/*.py",
+        ]
+        
+        # Extract tool name from test name
+        tool = "entity"
+        if "organization" in test_name.lower():
+            tool = "organization"
+        elif "project" in test_name.lower():
+            tool = "project"
+        elif "relationship" in test_name.lower():
+            tool = "relationship"
+        
+        code_snippet = f"""
+# Check if {tool} tool is fully implemented:
+grep -n "NotImplementedError\\|TODO.*{tool}" tools/{tool}.py
+
+# If feature is missing, implement it before running test
+"""
+        
+        return ErrorDiagnostic(
+            category="PRODUCT",
+            root_cause=root_cause,
+            detailed_explanation=f"Business logic or implementation gap: {error_msg[:200]}",
+            fix_suggestions=suggestions,
+            code_snippet=code_snippet.strip(),
+        )
+    
+    @staticmethod
+    def _diagnose_test_data(error_msg: str, test_name: str, root_cause: str) -> ErrorDiagnostic:
+        """Diagnose test data/fixture errors."""
+        suggestions = [
+            "Verify test fixture is defined in conftest.py",
+            "Check fixture parameters match test requirements",
+            "Review test factory methods: tests/framework/data_generators.py",
+            "Ensure test data meets all constraints (required fields, unique values, etc.)",
+            "Run with verbose logging: pytest -vv --log-level=DEBUG",
+        ]
+        
+        return ErrorDiagnostic(
+            category="TEST_DATA",
+            root_cause=root_cause,
+            detailed_explanation=f"Test data or fixture issue: {error_msg[:200]}",
+            fix_suggestions=suggestions,
+        )
+    
+    @staticmethod
+    def _diagnose_assertion(error_msg: str, test_name: str, root_cause: str) -> ErrorDiagnostic:
+        """Diagnose assertion/expectation mismatches."""
+        suggestions = [
+            "Review test expectations vs actual behavior",
+            "Print debug info: Add `print(result)` before assertion",
+            "Check if business logic recently changed",
+            "Verify test is checking the right thing",
+            "Compare with passing tests to see pattern",
+        ]
+        
+        return ErrorDiagnostic(
+            category="ASSERTION",
+            root_cause=root_cause,
+            detailed_explanation=f"Test expectation mismatch: {error_msg[:200]}",
+            fix_suggestions=suggestions,
+        )
 
 
 class ErrorReport:
-    """Generates categorized error reports."""
+    """Accumulates error diagnostics during test session."""
     
     def __init__(self):
-        self.errors_by_category = {cat: [] for cat in ErrorCategory}
-    
-    def add_error(
-        self,
-        test_name: str,
-        exception: Exception,
-        category: ErrorCategory,
-        reason: str
-    ):
-        """Add an error to the report."""
-        self.errors_by_category[category].append({
-            "test": test_name,
-            "exception": exception,
-            "reason": reason,
-        })
-    
-    def generate_summary(self) -> str:
-        """Generate a text summary of errors by category."""
-        lines = []
-        lines.append("\n" + "="*70)
-        lines.append("ERROR CLASSIFICATION REPORT")
-        lines.append("="*70)
-        
-        total_errors = sum(len(errors) for errors in self.errors_by_category.values())
-        if total_errors == 0:
-            lines.append("\n✅ No errors detected!")
-            lines.append("="*70)
-            return "\n".join(lines)
-        
-        for category in ErrorCategory:
-            errors = self.errors_by_category[category]
-            if not errors:
-                continue
-            
-            icon = ErrorClassifier.get_icon(category)
-            action = ErrorClassifier.get_action(category)
-            
-            lines.append(f"\n{icon} {category.name} ERRORS ({len(errors)}):")
-            lines.append(f"   Action: {action}")
-            lines.append("")
-            
-            # Show first 3 errors
-            for error in errors[:3]:
-                lines.append(f"   • {error['test']}")
-                lines.append(f"     → {error['reason']}")
-            
-            if len(errors) > 3:
-                lines.append(f"   ... and {len(errors)-3} more")
-        
-        lines.append("\n" + "="*70)
-        return "\n".join(lines)
-    
-    def get_distribution(self) -> dict[str, int]:
-        """Get error count by category."""
-        return {
-            cat.name: len(errors)
-            for cat, errors in self.errors_by_category.items()
-            if errors
+        self.errors_by_category = {
+            "INFRASTRUCTURE": [],
+            "PRODUCT": [],
+            "TEST_DATA": [],
+            "ASSERTION": [],
         }
+        self.total_errors = 0
+    
+    def add_error(self, diagnostic: ErrorDiagnostic):
+        """Add classified error to report."""
+        self.errors_by_category[diagnostic.category].append(diagnostic)
+        self.total_errors += 1
+    
+    def summary(self) -> str:
+        """Generate summary of all errors by category."""
+        report = "\n╔════════════════════════════════════════════════════════════╗\n"
+        report += "║              TEST ERROR SUMMARY BY CATEGORY                 ║\n"
+        report += "╠════════════════════════════════════════════════════════════╣\n"
+        
+        emojis = {
+            "INFRASTRUCTURE": "🔴",
+            "PRODUCT": "🟠",
+            "TEST_DATA": "🟡",
+            "ASSERTION": "🟢"
+        }
+        
+        for category in ["INFRASTRUCTURE", "PRODUCT", "TEST_DATA", "ASSERTION"]:
+            count = len(self.errors_by_category[category])
+            emoji = emojis[category]
+            report += f"║ {emoji} {category:20} │ {count:3} error(s) ║\n"
+        
+        report += f"║                                                            ║\n"
+        report += f"║ Total: {self.total_errors} error(s)                                         ║\n"
+        report += "╚════════════════════════════════════════════════════════════╝\n"
+        
+        return report
