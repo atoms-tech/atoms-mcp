@@ -56,6 +56,15 @@ def get_embedding_service():
 
 def _get_mock_embedding_service():
     """Create a mock embedding service for tests."""
+    from typing import NamedTuple, List
+    
+    class EmbeddingResult(NamedTuple):
+        """Result of a single embedding operation."""
+        embedding: List[float]
+        tokens_used: int
+        model: str
+        cached: bool = False
+    
     class MockEmbeddingService:
         def __init__(self):
             self.model = "mock-model"
@@ -73,8 +82,17 @@ def _get_mock_embedding_service():
             return [await self.embed(text) for text in texts]
         
         async def generate_embedding(self, text: str, model: str = None):
-            """Generate embedding (used by ProgressiveEmbeddingService)."""
-            return await self.embed(text)
+            """Generate embedding (used by ProgressiveEmbeddingService).
+            
+            Returns EmbeddingResult with embedding, tokens_used, model, cached.
+            """
+            embedding = await self.embed(text)
+            return EmbeddingResult(
+                embedding=embedding,
+                tokens_used=0,
+                model=self.default_model,
+                cached=False
+            )
     
     return MockEmbeddingService()
 

@@ -15,6 +15,7 @@ Run with: pytest tests/unit/tools/test_entity_document.py -v
 
 import uuid
 import pytest
+from tests.unit.tools.conftest import unwrap_mcp_response
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 
@@ -159,7 +160,7 @@ class TestDocumentCRUD:
                 "operation": "create",
                 "entity_type": "document",
                 "data": {
-                    "title": "Old Title",
+                    "name": "Old Title",
                     "content": "Original content",
                     "project_id": project_id,
                 },
@@ -169,9 +170,9 @@ class TestDocumentCRUD:
         assert success
         data = getattr(result, "data", result).get("data", {}) if hasattr(result, "data") else result.get("data", {})
         doc_id = data.get("id")
-        assert data.get("title") == "Old Title"
+        assert data.get("name") == "Old Title"
 
-        # Update title and content
+        # Update name and content
         update_result, _ = await call_mcp(
             "entity_tool",
             {
@@ -179,13 +180,13 @@ class TestDocumentCRUD:
                 "entity_type": "document",
                 "entity_id": doc_id,
                 "data": {
-                    "title": "Updated Title",
+                    "name": "Updated Title",
                     "content": "Updated content with more details",
                 },
             },
         )
         assert update_result["success"]
-        assert update_result["data"]["title"] == "Updated Title"
+        assert update_result["data"]["name"] == "Updated Title"
         assert update_result["data"]["content"] == "Updated content with more details"
 
     @pytest.mark.story("Document Management - User can soft delete document")
@@ -210,7 +211,7 @@ class TestDocumentCRUD:
             {
                 "operation": "create",
                 "entity_type": "document",
-                "data": {"title": "To Delete", "content": "Content", "project_id": project_id},
+                "data": {"name": "To Delete", "content": "Content", "project_id": project_id},
             },
         )
         assert result["success"]

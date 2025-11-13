@@ -15,6 +15,24 @@ from unittest.mock import AsyncMock, MagicMock
 from typing import List, Dict, Any, Tuple
 
 
+def unwrap_mcp_response(response):
+    """Extract data and success flag from FastMCP client response.
+    
+    FastMCP client may return either:
+    - MCPResult(data={'success': ..., 'data': ...})
+    - dict {'success': ..., 'data': ...}
+    
+    Returns tuple (success: bool, data: dict)
+    """
+    if hasattr(response, "data"):
+        # MCPResult object
+        inner = response.data
+        return inner.get("success", False), inner.get("data", {})
+    else:
+        # Raw dict
+        return response.get("success", False), response.get("data", {})
+
+
 # Note: mcp_server moved to fast_mcp_server above
 
 @pytest_asyncio.fixture
@@ -216,6 +234,10 @@ def fast_mcp_server():
         order_by: str = None,
         format_type: str = "detailed",
         soft_delete: bool = True,
+        pagination: dict = None,
+        filter_list: list = None,
+        sort_list: list = None,
+        entity_ids: list = None,
     ) -> dict:
         """Entity CRUD operations."""
         try:
@@ -236,6 +258,10 @@ def fast_mcp_server():
                 order_by=order_by,
                 format_type=format_type,
                 soft_delete=soft_delete,
+                pagination=pagination,
+                filter_list=filter_list,
+                sort_list=sort_list,
+                entity_ids=entity_ids,
             )
         except Exception as e:
             return {"success": False, "error": str(e), "operation": operation}

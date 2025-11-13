@@ -527,16 +527,25 @@ class TestEntityManagerComplete:
 
         manager = EntityManager()
 
-        mock_db = AsyncMock()
-        mock_db.query = AsyncMock(return_value=[
+        # Mock _db_count and search_entities since list_entities calls them
+        mock_count = AsyncMock(return_value=2)
+        mock_search = AsyncMock(return_value=[
             {"id": "org-1", "name": "Org 1"},
             {"id": "org-2", "name": "Org 2"}
         ])
 
-        with patch.object(manager, '_db_query', mock_db.query):
-            result = await manager.list_entities("organization", limit=10)
+        with patch.object(manager, '_db_count', mock_count):
+            with patch.object(manager, 'search_entities', mock_search):
+                result = await manager.list_entities("organization", limit=10)
 
-            assert len(result) == 2
+                # list_entities returns a dict with results, total, offset, limit, has_more
+                assert isinstance(result, dict)
+                assert "results" in result
+                assert len(result["results"]) == 2
+                assert result["total"] == 2
+                assert result["limit"] == 10
+                assert result["offset"] == 0
+                assert result["has_more"] is False
 
     @pytest.mark.asyncio
     @pytest.mark.mock_only

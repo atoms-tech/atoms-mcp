@@ -151,7 +151,6 @@ class TestQuerySearch:
 class TestQuerySort:
     """Test sorting and ordering of query results."""
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_ascending_by_name(self, call_mcp, test_entities):
         """Test sorting results in ascending order by name.
         
@@ -177,7 +176,6 @@ class TestQuerySort:
                 sorted_names = sorted(names)
                 assert names == sorted_names, f"Names not sorted ascending: {names}"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_descending_by_created_at(self, call_mcp, test_entities):
         """Test sorting results in descending order by creation date.
         
@@ -207,7 +205,6 @@ class TestQuerySort:
                     sorted_dates = sorted(created_dates, reverse=True)
                     assert created_dates == sorted_dates, f"Dates not sorted descending: {created_dates}"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_by_updated_at(self, call_mcp, test_entities):
         """Test sorting by last updated time.
         
@@ -237,7 +234,6 @@ class TestQuerySort:
                     sorted_dates = sorted(updated_dates, reverse=True)
                     assert updated_dates == sorted_dates, f"Updated dates not sorted: {updated_dates}"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_default_order(self, call_mcp, test_entities):
         """Test default sort order when not specified.
         
@@ -271,7 +267,6 @@ class TestQuerySort:
                     # May not always match due to same timestamps, but should be reasonable
                     assert len(created_dates) > 0, "Should have timestamps"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_with_pagination(self, call_mcp, test_entities):
         """Test sorting with pagination (limit + offset).
         
@@ -322,7 +317,6 @@ class TestQuerySort:
                 assert max_page1 <= min_page2 or len(page2_names) == 0, \
                     f"Pagination sort order broken: {max_page1} > {min_page2}"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_invalid_field_fallback(self, call_mcp, test_entities):
         """Test sorting with invalid field falls back to default.
         
@@ -346,7 +340,6 @@ class TestQuerySort:
         if result.get("success"):
             assert isinstance(result.get("data"), (list, dict)), "Should return data"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_sort_multiple_entities(self, call_mcp, test_entities):
         """Test sorting works across different entity types.
         
@@ -375,7 +368,6 @@ class TestQuerySort:
             if result.get("success"):
                 assert "data" in result, f"Result for {entity_type} should have data"
     
-    @pytest.mark.story("Data Management - User can sort results")
     async def test_query_tool_with_sort_via_search(self, call_mcp, test_entities):
         """Test query_tool search respects default sort.
         

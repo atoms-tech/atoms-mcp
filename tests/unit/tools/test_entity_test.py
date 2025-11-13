@@ -258,7 +258,7 @@ class TestTestEntityCRUD:
         # Soft delete
         delete_result, _ = await call_mcp(
             "entity_tool",
-            {"operation": "delete", "entity_type": "test", "entity_id": test_id, "hard": False},
+            {"operation": "delete", "entity_type": "test", "entity_id": test_id, "soft_delete": True},
         )
         assert delete_result["success"]
 

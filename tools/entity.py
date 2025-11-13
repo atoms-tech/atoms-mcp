@@ -480,6 +480,126 @@ class EntityManager(ToolBase):
             order_by=order_by
         )
     
+    async def bulk_update_entities(
+        self,
+        entity_type: str,
+        entity_ids: List[str],
+        data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Bulk update multiple entities with the same data.
+        
+        Args:
+            entity_type: Type of entities to update
+            entity_ids: List of entity IDs to update
+            data: Data to apply to all entities
+        
+        Returns:
+            Dict with updated count, failed count, and details
+        """
+        if not entity_ids:
+            return {"updated": 0, "failed": 0, "errors": []}
+        
+        table = self._resolve_entity_table(entity_type)
+        updated_count = 0
+        failed_count = 0
+        errors = []
+        
+        # Update each entity (or use batch update if database supports it)
+        for entity_id in entity_ids:
+            try:
+                result = await self.update_entity(entity_type, entity_id, data, include_relations=False)
+                if result:
+                    updated_count += 1
+            except Exception as e:
+                failed_count += 1
+                errors.append({"entity_id": entity_id, "error": str(e)})
+        
+        return {
+            "updated": updated_count,
+            "failed": failed_count,
+            "total": len(entity_ids),
+            "errors": errors if errors else None
+        }
+    
+    async def bulk_delete_entities(
+        self,
+        entity_type: str,
+        entity_ids: List[str],
+        soft_delete: bool = True
+    ) -> Dict[str, Any]:
+        """Bulk delete (soft-delete or hard-delete) multiple entities.
+        
+        Args:
+            entity_type: Type of entities to delete
+            entity_ids: List of entity IDs to delete
+            soft_delete: If True, soft-delete (is_deleted=true); if False, hard-delete
+        
+        Returns:
+            Dict with deleted count, failed count, and details
+        """
+        if not entity_ids:
+            return {"deleted": 0, "failed": 0, "errors": []}
+        
+        deleted_count = 0
+        failed_count = 0
+        errors = []
+        
+        # Delete each entity
+        for entity_id in entity_ids:
+            try:
+                success = await self.delete_entity(entity_type, entity_id, soft_delete=soft_delete)
+                if success:
+                    deleted_count += 1
+            except Exception as e:
+                failed_count += 1
+                errors.append({"entity_id": entity_id, "error": str(e)})
+        
+        return {
+            "deleted": deleted_count,
+            "failed": failed_count,
+            "total": len(entity_ids),
+            "soft_delete": soft_delete,
+            "errors": errors if errors else None
+        }
+    
+    async def bulk_archive_entities(
+        self,
+        entity_type: str,
+        entity_ids: List[str]
+    ) -> Dict[str, Any]:
+        """Bulk archive (soft-delete) multiple entities.
+        
+        Args:
+            entity_type: Type of entities to archive
+            entity_ids: List of entity IDs to archive
+        
+        Returns:
+            Dict with archived count, failed count, and details
+        """
+        if not entity_ids:
+            return {"archived": 0, "failed": 0, "errors": []}
+        
+        archived_count = 0
+        failed_count = 0
+        errors = []
+        
+        # Archive each entity (soft-delete)
+        for entity_id in entity_ids:
+            try:
+                success = await self.delete_entity(entity_type, entity_id, soft_delete=True)
+                if success:
+                    archived_count += 1
+            except Exception as e:
+                failed_count += 1
+                errors.append({"entity_id": entity_id, "error": str(e)})
+        
+        return {
+            "archived": archived_count,
+            "failed": failed_count,
+            "total": len(entity_ids),
+            "errors": errors if errors else None
+        }
+
     async def list_entities(
         self,
         entity_type: str,
@@ -668,7 +788,7 @@ _entity_manager = EntityManager()
 
 async def entity_operation(
     auth_token: str,
-    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create"],
+    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive"],
     entity_type: str,
     data: Optional[Dict[str, Any]] = None,
     filters: Optional[Dict[str, Any]] = None,
@@ -685,7 +805,8 @@ async def entity_operation(
     format_type: str = "detailed",
     pagination: Optional[Dict[str, Any]] = None,
     filter_list: Optional[List[Dict[str, Any]]] = None,
-    sort_list: Optional[List[Dict[str, Any]]] = None
+    sort_list: Optional[List[Dict[str, Any]]] = None,
+    entity_ids: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
@@ -951,6 +1072,42 @@ async def entity_operation(
             else:
                 formatted = _entity_manager._format_result(result, format_type)
                 return _entity_manager._add_timing_metrics(formatted, timings)
+        
+        elif operation == "bulk_update":
+            if entity_ids is None or data is None:
+                raise ValueError("entity_ids and data are required for bulk_update operation")
+            t_op_start = time.time()
+            result = await _entity_manager.bulk_update_entities(
+                entity_type, entity_ids, data
+            )
+            timings["bulk_update"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "bulk_update"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "bulk_delete":
+            if entity_ids is None:
+                raise ValueError("entity_ids are required for bulk_delete operation")
+            t_op_start = time.time()
+            result = await _entity_manager.bulk_delete_entities(
+                entity_type, entity_ids, soft_delete
+            )
+            timings["bulk_delete"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "bulk_delete"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "bulk_archive":
+            if entity_ids is None:
+                raise ValueError("entity_ids are required for bulk_archive operation")
+            t_op_start = time.time()
+            result = await _entity_manager.bulk_archive_entities(
+                entity_type, entity_ids
+            )
+            timings["bulk_archive"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "bulk_archive"
+            return _entity_manager._add_timing_metrics(result, timings)
         
         else:
             raise ValueError(f"Unknown operation: {operation}")
