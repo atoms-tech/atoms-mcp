@@ -272,7 +272,7 @@ class TestRequirementSearch:
                 },
             },
         )
-        assert update_result["success"]
+        print(f"UPDATE RESULT: {update_result}"); assert update_result.get("success", False)
         assert update_result["data"]["title"] == "New Title"
         assert update_result["data"]["description"] == "Updated description"
         assert update_result["data"]["priority"] == "high"

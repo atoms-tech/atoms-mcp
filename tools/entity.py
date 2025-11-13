@@ -708,6 +708,113 @@ class EntityManager(ToolBase):
             "by_priority": {},
             "note": "Coverage analysis requires database configuration"
         }
+    
+    async def list_workflows(
+        self,
+        limit: int = 20,
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        """List all configured workflows.
+        
+        Args:
+            limit: Number of workflows to return
+            offset: Offset for pagination
+        
+        Returns:
+            Dict with workflows and pagination info
+        """
+        return {
+            "workflows": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "note": "Workflow management requires database configuration"
+        }
+    
+    async def create_workflow(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        entity_type: Optional[str] = None,
+        definition: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Create a new workflow.
+        
+        Args:
+            name: Workflow name
+            description: Optional description
+            entity_type: Entity type this workflow applies to
+            definition: Workflow definition/configuration
+        
+        Returns:
+            Dict with created workflow
+        """
+        return {
+            "success": False,
+            "id": None,
+            "name": name,
+            "note": "Workflow creation requires database configuration"
+        }
+    
+    async def update_workflow(
+        self,
+        workflow_id: str,
+        data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update an existing workflow.
+        
+        Args:
+            workflow_id: ID of workflow to update
+            data: Update data
+        
+        Returns:
+            Dict with updated workflow
+        """
+        return {
+            "success": False,
+            "workflow_id": workflow_id,
+            "note": "Workflow update requires database configuration"
+        }
+    
+    async def delete_workflow(
+        self,
+        workflow_id: str
+    ) -> Dict[str, Any]:
+        """Delete a workflow.
+        
+        Args:
+            workflow_id: ID of workflow to delete
+        
+        Returns:
+            Dict with result
+        """
+        return {
+            "success": False,
+            "workflow_id": workflow_id,
+            "note": "Workflow deletion requires database configuration"
+        }
+    
+    async def execute_workflow(
+        self,
+        workflow_id: str,
+        input_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Execute a workflow.
+        
+        Args:
+            workflow_id: ID of workflow to execute
+            input_data: Input data for workflow
+        
+        Returns:
+            Dict with execution result
+        """
+        return {
+            "success": False,
+            "workflow_id": workflow_id,
+            "execution_id": None,
+            "status": "pending",
+            "note": "Workflow execution requires database configuration"
+        }
 
     async def list_entities(
         self,

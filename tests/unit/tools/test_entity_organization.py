@@ -220,7 +220,7 @@ class TestOrganizationList:
             success = result.get("success", False)
             data = result.get("data", {})
 
-        assert success, "List organizations failed"
+        if not success: print(f"ORG LIST RESULT: {result}"); assert success, "List organizations failed"
         # Should return list of organizations
 
     @pytest.mark.story("Search & Discovery - User can search all entities")
