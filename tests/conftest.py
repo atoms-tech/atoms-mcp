@@ -239,6 +239,7 @@ def pytest_runtest_makereport(item, call):
     1. Classifies failures by category (INFRA, PRODUCT, etc.)
     2. Collects results for matrix visualization
     3. Analyzes performance warnings
+    4. Extracts user story information from @pytest.mark.story
     """
     outcome = yield
     report = outcome.get_result()
@@ -252,6 +253,15 @@ def pytest_runtest_makereport(item, call):
         layer = extract_layer_from_path(item.nodeid)
         mode = extract_mode_from_markers(item.own_markers)
         
+        # Extract user story from @pytest.mark.story decorator
+        story = None
+        for marker in item.own_markers:
+            if marker.name == "story":
+                # marker.args[0] contains the story string
+                if marker.args:
+                    story = marker.args[0]
+                break
+        
         # Create test result
         duration = report.duration if hasattr(report, 'duration') else 0.0
         result = TestResult(
@@ -259,7 +269,8 @@ def pytest_runtest_makereport(item, call):
             layer=layer,
             mode=mode,
             outcome=report.outcome,
-            duration=duration
+            duration=duration,
+            story=story
         )
         matrix_collector.add_result(result)
         

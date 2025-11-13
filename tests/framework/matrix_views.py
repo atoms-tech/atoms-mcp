@@ -17,13 +17,15 @@ class TestResult:
         layer: str,
         mode: str,
         outcome: str,
-        duration: float = 0.0
+        duration: float = 0.0,
+        story: str = None
     ):
         self.name = name
         self.layer = layer  # tools, infrastructure, services, auth
         self.mode = mode    # unit, integration, e2e
         self.outcome = outcome  # passed, failed, skipped
         self.duration = duration
+        self.story = story  # User story this test covers (from @pytest.mark.story)
 
 
 class MatrixCollector:
@@ -43,11 +45,18 @@ class MatrixCollector:
         
         # Error categories
         self.errors_by_category: Dict[str, List[str]] = defaultdict(list)
+        
+        # Story tracking: story_name -> list of TestResult
+        self.stories: Dict[str, List[TestResult]] = defaultdict(list)
     
     def add_result(self, result: TestResult):
         """Add a test result."""
         if result.layer in self.results and result.mode in self.results[result.layer]:
             self.results[result.layer][result.mode].append(result)
+        
+        # Track story if this test has one
+        if result.story:
+            self.stories[result.story].append(result)
     
     def set_coverage(self, layer: str, coverage: float):
         """Set coverage percentage for a layer."""
@@ -110,6 +119,55 @@ class MatrixCollector:
                         if result.outcome == "passed":
                             return True
         return False
+    
+    def is_story_passing(self, story: str) -> bool:
+        """
+        Check if a user story is passing.
+        
+        A story is passing if:
+        - It has tests AND
+        - At least one test is passing
+        """
+        if story not in self.stories:
+            return False
+        
+        tests = self.stories[story]
+        return any(t.outcome == "passed" for t in tests)
+    
+    def get_story_status(self, story: str) -> tuple[bool, str]:
+        """
+        Get detailed status of a story.
+        
+        Returns:
+            (is_passing, reason) tuple
+        """
+        if story not in self.stories:
+            return False, "No tests found"
+        
+        tests = self.stories[story]
+        passed = sum(1 for t in tests if t.outcome == "passed")
+        failed = sum(1 for t in tests if t.outcome == "failed")
+        skipped = sum(1 for t in tests if t.outcome == "skipped")
+        
+        total = len(tests)
+        
+        if passed > 0:
+            if failed > 0:
+                return True, f"{passed}/{total} passing"
+            elif skipped > 0:
+                return True, f"{passed}/{total} passing"
+            else:
+                return True, ""
+        elif failed > 0:
+            return False, f"{failed}/{total} failing"
+        elif skipped > 0:
+            return False, f"{skipped}/{total} skipped"
+        else:
+            return False, "No tests"
+    
+    def get_all_stories(self) -> List[str]:
+        """Get all user stories found in tests."""
+        return sorted(list(self.stories.keys()))
 
 
 class ArchitectView:

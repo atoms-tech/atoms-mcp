@@ -24,7 +24,7 @@ This repository is optimized for Claude (and similar LLM agents) acting as an au
 **Core rules (non-optional):**
 - Always activate the project environment: `source .venv/bin/activate` before running Python/uv.
 - Prefer `uv` for all Python execution and dependency operations (`uv run`, `uv pip`, `uvx`) in alignment with FastMCP and this repo's tooling.
-- Use existing Typer-based CLI atoms and scripts instead of ad-hoc commands when available.
+- **ALWAYS use atoms CLI (`python cli.py`) for project operations** instead of direct tool invocation (see § 4 below).
 - Follow the closed-loop workflow: review → research (code/web/reasoning) → plan → execute → test → polish → repeat.
 - Do not ask the user what to do next unless blocked by missing secrets, external access, or true ambiguity.
 - Respect repo architecture, abstractions, auth, and env conventions at all times.
@@ -395,25 +395,82 @@ tests/
 
 ## 4. Commands Claude Should Prefer
 
-Environment:
-- `source .venv/bin/activate`
+### Atoms CLI (REQUIRED - Primary Interface)
 
-Core checks:
-- `uv run pytest -q` for quick validation.
-- `uv run pytest tests/unit` for unit-only.
-- `uv run pytest tests/integration` for integration.
-- `uv run pytest tests/e2e` or specific files when touching workflows/endpoints.
+**CRITICAL:** Always use the atoms CLI (`python cli.py`) for project operations.
 
-Quality gates (when configured):
-- `uv run ruff check`
-- `uv run mypy`
+```bash
+# Environment setup (always first)
+source .venv/bin/activate
 
-Line count verification:
-- `rg --line-number "^" <file> | tail -1` (show total lines in a file)
+# ✅ REQUIRED: Use atoms CLI for all operations
+python cli.py test run --scope unit              # Run unit tests
+python cli.py test run --scope integration       # Run integration tests
+python cli.py test run --coverage                # Run with coverage
+python cli.py lint check                         # Check code quality
+python cli.py lint fix                           # Auto-fix linting issues
+python cli.py format                             # Format code (black + ruff)
+python cli.py db migrate                         # Run database migrations
+python cli.py server start                       # Start MCP server
+python cli.py tools list                         # List available MCP tools
 
-Server / runtime (examples, adjust per env vars):
-- `uv run python app.py` (ASGI / Vercel-style entry).
-- `uv run python server.py` or documented Typer/CLI entrypoints for MCP.
+# ❌ AVOID: Direct tool invocation (only for debugging CLI itself)
+uv run pytest -q                                 # Don't use directly
+uv run ruff check                                # Don't use directly
+uv run black .                                   # Don't use directly
+```
+
+**Why atoms CLI is required:**
+- ✅ **Consistent interface** across all operations
+- ✅ **Hook integration** (Factory hooks run automatically when enabled)
+- ✅ **Better error messages** and recovery
+- ✅ **Type-safe** argument validation via Typer
+- ✅ **Self-documenting** via `--help` flags
+- ✅ **Standardized** across team and CI/CD
+- ✅ **Future-proof** (CLI evolves without changing workflow)
+
+**Discovery:**
+```bash
+# Explore available commands
+python cli.py --help
+
+# Get command-specific help
+python cli.py test --help
+python cli.py lint --help
+python cli.py db --help
+```
+
+### Fallback Commands (Only When CLI Unavailable)
+
+**Only use these when atoms CLI doesn't support the operation yet:**
+
+```bash
+# Environment
+source .venv/bin/activate
+
+# Core checks (fallback only)
+uv run pytest -q                                 # Quick validation
+uv run pytest tests/unit                         # Unit-only
+uv run pytest tests/integration                  # Integration
+uv run pytest tests/e2e                          # E2E tests
+
+# Quality gates (fallback only)
+uv run ruff check                                # Linting check
+uv run mypy                                      # Type checking
+
+# Line count verification
+rg --line-number "^" <file> | tail -1            # Show total lines
+
+# Server / runtime (fallback only)
+uv run python app.py                             # ASGI / Vercel entry
+uv run python server.py                          # Direct server start
+```
+
+**Agent behavior:**
+1. **Always try atoms CLI first** - Check `python cli.py --help`
+2. **Use fallback only if necessary** - CLI doesn't support operation yet
+3. **Suggest CLI enhancements** - If you find gaps, note for future improvement
+4. **Document usage** - Include CLI commands in commit messages and documentation
 
 ## 5. Behavioral Constraints for Claude
 

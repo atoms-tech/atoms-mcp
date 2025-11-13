@@ -99,12 +99,94 @@ rg "class.*Adapter\|class.*Factory\|class.*Provider" --type py
 
 - Always activate project environment: `source .venv/bin/activate`
 - Prefer `uv` for Python execution: `uv run`, `uv pip`, `uvx`
-- Use existing Typer/CLI atoms and scripts when available
+- **Use atoms CLI for ALL project operations** (CRITICAL - see below)
 - Respect repo architecture abstractions:
   - `infrastructure/` - adapters (DB, auth, storage, monitoring)
   - `services/` - domain logic
   - `tools/` - orchestration only
   - `auth/` - session, middleware, providers
+
+### Atoms CLI Usage (CRITICAL - Required for All Operations)
+
+**Policy:** ALWAYS use the atoms CLI for project operations instead of ad-hoc shell commands.
+
+The atoms CLI (`cli.py`) provides a unified, type-safe interface for all project operations with:
+- ✅ Consistent error handling and feedback
+- ✅ Integration with Factory hooks (when enabled)
+- ✅ Better logging and debugging
+- ✅ Standardized across team
+- ✅ Self-documenting via Typer help
+
+**Required Usage Patterns:**
+
+```bash
+# ✅ CORRECT: Use atoms CLI
+source .venv/bin/activate
+python cli.py test run --scope unit          # Run tests
+python cli.py lint check                     # Check linting
+python cli.py lint fix                       # Auto-fix lint issues
+python cli.py format                         # Format code
+python cli.py db migrate                     # Run migrations
+python cli.py server start                   # Start MCP server
+python cli.py tools list                     # List available tools
+
+# ❌ INCORRECT: Direct tool invocation
+uv run pytest tests/unit -q                  # DON'T do this
+uv run ruff check .                          # DON'T do this
+uv run black .                               # DON'T do this
+python scripts/migrate_db.py                 # DON'T do this
+python server.py                             # DON'T do this
+
+# Exception: Only use direct commands when:
+# 1. Atoms CLI doesn't support the operation yet
+# 2. Debugging the CLI itself
+# 3. Emergency situations requiring bypass
+```
+
+**Atoms CLI Command Reference:**
+
+| Operation | Atoms CLI Command | Direct Command (avoid) |
+|-----------|-------------------|------------------------|
+| **Testing** | `python cli.py test run --scope unit` | `uv run pytest tests/unit` |
+| | `python cli.py test run --scope integration` | `uv run pytest tests/integration` |
+| | `python cli.py test run --coverage` | `uv run pytest --cov` |
+| **Linting** | `python cli.py lint check` | `uv run ruff check .` |
+| | `python cli.py lint fix` | `uv run ruff check . --fix` |
+| **Formatting** | `python cli.py format` | `uv run black .` |
+| | `python cli.py format --check` | `uv run black . --check` |
+| **Database** | `python cli.py db migrate` | `python scripts/migrate_db.py` |
+| | `python cli.py db status` | Custom script |
+| **Server** | `python cli.py server start` | `python server.py` |
+| | `python cli.py server test` | Custom invocation |
+| **Tools** | `python cli.py tools list` | Manual inspection |
+| | `python cli.py tools test <name>` | Custom test script |
+
+**Why Atoms CLI is Required:**
+
+1. **Consistency** - Same interface across all operations
+2. **Error Handling** - Better error messages and recovery
+3. **Hooks Integration** - Factory hooks run automatically (when enabled)
+4. **Logging** - Unified logging format and verbosity control
+5. **Type Safety** - Typer provides argument validation
+6. **Documentation** - Built-in help: `python cli.py --help`
+7. **Future-Proof** - CLI can evolve without changing workflow
+
+**Discovery:**
+```bash
+# Explore available commands
+python cli.py --help
+
+# Command-specific help
+python cli.py test --help
+python cli.py lint --help
+python cli.py db --help
+```
+
+**Agent Behavior:**
+- **Always check CLI first** before writing custom scripts
+- **Extend CLI** instead of creating parallel tools
+- **Document CLI usage** in commit messages and PRs
+- **Suggest CLI enhancements** when gaps found
 
 ### File Size & Modularity Constraints
 
