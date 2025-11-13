@@ -133,6 +133,161 @@ class TestDocumentCRUD:
         assert data.get("id") == doc_id
 
 
+    @pytest.mark.story("Document Management - User can update document")
+    @pytest.mark.unit
+    async def test_update_document(self, call_mcp, test_organization):
+        """User can update document title and content."""
+        project_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "project",
+                "data": {
+                    "name": f"Doc Update Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": test_organization,
+                },
+            },
+        )
+        if hasattr(project_result, "data"):
+            project_id = project_result.data.get("data", {}).get("id")
+        else:
+            project_id = project_result.get("data", {}).get("id")
+
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "document",
+                "data": {
+                    "title": "Old Title",
+                    "content": "Original content",
+                    "project_id": project_id,
+                },
+            },
+        )
+        success = getattr(result, "data", result).get("success", False) if hasattr(result, "data") else result.get("success", False)
+        assert success
+        data = getattr(result, "data", result).get("data", {}) if hasattr(result, "data") else result.get("data", {})
+        doc_id = data.get("id")
+        assert data.get("title") == "Old Title"
+
+        # Update title and content
+        update_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "update",
+                "entity_type": "document",
+                "entity_id": doc_id,
+                "data": {
+                    "title": "Updated Title",
+                    "content": "Updated content with more details",
+                },
+            },
+        )
+        assert update_result["success"]
+        assert update_result["data"]["title"] == "Updated Title"
+        assert update_result["data"]["content"] == "Updated content with more details"
+
+    @pytest.mark.story("Document Management - User can soft delete document")
+    @pytest.mark.unit
+    async def test_soft_delete_document(self, call_mcp, test_organization):
+        """User can soft delete a document; it won't appear in default lists."""
+        project_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "project",
+                "data": {
+                    "name": f"Doc Del Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": test_organization,
+                },
+            },
+        )
+        project_id = project_result["data"]["id"]
+
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "document",
+                "data": {"title": "To Delete", "content": "Content", "project_id": project_id},
+            },
+        )
+        assert result["success"]
+        doc_id = result["data"]["id"]
+
+        # Soft delete
+        delete_result, _ = await call_mcp(
+            "entity_tool",
+            {"operation": "delete", "entity_type": "document", "entity_id": doc_id, "hard": False},
+        )
+        assert delete_result["success"]
+
+        # Verify excluded from default list
+        list_result, _ = await call_mcp(
+            "entity_tool",
+            {"operation": "list", "entity_type": "document", "filters": {"project_id": project_id}},
+        )
+        assert all(d["id"] != doc_id for d in list_result["data"]["items"])
+
+        # Verify can include with filter
+        list_inc_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "list",
+                "entity_type": "document",
+                "filters": {"project_id": project_id, "is_deleted": True},
+            },
+        )
+        assert any(d["id"] == doc_id for d in list_inc_result["data"]["items"])
+
+    @pytest.mark.story("Document Management - User can hard delete document")
+    @pytest.mark.unit
+    async def test_hard_delete_document(self, call_mcp, test_organization):
+        """User can permanently delete a document."""
+        project_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "project",
+                "data": {
+                    "name": f"Doc Hard Del Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": test_organization,
+                },
+            },
+        )
+        project_id = project_result["data"]["id"]
+
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "document",
+                "data": {"title": "To Delete Hard", "content": "Content", "project_id": project_id},
+            },
+        )
+        assert result["success"]
+        doc_id = result["data"]["id"]
+
+        # Hard delete
+        delete_result, _ = await call_mcp(
+            "entity_tool",
+            {"operation": "delete", "entity_type": "document", "entity_id": doc_id, "hard": True},
+        )
+        assert delete_result["success"]
+
+        # Verify gone even with is_deleted filter
+        list_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "list",
+                "entity_type": "document",
+                "filters": {"project_id": project_id, "is_deleted": True},
+            },
+        )
+        assert all(d["id"] != doc_id for d in list_result["data"]["items"])
+
+
 class TestDocumentList:
     """Test document listing."""
 

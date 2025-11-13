@@ -2,87 +2,86 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Data Management (2/3) ✓○○                                                  ║
+║ 📦 Organization Management (3/5) ✓○○                                          ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can batch create multiple entities                                  ║
-║   ❌ User can paginate through large lists (1/1 failing)                      ║
-║   ✅ User can sort results                                                    ║
-║                                                                              ║
-║ 📦 Document Management (2/3) ✓○○                                              ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create document                                                 ║
-║   ❌ User can list documents (1/1 failing)                                    ║
-║   ✅ User can view document                                                   ║
-║                                                                              ║
-║ 📦 Entity Relationships (6/6) ✓✓✓                                             ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can check if entities are related                                   ║
-║   ✅ User can link entities together                                          ║
-║   ✅ User can unlink related entities                                         ║
-║   ✅ User can update relationships                                            ║
-║   ✅ User can view entity relationships                                       ║
-║   ✅ User can view related entities                                           ║
-║                                                                              ║
-║ 📦 Organization Management (4/4) ✓✓✓                                          ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create an organization                                          ║
-║   ✅ User can delete an organization                                          ║
+║   ❌ User can create an organization (No matching tests found)                ║
+║   ❌ User can view organization details (No matching tests found)             ║
 ║   ✅ User can update organization settings                                    ║
-║   ✅ User can view organization details                                       ║
+║   ✅ User can delete an organization                                          ║
+║   ✅ User can list all organizations                                          ║
 ║                                                                              ║
-║ 📦 Project Management (4/5) ✓✓○                                               ║
+║ 📦 Project Management (3/5) ✓○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create a project                                                ║
-║   ✅ User can delete project                                                  ║
-║   ❌ User can list all projects (1/1 failing)                                 ║
-║   ✅ User can update project                                                  ║
-║   ✅ User can view project details                                            ║
+║   ❌ User can create a project (No matching tests found)                      ║
+║   ❌ User can view project details (No matching tests found)                  ║
+║   ✅ User can update project information                                      ║
+║   ✅ User can archive a project                                               ║
+║   ✅ User can list projects in organization                                   ║
 ║                                                                              ║
-║ 📦 Requirements Traceability (3/3) ✓✓✓                                        ║
+║ 📦 Document Management (1/3) ✓○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create requirement                                              ║
-║   ✅ User can search requirements                                             ║
-║   ✅ User can view requirement                                                ║
+║   ❌ User can create a document (No matching tests found)                     ║
+║   ❌ User can view document content (No matching tests found)                 ║
+║   ✅ User can list documents in project                                       ║
 ║                                                                              ║
-║ 📦 Search & Discovery (7/7) ✓✓✓                                               ║
+║ 📦 Requirements Traceability (0/4) ○○○                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can count aggregates                                                ║
-║   ✅ User can filter results                                                  ║
-║   ✅ User can find similar items                                              ║
-║   ✅ User can hybrid search                                                   ║
-║   ✅ User can keyword search                                                  ║
-║   ✅ User can search all entities                                             ║
-║   ✅ User can semantic search                                                 ║
+║   ❌ User can create requirements (No matching tests found)                   ║
+║   ❌ User can pull requirements from system (No matching tests found)         ║
+║   ❌ User can search requirements (No matching tests found)                   ║
+║   ❌ User can trace links between requirements and t... (No matching tests... ║
 ║                                                                              ║
-║ 📦 Security & Access (4/4) ✓✓✓                                                ║
+║ 📦 Test Case Management (0/2) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can log in with AuthKit                                             ║
-║   ✅ User can log out securely                                                ║
-║   ✅ User can maintain active session                                         ║
-║   ✅ User data is protected by row-level security                             ║
+║   ❌ User can create test cases (No matching tests found)                     ║
+║   ❌ User can view test results (No matching tests found)                     ║
 ║                                                                              ║
-║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
+║ 📦 Workspace Navigation (1/6) ✓○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create test case                                                ║
-║   ✅ User can view test results                                               ║
+║   ❌ User can view current workspace context (No matching tests found)        ║
+║   ❌ User can switch to organization workspace (No matching tests found)      ║
+║   ❌ User can switch to project workspace (No matching tests found)           ║
+║   ❌ User can switch to document workspace (No matching tests found)          ║
+║   ✅ User can list all available workspaces                                   ║
+║   ❌ User can get workspace defaults (No matching tests found)                ║
 ║                                                                              ║
-║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║
+║ 📦 Entity Relationships (1/4) ✓○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can bulk update statuses                                            ║
-║   ✅ User can import requirements                                             ║
-║   ✅ User can onboard new organization                                        ║
-║   ✅ User can run with transactions                                           ║
-║   ✅ User can setup project workflow                                          ║
+║   ❌ User can link entities together (No matching tests found)                ║
+║   ❌ User can unlink related entities (No matching tests found)               ║
+║   ✅ User can view entity relationships                                       ║
+║   ❌ User can check if entities are related (No matching tests found)         ║
 ║                                                                              ║
-║ 📦 Workspace Navigation (6/7) ✓✓○                                             ║
+║ 📦 Search & Discovery (0/7) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can get default context                                             ║
-║   ✅ User can list workspaces                                                 ║
-║   ✅ User can switch to document                                              ║
-║   ✅ User can switch to organization                                          ║
-║   ✅ User can switch to project                                               ║
-║   ❌ User can view all organizations (1/1 failing)                            ║
-║   ✅ User can view current context                                            ║
+║   ❌ User can search across all entities (No matching tests found)            ║
+║   ❌ User can filter search results (No matching tests found)                 ║
+║   ❌ User can perform semantic search (No matching tests found)               ║
+║   ❌ User can perform keyword search (No matching tests found)                ║
+║   ❌ User can perform hybrid search (No matching tests found)                 ║
+║   ❌ User can get entity count aggregates (No matching tests found)           ║
+║   ❌ User can find similar entities (No matching tests found)                 ║
+║                                                                              ║
+║ 📦 Workflow Automation (0/5) ○○○                                              ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can set up new project workflow (No matching tests found)           ║
+║   ❌ User can import requirements via workflow (No matching tests found)      ║
+║   ❌ User can bulk update statuses (No matching tests found)                  ║
+║   ❌ User can onboard new organization (No matching tests found)              ║
+║   ❌ User can run workflows with transactions (No matching tests found)       ║
+║                                                                              ║
+║ 📦 Data Management (0/3) ○○○                                                  ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can batch create multiple entities (No matching tests found)        ║
+║   ❌ User can paginate through large lists (No matching tests found)          ║
+║   ❌ User can sort query results (No matching tests found)                    ║
+║                                                                              ║
+║ 📦 Security & Access (0/4) ○○○                                                ║
+║──────────────────────────────────────────────────────────────────────────────║
+║   ❌ User can log in with AuthKit (No matching tests found)                   ║
+║   ❌ User can maintain active session (No matching tests found)               ║
+║   ❌ User can log out securely (No matching tests found)                      ║
+║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 45/49 user stories complete (91%)                                   ║
+║ Overall: 9/48 user stories complete (18%)                                    ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

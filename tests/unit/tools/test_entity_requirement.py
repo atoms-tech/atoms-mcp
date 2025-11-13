@@ -234,3 +234,127 @@ class TestRequirementSearch:
             success = result.get("success", False)
 
         assert success, "Requirement search failed"
+
+    @pytest.mark.story("Requirements Traceability - User can update requirement")
+    @pytest.mark.unit
+    async def test_update_requirement(self, call_mcp, test_organization):
+        """User can update requirement title, description, priority, and status."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "requirement",
+                "data": {
+                    "title": "Old Title",
+                    "description": "Original description",
+                    "priority": "medium",
+                    "status": "draft",
+                    "organization_id": test_organization,
+                },
+            },
+        )
+        assert result["success"]
+        req_id = result["data"]["id"]
+        assert result["data"]["title"] == "Old Title"
+
+        # Update fields
+        update_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "update",
+                "entity_type": "requirement",
+                "entity_id": req_id,
+                "data": {
+                    "title": "New Title",
+                    "description": "Updated description",
+                    "priority": "high",
+                    "status": "approved",
+                },
+            },
+        )
+        assert update_result["success"]
+        assert update_result["data"]["title"] == "New Title"
+        assert update_result["data"]["description"] == "Updated description"
+        assert update_result["data"]["priority"] == "high"
+        assert update_result["data"]["status"] == "approved"
+
+    @pytest.mark.story("Requirements Traceability - User can soft delete requirement")
+    @pytest.mark.unit
+    async def test_soft_delete_requirement(self, call_mcp, test_organization):
+        """User can soft delete a requirement; it won't appear in default lists."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "requirement",
+                "data": {
+                    "title": "To Delete",
+                    "description": "Desc",
+                    "organization_id": test_organization,
+                },
+            },
+        )
+        assert result["success"]
+        req_id = result["data"]["id"]
+
+        # Soft delete
+        delete_result, _ = await call_mcp(
+            "entity_tool",
+            {"operation": "delete", "entity_type": "requirement", "entity_id": req_id, "hard": False},
+        )
+        assert delete_result["success"]
+
+        # Verify excluded from default list
+        list_result, _ = await call_mcp(
+            "entity_tool",
+            {"operation": "list", "entity_type": "requirement", "filters": {"organization_id": test_organization}},
+        )
+        assert all(d["id"] != req_id for d in list_result["data"]["items"])
+
+        # Verify can include with filter
+        list_inc_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "list",
+                "entity_type": "requirement",
+                "filters": {"organization_id": test_organization, "is_deleted": True},
+            },
+        )
+        assert any(d["id"] == req_id for d in list_inc_result["data"]["items"])
+
+    @pytest.mark.story("Requirements Traceability - User can hard delete requirement")
+    @pytest.mark.unit
+    async def test_hard_delete_requirement(self, call_mcp, test_organization):
+        """User can permanently delete a requirement."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": "requirement",
+                "data": {
+                    "title": "To Delete Hard",
+                    "description": "Desc",
+                    "organization_id": test_organization,
+                },
+            },
+        )
+        assert result["success"]
+        req_id = result["data"]["id"]
+
+        # Hard delete
+        delete_result, _ = await call_mcp(
+            "entity_tool",
+            {"operation": "delete", "entity_type": "requirement", "entity_id": req_id, "hard": True},
+        )
+        assert delete_result["success"]
+
+        # Verify gone even with is_deleted filter
+        list_result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "operation": "list",
+                "entity_type": "requirement",
+                "filters": {"organization_id": test_organization, "is_deleted": True},
+            },
+        )
+        assert all(d["id"] != req_id for d in list_result["data"]["items"])
