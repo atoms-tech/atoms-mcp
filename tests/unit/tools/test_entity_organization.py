@@ -178,7 +178,7 @@ class TestOrganizationCRUD:
                 "operation": "delete",
                 "entity_type": "organization",
                 "entity_id": org_id,
-                "soft": True
+                "soft_delete": True
             }
         )
 
