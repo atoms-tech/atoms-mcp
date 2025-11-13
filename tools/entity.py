@@ -9,8 +9,16 @@ from datetime import datetime, timezone
 
 try:
     from .base import ToolBase
+    from ..infrastructure.workflow_adapter import WorkflowStorageAdapter
+    from ..infrastructure.advanced_features_adapter import AdvancedFeaturesAdapter
 except ImportError:
     from tools.base import ToolBase
+    try:
+        from infrastructure.workflow_adapter import WorkflowStorageAdapter
+        from infrastructure.advanced_features_adapter import AdvancedFeaturesAdapter
+    except ImportError:
+        WorkflowStorageAdapter = None
+        AdvancedFeaturesAdapter = None
 
 # Import schema helpers for Pydantic validation
 try:
@@ -711,29 +719,59 @@ class EntityManager(ToolBase):
     
     async def list_workflows(
         self,
+        workspace_id: str,
         limit: int = 20,
-        offset: int = 0
+        offset: int = 0,
+        entity_type: Optional[str] = None,
+        is_active: Optional[bool] = None
     ) -> Dict[str, Any]:
         """List all configured workflows.
         
         Args:
+            workspace_id: Workspace ID to list workflows from
             limit: Number of workflows to return
             offset: Offset for pagination
+            entity_type: Filter by entity type (optional)
+            is_active: Filter by active status (optional)
         
         Returns:
             Dict with workflows and pagination info
         """
-        return {
-            "workflows": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset,
-            "note": "Workflow management requires database configuration"
-        }
+        try:
+            if not WorkflowStorageAdapter:
+                return {"error": "Workflow adapter not available", "workflows": []}
+
+            db = self._get_database()
+            adapter = WorkflowStorageAdapter(db)
+            
+            workflows, total = await adapter.list_workflows(
+                workspace_id=workspace_id,
+                limit=limit,
+                offset=offset,
+                entity_type=entity_type,
+                is_active=is_active
+            )
+            
+            return {
+                "success": True,
+                "workflows": workflows,
+                "total": total,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + limit) < total
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "workflows": []
+            }
     
     async def create_workflow(
         self,
+        workspace_id: str,
         name: str,
+        created_by: str,
         description: Optional[str] = None,
         entity_type: Optional[str] = None,
         definition: Optional[Dict[str, Any]] = None
@@ -741,7 +779,9 @@ class EntityManager(ToolBase):
         """Create a new workflow.
         
         Args:
+            workspace_id: Workspace ID
             name: Workflow name
+            created_by: User ID creating the workflow
             description: Optional description
             entity_type: Entity type this workflow applies to
             definition: Workflow definition/configuration
@@ -749,38 +789,76 @@ class EntityManager(ToolBase):
         Returns:
             Dict with created workflow
         """
-        return {
-            "success": False,
-            "id": None,
-            "name": name,
-            "note": "Workflow creation requires database configuration"
-        }
+        try:
+            if not WorkflowStorageAdapter:
+                return {"success": False, "error": "Workflow adapter not available"}
+
+            db = self._get_database()
+            adapter = WorkflowStorageAdapter(db)
+            
+            workflow = await adapter.create_workflow(
+                workspace_id=workspace_id,
+                name=name,
+                entity_type=entity_type or "generic",
+                created_by=created_by,
+                description=description,
+                definition=definition
+            )
+            
+            return {
+                "success": True,
+                "workflow": workflow
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     async def update_workflow(
         self,
         workflow_id: str,
+        updated_by: str,
         data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Update an existing workflow.
         
         Args:
             workflow_id: ID of workflow to update
+            updated_by: User ID performing update
             data: Update data
         
         Returns:
             Dict with updated workflow
         """
-        return {
-            "success": False,
-            "workflow_id": workflow_id,
-            "note": "Workflow update requires database configuration"
-        }
+        try:
+            if not WorkflowStorageAdapter:
+                return {"success": False, "error": "Workflow adapter not available"}
+
+            db = self._get_database()
+            adapter = WorkflowStorageAdapter(db)
+            
+            workflow = await adapter.update_workflow(
+                workflow_id=workflow_id,
+                updated_by=updated_by,
+                **data
+            )
+            
+            return {
+                "success": True,
+                "workflow": workflow
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     async def delete_workflow(
         self,
         workflow_id: str
     ) -> Dict[str, Any]:
-        """Delete a workflow.
+        """Delete a workflow (soft-delete).
         
         Args:
             workflow_id: ID of workflow to delete
@@ -788,38 +866,79 @@ class EntityManager(ToolBase):
         Returns:
             Dict with result
         """
-        return {
-            "success": False,
-            "workflow_id": workflow_id,
-            "note": "Workflow deletion requires database configuration"
-        }
+        try:
+            if not WorkflowStorageAdapter:
+                return {"success": False, "error": "Workflow adapter not available"}
+
+            db = self._get_database()
+            adapter = WorkflowStorageAdapter(db)
+            
+            deleted = await adapter.delete_workflow(workflow_id)
+            
+            return {
+                "success": deleted,
+                "workflow_id": workflow_id,
+                "deleted": deleted
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     async def execute_workflow(
         self,
         workflow_id: str,
+        entity_id: str,
+        entity_type: str,
+        created_by: str,
         input_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Execute a workflow.
         
         Args:
             workflow_id: ID of workflow to execute
+            entity_id: ID of entity to process
+            entity_type: Type of entity being processed
+            created_by: User ID starting execution
             input_data: Input data for workflow
         
         Returns:
             Dict with execution result
         """
-        return {
-            "success": False,
-            "workflow_id": workflow_id,
-            "execution_id": None,
-            "status": "pending",
-            "note": "Workflow execution requires database configuration"
-        }
+        try:
+            if not WorkflowStorageAdapter:
+                return {"success": False, "error": "Workflow adapter not available"}
+
+            db = self._get_database()
+            adapter = WorkflowStorageAdapter(db)
+            
+            execution = await adapter.create_execution(
+                workflow_id=workflow_id,
+                entity_id=entity_id,
+                entity_type=entity_type,
+                created_by=created_by,
+                input_data=input_data,
+                status="pending"
+            )
+            
+            return {
+                "success": True,
+                "execution": execution,
+                "execution_id": execution.get("id"),
+                "status": "pending"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     # Phase 3 - Advanced Features
     
     async def advanced_search(
         self,
+        workspace_id: str,
         entity_type: str,
         query: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
@@ -829,6 +948,7 @@ class EntityManager(ToolBase):
         """Advanced search with facets and suggestions.
         
         Args:
+            workspace_id: Workspace ID to search within
             entity_type: Type of entity to search
             query: Search query string
             filters: Advanced filters
@@ -838,65 +958,137 @@ class EntityManager(ToolBase):
         Returns:
             Dict with search results and facets
         """
-        return {
-            "results": [],
-            "total": 0,
-            "facets": {},
-            "suggestions": [],
-            "limit": limit,
-            "offset": offset,
-            "note": "Advanced search requires database configuration"
-        }
+        try:
+            if not AdvancedFeaturesAdapter:
+                return {"success": False, "error": "Advanced features adapter not available"}
+
+            db = self._get_database()
+            adapter = AdvancedFeaturesAdapter(db)
+            
+            results, total, facets = await adapter.advanced_search(
+                workspace_id=workspace_id,
+                entity_type=entity_type,
+                query=query,
+                filters=filters,
+                limit=limit,
+                offset=offset
+            )
+            
+            return {
+                "success": True,
+                "results": results,
+                "total": total,
+                "facets": facets,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + limit) < total
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "results": []
+            }
     
     async def export_entities(
         self,
+        workspace_id: str,
         entity_type: str,
+        requested_by: str,
         format: str = "json",
         filters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Export entities in specified format.
         
         Args:
+            workspace_id: Workspace ID
             entity_type: Type of entity to export
+            requested_by: User ID requesting export
             format: Export format (json, csv)
             filters: Filter entities before export
         
         Returns:
-            Dict with export status and data
+            Dict with export job info
         """
-        return {
-            "success": False,
-            "format": format,
-            "entity_type": entity_type,
-            "record_count": 0,
-            "file_url": None,
-            "note": "Export requires database configuration"
-        }
+        try:
+            if not AdvancedFeaturesAdapter:
+                return {"success": False, "error": "Advanced features adapter not available"}
+
+            db = self._get_database()
+            adapter = AdvancedFeaturesAdapter(db)
+            
+            job = await adapter.create_export_job(
+                workspace_id=workspace_id,
+                entity_type=entity_type,
+                format=format,
+                requested_by=requested_by,
+                filters=filters
+            )
+            
+            return {
+                "success": True,
+                "job": job,
+                "job_id": job.get("id"),
+                "status": "queued",
+                "format": format,
+                "entity_type": entity_type
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     async def import_entities(
         self,
+        workspace_id: str,
         entity_type: str,
+        requested_by: str,
         format: str = "json",
-        file_path: Optional[str] = None
+        file_name: Optional[str] = None,
+        file_size: int = 0
     ) -> Dict[str, Any]:
-        """Import entities from file.
+        """Create import job for entities.
         
         Args:
+            workspace_id: Workspace ID
             entity_type: Type of entity to import
+            requested_by: User ID requesting import
             format: File format (json, csv)
-            file_path: Path to import file
+            file_name: Name of file being imported
+            file_size: Size of file in bytes
         
         Returns:
-            Dict with import results
+            Dict with import job info
         """
-        return {
-            "success": False,
-            "entity_type": entity_type,
-            "format": format,
-            "imported_count": 0,
-            "failed_count": 0,
-            "note": "Import requires database configuration"
-        }
+        try:
+            if not AdvancedFeaturesAdapter:
+                return {"success": False, "error": "Advanced features adapter not available"}
+
+            db = self._get_database()
+            adapter = AdvancedFeaturesAdapter(db)
+            
+            job = await adapter.create_import_job(
+                workspace_id=workspace_id,
+                entity_type=entity_type,
+                format=format,
+                file_name=file_name or "import",
+                file_size=file_size,
+                requested_by=requested_by
+            )
+            
+            return {
+                "success": True,
+                "job": job,
+                "job_id": job.get("id"),
+                "status": "queued",
+                "entity_type": entity_type
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
     
     async def get_entity_permissions(
         self,
@@ -912,36 +1104,78 @@ class EntityManager(ToolBase):
         Returns:
             Dict with permission information
         """
-        return {
-            "entity_id": entity_id,
-            "entity_type": entity_type,
-            "permissions": {},
-            "owner": None,
-            "note": "Permissions require database configuration"
-        }
+        try:
+            if not AdvancedFeaturesAdapter:
+                return {"success": False, "error": "Advanced features adapter not available"}
+
+            db = self._get_database()
+            adapter = AdvancedFeaturesAdapter(db)
+            
+            permissions = await adapter.get_entity_permissions(
+                entity_type=entity_type,
+                entity_id=entity_id
+            )
+            
+            return {
+                "success": True,
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "permissions": permissions
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "permissions": []
+            }
     
     async def update_entity_permissions(
         self,
         entity_type: str,
         entity_id: str,
-        permissions: Dict[str, Any]
+        workspace_id: str,
+        permission_updates: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Update permissions for an entity.
         
         Args:
             entity_type: Type of entity
             entity_id: Entity ID
-            permissions: Permission updates
+            workspace_id: Workspace ID
+            permission_updates: Permission updates (user_id, role_id, permission_level)
         
         Returns:
             Dict with result
         """
-        return {
-            "success": False,
-            "entity_id": entity_id,
-            "entity_type": entity_type,
-            "note": "Permission updates require database configuration"
-        }
+        try:
+            if not AdvancedFeaturesAdapter:
+                return {"success": False, "error": "Advanced features adapter not available"}
+
+            db = self._get_database()
+            adapter = AdvancedFeaturesAdapter(db)
+            
+            user_id = permission_updates.get("user_id")
+            permission_level = permission_updates.get("permission_level", "view")
+            
+            permission = await adapter.grant_permission(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                workspace_id=workspace_id,
+                user_id=user_id,
+                permission_level=permission_level
+            )
+            
+            return {
+                "success": True,
+                "permission": permission,
+                "entity_id": entity_id,
+                "entity_type": entity_type
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
     async def list_entities(
         self,

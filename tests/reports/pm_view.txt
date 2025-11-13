@@ -6,14 +6,14 @@
 ╠───────────────────┼─────────┼──────────┼─────────────┼────────────╣
 ║ Entity CRUD       │      12 │        1 │          11 │        ✓○○ ║
 ║ Workspace Mgmt    │       7 │        0 │           7 │        ○○○ ║
-║ Relationship Ops  │       8 │        2 │           6 │        ✓○○ ║
+║ Relationship Ops  │       8 │        0 │           8 │        ○○○ ║
 ║ Query & Search    │       9 │        0 │           9 │        ○○○ ║
 ║ Workflow Execution │       6 │        0 │           6 │        ○○○ ║
 ║ Auth & Permissions │       4 │        0 │           4 │        ○○○ ║
 ╠────────────────────────────────────────────────────────────────────╣
-║ Overall Progress: 3/46 stories complete (6%)                       ║
+║ Overall Progress: 1/46 stories complete (2%)                       ║
 ║                                                                    ║
 ║ Blockers:                                                          ║
 ║    • Workspace Mgmt requires attention                             ║
-║    • Query & Search requires attention                             ║
+║    • Relationship Ops requires attention                           ║
 ╚════════════════════════════════════════════════════════════════════╝

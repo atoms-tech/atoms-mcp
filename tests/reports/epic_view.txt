@@ -2,19 +2,19 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Organization Management (2/5) ✓○○                                          ║
+║ 📦 Organization Management (1/5) ✓○○                                          ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create an organization (No matching tests found)                ║
 ║   ❌ User can view organization details (No matching tests found)             ║
-║   ✅ User can update organization settings                                    ║
+║   ❌ User can update organization settings (No matching tests found)          ║
 ║   ❌ User can delete an organization (No matching tests found)                ║
 ║   ✅ User can list all organizations                                          ║
 ║                                                                              ║
-║ 📦 Project Management (3/5) ✓○○                                               ║
+║ 📦 Project Management (2/5) ✓○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create a project (No matching tests found)                      ║
 ║   ❌ User can view project details (No matching tests found)                  ║
-║   ✅ User can update project information                                      ║
+║   ❌ User can update project information (No matching tests found)            ║
 ║   ✅ User can archive a project                                               ║
 ║   ✅ User can list projects in organization                                   ║
 ║                                                                              ║
@@ -24,32 +24,32 @@
 ║   ❌ User can view document content (No matching tests found)                 ║
 ║   ✅ User can list documents in project                                       ║
 ║                                                                              ║
-║ 📦 Requirements Traceability (1/4) ✓○○                                        ║
+║ 📦 Requirements Traceability (0/4) ○○○                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create requirements (No matching tests found)                   ║
 ║   ❌ User can pull requirements from system (No matching tests found)         ║
 ║   ❌ User can search requirements (No matching tests found)                   ║
-║   ✅ User can trace links between requirements and t...                       ║
+║   ❌ User can trace links between requirements and t... (No matching tests... ║
 ║                                                                              ║
 ║ 📦 Test Case Management (0/2) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create test cases (No matching tests found)                     ║
 ║   ❌ User can view test results (No matching tests found)                     ║
 ║                                                                              ║
-║ 📦 Workspace Navigation (1/6) ✓○○                                             ║
+║ 📦 Workspace Navigation (0/6) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can view current workspace context (No matching tests found)        ║
 ║   ❌ User can switch to organization workspace (No matching tests found)      ║
 ║   ❌ User can switch to project workspace (No matching tests found)           ║
 ║   ❌ User can switch to document workspace (No matching tests found)          ║
-║   ✅ User can list all available workspaces                                   ║
+║   ❌ User can list all available workspaces (No matching tests found)         ║
 ║   ❌ User can get workspace defaults (No matching tests found)                ║
 ║                                                                              ║
-║ 📦 Entity Relationships (1/4) ✓○○                                             ║
+║ 📦 Entity Relationships (0/4) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can link entities together (No matching tests found)                ║
 ║   ❌ User can unlink related entities (No matching tests found)               ║
-║   ✅ User can view entity relationships                                       ║
+║   ❌ User can view entity relationships (No matching tests found)             ║
 ║   ❌ User can check if entities are related (No matching tests found)         ║
 ║                                                                              ║
 ║ 📦 Search & Discovery (0/7) ○○○                                               ║
@@ -83,5 +83,5 @@
 ║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 10/48 user stories complete (20%)                                   ║
+║ Overall: 5/48 user stories complete (10%)                                    ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
