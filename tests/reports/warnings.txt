@@ -1,15 +1,2 @@
 
-======================================================================
-⚠️  TEST WARNINGS & PERFORMANCE ISSUES
-======================================================================
-
-🔄 FLAKY (2):
-  🟡 tests/unit/tools/test_workflow_coverage.py::TestWorkflowRetry::test_workflow_step_retry_config
-     → Test passed after retry (potentially flaky)
-  🟡 tests/unit/tools/test_workflow_coverage.py::TestWorkflowRetry::test_workflow_failure_with_retries
-     → Test passed after retry (potentially flaky)
-
-----------------------------------------------------------------------
-Total Warnings: 2
-  🔴 High: 0  🟡 Medium: 2  🟢 Low: 0
-======================================================================
+✅ No warnings detected

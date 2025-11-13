@@ -114,15 +114,11 @@ class TestEntityCreateParametrized:
                 }
             )
 
-            # Parse response
-            if hasattr(result, "data"):
-                response_dict = result.data if isinstance(result.data, dict) else {}
-                success = response_dict.get("success", False)
-                data = response_dict.get("data", {})
-                error = response_dict.get("error", None)
-            elif isinstance(result, dict):
+            # Parse response - handle both dict and ResultWrapper
+            if isinstance(result, dict) or hasattr(result, 'get'):
+                # Works for both dict and ResultWrapper (which has get method)
                 success = result.get("success", False)
-                data = result.get("data", {})
+                data = result.get("data", result)  # data might be wrapped or the full result
                 error = result.get("error", None)
             else:
                 pytest.fail(f"Unexpected response format: {result}")
