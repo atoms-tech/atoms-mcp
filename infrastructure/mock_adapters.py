@@ -14,13 +14,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import uuid
 import time
 import base64
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union, Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 try:
     from .adapters import AuthAdapter, DatabaseAdapter, StorageAdapter, RealtimeAdapter
@@ -58,12 +57,20 @@ class InMemoryDatabaseAdapter(DatabaseAdapter):
                     order_by: Optional[str] = None, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Dict[str, Any]]:
         rows = [r for r in self._tbl(table).rows if _match(r, filters)]
         if order_by:
-            key, _, direction = order_by.partition(":")
+            # Handle both "field:direction" and "field ASC/DESC" formats
+            if ":" in order_by:
+                key, _, direction = order_by.partition(":")
+            else:
+                # Handle "field ASC" or "field DESC" format
+                parts = order_by.strip().split()
+                key = parts[0]
+                direction = parts[1] if len(parts) > 1 else "ASC"
+            
             def safe_sort_key(r):
                 val = r.get(key)
                 # Put None values at the end, regardless of direction
                 return (val is None, val)
-            rows.sort(key=safe_sort_key, reverse=direction.lower() == "desc")
+            rows.sort(key=safe_sort_key, reverse=direction.upper() == "DESC")
         if offset:
             rows = rows[offset:]
         if limit is not None:
@@ -100,8 +107,8 @@ class InMemoryDatabaseAdapter(DatabaseAdapter):
         # Use timezone-aware UTC timestamp (ISO 8601 format)
         now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         
-        # Auto-generate ID if not present
-        if "id" not in row_data:
+        # Auto-generate ID only on insert if not present
+        if is_insert and "id" not in row_data:
             row_data["id"] = str(uuid.uuid4())
         
         # Auto-set created_at on insert

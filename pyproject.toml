@@ -27,6 +27,11 @@ dependencies = [
     # AI/ML - Lightweight Vertex AI via REST API
     "google-auth>=2.0.0",
     
+    # Redis & Caching (Upstash for serverless)
+    "upstash-redis>=0.15.0",
+    "upstash-ratelimit>=0.3.0",
+    "py-key-value-aio>=0.2.8",
+    
     # Utilities
     "pydantic[email]>=2.11.7,<3.0.0",
     "PyYAML>=6.0",
@@ -82,11 +87,15 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+norecursedirs = ["archive", ".git", ".venv", "__pycache__", "*.egg"]
 markers = [
+    "asyncio: asyncio tests",
     "coverage_cli: CLI adapter coverage tests",
     "coverage_mcp: MCP adapter coverage tests",
     "coverage_workflow: Workflow tool coverage tests",
     "coverage_e2e: End-to-end MCP client tests",
+    "error_handling: Error handling tests",
+    "performance: Performance tests",
     "mock_only: Tests using mocks (no live services)",
     "live_services: Tests requiring live Supabase/AuthKit",
     "integration: Integration tests",
@@ -95,5 +104,10 @@ markers = [
 addopts = [
     "--strict-markers",
     "--strict-config",
+    "-p",
+    "asyncio",
 ]
 
+[tool.hatch.build.targets.wheel]
+# Package is laid out at repo root (there is a top-level __init__.py)
+packages = ["."]

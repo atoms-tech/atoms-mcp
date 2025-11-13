@@ -12,6 +12,8 @@ import secrets
 from typing import Any, Dict, Optional
 from dataclasses import dataclass
 
+import jwt as jwt_lib
+
 try:
     from .adapters import AuthAdapter
     from ..supabase_client import get_supabase, MissingSupabaseConfig
@@ -42,22 +44,45 @@ class SupabaseAuthAdapter(AuthAdapter):
 
         With WorkOS configured as third-party provider in Supabase,
         AuthKit JWTs are automatically validated by Supabase!
+        
+        Validates with caching to reduce AuthKit JWKS calls.
 
         Returns user info including access_token for RLS context.
         """
-        # 1. Try as internal session token
+        # 1. Try cache first (Upstash Redis)
+        try:
+            from services.auth.token_cache import get_token_cache
+            token_cache = await get_token_cache()
+            cached_claims = await token_cache.get(token)
+            
+            if cached_claims:
+                logger.debug(f"Token cache hit for user {cached_claims.get('user_id')}")
+                return cached_claims
+        except Exception as e:
+            logger.debug(f"Token cache check failed: {e}")
+        
+        # 2. Try as internal session token
         if session := self._sessions.get(token):
-            return {
+            result = {
                 "user_id": session.user_id,
                 "username": session.username,
                 "auth_type": "session",
                 "access_token": session.access_token
             }
+            
+            # Cache result
+            try:
+                from services.auth.token_cache import get_token_cache
+                token_cache = await get_token_cache()
+                cache_ttl = int(os.getenv("CACHE_TTL_TOKEN", "3600"))
+                await token_cache.set(token, result, cache_ttl)
+            except Exception as e:
+                logger.debug(f"Failed to cache token: {e}")
+            
+            return result
 
-        # 2. Validate JWT - decode and extract user info
+        # 3. Validate JWT - decode and extract user info
         try:
-            import jwt as jwt_lib
-
             # Decode without verification to get claims
             decoded = jwt_lib.decode(token, options={"verify_signature": False})
             iss = decoded.get('iss', '')
@@ -74,17 +99,28 @@ class SupabaseAuthAdapter(AuthAdapter):
 
                 logger.info(f"✅ Supabase JWT validated for: {email} (user_id: {user_id})")
 
-                return {
+                result = {
                     "user_id": user_id,
                     "username": email or f"user_{user_id}",
                     "auth_type": "supabase_jwt",
                     "user_metadata": user_metadata,
                     "access_token": token
                 }
+                
+                # Cache result
+                try:
+                    from services.auth.token_cache import get_token_cache
+                    token_cache = await get_token_cache()
+                    cache_ttl = int(os.getenv("CACHE_TTL_TOKEN", "3600"))
+                    await token_cache.set(token, result, cache_ttl)
+                except Exception as e:
+                    logger.debug(f"Failed to cache token: {e}")
+                
+                return result
 
             # Check if AuthKit JWT
             elif 'workos' in iss or 'authkit' in iss.lower():
-                logger.info(f"✅ AuthKit JWT detected - using directly with third-party auth")
+                logger.info("✅ AuthKit JWT detected - using directly with third-party auth")
 
                 # For AuthKit JWTs, extract user info from claims
                 user_id = decoded.get('sub')  # WorkOS uses 'sub' for user ID
@@ -95,13 +131,24 @@ class SupabaseAuthAdapter(AuthAdapter):
 
                 logger.info(f"✅ AuthKit JWT validated for: {email} (user_id: {user_id})")
 
-                return {
+                result = {
                     "user_id": user_id,
                     "username": email or f"user_{user_id}",
                     "auth_type": "authkit_jwt",
                     "user_metadata": {},
                     "access_token": token  # Use AuthKit JWT directly with postgrest
                 }
+                
+                # Cache result
+                try:
+                    from services.auth.token_cache import get_token_cache
+                    token_cache = await get_token_cache()
+                    cache_ttl = int(os.getenv("CACHE_TTL_TOKEN", "3600"))
+                    await token_cache.set(token, result, cache_ttl)
+                except Exception as e:
+                    logger.debug(f"Failed to cache token: {e}")
+                
+                return result
             else:
                 raise ValueError(f"Unknown token issuer: {iss}")
 
