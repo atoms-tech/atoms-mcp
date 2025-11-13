@@ -14,6 +14,8 @@ from infrastructure.permissions import (
     create_resource_context
 )
 
+pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+
 
 class TestPermissionMiddleware:
     """Test permission middleware functionality."""

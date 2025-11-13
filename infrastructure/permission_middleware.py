@@ -63,6 +63,7 @@ class PermissionMiddleware:
             return True
         
         if not workspace_id:
+            logger.debug(f"No workspace_id provided")
             raise PermissionError("Workspace ID required for entity creation")
         
         resource_ctx = create_resource_context(
@@ -70,9 +71,12 @@ class PermissionMiddleware:
             workspace_id=workspace_id
         )
         
-        if not await self.permission_checker.check_permission(
+        has_permission = await self.permission_checker.check_permission(
             user_ctx, Permission.CREATE, resource_ctx
-        ):
+        )
+        print(f"DEBUG: Permission check result: {has_permission} for user {user_ctx.user_id} in workspace {workspace_id}")
+        logger.debug(f"Permission check result: {has_permission} for user {user_ctx.user_id} in workspace {workspace_id}")
+        if not has_permission:
             raise PermissionError(
                 f"User {user_ctx.user_id} lacks create permission for {entity_type} "
                 f"in workspace {workspace_id}"

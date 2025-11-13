@@ -31,7 +31,7 @@ import pytest
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.unit,
-    pytest.mark.skip(reason="test_entity_core parametrized tests require DataGeneratorHelper integration - use consolidated test files instead")
+    # Fixed: Type mismatch resolved - ResultWrapper now properly handled
 ]
 
 
@@ -186,17 +186,16 @@ class TestEntitySearchParametrized:
             {
                 "operation": "search",
                 "entity_type": entity_type,
-                "filters": {"term": search_term}
+                "search_term": search_term  # Fixed: use correct parameter name
             }
         )
 
-        # Parse response
-        if hasattr(result, "data"):
-            success = result.data.get("success", False)
-        else:
-            success = result.get("success", False)
-
+        # Parse response using unified helper
+        from tests.unit.tools.conftest import unwrap_mcp_response
+        success, data = unwrap_mcp_response(result)
+        
         assert success, f"Search {entity_type} failed"
+        assert isinstance(data, (list, dict)), f"Search result should be list or dict, got {type(data)}"
 
 
 class TestBatchOperations:

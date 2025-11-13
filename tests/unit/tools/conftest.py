@@ -61,16 +61,28 @@ def unwrap_mcp_response(response):
     FastMCP client may return either:
     - MCPResult(data={'success': ..., 'data': ...})
     - dict {'success': ..., 'data': ...}
+    - ResultWrapper({...})
+    - list [...] (for search results)
     
-    Returns tuple (success: bool, data: dict)
+    Returns tuple (success: bool, data: dict|list)
     """
-    if hasattr(response, "data"):
-        # MCPResult object
-        inner = response.data
-        return inner.get("success", False), inner.get("data", {})
-    else:
-        # Raw dict
-        return response.get("success", False), response.get("data", {})
+    # Handle list responses (e.g., search results)
+    if isinstance(response, list):
+        return True, response
+    
+    # Handle dict-like objects (dict, ResultWrapper, or object with .get())
+    if isinstance(response, dict) or hasattr(response, 'get'):
+        # Try to extract nested structure
+        if hasattr(response, "data") and isinstance(getattr(response, "data"), dict):
+            # MCPResult object with nested data
+            inner = response.data
+            return inner.get("success", False), inner.get("data", {})
+        else:
+            # Direct dict or ResultWrapper - check for success field
+            return response.get("success", False), response.get("data", response)
+    
+    # Fallback - wrap unknown response
+    return False, response
 
 
 # Note: mcp_server moved to fast_mcp_server above

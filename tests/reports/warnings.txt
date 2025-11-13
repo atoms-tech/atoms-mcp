@@ -3,17 +3,17 @@
 ⚠️  TEST WARNINGS & PERFORMANCE ISSUES
 ======================================================================
 
-🐌 SLOW (1):
-  🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_hybrid_mode[unit]
-     → Slow: 1.08s (threshold: 1.0s)
-
-🔄 FLAKY (2):
-  🟡 tests/unit/tools/test_workflow_coverage.py::TestWorkflowRetry::test_workflow_step_retry_config
+🔄 FLAKY (4):
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_automatic_retry_on_transient_error[unit]
      → Test passed after retry (potentially flaky)
-  🟡 tests/unit/tools/test_workflow_coverage.py::TestWorkflowRetry::test_workflow_failure_with_retries
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_exponential_backoff[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_retry_respects_max_attempts[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_error_handling.py::TestRetryMechanism::test_retry_not_for_permanent_errors[unit]
      → Test passed after retry (potentially flaky)
 
 ----------------------------------------------------------------------
-Total Warnings: 3
-  🔴 High: 0  🟡 Medium: 3  🟢 Low: 0
+Total Warnings: 4
+  🔴 High: 0  🟡 Medium: 4  🟢 Low: 0
 ======================================================================
