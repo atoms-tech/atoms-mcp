@@ -1678,18 +1678,33 @@ async def entity_operation(
                 raise ValueError("entity_id is required for restore operation")
             t_op_start = time.time()
             # Restore is update setting is_deleted=false
-            result = await _entity_manager.update_entity(
-                entity_type, entity_id, {"is_deleted": False}, include_relations
-            )
+            try:
+                # First update the entity to restore it
+                update_result = await _entity_manager.update_entity(
+                    entity_type, entity_id, {"is_deleted": False}, include_relations
+                )
+                
+                # Then read the updated entity to ensure we have all fields
+                restored_entity = await _entity_manager.read_entity(
+                    entity_type, entity_id, include_relations
+                )
+                
+                success = restored_entity is not None
+                data = restored_entity if success else {}
+            except Exception as e:
+                success = False
+                data = {}
+            
             timings["restore"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
-            formatted = _entity_manager._format_result(result, format_type)
+            formatted = _entity_manager._format_result(data, format_type) if success else {"success": False, "error": str(e) if not success else ""}
             restore_result = {
-                "success": result is not None,
+                "success": success,
                 "entity_id": entity_id,
                 "entity_type": entity_type,
                 "operation": "restore",
-                "data": formatted
+                "data": formatted.get("data", data) if isinstance(formatted, dict) else data,
+                "message": f"{entity_type} restored successfully" if success else f"Failed to restore {entity_type}"
             }
             return _entity_manager._add_timing_metrics(restore_result, timings)
 
