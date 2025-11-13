@@ -655,6 +655,59 @@ class EntityManager(ToolBase):
             "version": version,
             "note": "Version restore not yet configured in database"
         }
+    
+    async def get_entity_trace(
+        self,
+        entity_type: str,
+        entity_id: str
+    ) -> Dict[str, Any]:
+        """Get traceability information for an entity.
+        
+        Args:
+            entity_type: Type of entity
+            entity_id: Entity ID to get trace for
+        
+        Returns:
+            Dict with related entities and trace information
+        """
+        # For now, return a placeholder implementation
+        # In production, this would query from relationship tables
+        return {
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "trace_links": [],
+            "linked_tests": [],
+            "linked_requirements": [],
+            "total_links": 0,
+            "note": "Traceability feature requires database configuration"
+        }
+    
+    async def get_entity_coverage(
+        self,
+        entity_type: str,
+        parent_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get coverage analysis for entities.
+        
+        Args:
+            entity_type: Type of entity to analyze
+            parent_id: Optional parent ID for scoped analysis
+        
+        Returns:
+            Dict with coverage statistics
+        """
+        # For now, return a placeholder implementation
+        # In production, this would analyze requirement-to-test relationships
+        return {
+            "entity_type": entity_type,
+            "parent_id": parent_id,
+            "coverage_percentage": 0.0,
+            "covered_count": 0,
+            "uncovered_count": 0,
+            "total_count": 0,
+            "by_priority": {},
+            "note": "Coverage analysis requires database configuration"
+        }
 
     async def list_entities(
         self,
@@ -1187,6 +1240,24 @@ async def entity_operation(
             timings["restore_version"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
             result["operation"] = "restore_version"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "trace":
+            if not entity_id:
+                raise ValueError("entity_id is required for trace operation")
+            t_op_start = time.time()
+            result = await _entity_manager.get_entity_trace(entity_type, entity_id)
+            timings["trace"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "coverage":
+            t_op_start = time.time()
+            result = await _entity_manager.get_entity_coverage(
+                entity_type, parent_id
+            )
+            timings["coverage"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
             return _entity_manager._add_timing_metrics(result, timings)
         
         else:
