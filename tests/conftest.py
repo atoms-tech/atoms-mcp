@@ -357,7 +357,29 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                     terminalreporter.write("Status: ❌ Needs Improvement (<40%)\n")
                 
                 terminalreporter.write("="*70 + "\n")
-    except Exception:
+                
+                # Calculate coverage by layer from coverage.json
+                layer_paths = {
+                    "tools": "tools/",
+                    "infrastructure": "infrastructure/",
+                    "services": "services/",
+                    "auth": "auth/",
+                }
+                
+                for layer, path_prefix in layer_paths.items():
+                    layer_files = cov_data.get("files", {})
+                    layer_coverage = []
+                    
+                    for file_path, file_data in layer_files.items():
+                        if path_prefix in file_path or f"/{path_prefix}" in file_path:
+                            coverage_pct = file_data.get("summary", {}).get("percent_covered", 0)
+                            layer_coverage.append(coverage_pct)
+                    
+                    # Calculate average coverage for layer
+                    avg_coverage = (sum(layer_coverage) / len(layer_coverage)) if layer_coverage else total_pct
+                    matrix_collector.set_coverage(layer, avg_coverage)
+    except Exception as e:
+        # Silently handle coverage errors - not critical for test reporting
         pass
     
     # 4. Architect view

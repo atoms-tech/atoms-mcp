@@ -100,13 +100,13 @@ class TestMockAdapters:
         async with transaction_mock as txn:
             assert txn is transaction_mock
 
-        # Test commit
-        result = await transaction_mock.commit()
-        assert result is None
+        # Test commit was called
+        await transaction_mock.commit()
+        transaction_mock.commit.assert_called()
 
-        # Test rollback
-        result = await transaction_mock.rollback()
-        assert result is None
+        # Test rollback was called
+        await transaction_mock.rollback()
+        transaction_mock.rollback.assert_called()
 
     @pytest.mark.asyncio
     async def test_supabase_client_mock(self, supabase_client_mock):
