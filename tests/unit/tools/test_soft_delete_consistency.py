@@ -988,7 +988,8 @@ class TestSoftDeleteBulkOperations:
             "entity_ids": [f"{entity_type}-1", f"{entity_type}-2"],
             "soft_delete": False
         })
-        assert "success" in result or "error" in result
+        # Response has deleted/failed keys, or success/error on error
+        assert "deleted" in result or "success" in result or "error" in result
 
 
 class TestSoftDeleteEdgeCases:
