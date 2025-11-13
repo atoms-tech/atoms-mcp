@@ -58,8 +58,8 @@ def mock_database_with_data():
         # Fallback data
         seed_data = {
             "workspaces": [
-                {"id": "ws-123", "name": "Test Workspace", "owner_user_id": "mock-user-123"},
-                {"id": "ws-456", "name": "Second Workspace", "owner_user_id": "mock-user-456"}
+                {"id": "ws-123", "name": "Test Workspace", "owner_user_id": "12345678-1234-1234-1234-123456789012"},
+                {"id": "ws-456", "name": "Second Workspace", "owner_user_id": "87654321-4321-4321-4321-210987654321"}
             ],
             "entities": [
                 {"id": "entity-1", "type": "document", "name": "Test Document", "workspace_id": "ws-123"},
@@ -79,8 +79,8 @@ def mock_database_with_data():
     # Fallback data
     seed_data = {
         "workspaces": [
-            {"id": "ws-123", "name": "Test Workspace", "owner_user_id": "mock-user-123"},
-            {"id": "ws-456", "name": "Second Workspace", "owner_user_id": "mock-user-456"}
+            {"id": "ws-123", "name": "Test Workspace", "owner_user_id": "12345678-1234-1234-1234-123456789012"},
+            {"id": "ws-456", "name": "Second Workspace", "owner_user_id": "87654321-4321-4321-4321-210987654321"}
         ],
         "entities": [
             {"id": "entity-1", "type": "document", "name": "Test Document", "workspace_id": "ws-123"},
@@ -100,7 +100,8 @@ def mock_database_with_data():
 @pytest.fixture
 def mock_auth():
     """In-memory auth adapter with default mock user."""
-    user = {"user_id": "mock-user-123", "username": "mock@example.com"}
+    # Use valid UUID format for compatibility with database operations
+    user = {"user_id": "12345678-1234-1234-1234-123456789012", "username": "mock@example.com"}
     return InMemoryAuthAdapter(default_user=user)
 
 

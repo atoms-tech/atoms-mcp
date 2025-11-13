@@ -599,6 +599,62 @@ class EntityManager(ToolBase):
             "total": len(entity_ids),
             "errors": errors if errors else None
         }
+    
+    async def get_entity_history(
+        self,
+        entity_type: str,
+        entity_id: str,
+        limit: int = 20,
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        """Get version history for an entity.
+        
+        Args:
+            entity_type: Type of entity
+            entity_id: Entity ID to get history for
+            limit: Number of versions to return
+            offset: Offset for pagination
+        
+        Returns:
+            Dict with versions, total count, and pagination info
+        """
+        # For now, return a placeholder implementation
+        # In production, this would query from entity_versions table
+        return {
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "versions": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "note": "Version history tracking not yet configured in database"
+        }
+    
+    async def restore_entity_version(
+        self,
+        entity_type: str,
+        entity_id: str,
+        version: int
+    ) -> Dict[str, Any]:
+        """Restore entity to a specific version.
+        
+        Args:
+            entity_type: Type of entity
+            entity_id: Entity ID to restore
+            version: Version number to restore to
+        
+        Returns:
+            Dict with restored entity and new version info
+        """
+        # For now, return a placeholder implementation
+        # In production, this would restore from entity_versions table
+        return {
+            "success": False,
+            "entity_id": entity_id,
+            "entity_type": entity_type,
+            "version": version,
+            "note": "Version restore not yet configured in database"
+        }
 
     async def list_entities(
         self,
@@ -788,7 +844,7 @@ _entity_manager = EntityManager()
 
 async def entity_operation(
     auth_token: str,
-    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive"],
+    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version"],
     entity_type: str,
     data: Optional[Dict[str, Any]] = None,
     filters: Optional[Dict[str, Any]] = None,
@@ -806,7 +862,8 @@ async def entity_operation(
     pagination: Optional[Dict[str, Any]] = None,
     filter_list: Optional[List[Dict[str, Any]]] = None,
     sort_list: Optional[List[Dict[str, Any]]] = None,
-    entity_ids: Optional[List[str]] = None
+    entity_ids: Optional[List[str]] = None,
+    version: Optional[int] = None
 ) -> Dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
@@ -1107,6 +1164,29 @@ async def entity_operation(
             timings["bulk_archive"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
             result["operation"] = "bulk_archive"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "history":
+            if not entity_id:
+                raise ValueError("entity_id is required for history operation")
+            t_op_start = time.time()
+            result = await _entity_manager.get_entity_history(
+                entity_type, entity_id, limit=limit or 20, offset=offset or 0
+            )
+            timings["history"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "restore_version":
+            if not entity_id or version is None:
+                raise ValueError("entity_id and version are required for restore_version operation")
+            t_op_start = time.time()
+            result = await _entity_manager.restore_entity_version(
+                entity_type, entity_id, version
+            )
+            timings["restore_version"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "restore_version"
             return _entity_manager._add_timing_metrics(result, timings)
         
         else:

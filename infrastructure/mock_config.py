@@ -47,7 +47,7 @@ class ServiceConfig:
             "live_domain": os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN"),
             "live_key": os.getenv("WORKOS_API_KEY"),
             "live_client_id": os.getenv("WORKOS_CLIENT_ID"),
-            "mock_user_id": os.getenv("ATOMS_AUTHKIT_MOCK_USER_ID", "mock-user-123"),
+            "mock_user_id": os.getenv("ATOMS_AUTHKIT_MOCK_USER_ID", "12345678-1234-1234-1234-123456789012"),
             "mock_email": os.getenv("ATOMS_AUTHKIT_MOCK_EMAIL", "mock@example.com"),
         }
     

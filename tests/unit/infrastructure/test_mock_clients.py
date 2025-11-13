@@ -68,7 +68,7 @@ class TestInMemoryAuthAdapter:
 
         # Any non-empty string should work in mock mode
         user = await auth.validate_token("arbitrary-token-xyz")
-        assert user["user_id"] == "mock-user-123"
+        assert user["user_id"] == "12345678-1234-1234-1234-123456789012"
         assert user["auth_type"] == "mock_bearer"
 
     @pytest.mark.asyncio

@@ -300,7 +300,7 @@ class TestRequirementSearch:
         # Soft delete
         delete_result, _ = await call_mcp(
             "entity_tool",
-            {"operation": "delete", "entity_type": "requirement", "entity_id": req_id, "hard": False},
+            {"operation": "delete", "entity_type": "requirement", "entity_id": req_id, "soft_delete": True},
         )
         assert delete_result["success"]
 
@@ -344,7 +344,7 @@ class TestRequirementSearch:
         # Hard delete
         delete_result, _ = await call_mcp(
             "entity_tool",
-            {"operation": "delete", "entity_type": "requirement", "entity_id": req_id, "hard": True},
+            {"operation": "delete", "entity_type": "requirement", "entity_id": req_id, "soft_delete": False},
         )
         assert delete_result["success"]
 

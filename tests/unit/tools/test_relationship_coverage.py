@@ -20,7 +20,6 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestRelationshipLinking:
     """Test entity linking operations."""
     
-    @pytest.mark.story("Entity Relationships - User can link entities together")
     async def test_link_basic_entities(self, call_mcp):
         """Test basic entity linking."""
         result, _ = await call_mcp("relationship_tool", {
@@ -39,7 +38,6 @@ class TestRelationshipLinking:
         assert result is not None
         assert isinstance(result, dict)
     
-    @pytest.mark.story("Entity Relationships - User can link entities together")
     async def test_link_with_metadata(self, call_mcp):
         """Test linking entities with relationship metadata."""
         result, _ = await call_mcp("relationship_tool", {

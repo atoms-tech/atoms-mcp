@@ -3,17 +3,17 @@
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║ Epic                          │ Stories │ Complete │ Status      ║
 ╠───────────────────────────────┼─────────┼──────────┼─────────────╣
-║ Organization Management       │       5 │        2 │         ✓○○ ║
-║ Project Management            │       5 │        3 │         ✓○○ ║
-║ Document Management           │       3 │        1 │         ✓○○ ║
+║ Organization Management       │       5 │        0 │         ○○○ ║
+║ Project Management            │       5 │        0 │         ○○○ ║
+║ Document Management           │       3 │        0 │         ○○○ ║
 ║ Requirements Traceability     │       4 │        0 │         ○○○ ║
 ║ Test Case Management          │       2 │        0 │         ○○○ ║
-║ Workspace Navigation          │       6 │        1 │         ✓○○ ║
-║ Entity Relationships          │       4 │        1 │         ✓○○ ║
+║ Workspace Navigation          │       6 │        0 │         ○○○ ║
+║ Entity Relationships          │       4 │        0 │         ○○○ ║
 ║ Search & Discovery            │       7 │        0 │         ○○○ ║
-║ Workflow Automation           │       5 │        1 │         ✓○○ ║
+║ Workflow Automation           │       5 │        0 │         ○○○ ║
 ║ Data Management               │       3 │        0 │         ○○○ ║
 ║ Security & Access             │       4 │        0 │         ○○○ ║
 ╠──────────────────────────────────────────────────────────────────────────────╣
-║ Total: 9/48 user stories complete (18%)                                      ║
+║ Total: 0/48 user stories complete (0%)                                       ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

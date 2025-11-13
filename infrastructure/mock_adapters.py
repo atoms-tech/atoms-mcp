@@ -197,8 +197,9 @@ class InMemoryAuthAdapter(AuthAdapter):
         self._token_counter = 0
         
         # Default mock user (mimics AuthKit user structure)
+        # Use valid UUID format for compatibility with database operations
         self._default_user = default_user or {
-            "user_id": "mock-user-123",
+            "user_id": "12345678-1234-1234-1234-123456789012",
             "email": "mock@example.com",
             "email_verified": True,
             "name": "Mock User",

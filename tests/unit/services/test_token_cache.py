@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 from services.auth.token_cache import TokenCache, get_token_cache, reset_token_cache
 
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.unit]
 
 
 class TestTokenCacheBasic:

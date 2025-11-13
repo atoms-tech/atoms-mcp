@@ -11,7 +11,7 @@ from services.auth.hybrid_auth_provider import (
 )
 
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.unit]
 
 
 class TestHybridAuthProviderInitialization:
