@@ -523,6 +523,9 @@ def create_consolidated_server() -> FastMCP:
         order_by: Optional[str] = None,
         soft_delete: bool = True,
         format_type: str = "detailed",
+        pagination: Optional[dict] = None,
+        filter_list: Optional[list] = None,
+        sort_list: Optional[list] = None,
     ) -> dict:
         """Unified CRUD operations with smart parameter inference and fuzzy matching.
 
@@ -609,6 +612,9 @@ def create_consolidated_server() -> FastMCP:
                 order_by=order_by,
                 soft_delete=soft_delete,
                 format_type=format_type,
+                pagination=pagination,
+                filter_list=filter_list,
+                sort_list=sort_list,
             )
         except Exception as e:
             return {

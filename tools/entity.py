@@ -485,34 +485,124 @@ class EntityManager(ToolBase):
         entity_type: str,
         parent_type: Optional[str] = None,
         parent_id: Optional[str] = None,
-        limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """List entities, optionally filtered by parent."""
-        # Build filters - skip is_deleted for tables that don't have it
+        limit: Optional[int] = None,
+        pagination: Optional[Dict[str, Any]] = None,
+        filters_list: Optional[List[Dict[str, Any]]] = None,
+        sort_list: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """List entities with pagination, filtering, and sorting.
+        
+        Args:
+            entity_type: Type of entity to list
+            parent_type: Optional parent entity type for filtering
+            parent_id: Optional parent entity ID for filtering
+            limit: Legacy limit parameter (for backwards compatibility)
+            pagination: Dict with 'offset' and 'limit' keys
+            filters_list: List of filter dicts with 'field', 'operator', 'value'
+            sort_list: List of sort dicts with 'field' and 'direction'
+        
+        Returns:
+            Dict with results, total, offset, limit, has_more
+        """
+        # Parse pagination
+        offset = 0
+        if pagination:
+            offset = pagination.get("offset", 0)
+            limit = pagination.get("limit", 20)
+        elif limit is None:
+            limit = 20
+        
+        # Enforce limits
+        limit = max(1, min(limit, 100))  # 1-100
+        offset = max(0, offset)
+        
+        # Build base filters - skip is_deleted for tables that don't have it
         table = self._resolve_entity_table(entity_type)
         tables_without_soft_delete = {'test_req', 'properties'}
 
-        filters = {}
+        base_filters = {}
         if table not in tables_without_soft_delete:
-            filters["is_deleted"] = False
+            base_filters["is_deleted"] = False
 
         # Add parent filter
         if parent_type and parent_id:
             parent_key = f"{parent_type}_id"
-            filters[parent_key] = parent_id
+            base_filters[parent_key] = parent_id
 
-        # Safety: Always enforce a maximum limit to prevent oversized responses
-        # Default to 20, max 100 for MCP token limits
-        if limit is None:
-            limit = 20
-        elif limit > 100:
-            limit = 100
+        # Apply additional filters from filters_list
+        if filters_list:
+            for f in filters_list:
+                field = f.get("field")
+                operator = f.get("operator", "eq")
+                value = f.get("value")
+                
+                if not field:
+                    continue
+                
+                # Handle different operators
+                if operator == "eq":
+                    base_filters[field] = value
+                elif operator == "ne":
+                    # Not equal - add to query logic
+                    base_filters[f"{field}_ne"] = value
+                elif operator == "in":
+                    # In list
+                    base_filters[f"{field}_in"] = value if isinstance(value, list) else [value]
+                elif operator == "contains":
+                    # String contains
+                    base_filters[f"{field}_contains"] = value
+                elif operator == "starts_with":
+                    # String starts with
+                    base_filters[f"{field}_starts"] = value
+                elif operator == "gte":
+                    # Greater than or equal
+                    base_filters[f"{field}_gte"] = value
+                elif operator == "lte":
+                    # Less than or equal
+                    base_filters[f"{field}_lte"] = value
+                elif operator == "gt":
+                    # Greater than
+                    base_filters[f"{field}_gt"] = value
+                elif operator == "lt":
+                    # Less than
+                    base_filters[f"{field}_lt"] = value
 
-        return await self.search_entities(
+        # Get total count before pagination
+        total = await self._db_count(table, filters=base_filters)
+
+        # Query with pagination
+        order_by = None
+        if sort_list:
+            # Build order_by from sort list
+            order_clauses = []
+            for sort in sort_list:
+                field = sort.get("field")
+                direction = sort.get("direction", "asc").lower()
+                if field:
+                    order_clauses.append(f"{field}.{direction}")
+            if order_clauses:
+                order_by = ",".join(order_clauses)
+
+        # Execute query
+        results = await self.search_entities(
             entity_type,
-            filters=filters,
-            limit=limit
+            filters=base_filters,
+            limit=limit,
+            offset=offset,
+            order_by=order_by
         )
+
+        # Ensure results is a list
+        if not isinstance(results, list):
+            results = []
+
+        return {
+            "results": results,
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "has_more": (offset + limit) < total
+        }
     
     async def _include_relationships(
         self,
@@ -592,7 +682,10 @@ async def entity_operation(
     offset: Optional[int] = None,
     order_by: Optional[str] = None,
     soft_delete: bool = True,
-    format_type: str = "detailed"
+    format_type: str = "detailed",
+    pagination: Optional[Dict[str, Any]] = None,
+    filter_list: Optional[List[Dict[str, Any]]] = None,
+    sort_list: Optional[List[Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
@@ -783,13 +876,42 @@ async def entity_operation(
 
         elif operation == "list":
             t_op_start = time.time()
+            # Extract pagination, filters, sort from parameters (new API) or data (legacy)
+            pag = pagination
+            filt_list = filter_list
+            srt_list = sort_list
+            
+            if data:
+                # Also check data dict for backwards compatibility
+                pag = pag or data.get("pagination")
+                filt_list = filt_list or data.get("filters")
+                srt_list = srt_list or data.get("sort")
+            
+            # If offset/limit provided, build pagination dict
+            if offset is not None or limit is not None:
+                pag = pag or {}
+                if offset is not None:
+                    pag["offset"] = offset
+                if limit is not None:
+                    pag["limit"] = limit
+            
             result = await _entity_manager.list_entities(
-                entity_type, parent_type, parent_id, limit
+                entity_type,
+                parent_type=parent_type,
+                parent_id=parent_id,
+                limit=limit,
+                pagination=pag,
+                filters_list=filt_list,
+                sort_list=srt_list
             )
             timings["list"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
-            formatted = _entity_manager._format_result(result, format_type)
-            return _entity_manager._add_timing_metrics(formatted, timings)
+            # Result is already a dict with structure, format it appropriately
+            if isinstance(result, dict) and "results" in result:
+                return _entity_manager._add_timing_metrics(result, timings)
+            else:
+                formatted = _entity_manager._format_result(result, format_type)
+                return _entity_manager._add_timing_metrics(formatted, timings)
         
         else:
             raise ValueError(f"Unknown operation: {operation}")

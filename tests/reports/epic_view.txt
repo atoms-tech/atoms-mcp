@@ -2,24 +2,24 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Data Management (3/3) ✓✓✓                                                  ║
+║ 📦 Data Management (2/3) ✓○○                                                  ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can batch create multiple entities                                  ║
-║   ✅ User can paginate through large lists                                    ║
+║   ❌ User can paginate through large lists (1/1 failing)                      ║
 ║   ✅ User can sort results                                                    ║
 ║                                                                              ║
-║ 📦 Document Management (3/3) ✓✓✓                                              ║
+║ 📦 Document Management (2/3) ✓○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create document                                                 ║
-║   ✅ User can list documents                                                  ║
+║   ❌ User can list documents (1/1 failing)                                    ║
 ║   ✅ User can view document                                                   ║
 ║                                                                              ║
 ║ 📦 Entity Relationships (6/6) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can check if entities are related                                   ║
-║   ✅ User can link entities                                                   ║
 ║   ✅ User can link entities together                                          ║
 ║   ✅ User can unlink related entities                                         ║
+║   ✅ User can update relationships                                            ║
 ║   ✅ User can view entity relationships                                       ║
 ║   ✅ User can view related entities                                           ║
 ║                                                                              ║
@@ -30,11 +30,11 @@
 ║   ✅ User can update organization settings                                    ║
 ║   ✅ User can view organization details                                       ║
 ║                                                                              ║
-║ 📦 Project Management (5/5) ✓✓✓                                               ║
+║ 📦 Project Management (4/5) ✓✓○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create a project                                                ║
 ║   ✅ User can delete project                                                  ║
-║   ✅ User can list all projects                                               ║
+║   ❌ User can list all projects (1/1 failing)                                 ║
 ║   ✅ User can update project                                                  ║
 ║   ✅ User can view project details                                            ║
 ║                                                                              ║
@@ -66,27 +66,23 @@
 ║   ✅ User can create test case                                                ║
 ║   ✅ User can view test results                                               ║
 ║                                                                              ║
-║ 📦 Workflow Automation (9/9) ✓✓✓                                              ║
+║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can bulk update statuses                                            ║
 ║   ✅ User can import requirements                                             ║
-║   ✅ User can import requirements via workflow                                ║
 ║   ✅ User can onboard new organization                                        ║
-║   ✅ User can onboard organization                                            ║
 ║   ✅ User can run with transactions                                           ║
-║   ✅ User can run workflows with transactions                                 ║
-║   ✅ User can set up new project workflow                                     ║
 ║   ✅ User can setup project workflow                                          ║
 ║                                                                              ║
-║ 📦 Workspace Navigation (7/7) ✓✓✓                                             ║
+║ 📦 Workspace Navigation (6/7) ✓✓○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can get default context                                             ║
 ║   ✅ User can list workspaces                                                 ║
 ║   ✅ User can switch to document                                              ║
 ║   ✅ User can switch to organization                                          ║
 ║   ✅ User can switch to project                                               ║
-║   ✅ User can view all organizations                                          ║
+║   ❌ User can view all organizations (1/1 failing)                            ║
 ║   ✅ User can view current context                                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 53/53 user stories complete (100%)                                  ║
+║ Overall: 45/49 user stories complete (91%)                                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

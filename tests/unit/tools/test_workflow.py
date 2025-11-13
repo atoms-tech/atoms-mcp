@@ -78,7 +78,7 @@ class TestWorkflowBasic:
         
         assert result is not None, "Should return result"
     
-    @pytest.mark.story("Workflow Automation - User can onboard organization")
+    @pytest.mark.story("Workflow Automation - User can onboard new organization")
     async def test_organization_onboarding_workflow(self, call_mcp):
         """Test organization_onboarding workflow."""
         result, _ = await call_mcp("workflow_tool", {

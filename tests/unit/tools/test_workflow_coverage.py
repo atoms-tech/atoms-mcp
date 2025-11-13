@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 class TestWorkflowSetup:
     """Test setup workflows."""
     
-    @pytest.mark.story("Workflow Automation - User can set up new project workflow")
+    @pytest.mark.story("Workflow Automation - User can setup project workflow")
     async def test_workflow_basic_call(self, call_mcp):
         """Test calling workflow_tool with basic parameters."""
         result, duration = await call_mcp("workflow_tool", {
@@ -36,7 +36,7 @@ class TestWorkflowSetup:
         # May succeed or fail based on setup, but shouldn't crash
         assert isinstance(result, dict)
     
-    @pytest.mark.story("Workflow Automation - User can set up new project workflow")
+    @pytest.mark.story("Workflow Automation - User can setup project workflow")
     async def test_workflow_setup_project_missing_params(self, call_mcp):
         """Test workflow handles missing required parameters."""
         result, _ = await call_mcp("workflow_tool", {
@@ -53,7 +53,7 @@ class TestWorkflowSetup:
 class TestWorkflowImport:
     """Test import workflows."""
     
-    @pytest.mark.story("Workflow Automation - User can import requirements via workflow")
+    @pytest.mark.story("Workflow Automation - User can import requirements")
     async def test_import_requirements_workflow(self, call_mcp):
         """Test importing requirements via workflow."""
         result, _ = await call_mcp("workflow_tool", {
@@ -71,7 +71,7 @@ class TestWorkflowImport:
         assert result is not None
         assert isinstance(result, dict)
     
-    @pytest.mark.story("Workflow Automation - User can import requirements via workflow")
+    @pytest.mark.story("Workflow Automation - User can import requirements")
     async def test_import_requirements_empty_data(self, call_mcp):
         """Test import with empty data."""
         result, _ = await call_mcp("workflow_tool", {
@@ -160,7 +160,7 @@ class TestWorkflowOnboarding:
 class TestWorkflowTransaction:
     """Test transaction mode execution."""
     
-    @pytest.mark.story("Workflow Automation - User can run workflows with transactions")
+    @pytest.mark.story("Workflow Automation - User can run with transactions")
     async def test_workflow_with_transaction_mode(self, call_mcp):
         """Test workflow execution in transaction mode."""
         result, _ = await call_mcp("workflow_tool", {
@@ -174,7 +174,7 @@ class TestWorkflowTransaction:
         
         assert result is not None
     
-    @pytest.mark.story("Workflow Automation - User can run workflows with transactions")
+    @pytest.mark.story("Workflow Automation - User can run with transactions")
     async def test_transaction_rollback_on_error(self, call_mcp):
         """Test that errors in transaction mode trigger rollback."""
         result, _ = await call_mcp("workflow_tool", {
