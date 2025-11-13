@@ -4,16 +4,13 @@
 ╠════════════════════════════════════════════════════════════════════╣
 ║ Layer            │ Unit  │ Integration │  E2E  │ Coverage │ Status║
 ╠──────────────────┼───────┼─────────────┼───────┼──────────┼───────╣
-║ Tools            │ 388 ? │           - │     - │      94% │     ? ║
-║ Infrastructure   │ 349 ? │        30 ✓ │  30 ✓ │      94% │     ? ║
-║ Services         │  99 ? │           - │     - │      96% │     ? ║
-║ Auth             │  55 ✓ │           - │     - │      96% │     ✓ ║
+║ Tools            │   6 ? │           - │     - │      94% │     ? ║
+║ Infrastructure   │     - │           - │     - │      94% │     - ║
+║ Services         │     - │           - │     - │      96% │     - ║
+║ Auth             │     - │           - │     - │      96% │     - ║
 ╠────────────────────────────────────────────────────────────────────╣
 ║ Legend: ✓=Pass  ✗=Fail  ?=Skipped  ⚠️=Below Threshold              ║
 ║                                                                    ║
 ║ Error Distribution:                                                ║
-║   ❓ ASSERTION: 317 errors                                           ║
-║   ❓ INFRASTRUCTURE: 111 errors                                      ║
-║   🐛 PRODUCT: 77 errors                                              ║
-║   ❓ TEST_DATA: 2 errors                                             ║
+║   ❓ ASSERTION: 5 errors                                             ║
 ╚════════════════════════════════════════════════════════════════════╝

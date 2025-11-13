@@ -1,7 +1,20 @@
 """Core entity tool tests - Parametrized CRUD operations.
 
-This module contains parametrized tests that run across all entity types.
-Entity-specific tests are in dedicated modules (test_entity_organization.py, etc.)
+This module contains parametrized tests that run across all entity types:
+- CREATE operations with various scenarios
+- READ operations with parametrization
+- SEARCH operations with filters and ordering
+- BATCH operations for multi-entity actions
+- FORMAT TYPE handling (detailed, summary)
+- ERROR CASES (missing fields, invalid types)
+
+Basic operations (search, archive/restore, list filtering, bulk) are in:
+  test_entity_basic_operations.py
+
+Entity-specific tests are in dedicated modules:
+  test_entity_organization.py, test_entity_project.py, etc.
+
+Consolidated from: test_working_extension.py (basic operations moved to test_entity_basic_operations.py)
 
 Run with: pytest tests/unit/tools/test_entity_core.py -v
 """
@@ -331,3 +344,4 @@ class TestErrorCases:
             success = result.get("success", False)
 
         assert not success, "Should fail with invalid entity type"
+
