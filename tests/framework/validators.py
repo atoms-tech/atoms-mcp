@@ -66,7 +66,7 @@ class FieldValidator:
             from datetime import datetime
             datetime.fromisoformat(value.replace('Z', '+00:00'))
             return True
-        except:
+        except Exception:
             return False
 
     @staticmethod
@@ -79,7 +79,7 @@ class FieldValidator:
             if max_val is not None and num > max_val:
                 return False
             return True
-        except:
+        except Exception:
             return False
 
     @staticmethod
@@ -92,13 +92,13 @@ class FieldValidator:
         """
         if not isinstance(response, dict):
             return None
-        
+
         # Direct id field
         if "id" in response:
             return response["id"]
-        
+
         # Nested in data
         if "data" in response and isinstance(response["data"], dict):
             return response["data"].get("id")
-        
+
         return None

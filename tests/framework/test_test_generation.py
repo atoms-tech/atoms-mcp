@@ -8,10 +8,10 @@ This template shows how to convert unit tests to run in all 3 modes:
 Copy this pattern to other test files to add 3-variant coverage.
 
 Usage:
-    pytest tests/framework/test_template_parametrized.py -v
-    pytest tests/framework/test_template_parametrized.py -m unit -v
-    pytest tests/framework/test_template_parametrized.py -m integration -v
-    pytest tests/framework/test_template_parametrized.py -m e2e -v
+    pytest tests/framework/test_test_generation.py -v
+    pytest tests/framework/test_test_generation.py -m unit -v
+    pytest tests/framework/test_test_generation.py -m integration -v
+    pytest tests/framework/test_test_generation.py -m e2e -v
 """
 
 import pytest
