@@ -1735,12 +1735,20 @@ async def entity_operation(
             )
             timings["list"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
-            # Result is already a dict with structure, format it appropriately
+            
+            # Format result consistently with other operations
+            # list_entities returns {results, total, offset, limit, has_more}
+            # We need to wrap it in {success: true, data: ...} format for consistency
             if isinstance(result, dict) and "results" in result:
-                return _entity_manager._add_timing_metrics(result, timings)
+                # Result is already a paginated structure, preserve it as data
+                formatted = {
+                    "success": True,
+                    "data": result["results"] if result["results"] else [],
+                    **{k: v for k, v in result.items() if k != "results"}
+                }
             else:
                 formatted = _entity_manager._format_result(result, format_type)
-                return _entity_manager._add_timing_metrics(formatted, timings)
+            return _entity_manager._add_timing_metrics(formatted, timings)
         
         elif operation == "bulk_update":
             if entity_ids is None or data is None:
