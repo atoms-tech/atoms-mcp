@@ -1,206 +1,175 @@
-# WARP.md
+# Warp Usage Guide
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+Warp is the primary terminal UX for operating on this repo. Use it with a tight, automated SWE loop.
 
-## Project Overview
+**Authority**
+- The FastMCP Canonical Contract lives in `llms-full.txt`. Treat `llms-full.txt` as final override for any FastMCP behavior. This file reflects repo-specific mandates (llms-full.txt §16–17). Refer to `llms-full.txt` for anything FastMCP-fundamental.
 
-The **Atoms FastMCP Server** is a Python-based MCP (Model Context Protocol) server providing comprehensive access to the Atoms API domains. It's built with FastMCP 2.12+ and integrates with Supabase for data persistence and WorkOS AuthKit for OAuth 2.0 authentication.
+## 1. Environment & Tooling
 
-**Key Characteristics:**
-- **Authentication-first**: All operations require explicit authentication via session tokens
-- **Consolidated tool architecture**: Five high-level tools replace granular API endpoints  
-- **Dual deployment modes**: STDIO (development) and HTTP (production/serverless)
-- **Serverless-optimized**: Stateless HTTP mode for Vercel deployment with session persistence
+- Always start sessions by activating the virtualenv:
+  - `source .venv/bin/activate`
+- Prefer `uv` for Python execution and dependency tasks:
+  - `uv run python app.py`
+  - `uv run pytest`
+  - `uv pip install <pkg>` (when modifications are explicitly required)
+- Use existing Typer/CLI entrypoints ("atoms" CLIs) and scripts instead of ad-hoc commands.
 
-## Essential Commands
+## 2. File Size & Modularity Mandate (Critical)
 
-### Development & Testing
+**Hard constraint: All modules must stay ≤500 lines; target ≤350 lines.**
 
-```bash
-# Start development server (STDIO mode)
-python -m atoms_mcp-old
+- **Before adding features**, check the affected file's current line count.
+- **If a file approaches 350+ lines**, decompose it immediately:
+  - Extract cohesive responsibilities into separate modules.
+  - Use clear, narrow interfaces between pieces.
+  - Update imports in callers; test decomposition with `uv run pytest`.
+- **Patterns for decomposition:**
+  - Domain logic → new `services/` module
+  - Adapters/clients → new `infrastructure/` module
+  - Tool orchestration → keep in `tools/` but split by feature
+  - Shared helpers → new `utils/` or domain-specific submodules
+  - Tests stay close to code; mirror structure in `tests/`
 
-# Start HTTP server for testing
-ATOMS_FASTMCP_TRANSPORT=http ATOMS_FASTMCP_PORT=8000 python -m atoms_mcp-old
+**Example:** If `services/embedding_factory.py` exceeds 350 lines, split into:
+- `services/embedding/factory.py` (core logic)
+- `services/embedding/cache.py` (caching)
+- `services/embedding/__init__.py` (public API)
 
-# Start with local services (MCP + Cloudflare tunnel)
-python -m atoms_mcp-old --local
+This keeps complexity bounded and makes reviewing/testing straightforward.
 
-# Run comprehensive test suite
-pytest tests/ -v -s
+**Aggressive Change Policy (CRITICAL):**
+- **Avoid ANY backwards compatibility shims, legacy fallbacks, or gentle migrations.**
+- **When refactoring, update ALL callers and code paths simultaneously.** No partial migrations.
+- **Remove old code entirely.** Don't leave conditional branches for "transition periods."
+- **This ensures clarity, performance, and zero technical debt accumulation from migration cruft.**
 
-# Run specific test categories
-pytest tests/test_integration_workflows.py -v -s        # End-to-end workflows
-pytest tests/test_error_handling.py -v -s              # Error scenarios
-pytest tests/test_performance.py -v -s                 # Performance benchmarks
+## 3. Recommended Warp Workflows
 
-# Run individual tool tests
-pytest tests/test_entity_tool_comprehensive.py -v -s
-pytest tests/test_workspace_tool_comprehensive.py -v -s
-pytest tests/test_query_tool_comprehensive.py -v -s
-pytest tests/test_relationship_tool.py -v -s
-pytest tests/test_workflow_tool_comprehensive.py -v -s
+Create reusable Warp commands/snippets for:
 
-# Generate test reports
-./tests/run_integration_tests.sh                       # Full integration suite with coverage
+- Quick status & line checks
+  - `git status`
+  - `uv run pytest -q`
+  - `rg --line-number "^" <file> | tail -1` (check line count)
+
+- Focused test runs
+  - `uv run pytest tests/unit`
+  - `uv run pytest tests/integration`
+  - `uv run pytest tests/e2e`
+
+- Lint/type checks (if configured)
+  - `uv run ruff check`
+  - `uv run mypy`
+
+- Local MCP/HTTP server
+  - `uv run python app.py`
+  - `uv run python server.py`
+
+Ensure Warp commands assume the venv is active and never hard-code secrets; rely on `.env`/env vars.
+
+## 4. Operational Loop in Warp
+
+For any debugging or change session executed via Warp:
+1. **Review**: read the failure/requirement, inspect relevant code and tests.
+2. **Research**: use `rg`, `uv run`, and FastMCP docs (llms-full.txt) as needed.
+3. **Plan**: jot a brief plan (in notes or comments), then execute directly.
+4. **Execute**: small, reviewable changes matching existing patterns.
+5. **Size-check**: if any edited file nears 350 lines, plan decomposition.
+6. **Identify all callers/dependencies** before proposing changes—no partial updates.
+7. **Test**: use `uv run pytest` (targeted first, then broader if needed).
+8. **Test naming**: when creating test files, ensure **canonical naming** (concern-based, not speed/variant-based). See CLAUDE.md § 3.1.
+
+## 5. Test File Naming Convention (Canonical Standard)
+
+**Critical**: Test file names must describe **what's being tested**, not how it's tested.
+
+### **Examples**
+
+✅ **Good (canonical - concern-based):**
+```
+test_entity.py                 # Tests the entity tool
+test_entity_validation.py      # Tests entity validation (specific concern)
+test_auth_supabase.py          # Tests Supabase auth integration
+test_relationship_member.py    # Tests member relationship type
 ```
 
-### Deployment
-
-```bash
-# Vercel deployment (uses app.py)
-# Automatically uses stateless_http=True for serverless compatibility
-
-# Health check endpoints
-curl http://localhost:8000/health                      # Local development
-curl https://your-domain.com/health                    # Production
+❌ **Bad (metadata-based - avoid):**
+```
+test_entity_fast.py            # "fast" is performance trait, not content
+test_entity_unit.py            # "unit" is execution scope, not content
+test_auth_v2.py                # Versioning belongs in git history, not names
+test_relationship_final.py     # "final" adds no semantic info
+test_api_integration.py        # File is already in tests/; "integration" belongs in fixtures
 ```
 
-## High-Level Architecture
+### **Why This Matters**
 
-### Core Tool Structure
+1. **Prevents accidental test duplication**: If two files have same name pattern, they should probably be merged
+2. **Enables auto-discovery**: Maintainers can scan test/ directory and understand what's covered at a glance
+3. **Supports intelligent consolidation**: When refactoring, canonical names highlight redundancy
+4. **Reduces directory clutter**: No `_old`, `_new`, `_backup`, `_test`, `_draft` suffixes
 
-The server provides **5 consolidated tools** that abstract away the underlying 80+ granular API endpoints:
+### **When to Consolidate Test Files**
 
-1. **`workspace_operation`** - Organization and project management, member operations
-2. **`entity_operation`** - CRUD operations for documents, requirements, properties, etc.
-3. **`relationship_operation`** - Trace links and entity relationships
-4. **`workflow_execute`** - Multi-step business processes with transaction support
-5. **`data_query`** - Advanced search, filtering, and semantic queries
+Ask these questions about test files with overlapping concerns:
 
-### Authentication Flow
+**Q1: Do they test the same component?**
+- Yes → Merge into single canonical file
+- No → Go to Q2
 
-**Development Mode:**
-- Uses demo credentials (`FASTMCP_DEMO_USER`/`FASTMCP_DEMO_PASS`)
-- In-memory session storage
+**Q2: Do they use different clients/fixtures?**
+- Yes → Use `@pytest.fixture(params=[...])` parametrization in single file
+- No → Go to Q3
 
-**Production Mode:**
-- OAuth 2.0 PKCE + Dynamic Client Registration (DCR) via WorkOS AuthKit
-- Session persistence via Supabase `mcp_sessions` table
-- Stateless serverless deployment support
+**Q3: Are they different test types (slow performance vs quick unit)?**
+- Yes → Use `@pytest.mark.performance` or similar; keep in one file
+- No → Go to Q4
 
-### Key Architectural Patterns
+**Q4: Do they test genuinely different subsystems?**
+- Yes → Split by subsystem concern, not by speed/variant
+- No → Merge them; likely duplicate
 
-**Adapter Pattern (`infrastructure/`):**
-- `SupabaseDatabaseAdapter` - Database operations with RLS
-- `SupabaseAuthAdapter` - Authentication and user management  
-- `SupabaseStorageAdapter` - File storage operations
-- `factory.py` - Dependency injection container
+### **Example: How We Fixed test_relationship.py**
 
-**Tool Base Class (`tools/base.py`):**
-- Common authentication validation
-- Database query abstractions
-- Entity sanitization (prevents token overflow)
-- Error normalization
+**Problem State:**
+- File: 3,245 lines, 14 test classes
+- Issue: 3-variant structure (unit/integration/e2e) with redundant test code
+- Result: "too many open files" errors, slow collection, hard to maintain
 
-**Session Management (`auth/`):**
-- `SessionMiddleware` - ASGI middleware for stateless session handling
-- `session_manager.py` - Supabase-backed session persistence
-- `persistent_authkit_provider.py` - Custom FastMCP auth provider
+**Refactoring:**
+- Removed 3-variant duplication (kept unit tests only via fixtures)
+- Simplified to canonical form (focused on core relationship tool functionality)
+- Reduced to 228 lines
 
-### Response Serialization
+**Outcome:**
+- ✅ 93% size reduction
+- ✅ No file handle errors
+- ✅ Faster collection
+- ✅ Clearer test purposes
+- ✅ Fewer tests (13 passing, all valuable)
 
-All tool responses are **automatically converted to Markdown** for optimal readability and token efficiency:
-- Structured data becomes tables and lists
-- Success/error states get clear visual indicators (✅/❌)
-- Large objects are sanitized to prevent context overflow
+**Key insight**: Fewer, well-named tests > many redundant tests
+   - Ensure ALL tests pass after changes—no "partial migration" status.
+   - Verify no legacy code paths remain after refactoring.
+8. **Polish**: adjust naming, logs, and structure for clarity.
+9. **Repeat**: continue until clean; do not pause for manual confirmation unless blocked.
 
-## Critical Implementation Details
+## 5. Safety Practices
 
-### Serverless Deployment Fixes
+- Never commit from Warp without reviewing `git diff` and `git status`.
+- Check for secrets before committing.
+- Avoid global/system-level changes; keep all actions scoped to this repo.
+- Verify line counts and modularity before committing large changes.
 
-The codebase includes specific patches for Vercel serverless deployment:
+## 6. Repo-Specific Architecture Mandates (from llms-full.txt §16)
 
-- **Task Group Patching** (`app.py`): Monkey-patches `StreamableHTTPSessionManager` to handle serverless execution contexts
-- **Stateless HTTP Mode**: `stateless_http=True` prevents FastMCP from maintaining persistent connections
-- **Session Persistence**: Uses Supabase instead of in-memory storage for OAuth sessions
+- Server: single consolidated FastMCP in `server.py`; no parallel servers.
+- ASGI export: always `app = mcp.http_app(path="/api/mcp", stateless_http=True)` via `app.py`.
+- Auth provider: use repo's hybrid auth pattern; avoid per-platform hard-codes.
+- Tool design: business logic in `services/`; orchestrate only in `tools/`.
+- Adapters: go through `infrastructure/`; never bypass DB/auth/storage.
+- Tests: run via `uv run pytest`; use FastMCP client In-Memory for unit tests.
+- **File size: keep all modules ≤500 lines (target ≤350) to maintain clarity and testability.**
 
-### Database Context Management
-
-**Row Level Security (RLS):** All database operations automatically set the user's access token on the Supabase client, ensuring `auth.uid()` returns the correct user ID for RLS policies.
-
-**Transaction Support:** The `workflow_execute` tool supports explicit transaction management with rollback capabilities for multi-step operations.
-
-### Performance Optimizations
-
-- **Entity Sanitization**: Large fields (embeddings, nested structures) are automatically stripped from responses
-- **Batch Operations**: Bulk import/update operations handle 100+ items efficiently 
-- **Semantic Search**: Vector embedding integration for intelligent content discovery
-
-## Environment Configuration
-
-### Required (Supabase)
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
-
-### Required (OAuth Production)
-```bash
-FASTMCP_SERVER_AUTH=fastmcp.server.auth.providers.workos.AuthKitProvider
-FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN=your-authkit-domain
-FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL=your-public-server-url
-WORKOS_API_KEY=your-workos-api-key  
-WORKOS_CLIENT_ID=your-workos-client-id
-```
-
-### Optional (Development)
-```bash
-FASTMCP_DEMO_USER=test-user
-FASTMCP_DEMO_PASS=test-password
-ATOMS_FASTMCP_TRANSPORT=http|stdio
-ATOMS_FASTMCP_PORT=8000
-```
-
-## Common Patterns
-
-### Error Handling
-All tools use the `normalize_error()` function to provide consistent, informative error messages. Authentication failures, validation errors, and database constraints are handled gracefully with appropriate HTTP status codes.
-
-### Tool Parameter Structure
-Each consolidated tool accepts:
-- `session_token` (required) - Authentication token
-- `operation` (required) - Specific operation to perform
-- `params` (optional) - Operation-specific parameters
-- `context` (optional) - Additional context for the operation
-
-### Testing Patterns
-The test suite follows a comprehensive matrix approach:
-- **Unit tests** for individual tool operations
-- **Integration tests** for end-to-end workflows
-- **Performance tests** with realistic load scenarios
-- **Error handling tests** for edge cases and failures
-
-## Troubleshooting
-
-### Common Issues
-
-**OAuth/CORS Errors:**
-- Verify `AUTHKIT_DOMAIN` is correct: `curl https://your-domain/.well-known/oauth-authorization-server`
-- Ensure Dynamic Client Registration is enabled in WorkOS Dashboard
-- Check CORS configuration in Vercel deployment settings
-
-**Session Issues:**
-- Sessions are stored in `mcp_sessions` Supabase table
-- Session tokens include Supabase JWT for RLS context
-- Clear sessions: `DELETE FROM mcp_sessions WHERE expires_at < NOW()`
-
-**Performance Issues:**
-- Large entity responses are auto-sanitized
-- Use `data_query` tool with filters instead of fetching all records
-- Monitor embedding generation with `scripts/check_embedding_status.py`
-
-### Debug Commands
-
-```bash
-# View server logs
-tail -f /tmp/atoms_mcp.log
-
-# Test authentication
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/mcp
-
-# Check Supabase connection
-python -c "from infrastructure.factory import get_adapters; print(get_adapters()['database'])"
-```
-
-This codebase is designed for AI-assisted development workflows, with clear separation of concerns, comprehensive test coverage, and robust error handling patterns.
+Configure Warp so the canonical flows are a keystroke away, aligned with this guide and the full contract in `llms-full.txt`.
