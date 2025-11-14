@@ -15,7 +15,7 @@ import uuid
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.unit]
 
 
 @pytest.mark.skip(reason="setup_project workflow operation not fully implemented")
@@ -23,6 +23,7 @@ class TestWorkflowSetup:
     """Test setup workflows."""
     
     @pytest.mark.story("Workflow Automation - User can set up new project workflow")
+    @pytest.mark.asyncio
     async def test_workflow_basic_call(self, call_mcp):
         """Test calling workflow_tool with basic parameters."""
         result, duration = await call_mcp("workflow_tool", {
