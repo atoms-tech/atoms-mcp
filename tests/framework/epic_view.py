@@ -78,7 +78,11 @@ class EpicView:
             return False, "No matching tests found"
     
     def render(self) -> str:
-        """Generate epic-based PM view ASCII art."""
+        """Generate epic-based PM view ASCII art.
+        
+        Uses mapper as primary source (all defined stories) with discovered markers
+        as supplementary validation.
+        """
         lines = []
         
         # Header
@@ -89,133 +93,60 @@ class EpicView:
         total_stories = 0
         total_complete = 0
         
-        # First, collect all stories from the collector's marker data
-        all_stories_from_markers = set(self.collector.get_all_stories())
-        
-        # If we have stories from markers, use them grouped by marker prefix
-        if all_stories_from_markers:
-            # Group stories by their epic (prefix before " - ")
-            stories_by_epic = {}
-            for story in sorted(all_stories_from_markers):
-                # Try to extract epic from story string (format: "Epic Name - User story")
-                parts = story.split(" - ", 1)
-                if len(parts) == 2:
-                    epic, story_text = parts
-                else:
-                    epic = "Other"
-                    story_text = story
-                
-                if epic not in stories_by_epic:
-                    stories_by_epic[epic] = []
-                stories_by_epic[epic].append(story)
+        # Use mapper as primary source for all stories (both marked and unmapped)
+        for epic in self.mapper.get_epics():
+            stories = self.mapper.get_stories_for_epic(epic)
             
-            # Render epics with their stories
-            for epic in sorted(stories_by_epic.keys()):
-                stories = sorted(stories_by_epic[epic])
+            if not stories:
+                continue
+            
+            # Count completed stories in this epic
+            complete_count = sum(1 for story in stories if self.is_story_passing(story)[0])
+            total_count = len(stories)
+            
+            total_stories += total_count
+            total_complete += complete_count
+            
+            # Epic status
+            completion_pct = complete_count / total_count if total_count else 0
+            if completion_pct == 1.0:
+                epic_status = "✓✓✓"
+            elif completion_pct >= 0.7:
+                epic_status = "✓✓○"
+            elif completion_pct > 0:
+                epic_status = "✓○○"
+            else:
+                epic_status = "○○○"
+            
+            # Epic header
+            lines.append("║" + " "*78 + "║")
+            epic_line = f"📦 {epic} ({complete_count}/{total_count}) {epic_status}"
+            lines.append("║ " + epic_line + " "*(77 - len(epic_line)) + "║")
+            lines.append("║" + "─"*78 + "║")
+            
+            # Show individual user stories with reasons
+            for story in stories:
+                is_passing, reason = self.is_story_passing(story)
+                status = "✅" if is_passing else "❌"
                 
-                # Count completed stories
-                complete_count = sum(1 for story in stories if self.is_story_passing(story)[0])
-                total_count = len(stories)
-                
-                total_stories += total_count
-                total_complete += complete_count
-                
-                # Epic status
-                completion_pct = complete_count / total_count if total_count else 0
-                if completion_pct == 1.0:
-                    epic_status = "✓✓✓"
-                elif completion_pct >= 0.7:
-                    epic_status = "✓✓○"
-                elif completion_pct > 0:
-                    epic_status = "✓○○"
+                # Truncate story if too long
+                max_story_len = 50
+                if len(story) > max_story_len:
+                    story_display = story[:max_story_len-3] + "..."
                 else:
-                    epic_status = "○○○"
+                    story_display = story
                 
-                # Epic header
-                lines.append("║" + " "*78 + "║")
-                epic_line = f"📦 {epic} ({complete_count}/{total_count}) {epic_status}"
-                lines.append("║ " + epic_line + " "*(77 - len(epic_line)) + "║")
-                lines.append("║" + "─"*78 + "║")
-                
-                # Show individual user stories
-                for story in stories:
-                    is_passing, reason = self.is_story_passing(story)
-                    status = "✅" if is_passing else "❌"
-                    
-                    # Extract just the story text (remove epic prefix)
-                    story_display = story.split(" - ", 1)[-1]
-                    
-                    # Truncate if too long
-                    max_story_len = 50
-                    if len(story_display) > max_story_len:
-                        story_display = story_display[:max_story_len-3] + "..."
-                    
-                    # Add reason if needed
-                    if not is_passing or "skipped" in reason or "failing" in reason:
-                        story_line = f"  {status} {story_display} ({reason})"
-                    else:
-                        story_line = f"  {status} {story_display}"
-                    
-                    # Truncate full line if too long
-                    if len(story_line) > 76:
-                        story_line = story_line[:73] + "..."
-                    
-                    lines.append("║ " + story_line + " "*(77 - len(story_line)) + "║")
-        else:
-            # Fall back to mapper-based stories
-            for epic in self.mapper.get_epics():
-                stories = self.mapper.get_stories_for_epic(epic)
-                
-                if not stories:
-                    continue
-                
-                # Count completed stories in this epic
-                complete_count = sum(1 for story in stories if self.is_story_passing(story)[0])
-                total_count = len(stories)
-                
-                total_stories += total_count
-                total_complete += complete_count
-                
-                # Epic status
-                completion_pct = complete_count / total_count if total_count else 0
-                if completion_pct == 1.0:
-                    epic_status = "✓✓✓"
-                elif completion_pct >= 0.7:
-                    epic_status = "✓✓○"
-                elif completion_pct > 0:
-                    epic_status = "✓○○"
+                # Add reason if not passing or if there are warnings
+                if not is_passing or "skipped" in reason or "failing" in reason:
+                    story_line = f"  {status} {story_display} ({reason})"
                 else:
-                    epic_status = "○○○"
+                    story_line = f"  {status} {story_display}"
                 
-                # Epic header
-                lines.append("║" + " "*78 + "║")
-                epic_line = f"📦 {epic} ({complete_count}/{total_count}) {epic_status}"
-                lines.append("║ " + epic_line + " "*(77 - len(epic_line)) + "║")
-                lines.append("║" + "─"*78 + "║")
+                # Truncate full line if too long
+                if len(story_line) > 76:
+                    story_line = story_line[:73] + "..."
                 
-                # Show individual user stories with reasons
-                for story in stories:
-                    is_passing, reason = self.is_story_passing(story)
-                    status = "✅" if is_passing else "❌"
-                    
-                    # Truncate story if too long
-                    max_story_len = 50
-                    if len(story) > max_story_len:
-                        story_display = story[:max_story_len-3] + "..."
-                    else:
-                        story_display = story
-                    
-                    # Add reason if not passing or if there are warnings
-                    if not is_passing or "skipped" in reason or "failing" in reason:
-                        story_line = f"  {status} {story_display} ({reason})"
-                    else:
-                        story_line = f"  {status} {story_display}"
-                    
-                    # Truncate full line if too long
-                    if len(story_line) > 76:
-                        story_line = story_line[:73] + "..."
-                    
-                    lines.append("║ " + story_line + " "*(77 - len(story_line)) + "║")
+                lines.append("║ " + story_line + " "*(77 - len(story_line)) + "║")
         
         # Summary
         lines.append("╠" + "═"*78 + "╣")
@@ -241,6 +172,10 @@ class EpicView:
         
         for epic in self.mapper.get_epics():
             stories = self.mapper.get_stories_for_epic(epic)
+            
+            if not stories:
+                continue
+            
             complete_count = sum(1 for story in stories if self.is_story_passing(story)[0])
             total_count = len(stories)
             
