@@ -99,7 +99,16 @@ async def mcp_client_http(test_server):
         - Validates authentication and middleware
         - Real-world performance characteristics
     """
-    server_url = "http://127.0.0.1:8000/api/mcp"
+    import os
+    
+    # Use deployed mcpdev target if available, otherwise fall back to local
+    base_url = os.getenv("MCP_INTEGRATION_BASE_URL", "http://127.0.0.1:8000/api/mcp")
+    
+    # If explicitly set to use mcpdev, use it directly (no need for local test_server)
+    if "mcpdev.atoms.tech" in base_url:
+        server_url = base_url
+    else:
+        server_url = base_url
 
     # Create client with proper configuration
     async with Client(server_url, timeout=10.0) as client:

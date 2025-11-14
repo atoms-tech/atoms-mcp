@@ -67,7 +67,7 @@ async def full_deployment():
 async def end_to_end_client(full_deployment):
     """E2E-ready MCP client with full authentication.
     
-    This client simulates production deployment with:
+    This client connects to the deployed mcpdev.kooshapari.com instance with:
     - Real authentication tokens
     - Production configuration
     - Full middleware stack
@@ -79,22 +79,15 @@ async def end_to_end_client(full_deployment):
             result = await end_to_end_client.call_tool(...)
             assert result.success
     """
-    server, http_client, db = full_deployment
-
-    # Return client that simulates real E2E behavior
-    client = http_client
-
-    # Configure client for E2E testing
-    client._config = {
-        "timeout": 30.0,
-        "retry_attempts": 3,
-        "production_mode": True,
-    }
-
-    # Simulate authentication
-    client._auth_token = "e2e-test-token-" + uuid.uuid4().hex[:16]
-
-    yield client
+    import os
+    from fastmcp import Client
+    
+    # Get deployment URL from environment or use mcpdev default
+    deployment_url = os.getenv("MCP_E2E_BASE_URL", "https://mcpdev.atoms.tech/api/mcp")
+    
+    # Create real HTTP client pointing to deployed instance
+    async with Client(deployment_url, timeout=30.0) as client:
+        yield client
 
 
 @pytest_asyncio.fixture
