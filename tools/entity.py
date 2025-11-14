@@ -35,14 +35,14 @@ except ImportError:
 
 # Import from extracted modules
 try:
-    from .entity.schemas import get_entity_schema
-    from .entity.validators import validate_required_fields, is_uuid_format, validate_entity_data
-    from .entity.utils import slugify
+    from .entity_modules.schemas import get_entity_schema
+    from .entity_modules.validators import validate_required_fields, is_uuid_format, validate_entity_data
+    from .entity_modules.utils import slugify
 except ImportError:
     # Fallback for tests/other imports
-    from entity.schemas import get_entity_schema
-    from entity.validators import validate_required_fields, is_uuid_format, validate_entity_data
-    from entity.utils import slugify
+    from entity_modules.schemas import get_entity_schema
+    from entity_modules.validators import validate_required_fields, is_uuid_format, validate_entity_data
+    from entity_modules.utils import slugify
 
 
 # Legacy alias for backward compatibility during refactoring
@@ -135,16 +135,7 @@ class EntityManager(ToolBase):
     
     def _validate_required_fields(self, entity_type: str, data: Dict[str, Any]) -> None:
         """Validate that required fields are present."""
-        schema = self._get_entity_schema(entity_type)
-        required = schema.get("required_fields", [])
-        auto_fields = schema.get("auto_fields", [])
-        
-        # Exclude auto-generated fields from validation
-        required_non_auto = [field for field in required if field not in auto_fields]
-        
-        missing = [field for field in required_non_auto if field not in data]
-        if missing:
-            raise ValueError(f"Missing required fields for {entity_type}: {missing}")
+        validate_required_fields(entity_type, data)
     
     async def _resolve_smart_defaults(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Resolve smart defaults like 'auto' for organization_id."""
