@@ -81,6 +81,9 @@ class TestConcurrencyBasics:
             manager.execute_with_lock("resource1", long_operation, timeout=5.0)
         )
         
+        # Give the long task time to acquire the lock
+        await asyncio.sleep(0.1)
+        
         # Try to acquire same lock with short timeout
         with pytest.raises(asyncio.TimeoutError):
             await manager.execute_with_lock("resource1", quick_operation, timeout=0.5)
@@ -526,17 +529,19 @@ class TestConcurrencyManagerEdgeCases:
         manager = ConcurrencyManager()
         
         # Create transaction
-        await manager.execute_transaction(operations=[
-            asyncio.create_task(lambda: "result")
-        ])
+        async def operation1():
+            return "result"
+        
+        await manager.execute_transaction(operations=[operation1])
         
         # Check cleanup doesn't break functionality
         await manager.cleanup()
         
         # Should still work after cleanup
-        result = await manager.execute_transaction(operations=[
-            asyncio.create_task(lambda: "new_result")
-        ])
+        async def operation2():
+            return "new_result"
+        
+        result = await manager.execute_transaction(operations=[operation2])
         
         assert result["success"] is True
     

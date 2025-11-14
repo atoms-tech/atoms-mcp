@@ -213,6 +213,8 @@ class PermissionManager:
 
             return permission
 
+        except ValueError:
+            raise
         except Exception as e:
             logger.error(f"Error granting permission: {e}")
             raise normalize_error(e, "Operation failed")

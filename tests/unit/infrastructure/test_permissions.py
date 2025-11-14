@@ -15,9 +15,8 @@ from infrastructure.permissions import (
 pytestmark = [pytest.mark.unit]
 
 
-@pytest.mark.asyncio
-class TestPermissionBasics:
-    """Test basic permission functionality."""
+class TestPermissionContextCreation:
+    """Test creating permission contexts."""
     
     def test_user_context_creation(self):
         """Test creating user context."""
@@ -47,6 +46,11 @@ class TestPermissionBasics:
         assert resource.workspace_id == "ws1"
         assert resource.entity_id == "doc123"
         assert resource.owner_id == "user123"
+
+
+@pytest.mark.asyncio
+class TestPermissionBasics:
+    """Test basic permission functionality."""
     
     async def test_system_admin_bypass(self):
         """Test system admin bypasses all permission checks."""

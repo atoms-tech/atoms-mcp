@@ -215,8 +215,7 @@ class AdvancedFeaturesAdapter:
 
             result = await self.db.insert(
                 "export_jobs",
-                job_data,
-                return_inserted=True
+                job_data
             )
             return result
         except Exception as e:
@@ -318,8 +317,7 @@ class AdvancedFeaturesAdapter:
 
             result = await self.db.insert(
                 "import_jobs",
-                job_data,
-                return_inserted=True
+                job_data
             )
             return result
         except Exception as e:
@@ -458,8 +456,7 @@ class AdvancedFeaturesAdapter:
 
             result = await self.db.insert(
                 "entity_permissions",
-                permission_data,
-                return_inserted=True
+                permission_data
             )
             return result
         except Exception as e:

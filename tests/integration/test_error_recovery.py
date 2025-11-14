@@ -11,7 +11,7 @@ This test suite validates error handling, edge cases, and failure scenarios:
 - Permission errors
 - Transaction rollback scenarios
 
-Run with: pytest tests/test_error_handling.py -v -s
+Run with: pytest tests/integration/test_error_recovery.py -v -s
 """
 
 from __future__ import annotations
@@ -22,21 +22,22 @@ from typing import Any, Dict
 
 import httpx
 import pytest
+import pytest_asyncio
 
 MCP_BASE_URL = os.getenv("ATOMS_FASTMCP_BASE_URL", "http://127.0.0.1:8000")
 MCP_PATH = os.getenv("ATOMS_FASTMCP_HTTP_PATH", "/api/mcp")
 TEST_EMAIL = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
 TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.error_handling]
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 
 
-@pytest.fixture(scope="module")
-def mcp_client(check_server_running, shared_supabase_jwt):
-    """Return MCP client helper."""
+@pytest_asyncio.fixture
+async def mcp_client_helper(integration_auth_token):
+    """Return async MCP client helper that uses HTTP transport."""
     base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
     headers = {
-        "Authorization": f"Bearer {shared_supabase_jwt}",
+        "Authorization": f"Bearer {integration_auth_token}",
         "Content-Type": "application/json",
     }
 
@@ -82,10 +83,7 @@ def mcp_client(check_server_running, shared_supabase_jwt):
 class TestAuthenticationErrors:
     """Test authentication and authorization error handling."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_missing_auth_token(self, check_server_running):
+    async def test_missing_auth_token(self):
         """Test request without authentication token."""
         base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
         payload = {
@@ -109,12 +107,10 @@ class TestAuthenticationErrors:
                 body = response.json()
                 result = body.get("result", {})
                 assert result.get("success") is False, "Should fail without auth token"
-                assert "authorization" in result.get("error", "").lower() or "auth" in result.get("error", "").lower()
+                error_msg = result.get("error", "").lower()
+                assert "authorization" in error_msg or "auth" in error_msg
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_invalid_auth_token(self, check_server_running):
+    async def test_invalid_auth_token(self):
         """Test request with invalid authentication token."""
         base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
         payload = {
