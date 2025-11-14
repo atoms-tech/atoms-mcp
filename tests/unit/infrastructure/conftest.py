@@ -13,6 +13,17 @@ from typing import Dict
 
 
 @pytest.fixture
+def call_mcp(request):
+    """Fixture that skips tests requiring MCP client.
+    
+    Infrastructure tests should not depend on MCP tools - this fixture
+    ensures such tests are properly skipped with a clear reason.
+    """
+    pytest.skip("Infrastructure tests should not use call_mcp fixture. "
+                "Move to tools tests or test components directly.")
+
+
+@pytest.fixture
 def database_mock():
     """Mock database adapter for testing data operations."""
     mock_db = AsyncMock()

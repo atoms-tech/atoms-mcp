@@ -69,10 +69,13 @@ class ConcurrencyManager:
             resource_lock = self._locks[resource_id]
         
         # Execute operation with lock
+        async def _execute_with_lock():
+            async with resource_lock:
+                return await operation()
+        
         try:
-            async with asyncio.wait_for(resource_lock, timeout=timeout):
-                result = await operation()
-                return result
+            result = await asyncio.wait_for(_execute_with_lock(), timeout=timeout)
+            return result
         except asyncio.TimeoutError:
             raise asyncio.TimeoutError(
                 f"Could not acquire lock for resource {resource_id} within {timeout}s"

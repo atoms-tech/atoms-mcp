@@ -1,0 +1,13 @@
+"""Entity management module.
+
+Modular extraction in progress:
+- schemas.py: Entity schema definitions
+- validators.py: Validation logic  
+- utils.py: Helper utilities
+
+For now, imports from parent for seamless transition.
+"""
+
+from ..entity import EntityManager, entity_operation
+
+__all__ = ["EntityManager", "entity_operation"]

@@ -5,9 +5,9 @@
 ║ Layer            │ Unit  │ Integration │  E2E  │ Coverage │ Status║
 ╠──────────────────┼───────┼─────────────┼───────┼──────────┼───────╣
 ║ Tools            │ 642 ✓ │           - │     - │      94% │     ✓ ║
-║ Infrastructure   │     - │           - │     - │      94% │     - ║
-║ Services         │     - │           - │     - │      96% │     - ║
-║ Auth             │     - │           - │     - │      96% │     - ║
+║ Infrastructure   │  30 ✓ │           - │     - │      94% │     ✓ ║
+║ Services         │  50 ✓ │           - │     - │      96% │     ✓ ║
+║ Auth             │  31 ✓ │           - │     - │      96% │     ✓ ║
 ╠────────────────────────────────────────────────────────────────────╣
 ║ Legend: ✓=Pass  ✗=Fail  ?=Skipped  ⚠️=Below Threshold              ║
 ║                                                                    ║

@@ -11,7 +11,7 @@ from services.auth.hybrid_auth_provider import (
 )
 
 
-pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
+pytestmark = [pytest.mark.unit]
 
 
 class TestHybridAuthProviderInitialization:
@@ -103,6 +103,7 @@ class TestHybridAuthProviderAuthentication:
         assert result == {"client_id": "internal-service", "scopes": ["read:data"]}
         mock_internal_verifier.verify_token.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_authenticate_with_bearer_token_authkit_jwt(self):
         """Test authentication with AuthKit JWT."""
         mock_oauth = MagicMock()
@@ -129,6 +130,7 @@ class TestHybridAuthProviderAuthentication:
         
         assert result == {"sub": "user-123", "email": "user@example.com"}
 
+    @pytest.mark.asyncio
     async def test_authenticate_fallback_to_oauth(self):
         """Test fallback to OAuth when no bearer token."""
         mock_oauth = AsyncMock()
@@ -146,6 +148,7 @@ class TestHybridAuthProviderAuthentication:
         assert result == {"user": "oauth-user"}
         mock_oauth.authenticate.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_authenticate_bearer_token_invalid_returns_none(self):
         """Test authentication returns None when bearer token invalid."""
         mock_oauth = MagicMock()
@@ -165,6 +168,7 @@ class TestHybridAuthProviderAuthentication:
         # Bearer token verification failed and no fallback to OAuth, should return None
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_authenticate_bearer_token_verification_returns_none(self):
         """Test authentication returns None when bearer token verification fails."""
         mock_oauth = MagicMock()
@@ -187,6 +191,7 @@ class TestHybridAuthProviderAuthentication:
         # Should return None
         assert result is None
 
+    @pytest.mark.asyncio
     async def test_authenticate_strips_bearer_prefix(self):
         """Test that Bearer prefix is stripped correctly."""
         mock_oauth = MagicMock()
@@ -211,6 +216,7 @@ class TestHybridAuthProviderAuthentication:
 class TestHybridAuthProviderOAuthDelegation:
     """Hybrid auth provider OAuth method delegation."""
 
+    @pytest.mark.asyncio
     async def test_get_authorization_url_delegates_to_oauth(self):
         """Test get_authorization_url delegates to OAuth provider."""
         mock_oauth = AsyncMock()
@@ -224,6 +230,7 @@ class TestHybridAuthProviderOAuthDelegation:
         assert result == "https://oauth.example.com/authorize"
         mock_oauth.get_authorization_url.assert_called_once_with(mock_request)
 
+    @pytest.mark.asyncio
     async def test_handle_callback_delegates_to_oauth(self):
         """Test handle_callback delegates to OAuth provider."""
         mock_oauth = AsyncMock()

@@ -3,7 +3,8 @@
 # Import all tool operations with fallback for different environments
 try:
     from .workspace import workspace_operation
-    from .entity import entity_operation
+    # Import entity directly from entity.py (not entity/ package)
+    from tools.entity import entity_operation
     from .relationship import relationship_operation
     from .workflow import workflow_execute
     from .query import data_query

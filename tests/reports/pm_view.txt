@@ -9,10 +9,8 @@
 ║ Relationship Ops  │       8 │        8 │           0 │        ✓✓✓ ║
 ║ Query & Search    │       9 │        9 │           0 │        ✓✓✓ ║
 ║ Workflow Execution │       6 │        6 │           0 │        ✓✓✓ ║
-║ Auth & Permissions │       4 │        0 │           4 │        ○○○ ║
+║ Auth & Permissions │       4 │        2 │           2 │        ✓○○ ║
 ╠────────────────────────────────────────────────────────────────────╣
-║ Overall Progress: 38/46 stories complete (82%)                     ║
+║ Overall Progress: 40/46 stories complete (86%)                     ║
 ║                                                                    ║
-║ Blockers:                                                          ║
-║    • Auth & Permissions requires attention                         ║
 ╚════════════════════════════════════════════════════════════════════╝
