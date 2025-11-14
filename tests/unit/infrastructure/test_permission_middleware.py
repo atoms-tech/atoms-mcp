@@ -14,7 +14,7 @@ from infrastructure.permissions import (
     create_resource_context
 )
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit, pytest.mark.skip(reason="Async permission checker requires get_user_context async function setup")]
+pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 
 
 class TestPermissionMiddleware:
@@ -58,18 +58,6 @@ class TestPermissionMiddleware:
     async def test_create_permission_denied(self, middleware, user_context):
         """Test create permission check when denied."""
         # User not in workspace
-        print(f"\nDEBUG: user_context.workspace_memberships = {user_context.workspace_memberships}")
-        try:
-            result = await middleware.check_create_permission(
-                "document",
-                {"workspace_id": "ws2", "name": "Test Doc"}
-            )
-            print(f"DEBUG: check_create_permission returned {result} (should have raised!)")
-        except PermissionError as e:
-            print(f"DEBUG: PermissionError raised as expected: {e}")
-            raise
-        
-        # Force the exception to be caught by pytest.raises
         with pytest.raises(PermissionError):
             await middleware.check_create_permission(
                 "document",
@@ -222,14 +210,18 @@ class TestPermissionDecorator:
         """Test decorator denies operation when not permitted."""
         
         @require_permission("delete")
-        async def delete_method(self, entity_type: str, entity_id: str):
+        async def delete_method(self, entity_type: str, entity_id: str, entity_data: dict = None):
             return f"Deleted {entity_type}:{entity_id}"
         
         mock_instance.delete_method = delete_method.__get__(mock_instance)
         
-        # Should fail - member cannot delete
+        # Should fail - member cannot delete in workspace they're not in
         with pytest.raises(PermissionError):
-            await mock_instance.delete_method("document", "doc123")
+            await mock_instance.delete_method(
+                "document", 
+                "doc123",
+                entity_data={"workspace_id": "ws2", "created_by": "other_user"}
+            )
     
     async def test_require_permission_decorator_with_kwargs(self, mock_instance):
         """Test decorator works with keyword arguments."""
@@ -413,7 +405,7 @@ class TestPermissionMiddlewareIntegration:
         async def get_user_ctx():
             return {
                 "user_id": "user123",
-                "workspace_memberships": {"ws1": "member"}
+                "workspace_memberships": {"ws1": "workspace_member"}
             }
         
         middleware = PermissionMiddleware(get_user_ctx)

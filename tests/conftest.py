@@ -201,32 +201,7 @@ def force_all_mock_mode(monkeypatch):
         pass
 
 
-@pytest.fixture(autouse=True)
-def bypass_permission_checks(monkeypatch):
-    """Bypass permission checks in tests for easier testing."""
-    from unittest.mock import AsyncMock
-    
-    # Mock PermissionMiddleware to always allow operations
-    async def mock_check_create_permission(*args, **kwargs):
-        return True
-    
-    async def mock_check_read_permission(*args, **kwargs):
-        return True
-    
-    async def mock_check_update_permission(*args, **kwargs):
-        return True
-    
-    async def mock_check_delete_permission(*args, **kwargs):
-        return True
-    
-    try:
-        from infrastructure.permission_middleware import PermissionMiddleware
-        monkeypatch.setattr(PermissionMiddleware, "check_create_permission", mock_check_create_permission)
-        monkeypatch.setattr(PermissionMiddleware, "check_read_permission", mock_check_read_permission)
-        monkeypatch.setattr(PermissionMiddleware, "check_update_permission", mock_check_update_permission)
-        monkeypatch.setattr(PermissionMiddleware, "check_delete_permission", mock_check_delete_permission)
-    except ImportError:
-        pass
+
 
 
 # ============================================================================

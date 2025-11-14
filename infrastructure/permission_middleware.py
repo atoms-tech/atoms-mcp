@@ -250,6 +250,10 @@ class PermissionMiddleware:
         """
         user_ctx = await self._get_user_context()
         
+        # System admin bypasses all checks
+        if user_ctx.is_system_admin:
+            return True
+        
         # Check workspace membership first
         if not self.permission_checker.validate_multi_tenant_access(
             user_ctx, workspace_id
@@ -295,6 +299,10 @@ class PermissionMiddleware:
             PermissionError: If permission denied
         """
         user_ctx = await self._get_user_context()
+        
+        # System admin bypasses all checks
+        if user_ctx.is_system_admin:
+            return True
         
         # Check workspace membership
         if not self.permission_checker.validate_multi_tenant_access(
@@ -416,9 +424,11 @@ def require_permission(permission_type: str):
                 await middleware.check_read_permission(entity_type, entity_id)
             elif permission_type == "update":
                 update_data = kwargs.get("data", {})
-                await middleware.check_update_permission(entity_type, entity_id, update_data)
+                entity_data = kwargs.get("entity_data")
+                await middleware.check_update_permission(entity_type, entity_id, update_data, entity_data)
             elif permission_type == "delete":
-                await middleware.check_delete_permission(entity_type, entity_id)
+                entity_data = kwargs.get("entity_data")
+                await middleware.check_delete_permission(entity_type, entity_id, entity_data)
             elif permission_type == "list":
                 if not workspace_id:
                     raise PermissionError("workspace_id required for list operations")
