@@ -1,5 +1,13 @@
 """E2E tests for Requirements Traceability operations.
 
+Tests for all requirements traceability CRUD operations and workflows.
+
+Covers:
+- Story 4.1: Create requirements
+- Story 4.2: Pull requirements from system via workflow
+- Story 4.3: Search requirements
+- Story 4.4: Trace links between requirements and test cases
+
 This file validates end-to-end requirements traceability functionality:
 - Creating requirements from templates with validation
 - Pulling requirements via workflows with filtering
@@ -19,9 +27,10 @@ from datetime import datetime, timezone
 
 
 class TestRequirementCreation:
-    """Test requirement creation scenarios."""
+    """Test requirement creation scenarios (Story 4.1)."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_create_requirement_minimal(self, call_mcp):
         """Create requirement with minimal required data (title only)."""
         req_data = {

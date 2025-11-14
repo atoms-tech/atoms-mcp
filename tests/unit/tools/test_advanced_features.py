@@ -1,5 +1,14 @@
 """E2E tests for Advanced Features operations.
 
+Tests for advanced and cross-cutting feature functionality.
+
+Covers:
+- Complex multi-entity workflows and operations
+- Advanced querying and filtering capabilities
+- Performance optimization features (caching, indexing, lazy loading)
+- Integration scenarios and cross-tool operations
+- Error recovery and resilience patterns
+
 This file validates end-to-end advanced feature functionality:
 - Complex multi-entity workflows and operations
 - Advanced querying and filtering
@@ -22,6 +31,7 @@ class TestComplexWorkflows:
     """Test complex multi-step workflows."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_project_to_deployment_workflow(self, call_mcp):
         """Execute complex workflow: project creation → documents → requirements → tests → deployment."""
         org_id = str(uuid.uuid4())
@@ -46,6 +56,7 @@ class TestComplexWorkflows:
         assert "deployment_ready" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_nested_entity_operations(self, call_mcp):
         """Create and manage deeply nested entity hierarchies."""
         result, duration_ms = await call_mcp(
@@ -67,6 +78,7 @@ class TestComplexWorkflows:
         assert result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_circular_relationship_detection(self, call_mcp):
         """Detect and handle circular relationships gracefully."""
         e1 = str(uuid.uuid4())
@@ -116,6 +128,7 @@ class TestAdvancedQuerying:
     """Test advanced query capabilities."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_complex_filter_combinations(self, call_mcp):
         """Query with complex AND/OR filter combinations."""
         result, duration_ms = await call_mcp(
@@ -146,6 +159,7 @@ class TestAdvancedQuerying:
         assert "results" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_faceted_search_aggregations(self, call_mcp):
         """Perform faceted search with multiple aggregations."""
         result, duration_ms = await call_mcp(
@@ -166,6 +180,7 @@ class TestAdvancedQuerying:
         assert "aggregations" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_temporal_queries(self, call_mcp):
         """Query entities by time ranges and temporal patterns."""
         result, duration_ms = await call_mcp(
@@ -186,6 +201,7 @@ class TestAdvancedQuerying:
         assert result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_text_search_with_stemming(self, call_mcp):
         """Search with stemming and tokenization."""
         result, duration_ms = await call_mcp(
@@ -209,6 +225,7 @@ class TestPerformanceOptimization:
     """Test performance optimization features."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_index_query_optimization(self, call_mcp):
         """Use indexed fields for query optimization."""
         result, duration_ms = await call_mcp(
@@ -227,6 +244,7 @@ class TestPerformanceOptimization:
         assert duration_ms < 1000  # Should be fast with index
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_lazy_loading_relationships(self, call_mcp):
         """Lazy load relationships only when needed."""
         result, duration_ms = await call_mcp(
@@ -243,6 +261,7 @@ class TestPerformanceOptimization:
         assert "relationships" not in result["data"] or result["data"]["relationships"] is None
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_bulk_fetch_optimization(self, call_mcp):
         """Fetch multiple entities efficiently in bulk."""
         entity_ids = [str(uuid.uuid4()) for _ in range(10)]
@@ -264,6 +283,7 @@ class TestCrossCuttingConcerns:
     """Test cross-cutting concerns and integration scenarios."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_audit_trail_tracking(self, call_mcp):
         """Track all changes with audit trail."""
         result, duration_ms = await call_mcp(
@@ -292,6 +312,7 @@ class TestCrossCuttingConcerns:
         assert audit_result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_notification_on_changes(self, call_mcp):
         """Emit notifications on entity changes."""
         result, duration_ms = await call_mcp(
@@ -307,6 +328,7 @@ class TestCrossCuttingConcerns:
         assert result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_version_history_tracking(self, call_mcp):
         """Track version history for entities."""
         doc_id = str(uuid.uuid4())
@@ -347,6 +369,7 @@ class TestCrossCuttingConcerns:
         assert history_result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_concurrent_operation_handling(self, call_mcp):
         """Handle concurrent operations on same entity."""
         entity_id = str(uuid.uuid4())
@@ -375,6 +398,7 @@ class TestCrossCuttingConcerns:
         assert result1["success"] is True or result2["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_rate_limiting_compliance(self, call_mcp):
         """Verify operations respect rate limits."""
         # Make multiple rapid requests
@@ -394,6 +418,7 @@ class TestCrossCuttingConcerns:
         assert any(results)
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_caching_strategy(self, call_mcp):
         """Verify effective caching of frequently accessed data."""
         org_id = str(uuid.uuid4())
@@ -426,6 +451,7 @@ class TestErrorRecovery:
     """Test error recovery and resilience."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_operation_retry_with_backoff(self, call_mcp):
         """Retry failed operations with exponential backoff."""
         result, duration_ms = await call_mcp(
@@ -444,6 +470,7 @@ class TestErrorRecovery:
         assert result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_partial_failure_rollback(self, call_mcp):
         """Rollback on partial failure in batch operations."""
         result, duration_ms = await call_mcp(

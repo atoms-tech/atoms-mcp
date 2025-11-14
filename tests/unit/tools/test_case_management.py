@@ -1,5 +1,11 @@
 """E2E tests for Test Case Management operations.
 
+Tests for all test case CRUD operations and results viewing.
+
+Covers:
+- Story 5.1: Create test cases
+- Story 5.2: View test results and coverage metrics
+
 This file validates end-to-end test case management functionality:
 - Creating test cases linked to requirements
 - Updating test status (pending, passed, failed)
@@ -22,6 +28,7 @@ class TestCaseCreation:
     """Test case creation scenarios."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_create_test_case_minimal(self, call_mcp):
         """Create test case with minimal data (title and requirement link)."""
         req_id = str(uuid.uuid4())
@@ -47,6 +54,7 @@ class TestCaseCreation:
         assert result["data"]["title"] == test_data["title"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_create_test_case_full(self, call_mcp):
         """Create test case with full specification (steps, expected results, data)."""
         req_id = str(uuid.uuid4())
@@ -83,6 +91,7 @@ class TestCaseCreation:
         assert len(result["data"]["preconditions"]) == 2
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_link_test_case_to_requirement(self, call_mcp):
         """Create test case and link it to requirement."""
         req_id = str(uuid.uuid4())
@@ -117,6 +126,7 @@ class TestCaseCreation:
         assert link_result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_set_test_case_status(self, call_mcp):
         """Create test case and update status through lifecycle."""
         test_data = {
@@ -159,6 +169,7 @@ class TestResultsAndMetrics:
     """Test result viewing and coverage metrics."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_view_test_results_summary(self, call_mcp):
         """View aggregate test results (passed, failed, pending count)."""
         result, duration_ms = await call_mcp(
@@ -177,6 +188,7 @@ class TestResultsAndMetrics:
         assert "aggregations" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_view_coverage_metrics(self, call_mcp):
         """View test coverage metrics by requirement."""
         result, duration_ms = await call_mcp(

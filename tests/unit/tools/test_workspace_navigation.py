@@ -1,5 +1,15 @@
 """E2E tests for Workspace Navigation operations.
 
+Tests for all workspace context and navigation operations.
+
+Covers:
+- Story 6.1: Get current workspace context
+- Story 6.2: Switch to organization workspace
+- Story 6.3: Switch to project workspace
+- Story 6.4: Manage workspace settings and defaults
+- Story 6.5: Manage workspace favorites
+- Story 6.6: Get workspace defaults
+
 This file validates end-to-end workspace navigation functionality:
 - Getting and maintaining current workspace context
 - Switching between workspaces/organizations
@@ -22,6 +32,7 @@ class TestWorkspaceContext:
     """Test workspace context operations."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_get_current_workspace_context(self, call_mcp):
         """Get current workspace context including org, projects, user role."""
         result, duration_ms = await call_mcp(
@@ -38,6 +49,7 @@ class TestWorkspaceContext:
         assert "user_role" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_get_workspace_with_projects_and_documents(self, call_mcp):
         """Get workspace context with nested projects and documents."""
         result, duration_ms = await call_mcp(
@@ -54,6 +66,7 @@ class TestWorkspaceContext:
         assert isinstance(result["data"]["projects"], list)
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_get_workspace_recent_activity(self, call_mcp):
         """Get recent activity in current workspace (items modified, created, accessed)."""
         result, duration_ms = await call_mcp(
@@ -68,6 +81,7 @@ class TestWorkspaceContext:
         assert "recent_activity" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_get_workspace_members_and_roles(self, call_mcp):
         """Get workspace members and their roles/permissions."""
         result, duration_ms = await call_mcp(
@@ -83,6 +97,7 @@ class TestWorkspaceContext:
         assert isinstance(result["data"]["members"], list)
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_switch_workspace_organization(self, call_mcp):
         """Switch current workspace to different organization."""
         org_id = str(uuid.uuid4())
@@ -99,6 +114,7 @@ class TestWorkspaceContext:
         assert result["data"]["current_organization_id"] == org_id
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_switch_workspace_project(self, call_mcp):
         """Switch current workspace focus to specific project."""
         project_id = str(uuid.uuid4())
@@ -119,6 +135,7 @@ class TestWorkspaceSettings:
     """Test workspace settings and configuration."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_get_workspace_defaults(self, call_mcp):
         """Get workspace default settings (view mode, sort order, filters)."""
         result, duration_ms = await call_mcp(
@@ -134,6 +151,7 @@ class TestWorkspaceSettings:
         assert "sort_order" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_update_workspace_defaults(self, call_mcp):
         """Update workspace defaults (preferred view, sort, filters)."""
         result, duration_ms = await call_mcp(
@@ -153,6 +171,7 @@ class TestWorkspaceSettings:
         assert result["data"]["view_mode"] == "kanban"
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_save_workspace_view_state(self, call_mcp):
         """Save current view state (filters, sort, pagination) as workspace state."""
         result, duration_ms = await call_mcp(
@@ -171,6 +190,7 @@ class TestWorkspaceSettings:
         assert result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_load_workspace_view_state(self, call_mcp):
         """Load previously saved workspace view state."""
         result, duration_ms = await call_mcp(
@@ -184,6 +204,7 @@ class TestWorkspaceSettings:
         assert "view_state" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_manage_workspace_favorites(self, call_mcp):
         """Manage favorite items in workspace (star/unstar, favorites list)."""
         item_id = str(uuid.uuid4())
@@ -215,6 +236,7 @@ class TestWorkspaceNavigation:
     """Test workspace navigation and breadcrumb tracking."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_get_breadcrumb_path(self, call_mcp):
         """Get breadcrumb path showing navigation hierarchy."""
         result, duration_ms = await call_mcp(

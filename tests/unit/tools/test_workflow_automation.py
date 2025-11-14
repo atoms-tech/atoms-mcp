@@ -1,5 +1,14 @@
 """E2E tests for Workflow Automation operations.
 
+Tests for all workflow automation operations and execution.
+
+Covers:
+- Story 9.1: Run workflows with transactions
+- Story 9.2: Set up new project workflow
+- Story 9.3: Import requirements via workflow
+- Story 9.4: Bulk update status workflow
+- Story 9.5: Organization onboarding workflow
+
 This file validates end-to-end workflow automation functionality:
 - Running workflows with transactional consistency
 - Setting up new project workflows and automation rules
@@ -23,6 +32,7 @@ class TestWorkflowTransactions:
     """Test workflow execution with transactional consistency."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_run_workflow_with_transactions(self, call_mcp):
         """Execute workflow with transactional consistency (all or nothing)."""
         org_id = str(uuid.uuid4())
@@ -52,6 +62,7 @@ class TestProjectOnboarding:
     """Test new project setup and workflow configuration."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_set_up_new_project_workflow(self, call_mcp):
         """Set up workflow for new project creation with default components."""
         result, duration_ms = await call_mcp(
@@ -72,6 +83,7 @@ class TestProjectOnboarding:
         assert "project_id" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_set_up_project_with_templates(self, call_mcp):
         """Set up new project using predefined templates."""
         result, duration_ms = await call_mcp(
@@ -94,6 +106,7 @@ class TestRequirementImport:
     """Test importing requirements via workflows."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_import_requirements_from_document(self, call_mcp):
         """Import requirements from document via workflow."""
         doc_id = str(uuid.uuid4())
@@ -114,6 +127,7 @@ class TestRequirementImport:
         assert "requirements_imported" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_import_requirements_with_mapping(self, call_mcp):
         """Import requirements with field mapping configuration."""
         doc_id = str(uuid.uuid4())
@@ -137,6 +151,7 @@ class TestRequirementImport:
         assert result["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_import_requirements_with_validation(self, call_mcp):
         """Import requirements with validation and error handling."""
         result, duration_ms = await call_mcp(
@@ -160,6 +175,7 @@ class TestBulkUpdates:
     """Test bulk update operations through workflows."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_bulk_update_status(self, call_mcp):
         """Update status for multiple entities in bulk."""
         result, duration_ms = await call_mcp(
@@ -179,6 +195,7 @@ class TestBulkUpdates:
         assert "updated_count" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_bulk_update_with_validation(self, call_mcp):
         """Bulk update with validation of each entity."""
         result, duration_ms = await call_mcp(
@@ -198,6 +215,7 @@ class TestBulkUpdates:
         assert "validation_results" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_bulk_update_preserve_history(self, call_mcp):
         """Bulk update with audit trail preservation."""
         result, duration_ms = await call_mcp(
@@ -221,6 +239,7 @@ class TestOrganizationOnboarding:
     """Test organization onboarding workflows."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_organization_onboarding_workflow(self, call_mcp):
         """Execute complete organization onboarding workflow."""
         result, duration_ms = await call_mcp(
@@ -241,6 +260,7 @@ class TestOrganizationOnboarding:
         assert "workspace_initialized" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_organization_onboarding_with_templates(self, call_mcp):
         """Onboarding with predefined templates (processes, templates, settings)."""
         result, duration_ms = await call_mcp(
@@ -259,6 +279,7 @@ class TestOrganizationOnboarding:
         assert "organization_id" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_organization_onboarding_with_sample_data(self, call_mcp):
         """Onboarding with sample data and example projects."""
         result, duration_ms = await call_mcp(
@@ -278,6 +299,7 @@ class TestOrganizationOnboarding:
         assert "sample_projects_created" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_organization_onboarding_invite_members(self, call_mcp):
         """Onboarding with inviting initial team members."""
         result, duration_ms = await call_mcp(

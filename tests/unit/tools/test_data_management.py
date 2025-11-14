@@ -1,5 +1,12 @@
 """E2E tests for Data Management operations.
 
+Tests for all data management operations (batch create, pagination, sorting).
+
+Covers:
+- Story 10.1: Batch create entities
+- Story 10.2: Paginate large lists
+- Story 10.3: Sort query results
+
 This file validates end-to-end data management functionality:
 - Batch creating entities for bulk operations
 - Paginating large result lists efficiently
@@ -22,6 +29,7 @@ class TestBatchCreation:
     """Test batch entity creation."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_batch_create_entities(self, call_mcp):
         """Create multiple entities in single batch operation."""
         entities = [
@@ -46,6 +54,7 @@ class TestBatchCreation:
         assert result["data"]["created_count"] == 5
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_batch_create_with_relationships(self, call_mcp):
         """Batch create entities and establish relationships."""
         org_id = str(uuid.uuid4())
@@ -74,6 +83,7 @@ class TestBatchCreation:
         assert result["data"]["relationships_created"] == 10
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_batch_create_with_validation(self, call_mcp):
         """Batch create with validation of each entity."""
         entities = [
@@ -97,6 +107,7 @@ class TestBatchCreation:
         assert "validation_results" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_batch_create_handles_partial_failure(self, call_mcp):
         """Batch create with partial failures - valid entities created, invalid ones reported."""
         entities = [
@@ -127,6 +138,7 @@ class TestPagination:
     """Test pagination of large result sets."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_paginate_large_list(self, call_mcp):
         """Paginate through large list with page size."""
         result, duration_ms = await call_mcp(
@@ -145,6 +157,7 @@ class TestPagination:
         assert "total_count" in result["data"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_paginate_with_cursor(self, call_mcp):
         """Paginate using cursor-based pagination (more efficient for large sets)."""
         # Get first page
@@ -174,6 +187,7 @@ class TestPagination:
         assert result2["success"] is True
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_paginate_preserves_sort_order(self, call_mcp):
         """Verify pagination preserves sort order across pages."""
         result1, _ = await call_mcp(
@@ -208,6 +222,7 @@ class TestPagination:
             assert first_page[0]["created_at"] >= second_page[0]["created_at"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_paginate_empty_result_set(self, call_mcp):
         """Handle pagination with empty result set gracefully."""
         result, duration_ms = await call_mcp(
@@ -226,6 +241,7 @@ class TestPagination:
         assert result["data"]["results"] == []
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_paginate_respects_limit_parameter(self, call_mcp):
         """Verify limit parameter is respected in pagination."""
         result, duration_ms = await call_mcp(
@@ -245,6 +261,7 @@ class TestSorting:
     """Test result sorting by various fields."""
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_sort_by_created_date(self, call_mcp):
         """Sort query results by created_at field."""
         result, duration_ms = await call_mcp(
@@ -262,6 +279,7 @@ class TestSorting:
             assert results[0]["created_at"] <= results[-1]["created_at"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_sort_by_name_alphabetically(self, call_mcp):
         """Sort query results by name field alphabetically."""
         result, duration_ms = await call_mcp(
@@ -280,6 +298,7 @@ class TestSorting:
                 assert results[i]["name"] <= results[i + 1]["name"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_sort_descending(self, call_mcp):
         """Sort query results in descending order."""
         result, duration_ms = await call_mcp(
@@ -297,6 +316,7 @@ class TestSorting:
             assert results[0]["created_at"] >= results[-1]["created_at"]
     
     @pytest.mark.asyncio
+    @pytest.mark.entity
     async def test_sort_by_multiple_fields(self, call_mcp):
         """Sort by multiple fields (primary and secondary sort)."""
         result, duration_ms = await call_mcp(
