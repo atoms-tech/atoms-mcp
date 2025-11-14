@@ -4,9 +4,6 @@ version = "0.1.0"
 description = "Atoms MCP Server - FastMCP server for Atoms platform"
 readme = "README.md"
 requires-python = "==3.12.*"
-
-[tool.hatch.build]
-targets.wheel.packages = ["."]
 dependencies = [
     # Core MCP
     "fastmcp>=2.12.2",
