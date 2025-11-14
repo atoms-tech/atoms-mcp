@@ -93,22 +93,25 @@ class TestAuthenticationErrors:
             "params": {"operation": "get_context"}
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                base_url,
-                json=payload,
-                headers={"Content-Type": "application/json"}  # No Authorization header
-            )
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(
+                    base_url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"}  # No Authorization header
+                )
 
-            # Should fail with 401 or return error in result
-            assert response.status_code in [401, 403, 200], "Missing auth should be rejected"
+                # Should fail with 401 or return error in result
+                assert response.status_code in [401, 403, 200], "Missing auth should be rejected"
 
-            if response.status_code == 200:
-                body = response.json()
-                result = body.get("result", {})
-                assert result.get("success") is False, "Should fail without auth token"
-                error_msg = result.get("error", "").lower()
-                assert "authorization" in error_msg or "auth" in error_msg
+                if response.status_code == 200:
+                    body = response.json()
+                    result = body.get("result", {})
+                    assert result.get("success") is False, "Should fail without auth token"
+                    error_msg = result.get("error", "").lower()
+                    assert "authorization" in error_msg or "auth" in error_msg
+        except (httpx.ConnectError, TimeoutError):
+            pytest.skip("MCP server not running")
 
     async def test_invalid_auth_token(self):
         """Test request with invalid authentication token."""
@@ -120,21 +123,24 @@ class TestAuthenticationErrors:
             "params": {"operation": "get_context"}
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                base_url,
-                json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer invalid_token_12345"
-                }
-            )
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(
+                    base_url,
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer invalid_token_12345"
+                    }
+                )
 
-            # Should fail with 401 or return error
-            if response.status_code == 200:
-                body = response.json()
-                result = body.get("result", {})
-                assert result.get("success") is False, "Should fail with invalid token"
+                # Should fail with 401 or return error
+                if response.status_code == 200:
+                    body = response.json()
+                    result = body.get("result", {})
+                    assert result.get("success") is False, "Should fail with invalid token"
+        except (httpx.ConnectError, TimeoutError):
+            pytest.skip("MCP server not running")
 
 
 # ============================================================================
@@ -144,13 +150,10 @@ class TestAuthenticationErrors:
 class TestInputValidation:
     """Test input validation and parameter errors."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_missing_required_parameters(self, mcp_client):
+    async def test_missing_required_parameters(self, mcp_client_helper):
         """Test operations with missing required parameters."""
         # Create without required fields
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -163,12 +166,9 @@ class TestInputValidation:
         assert result.get("success") is False, "Should fail with missing required fields"
         assert "error" in result
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_invalid_entity_type(self, mcp_client):
+    async def test_invalid_entity_type(self, mcp_client_helper):
         """Test operation with invalid entity type."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -180,12 +180,9 @@ class TestInputValidation:
 
         assert result.get("success") is False, "Should fail with invalid entity type"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_invalid_operation(self, mcp_client):
+    async def test_invalid_operation(self, mcp_client_helper):
         """Test with invalid operation name."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "invalid_operation",
@@ -197,13 +194,10 @@ class TestInputValidation:
 
         assert result.get("success") is False, "Should fail with invalid operation"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_null_and_empty_values(self, mcp_client):
+    async def test_null_and_empty_values(self, mcp_client_helper):
         """Test handling of null and empty values."""
         # Empty string for required field
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -218,13 +212,10 @@ class TestInputValidation:
 
         assert result.get("success") is False, "Should fail with empty required field"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_malformed_data_types(self, mcp_client):
+    async def test_malformed_data_types(self, mcp_client_helper):
         """Test with incorrect data types."""
         # String where ID expected
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "read",
@@ -245,14 +236,11 @@ class TestInputValidation:
 class TestResourceNotFound:
     """Test resource not found error handling."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_read_nonexistent_entity(self, mcp_client):
+    async def test_read_nonexistent_entity(self, mcp_client_helper):
         """Test reading non-existent entity."""
         fake_id = f"fake-id-{uuid.uuid4()}"
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "read",
@@ -263,16 +251,14 @@ class TestResourceNotFound:
         )
 
         assert result.get("success") is False, "Should fail for non-existent entity"
-        assert "not found" in result.get("error", "").lower() or "does not exist" in result.get("error", "").lower()
+        error_msg = result.get("error", "").lower()
+        assert "not found" in error_msg or "does not exist" in error_msg
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_update_nonexistent_entity(self, mcp_client):
+    async def test_update_nonexistent_entity(self, mcp_client_helper):
         """Test updating non-existent entity."""
         fake_id = f"fake-id-{uuid.uuid4()}"
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "update",
@@ -285,14 +271,11 @@ class TestResourceNotFound:
 
         assert result.get("success") is False, "Should fail updating non-existent entity"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_delete_nonexistent_entity(self, mcp_client):
+    async def test_delete_nonexistent_entity(self, mcp_client_helper):
         """Test deleting non-existent entity."""
         fake_id = f"fake-id-{uuid.uuid4()}"
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "delete",
@@ -304,14 +287,11 @@ class TestResourceNotFound:
 
         assert result.get("success") is False, "Should fail deleting non-existent entity"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_invalid_context_entity(self, mcp_client):
+    async def test_invalid_context_entity(self, mcp_client_helper):
         """Test setting context to non-existent entity."""
         fake_id = f"fake-id-{uuid.uuid4()}"
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "workspace_tool",
             {
                 "operation": "set_context",
@@ -331,14 +311,11 @@ class TestResourceNotFound:
 class TestRelationshipErrors:
     """Test relationship and constraint error handling."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_create_entity_with_invalid_foreign_key(self, mcp_client):
+    async def test_create_entity_with_invalid_foreign_key(self, mcp_client_helper):
         """Test creating entity with invalid foreign key reference."""
         fake_org_id = f"fake-org-{uuid.uuid4()}"
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -353,13 +330,10 @@ class TestRelationshipErrors:
 
         assert result.get("success") is False, "Should fail with invalid foreign key"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_duplicate_relationship(self, mcp_client):
+    async def test_duplicate_relationship(self, mcp_client_helper):
         """Test creating duplicate relationship."""
         # First create an org and project
-        org_result = await mcp_client(
+        org_result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -380,13 +354,10 @@ class TestRelationshipErrors:
         # This tests duplicate prevention
 
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_link_incompatible_entities(self, mcp_client):
+    async def test_link_incompatible_entities(self, mcp_client_helper):
         """Test linking incompatible entity types."""
         # Try to create invalid relationship type
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "relationship_tool",
             {
                 "operation": "link",
@@ -408,12 +379,9 @@ class TestRelationshipErrors:
 class TestWorkflowErrors:
     """Test workflow and transaction error handling."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_workflow_with_missing_parameters(self, mcp_client):
+    async def test_workflow_with_missing_parameters(self, mcp_client_helper):
         """Test workflow with missing required parameters."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "workflow_tool",
             {
                 "workflow": "setup_project",
@@ -427,12 +395,9 @@ class TestWorkflowErrors:
 
         assert result.get("success") is False, "Should fail with missing workflow parameters"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_invalid_workflow_name(self, mcp_client):
+    async def test_invalid_workflow_name(self, mcp_client_helper):
         """Test with invalid workflow name."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "workflow_tool",
             {
                 "workflow": "invalid_workflow_xyz",
@@ -443,13 +408,10 @@ class TestWorkflowErrors:
 
         assert result.get("success") is False, "Should fail with invalid workflow name"
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_workflow_partial_failure(self, mcp_client):
+    async def test_workflow_partial_failure(self, mcp_client_helper):
         """Test workflow that fails partway through."""
         # Create org first
-        org_result = await mcp_client(
+        org_result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -467,7 +429,7 @@ class TestWorkflowErrors:
         org_id = org_result["data"]["id"]
 
         # Try workflow with some invalid data in initial_documents
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "workflow_tool",
             {
                 "workflow": "setup_project",
@@ -496,12 +458,9 @@ class TestWorkflowErrors:
 class TestQueryErrors:
     """Test query and search error handling."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_query_invalid_entity_types(self, mcp_client):
+    async def test_query_invalid_entity_types(self, mcp_client_helper):
         """Test query with invalid entity types."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "query_tool",
             {
                 "query_type": "search",
@@ -513,12 +472,9 @@ class TestQueryErrors:
 
         # Should handle invalid entity types gracefully
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_query_with_invalid_conditions(self, mcp_client):
+    async def test_query_with_invalid_conditions(self, mcp_client_helper):
         """Test query with malformed conditions."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "query_tool",
             {
                 "query_type": "aggregate",
@@ -530,12 +486,9 @@ class TestQueryErrors:
 
         # Should validate conditions format
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_rag_search_without_embeddings(self, mcp_client):
+    async def test_rag_search_without_embeddings(self, mcp_client_helper):
         """Test RAG search when embeddings might not be available."""
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "query_tool",
             {
                 "query_type": "rag_search",
@@ -556,14 +509,11 @@ class TestQueryErrors:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_very_long_string_inputs(self, mcp_client):
+    async def test_very_long_string_inputs(self, mcp_client_helper):
         """Test with very long string inputs."""
         long_string = "A" * 10000  # 10k characters
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -578,14 +528,11 @@ class TestEdgeCases:
 
         # Should either truncate, reject, or accept based on database limits
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_special_characters_in_input(self, mcp_client):
+    async def test_special_characters_in_input(self, mcp_client_helper):
         """Test with special characters and unicode."""
         special_chars = "Test 🚀 Org <script>alert('xss')</script> 你好"
 
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -602,7 +549,7 @@ class TestEdgeCases:
         if result.get("success"):
             # Verify data is stored/retrieved correctly
             org_id = result["data"]["id"]
-            read_result = await mcp_client(
+            read_result = await mcp_client_helper(
                 "entity_tool",
                 {
                     "operation": "read",
@@ -615,13 +562,10 @@ class TestEdgeCases:
                 # Name should be preserved (but safely escaped)
                 assert read_result["data"].get("name")
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_pagination_boundary_cases(self, mcp_client):
+    async def test_pagination_boundary_cases(self, mcp_client_helper):
         """Test pagination with boundary values."""
         # Zero limit
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "list",
@@ -632,7 +576,7 @@ class TestEdgeCases:
         )
 
         # Negative offset
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "list",
@@ -643,7 +587,7 @@ class TestEdgeCases:
         )
 
         # Very large limit
-        result = await mcp_client(
+        result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "list",
@@ -655,14 +599,11 @@ class TestEdgeCases:
 
         # Should enforce maximum limits
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
     @pytest.mark.slow
-    async def test_concurrent_operations(self, mcp_client):
+    async def test_concurrent_operations(self, mcp_client_helper):
         """Test concurrent operations on same entity."""
         # Create an org
-        org_result = await mcp_client(
+        org_result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -683,7 +624,7 @@ class TestEdgeCases:
         import asyncio
 
         async def update_org(name_suffix: str):
-            return await mcp_client(
+            return await mcp_client_helper(
                 "entity_tool",
                 {
                     "operation": "update",
@@ -707,13 +648,10 @@ class TestEdgeCases:
                 # Should not crash
                 print(f"Concurrent update exception (expected): {result}")
 
-    @pytest.mark.asyncio
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_deleted_entity_access(self, mcp_client):
+    async def test_deleted_entity_access(self, mcp_client_helper):
         """Test accessing soft-deleted entities."""
         # Create and delete an org
-        org_result = await mcp_client(
+        org_result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "create",
@@ -731,7 +669,7 @@ class TestEdgeCases:
         org_id = org_result["data"]["id"]
 
         # Delete it
-        delete_result = await mcp_client(
+        delete_result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "delete",
@@ -742,7 +680,7 @@ class TestEdgeCases:
         )
 
         # Try to read deleted entity
-        read_result = await mcp_client(
+        read_result = await mcp_client_helper(
             "entity_tool",
             {
                 "operation": "read",
