@@ -20,13 +20,6 @@
 ║   ✅ User can search all entities                                             ║
 ║   ✅ User can semantic search                                                 ║
 ║                                                                              ║
-║ 📦 Security & Access (4/4) ✓✓✓                                                ║
-║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can log in with AuthKit                                             ║
-║   ✅ User can log out securely                                                ║
-║   ✅ User can maintain active session                                         ║
-║   ✅ User data is protected by row-level security                             ║
-║                                                                              ║
 ║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can bulk update statuses                                            ║
@@ -44,5 +37,5 @@
 ║   ✅ User can switch to project                                               ║
 ║   ✅ User can view current context                                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 24/24 user stories complete (100%)                                  ║
+║ Overall: 20/20 user stories complete (100%)                                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

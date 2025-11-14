@@ -16,11 +16,7 @@
      → Test passed after retry (potentially flaky)
   ... and 1 more
 
-🐌 SLOW (1):
-  🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_hybrid_mode[unit]
-     → Slow: 1.10s (threshold: 1.0s)
-
 ----------------------------------------------------------------------
-Total Warnings: 7
-  🔴 High: 0  🟡 Medium: 7  🟢 Low: 0
+Total Warnings: 6
+  🔴 High: 0  🟡 Medium: 6  🟢 Low: 0
 ======================================================================
