@@ -12,8 +12,7 @@ from infrastructure.permissions import (
     get_permission_checker
 )
 
-# Module skip: check_permission is async but tests call it synchronously
-pytestmark = [pytest.mark.skip(reason="Async/sync mismatch - check_permission is async but tests call it without await")]
+pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
 
 
 class TestPermissionBasics:
@@ -48,7 +47,7 @@ class TestPermissionBasics:
         assert resource.entity_id == "doc123"
         assert resource.owner_id == "user123"
     
-    def test_system_admin_bypass(self):
+    async def test_system_admin_bypass(self):
         """Test system admin bypasses all permission checks."""
         checker = get_permission_checker()
         user = create_user_context(
@@ -62,9 +61,10 @@ class TestPermissionBasics:
         
         # System admin should have all permissions
         for permission in Permission:
-            assert checker.check_permission(user, permission, resource)
+            result = await checker.check_permission(user, permission, resource)
+            assert result
     
-    def test_non_workspace_member_denied(self):
+    async def test_non_workspace_member_denied(self):
         """Test non-workspace members are denied access."""
         checker = get_permission_checker()
         user = create_user_context(
@@ -78,7 +78,8 @@ class TestPermissionBasics:
         
         # Should be denied for all permissions
         for permission in [Permission.READ, Permission.UPDATE, Permission.DELETE]:
-            assert not checker.check_permission(user, permission, resource)
+            result = await checker.check_permission(user, permission, resource)
+            assert not result
 
 
 class TestWorkspaceRolePermissions:
@@ -123,64 +124,64 @@ class TestWorkspaceRolePermissions:
             workspace_id="ws1"
         )
     
-    def test_workspace_owner_permissions(self, checker, owner_user, resource):
+    async def test_workspace_owner_permissions(self, checker, owner_user, resource):
         """Test workspace owner has all permissions."""
         # Owner should have all basic permissions
-        assert checker.check_permission(owner_user, Permission.CREATE, resource)
-        assert checker.check_permission(owner_user, Permission.READ, resource)
-        assert checker.check_permission(owner_user, Permission.UPDATE, resource)
-        assert checker.check_permission(owner_user, Permission.DELETE, resource)
-        assert checker.check_permission(owner_user, Permission.ARCHIVE, resource)
-        assert checker.check_permission(owner_user, Permission.RESTORE, resource)
-        assert checker.check_permission(owner_user, Permission.EXPORT, resource)
-        assert checker.check_permission(owner_user, Permission.MANAGE_PERMISSIONS, resource)
+        assert await checker.check_permission(owner_user, Permission.CREATE, resource)
+        assert await checker.check_permission(owner_user, Permission.READ, resource)
+        assert await checker.check_permission(owner_user, Permission.UPDATE, resource)
+        assert await checker.check_permission(owner_user, Permission.DELETE, resource)
+        assert await checker.check_permission(owner_user, Permission.ARCHIVE, resource)
+        assert await checker.check_permission(owner_user, Permission.RESTORE, resource)
+        assert await checker.check_permission(owner_user, Permission.EXPORT, resource)
+        assert await checker.check_permission(owner_user, Permission.MANAGE_PERMISSIONS, resource)
     
-    def test_workspace_admin_permissions(self, checker, admin_user, resource):
+    async def test_workspace_admin_permissions(self, checker, admin_user, resource):
         """Test workspace admin has most permissions."""
         # Admin should have most permissions except managing permissions
-        assert checker.check_permission(admin_user, Permission.CREATE, resource)
-        assert checker.check_permission(admin_user, Permission.READ, resource)
-        assert checker.check_permission(admin_user, Permission.UPDATE, resource)
-        assert checker.check_permission(admin_user, Permission.DELETE, resource)
-        assert checker.check_permission(admin_user, Permission.ARCHIVE, resource)
-        assert checker.check_permission(admin_user, Permission.RESTORE, resource)
-        assert checker.check_permission(admin_user, Permission.EXPORT, resource)
+        assert await checker.check_permission(admin_user, Permission.CREATE, resource)
+        assert await checker.check_permission(admin_user, Permission.READ, resource)
+        assert await checker.check_permission(admin_user, Permission.UPDATE, resource)
+        assert await checker.check_permission(admin_user, Permission.DELETE, resource)
+        assert await checker.check_permission(admin_user, Permission.ARCHIVE, resource)
+        assert await checker.check_permission(admin_user, Permission.RESTORE, resource)
+        assert await checker.check_permission(admin_user, Permission.EXPORT, resource)
         
         # But not manage permissions
-        assert not checker.check_permission(admin_user, Permission.MANAGE_PERMISSIONS, resource)
+        assert not await checker.check_permission(admin_user, Permission.MANAGE_PERMISSIONS, resource)
     
-    def test_workspace_member_permissions(self, checker, member_user, resource):
+    async def test_workspace_member_permissions(self, checker, member_user, resource):
         """Test workspace member has limited permissions."""
         # Member should have read/write but not delete
-        assert checker.check_permission(member_user, Permission.CREATE, resource)
-        assert checker.check_permission(member_user, Permission.READ, resource)
-        assert checker.check_permission(member_user, Permission.UPDATE, resource)
-        assert checker.check_permission(member_user, Permission.ARCHIVE, resource)
-        assert checker.check_permission(member_user, Permission.RESTORE, resource)
+        assert await checker.check_permission(member_user, Permission.CREATE, resource)
+        assert await checker.check_permission(member_user, Permission.READ, resource)
+        assert await checker.check_permission(member_user, Permission.UPDATE, resource)
+        assert await checker.check_permission(member_user, Permission.ARCHIVE, resource)
+        assert await checker.check_permission(member_user, Permission.RESTORE, resource)
         
         # But not delete or admin functions
-        assert not checker.check_permission(member_user, Permission.DELETE, resource)
-        assert not checker.check_permission(member_user, Permission.MANAGE_PERMISSIONS, resource)
-        assert not checker.check_permission(member_user, Permission.VIEW_AUDIT_LOG, resource)
+        assert not await checker.check_permission(member_user, Permission.DELETE, resource)
+        assert not await checker.check_permission(member_user, Permission.MANAGE_PERMISSIONS, resource)
+        assert not await checker.check_permission(member_user, Permission.VIEW_AUDIT_LOG, resource)
     
-    def test_workspace_viewer_permissions(self, checker, viewer_user, resource):
+    async def test_workspace_viewer_permissions(self, checker, viewer_user, resource):
         """Test workspace viewer has read-only permissions."""
         # Viewer should only have read/list/search permissions
-        assert checker.check_permission(viewer_user, Permission.READ, resource)
-        assert checker.check_permission(viewer_user, Permission.LIST, resource)
-        assert checker.check_permission(viewer_user, Permission.SEARCH, resource)
-        assert checker.check_permission(viewer_user, Permission.EXPORT, resource)
+        assert await checker.check_permission(viewer_user, Permission.READ, resource)
+        assert await checker.check_permission(viewer_user, Permission.LIST, resource)
+        assert await checker.check_permission(viewer_user, Permission.SEARCH, resource)
+        assert await checker.check_permission(viewer_user, Permission.EXPORT, resource)
         
         # But no write permissions
-        assert not checker.check_permission(viewer_user, Permission.CREATE, resource)
-        assert not checker.check_permission(viewer_user, Permission.UPDATE, resource)
-        assert not checker.check_permission(viewer_user, Permission.DELETE, resource)
+        assert not await checker.check_permission(viewer_user, Permission.CREATE, resource)
+        assert not await checker.check_permission(viewer_user, Permission.UPDATE, resource)
+        assert not await checker.check_permission(viewer_user, Permission.DELETE, resource)
 
 
 class TestOwnershipPermissions:
     """Test ownership-based permissions."""
     
-    def test_owner_can_delete_own_resources(self):
+    async def test_owner_can_delete_own_resources(self):
         """Test users can delete resources they own."""
         checker = get_permission_checker()
         user = create_user_context(
@@ -194,9 +195,9 @@ class TestOwnershipPermissions:
         )
         
         # Even though member role doesn't allow delete, owner should be able to
-        assert checker.check_permission(user, Permission.DELETE, resource)
+        assert await checker.check_permission(user, Permission.DELETE, resource)
     
-    def test_non_owner_cannot_delete(self):
+    async def test_non_owner_cannot_delete(self):
         """Test users cannot delete resources they don't own."""
         checker = get_permission_checker()
         user = create_user_context(
@@ -210,7 +211,7 @@ class TestOwnershipPermissions:
         )
         
         # Member role + not owner = cannot delete
-        assert not checker.check_permission(user, Permission.DELETE, resource)
+        assert not await checker.check_permission(user, Permission.DELETE, resource)
 
 
 class TestEntityTypeSpecificPermissions:
@@ -234,7 +235,7 @@ class TestEntityTypeSpecificPermissions:
             workspace_memberships={"ws1": "workspace_member"}
         )
     
-    def test_workflow_management_requires_admin(self, checker, admin_user, member_user):
+    async def test_workflow_management_requires_admin(self, checker, admin_user, member_user):
         """Test workflow management requires admin permissions."""
         workflow_resource = create_resource_context(
             entity_type="workflow",
@@ -242,14 +243,14 @@ class TestEntityTypeSpecificPermissions:
         )
         
         # Admin can manage workflows
-        assert checker.check_permission(admin_user, Permission.UPDATE, workflow_resource)
-        assert checker.check_permission(admin_user, Permission.DELETE, workflow_resource)
+        assert await checker.check_permission(admin_user, Permission.UPDATE, workflow_resource)
+        assert await checker.check_permission(admin_user, Permission.DELETE, workflow_resource)
         
         # Member cannot manage workflows
-        assert not checker.check_permission(member_user, Permission.UPDATE, workflow_resource)
-        assert not checker.check_permission(member_user, Permission.DELETE, workflow_resource)
+        assert not await checker.check_permission(member_user, Permission.UPDATE, workflow_resource)
+        assert not await checker.check_permission(member_user, Permission.DELETE, workflow_resource)
     
-    def test_audit_log_restricted(self, checker, admin_user, member_user):
+    async def test_audit_log_restricted(self, checker, admin_user, member_user):
         """Test audit log access is restricted."""
         audit_resource = create_resource_context(
             entity_type="audit_log",
@@ -257,12 +258,12 @@ class TestEntityTypeSpecificPermissions:
         )
         
         # Admin can view audit logs
-        assert checker.check_permission(admin_user, Permission.READ, audit_resource)
+        assert await checker.check_permission(admin_user, Permission.READ, audit_resource)
         
         # Member cannot view audit logs
-        assert not checker.check_permission(member_user, Permission.READ, audit_resource)
+        assert not await checker.check_permission(member_user, Permission.READ, audit_resource)
     
-    def test_invitation_management_restricted(self, checker, admin_user, member_user):
+    async def test_invitation_management_restricted(self, checker, admin_user, member_user):
         """Test invitation management is restricted."""
         invitation_resource = create_resource_context(
             entity_type="invitation",
@@ -270,12 +271,12 @@ class TestEntityTypeSpecificPermissions:
         )
         
         # Admin can manage invitations
-        assert checker.check_permission(admin_user, Permission.CREATE, invitation_resource)
-        assert checker.check_permission(admin_user, Permission.DELETE, invitation_resource)
+        assert await checker.check_permission(admin_user, Permission.CREATE, invitation_resource)
+        assert await checker.check_permission(admin_user, Permission.DELETE, invitation_resource)
         
         # Member cannot manage invitations
-        assert not checker.check_permission(member_user, Permission.CREATE, invitation_resource)
-        assert not checker.check_permission(member_user, Permission.DELETE, invitation_resource)
+        assert not await checker.check_permission(member_user, Permission.CREATE, invitation_resource)
+        assert not await checker.check_permission(member_user, Permission.DELETE, invitation_resource)
 
 
 class TestMultiTenantIsolation:

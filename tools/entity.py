@@ -33,16 +33,22 @@ try:
 except ImportError:
     _HAS_SCHEMAS = False
 
+# Import from extracted modules
+try:
+    from .entity.schemas import get_entity_schema
+    from .entity.validators import validate_required_fields, is_uuid_format, validate_entity_data
+    from .entity.utils import slugify
+except ImportError:
+    # Fallback for tests/other imports
+    from entity.schemas import get_entity_schema
+    from entity.validators import validate_required_fields, is_uuid_format, validate_entity_data
+    from entity.utils import slugify
 
-slug_pattern = re.compile(r"[^a-z0-9]+")
 
-
+# Legacy alias for backward compatibility during refactoring
 def _slugify(value: str) -> str:
-    """Convert a string to a URL-friendly slug."""
-    if value is None:
-        return "document"
-    slug = slug_pattern.sub("-", value.strip().lower()).strip("-")
-    return slug or "document"
+    """DEPRECATED: Use slugify() instead."""
+    return slugify(value)
 
 
 class EntityManager(ToolBase):
@@ -69,70 +75,14 @@ class EntityManager(ToolBase):
 
     def _is_uuid_format(self, value: str) -> bool:
         """Check if string is a valid UUID format."""
-        if value is None:
-            return False
-        import re
-        uuid_pattern = re.compile(
-            r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-            re.IGNORECASE
-        )
-        return bool(uuid_pattern.match(value))
+        return is_uuid_format(value)
     
     def _get_entity_schema(self, entity_type: str) -> Dict[str, Any]:
         """Get schema information for entity type.
 
-        Uses manual schemas which define auto_slug and other logic.
-        Pydantic models are strict and don't understand our auto-generation patterns.
+        Delegates to extracted schemas module.
         """
-        # Manual schemas - source of truth for our auto-generation patterns
-        schemas = {
-            "organization": {
-                "required_fields": ["name"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_deleted": False, "type": "team"},
-                "relationships": ["members", "projects", "invitations"],
-                "auto_slug": True
-            },
-            "project": {
-                "required_fields": ["name", "organization_id"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_deleted": False},
-                "relationships": ["members", "documents", "organization"],
-                "auto_slug": True
-            },
-            "document": {
-                "required_fields": ["name", "project_id"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_deleted": False},
-                "relationships": ["blocks", "requirements", "project"],
-                "auto_slug": True
-            },
-            "requirement": {
-                "required_fields": ["name", "document_id"],
-                "auto_fields": ["id", "created_at", "updated_at", "version", "external_id"],
-                "default_values": {"is_deleted": False, "status": "active", "properties": {}, "priority": "low", "type": "component", "block_id": None},
-                "relationships": ["document", "tests", "trace_links"]
-            },
-            "test": {
-                "required_fields": ["title", "project_id"],
-                "auto_fields": ["id", "created_at", "updated_at"],
-                "default_values": {"is_active": True, "status": "pending", "priority": "medium"},
-                "relationships": ["requirements", "project"]
-            },
-            "user": {
-                "required_fields": ["id"],
-                "auto_fields": ["created_at", "updated_at"],
-                "default_values": {},
-                "relationships": ["organizations", "projects"]
-            },
-            "profile": {
-                "required_fields": ["id"],
-                "auto_fields": ["created_at", "updated_at"],
-                "default_values": {},
-                "relationships": ["organizations", "projects"]
-            }
-        }
-        return schemas.get(entity_type.lower(), {})
+        return get_entity_schema(entity_type)
     
     def _apply_defaults(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Apply default values and auto-generated fields."""
