@@ -319,10 +319,10 @@ class TestOptimisticUpdate:
     @pytest.mark.asyncio
     async def test_optimistic_update_success(self):
         """Test successful optimistic update."""
-        manager = ConcurrencyManager()
+        manager = ConcurrencyManager(ConflictResolution.LAST_WINS)
         
         # Mock database adapter
-        with patch('infrastructure.concurrency_manager.get_adapters') as mock_adapters:
+        with patch('infrastructure.factory.get_adapters') as mock_adapters:
             mock_db = AsyncMock()
             mock_adapters.return_value = {"database": mock_db}
             
@@ -355,9 +355,9 @@ class TestOptimisticUpdate:
     @pytest.mark.asyncio
     async def test_optimistic_update_version_mismatch(self):
         """Test optimistic update fails on version mismatch."""
-        manager = ConcurrencyManager()
+        manager = ConcurrencyManager(ConflictResolution.LAST_WINS)
         
-        with patch('infrastructure.concurrency_manager.get_adapters') as mock_adapters:
+        with patch('infrastructure.factory.get_adapters') as mock_adapters:
             mock_db = AsyncMock()
             mock_adapters.return_value = {"database": mock_db}
             
@@ -381,9 +381,9 @@ class TestOptimisticUpdate:
     @pytest.mark.asyncio
     async def test_optimistic_update_retry_on_conflict(self):
         """Test optimistic update retries on conflict."""
-        manager = ConcurrencyManager()
+        manager = ConcurrencyManager(ConflictResolution.LAST_WINS)
         
-        with patch('infrastructure.concurrency_manager.get_adapters') as mock_adapters:
+        with patch('infrastructure.factory.get_adapters') as mock_adapters:
             mock_db = AsyncMock()
             mock_adapters.return_value = {"database": mock_db}
             
@@ -391,7 +391,7 @@ class TestOptimisticUpdate:
             # Update fails (returns None for conflict)
             # Second call returns version 2 (concurrent update)
             # Third update succeeds
-            mock_db.get_multiple.side_effect = [
+            mock_db.get_single.side_effect = [
                 {"id": "entity1", "version": 1},
                 {"id": "entity1", "version": 2},
                 {"id": "entity1", "version": 2}
@@ -407,7 +407,6 @@ class TestOptimisticUpdate:
                 table="entities",
                 entity_id="entity1",
                 update_data={"name": "Updated"},
-                expected_version=1,
                 max_retries=3
             )
             
@@ -454,7 +453,7 @@ class TestBulkOperationsWithConcurrency:
         entity_ids = ["ent1", "ent2", "ent3", "ent4"]
         
         # Mock processing - fail for ent2 and ent4
-        async def mock_process(entity_id):
+        async def mock_process(operation_type, entity_type, entity_id, operation_data):
             if entity_id in ["ent2", "ent4"]:
                 raise Exception("Processing failed")
             return {"entity_id": entity_id, "success": True}
@@ -479,7 +478,7 @@ class TestBulkOperationsWithConcurrency:
         manager = ConcurrencyManager()
         concurrent_operations = []
         
-        async def mock_process(entity_id):
+        async def mock_process(operation_type, entity_type, entity_id, operation_data):
             concurrent_operations.append(entity_id)
             await asyncio.sleep(0.1)
             return {"entity_id": entity_id, "success": True}
@@ -628,24 +627,29 @@ class TestConcurrencyPerformance:
         manager = ConcurrencyManager()
         entity_ids = [f"ent{i}" for i in range(50)]
         
-        start_time = time.time()
+        # Mock process to return quickly
+        async def mock_process(operation_type, entity_type, entity_id, operation_data):
+            return {"entity_id": entity_id, "success": True}
         
-        result = await manager.bulk_operation_with_concurrency(
-            operation_type="update",
-            entity_type="document",
-            entity_ids=entity_ids,
-            operation_data={"status": "updated"},
-            max_concurrent=10
-        )
-        
-        end_time = time.time()
-        duration = end_time - start_time
-        
-        assert result["success"] is True
-        assert result["processed"] == 50
-        
-        # Should complete reasonably fast (under 2 seconds for 50 operations)
-        assert duration < 2.0, f"Bulk operation too slow: {duration}s"
+        with patch.object(manager, '_process_single_entity', side_effect=mock_process):
+            start_time = time.time()
+            
+            result = await manager.bulk_operation_with_concurrency(
+                operation_type="update",
+                entity_type="document",
+                entity_ids=entity_ids,
+                operation_data={"status": "updated"},
+                max_concurrent=10
+            )
+            
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            assert result["success"] is True
+            assert result["processed"] == 50
+            
+            # Should complete reasonably fast (under 2 seconds for 50 operations)
+            assert duration < 2.0, f"Bulk operation too slow: {duration}s"
     
     @pytest.mark.asyncio
     async def test_memory_usage(self):

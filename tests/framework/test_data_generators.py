@@ -46,55 +46,86 @@ class DataGeneratorHelper:
     def _create_project_scenario(self, scenario_name: str) -> Dict[str, Any]:
         """Create project data for specific scenario."""
         if scenario_name == "basic":
-            return DataGenerator.project_data()
+            data = DataGenerator.project_data()
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_auto_context":
             # For auto context, we need an organization ID - use a mock ID for now
             # In real tests, context should be set up via workspace_tool first
             # For unit tests, we'll use a mock ID instead of "auto" to avoid context dependency
             self.context_data = {}
             # Use explicit ID instead of "auto" for unit tests without context setup
-            return DataGenerator.project_data(organization_id=DataGenerator.uuid())
+            data = DataGenerator.project_data(organization_id=DataGenerator.uuid())
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_explicit_id":
             organization_id = DataGenerator.uuid()
-            return DataGenerator.project_data(f"Explicit Project {organization_id[:8]}", organization_id)
+            data = DataGenerator.project_data(f"Explicit Project {organization_id[:8]}", organization_id)
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         else:
             return self._create_project_scenario("basic")
 
     def _create_document_scenario(self, scenario_name: str) -> Dict[str, Any]:
         """Create document data for specific scenario."""
         if scenario_name == "basic":
-            return DataGenerator.document_data()
+            data = DataGenerator.document_data()
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_auto_context":
             self.context_data = {}
-            return DataGenerator.document_data(project_id="auto")
+            data = DataGenerator.document_data(project_id="auto")
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         else:
             return self._create_document_scenario("basic")
 
     def _create_requirement_scenario(self, scenario_name: str) -> Dict[str, Any]:
         """Create requirement data for specific scenario."""
         if scenario_name == "basic":
-            return DataGenerator.requirement_data()
+            data = DataGenerator.requirement_data()
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_auto_context":
             self.context_data = {}
-            return DataGenerator.requirement_data(document_id="auto")
+            data = DataGenerator.requirement_data(document_id="auto")
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_high_priority":
-            req_data = DataGenerator.requirement_data()
-            req_data["priority"] = "high"
-            return req_data
+            data = DataGenerator.requirement_data()
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            data["priority"] = "high"
+            return data
         else:
             return self._create_requirement_scenario("basic")
 
     def _create_test_scenario(self, scenario_name: str) -> Dict[str, Any]:
         """Create test data for specific scenario."""
         if scenario_name == "basic":
-            return DataGenerator.test_data()
+            data = DataGenerator.test_data()
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_auto_context":
             self.context_data = {}
-            return DataGenerator.test_data(project_id="auto")
+            data = DataGenerator.test_data(project_id="auto")
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            return data
         elif scenario_name == "with_high_priority":
-            test_data = DataGenerator.test_data()
-            test_data["priority"] = "high"
-            return test_data
+            data = DataGenerator.test_data()
+            # Add workspace_id for permission middleware
+            data["workspace_id"] = DataGenerator.uuid()
+            data["priority"] = "high"
+            return data
         else:
             return self._create_test_scenario("basic")
 
@@ -103,7 +134,8 @@ class DataGeneratorHelper:
         if scenario_name == "basic":
             return {
                 "name": f"Test Property {DataGenerator.unique_id()}",
-                "value": "test_value"
+                "value": "test_value",
+                "workspace_id": DataGenerator.uuid()  # Add workspace_id for permission middleware
             }
         else:
             return self._create_property_scenario("basic")

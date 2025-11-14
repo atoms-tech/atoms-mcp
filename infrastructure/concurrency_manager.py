@@ -296,19 +296,21 @@ class ConcurrencyManager:
                 )
                 
                 if not current:
-                    raise ConcurrencyException(f"Entity {entity_id} not found")
+                    return {
+                        "success": False,
+                        "error": f"Entity {entity_id} not found",
+                        "attempt": attempt + 1
+                    }
                 
                 # Check version if provided
                 if expected_version is not None:
                     current_version = current.get("version", 0)
                     if current_version != expected_version:
-                        raise ConcurrencyException(
-                            f"Version mismatch: expected {expected_version}, got {current_version}",
-                            {
-                                "current_data": current,
-                                "attempt": attempt + 1
-                            }
-                        )
+                        return {
+                            "success": False,
+                            "error": f"Version mismatch: expected {expected_version}, got {current_version}",
+                            "attempt": attempt + 1
+                        }
                 
                 # Detect conflicts
                 conflict_result = await self.detect_conflict(
@@ -397,6 +399,7 @@ class ConcurrencyManager:
                 "success": True,
                 "processed": 0,
                 "failed": 0,
+                "total": 0,
                 "results": []
             }
         
