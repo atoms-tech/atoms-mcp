@@ -348,7 +348,7 @@ class TestMultiTenantIsolation:
 class TestPermissionIntegration:
     """Test permission system integration scenarios."""
     
-    def test_cascading_permissions(self):
+    async def test_cascading_permissions(self):
         """Test permission cascading from parent to child."""
         checker = get_permission_checker()
         user = create_user_context(
@@ -372,10 +372,10 @@ class TestPermissionIntegration:
         )
         
         # Should be able to read child if can read parent
-        assert checker.check_permission(user, Permission.READ, parent_resource)
-        assert checker.check_permission(user, Permission.READ, child_resource)
+        assert await checker.check_permission(user, Permission.READ, parent_resource)
+        assert await checker.check_permission(user, Permission.READ, child_resource)
     
-    def test_permission_inheritance(self):
+    async def test_permission_inheritance(self):
         """Test permission inheritance scenarios."""
         checker = get_permission_checker()
         
@@ -397,10 +397,10 @@ class TestPermissionIntegration:
         )
         
         # Admin should have access to both
-        assert checker.check_permission(workspace_admin, Permission.READ, project_resource)
-        assert checker.check_permission(workspace_admin, Permission.READ, doc_resource)
+        assert await checker.check_permission(workspace_admin, Permission.READ, project_resource)
+        assert await checker.check_permission(workspace_admin, Permission.READ, doc_resource)
     
-    def test_permission_denial_reasons(self):
+    async def test_permission_denial_reasons(self):
         """Test different reasons for permission denial."""
         checker = get_permission_checker()
         user = create_user_context(
@@ -414,13 +414,13 @@ class TestPermissionIntegration:
         )
         
         # Viewer cannot create documents
-        assert not checker.check_permission(user, Permission.CREATE, resource)
+        assert not await checker.check_permission(user, Permission.CREATE, resource)
         
         # Viewer cannot update documents
-        assert not checker.check_permission(user, Permission.UPDATE, resource)
+        assert not await checker.check_permission(user, Permission.UPDATE, resource)
         
         # But can read
-        assert checker.check_permission(user, Permission.READ, resource)
+        assert await checker.check_permission(user, Permission.READ, resource)
 
 
 class TestPermissionPerformance:

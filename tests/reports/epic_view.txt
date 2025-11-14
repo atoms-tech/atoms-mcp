@@ -2,27 +2,27 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Organization Management (2/5) ✓○○                                          ║
+║ 📦 Organization Management (0/5) ○○○                                          ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create an organization (No matching tests found)                ║
 ║   ❌ User can view organization details (No matching tests found)             ║
-║   ✅ User can update organization settings                                    ║
+║   ❌ User can update organization settings (No matching tests found)          ║
 ║   ❌ User can delete an organization (No matching tests found)                ║
-║   ✅ User can list all organizations                                          ║
+║   ❌ User can list all organizations (No matching tests found)                ║
 ║                                                                              ║
-║ 📦 Project Management (2/5) ✓○○                                               ║
+║ 📦 Project Management (0/5) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create a project (No matching tests found)                      ║
 ║   ❌ User can view project details (No matching tests found)                  ║
-║   ✅ User can update project information                                      ║
+║   ❌ User can update project information (No matching tests found)            ║
 ║   ❌ User can archive a project (No matching tests found)                     ║
-║   ✅ User can list projects in organization                                   ║
+║   ❌ User can list projects in organization (No matching tests found)         ║
 ║                                                                              ║
-║ 📦 Document Management (1/3) ✓○○                                              ║
+║ 📦 Document Management (0/3) ○○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create a document (No matching tests found)                     ║
 ║   ❌ User can view document content (No matching tests found)                 ║
-║   ✅ User can list documents in project                                       ║
+║   ❌ User can list documents in project (No matching tests found)             ║
 ║                                                                              ║
 ║ 📦 Requirements Traceability (0/4) ○○○                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -52,21 +52,21 @@
 ║   ❌ User can view entity relationships (No matching tests found)             ║
 ║   ❌ User can check if entities are related (No matching tests found)         ║
 ║                                                                              ║
-║ 📦 Search & Discovery (1/7) ✓○○                                               ║
+║ 📦 Search & Discovery (0/7) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can search across all entities (No matching tests found)            ║
-║   ✅ User can filter search results                                           ║
+║   ❌ User can filter search results (No matching tests found)                 ║
 ║   ❌ User can perform semantic search (No matching tests found)               ║
 ║   ❌ User can perform keyword search (No matching tests found)                ║
 ║   ❌ User can perform hybrid search (No matching tests found)                 ║
 ║   ❌ User can get entity count aggregates (No matching tests found)           ║
 ║   ❌ User can find similar entities (No matching tests found)                 ║
 ║                                                                              ║
-║ 📦 Workflow Automation (1/5) ✓○○                                              ║
+║ 📦 Workflow Automation (0/5) ○○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can set up new project workflow (No matching tests found)           ║
 ║   ❌ User can import requirements via workflow (No matching tests found)      ║
-║   ✅ User can bulk update statuses                                            ║
+║   ❌ User can bulk update statuses (No matching tests found)                  ║
 ║   ❌ User can onboard new organization (No matching tests found)              ║
 ║   ❌ User can run workflows with transactions (No matching tests found)       ║
 ║                                                                              ║
@@ -83,5 +83,5 @@
 ║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 7/48 user stories complete (14%)                                    ║
+║ Overall: 0/48 user stories complete (0%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
