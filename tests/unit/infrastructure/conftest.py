@@ -14,13 +14,17 @@ from typing import Dict
 
 @pytest.fixture
 def call_mcp(request):
-    """Fixture that skips tests requiring MCP client.
+    """Fixture that skips tests requiring MCP client in infrastructure context.
     
-    Infrastructure tests should not depend on MCP tools - this fixture
-    ensures such tests are properly skipped with a clear reason.
+    Tests using call_mcp are integration tests testing the entity_tool.
+    They should either:
+    1. Be moved to tests/unit/tools/ where call_mcp is available
+    2. Use infrastructure mocks directly instead of calling MCP tools
+    
+    This is intentional - infrastructure tests should test components in isolation.
     """
-    pytest.skip("Infrastructure tests should not use call_mcp fixture. "
-                "Move to tools tests or test components directly.")
+    pytest.skip("Infrastructure tests should test components directly, not via MCP tools. "
+                "Use call_mcp in tests/unit/tools/ or refactor to use component mocks.")
 
 
 @pytest.fixture
