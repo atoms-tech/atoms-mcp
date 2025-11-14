@@ -129,7 +129,7 @@ class PermissionManager:
 
         except Exception as e:
             logger.error(f"Error checking permission: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def get_entity_permissions(
         self,
@@ -215,7 +215,7 @@ class PermissionManager:
 
         except Exception as e:
             logger.error(f"Error granting permission: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def revoke_permission(
         self,

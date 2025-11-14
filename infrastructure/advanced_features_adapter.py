@@ -95,7 +95,7 @@ class AdvancedFeaturesAdapter:
                 return result
         except Exception as e:
             logger.error(f"Error indexing entity: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Failed to index entity for search")
 
     async def advanced_search(
         self,
@@ -159,7 +159,7 @@ class AdvancedFeaturesAdapter:
             return results, total, facets
         except Exception as e:
             logger.error(f"Error in advanced search: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     def _extract_facets(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Extract facet information from search results.
@@ -222,7 +222,7 @@ class AdvancedFeaturesAdapter:
             return result
         except Exception as e:
             logger.error(f"Error creating export job: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def update_export_job(
         self,
@@ -274,7 +274,7 @@ class AdvancedFeaturesAdapter:
             return result[0] if result else {}
         except Exception as e:
             logger.error(f"Error updating export job: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     # =====================================================
     # IMPORT OPERATIONS
@@ -325,7 +325,7 @@ class AdvancedFeaturesAdapter:
             return result
         except Exception as e:
             logger.error(f"Error creating import job: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def update_import_job(
         self,
@@ -385,7 +385,7 @@ class AdvancedFeaturesAdapter:
             return result[0] if result else {}
         except Exception as e:
             logger.error(f"Error updating import job: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     # =====================================================
     # PERMISSION OPERATIONS
@@ -417,7 +417,7 @@ class AdvancedFeaturesAdapter:
             return permissions
         except Exception as e:
             logger.error(f"Error getting entity permissions: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Failed to get entity permissions")
 
     async def grant_permission(
         self,
@@ -465,7 +465,7 @@ class AdvancedFeaturesAdapter:
             return result
         except Exception as e:
             logger.error(f"Error granting permission: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def revoke_permission(
         self,
@@ -487,7 +487,7 @@ class AdvancedFeaturesAdapter:
             return bool(result)
         except Exception as e:
             logger.error(f"Error revoking permission: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Failed to revoke permission")
 
     async def update_permission(
         self,
@@ -525,4 +525,4 @@ class AdvancedFeaturesAdapter:
             return result[0] if result else {}
         except Exception as e:
             logger.error(f"Error updating permission: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")

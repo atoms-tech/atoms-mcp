@@ -77,7 +77,7 @@ class WorkflowStorageAdapter:
             return workflows, total
         except Exception as e:
             logger.error(f"Error listing workflows: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def create_workflow(
         self,
@@ -123,7 +123,7 @@ class WorkflowStorageAdapter:
             return result
         except Exception as e:
             logger.error(f"Error creating workflow: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def get_workflow(self, workflow_id: str) -> Optional[Dict[str, Any]]:
         """Get a specific workflow by ID.
@@ -144,7 +144,7 @@ class WorkflowStorageAdapter:
             )
         except Exception as e:
             logger.error(f"Error getting workflow: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Failed to get workflow")
 
     async def update_workflow(
         self,
@@ -182,7 +182,7 @@ class WorkflowStorageAdapter:
             return result[0]
         except Exception as e:
             logger.error(f"Error updating workflow: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def delete_workflow(self, workflow_id: str) -> bool:
         """Soft-delete a workflow.
@@ -205,7 +205,7 @@ class WorkflowStorageAdapter:
             return bool(result)
         except Exception as e:
             logger.error(f"Error deleting workflow: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Failed to delete workflow")
 
     async def create_execution(
         self,
@@ -248,7 +248,7 @@ class WorkflowStorageAdapter:
             return result
         except Exception as e:
             logger.error(f"Error creating execution: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def update_execution(
         self,
@@ -296,7 +296,7 @@ class WorkflowStorageAdapter:
             return result[0]
         except Exception as e:
             logger.error(f"Error updating execution: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
 
     async def list_executions(
         self,
@@ -337,4 +337,4 @@ class WorkflowStorageAdapter:
             return executions, total
         except Exception as e:
             logger.error(f"Error listing executions: {e}")
-            raise normalize_error(e)
+            raise normalize_error(e, "Operation failed")
