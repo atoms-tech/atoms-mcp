@@ -68,14 +68,11 @@ class ConcurrencyManager:
                 self._locks[resource_id] = asyncio.Lock()
             resource_lock = self._locks[resource_id]
         
-        # Execute operation with lock
-        async def _execute_with_lock():
-            async with resource_lock:
-                return await operation()
-        
+        # Execute operation with lock (with timeout on lock acquisition)
         try:
-            result = await asyncio.wait_for(_execute_with_lock(), timeout=timeout)
-            return result
+            async with asyncio.timeout(timeout):
+                async with resource_lock:
+                    return await operation()
         except asyncio.TimeoutError:
             raise asyncio.TimeoutError(
                 f"Could not acquire lock for resource {resource_id} within {timeout}s"
@@ -102,9 +99,9 @@ class ConcurrencyManager:
             operations = []
         
         transaction = {
-            "id": transaction_id,
+            "transaction_id": transaction_id,
             "status": "pending",
-            "operations": [],
+            "operations": len(operations),
             "results": [],
             "errors": [],
             "created_at": datetime.now(timezone.utc),
@@ -120,25 +117,28 @@ class ConcurrencyManager:
             transaction["started_at"] = datetime.now(timezone.utc)
             
             # Execute operations
+            completed = 0
             for operation in operations:
                 try:
                     result = await operation()
                     transaction["results"].append(result)
-                    transaction["operations"].append({
-                        "status": "success",
-                        "result": result
-                    })
+                    completed += 1
                 except Exception as e:
                     error = str(e)
                     transaction["errors"].append(error)
-                    transaction["operations"].append({
-                        "status": "error",
-                        "error": error
-                    })
                     
                     # For now, fail fast on first error
                     # In production, might continue depending on operation type
-                    raise
+                    transaction["status"] = "failed"
+                    transaction["completed_at"] = datetime.now(timezone.utc)
+                    
+                    return {
+                        "success": False,
+                        "transaction_id": transaction_id,
+                        "error": error,
+                        "operations": len(operations),
+                        "completed_operations": completed
+                    }
             
             transaction["status"] = "completed"
             transaction["completed_at"] = datetime.now(timezone.utc)
@@ -147,20 +147,9 @@ class ConcurrencyManager:
                 "success": True,
                 "transaction_id": transaction_id,
                 "results": transaction["results"],
-                "operations": len(transaction["operations"])
+                "operations": len(operations)
             }
             
-        except Exception as e:
-            transaction["status"] = "failed"
-            transaction["completed_at"] = datetime.now(timezone.utc)
-            
-            return {
-                "success": False,
-                "transaction_id": transaction_id,
-                "error": str(e),
-                "operations": len(transaction["operations"]),
-                "completed_operations": len(transaction["results"])
-            }
         finally:
             # Clean up old transactions (keep last 100)
             if len(self._transactions) > 100:

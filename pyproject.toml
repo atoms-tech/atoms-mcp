@@ -32,6 +32,9 @@ dependencies = [
     "upstash-ratelimit>=0.3.0",
     "py-key-value-aio>=0.2.8",
     
+    # CLI
+    "typer>=0.20.0",
+
     # Utilities
     "pydantic[email]>=2.11.7,<3.0.0",
     "PyYAML>=6.0",
@@ -39,6 +42,7 @@ dependencies = [
     "rapidfuzz>=3.10.0",
     "python-multipart>=0.0.6",
     "email-validator>=2.0.0",
+    "tqdm>=4.66.0",
 
     # Lambda adapter
     "mangum>=0.17.0",

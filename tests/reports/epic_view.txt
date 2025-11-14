@@ -12,7 +12,7 @@
 ║                                                                              ║
 ║ 📦 Project Management (0/5) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can create a project (1 test(s) failing)                            ║
+║   ❌ User can create a project (No matching tests found)                      ║
 ║   ❌ User can view project details (No matching tests found)                  ║
 ║   ❌ User can update project information (No matching tests found)            ║
 ║   ❌ User can archive a project (No matching tests found)                     ║
@@ -62,11 +62,11 @@
 ║   ❌ User can get entity count aggregates (No matching tests found)           ║
 ║   ❌ User can find similar entities (No matching tests found)                 ║
 ║                                                                              ║
-║ 📦 Workflow Automation (0/5) ○○○                                              ║
+║ 📦 Workflow Automation (1/5) ✓○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can set up new project workflow (No matching tests found)           ║
 ║   ❌ User can import requirements via workflow (No matching tests found)      ║
-║   ❌ User can bulk update statuses (No matching tests found)                  ║
+║   ✅ User can bulk update statuses                                            ║
 ║   ❌ User can onboard new organization (No matching tests found)              ║
 ║   ❌ User can run workflows with transactions (No matching tests found)       ║
 ║                                                                              ║
@@ -83,5 +83,5 @@
 ║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 0/48 user stories complete (0%)                                     ║
+║ Overall: 1/48 user stories complete (2%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

@@ -23,9 +23,10 @@ import sys
 import json
 
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit, pytest.mark.performance]
+pytestmark = [pytest.mark.unit, pytest.mark.performance]
 
 
+@pytest.mark.asyncio
 class TestLargeDatasetHandling:
     """Test handling of large datasets."""
 
@@ -116,6 +117,7 @@ class TestBulkOperationsAtScale:
         assert succeeded + failed == total
 
 
+@pytest.mark.asyncio
 class TestSearchPerformanceAtScale:
     """Test search performance with large indexes."""
 
@@ -276,6 +278,7 @@ class TestDeepRelationshipGraphs:
         assert len(graph) == 100
 
 
+@pytest.mark.asyncio
 class TestConcurrentLoadHandling:
     """Test handling concurrent operations at scale."""
 

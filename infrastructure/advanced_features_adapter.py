@@ -89,8 +89,7 @@ class AdvancedFeaturesAdapter:
                 # Create new index
                 result = await self.db.insert(
                     "search_index",
-                    index_data,
-                    return_inserted=True
+                    index_data
                 )
                 return result
         except Exception as e:

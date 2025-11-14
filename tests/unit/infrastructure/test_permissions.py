@@ -12,9 +12,10 @@ from infrastructure.permissions import (
     get_permission_checker
 )
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.unit]
 
 
+@pytest.mark.asyncio
 class TestPermissionBasics:
     """Test basic permission functionality."""
     
@@ -82,6 +83,7 @@ class TestPermissionBasics:
             assert not result
 
 
+@pytest.mark.asyncio
 class TestWorkspaceRolePermissions:
     """Test workspace role-based permissions."""
     
@@ -178,6 +180,7 @@ class TestWorkspaceRolePermissions:
         assert not await checker.check_permission(viewer_user, Permission.DELETE, resource)
 
 
+@pytest.mark.asyncio
 class TestOwnershipPermissions:
     """Test ownership-based permissions."""
     
@@ -214,6 +217,7 @@ class TestOwnershipPermissions:
         assert not await checker.check_permission(user, Permission.DELETE, resource)
 
 
+@pytest.mark.asyncio
 class TestEntityTypeSpecificPermissions:
     """Test entity type-specific permission rules."""
     
@@ -345,6 +349,7 @@ class TestMultiTenantIsolation:
         assert EntityType.PROJECT in viewer_accessible
 
 
+@pytest.mark.asyncio
 class TestPermissionIntegration:
     """Test permission system integration scenarios."""
     
@@ -517,6 +522,7 @@ class TestPermissionLevels:
         assert PermissionManager.OPERATION_PERMISSIONS["archive"] == "admin"
 
 
+@pytest.mark.asyncio
 class TestPermissionChecks:
     """Test permission checking logic."""
 
@@ -649,6 +655,7 @@ class TestPermissionChecks:
         assert allowed is False
 
 
+@pytest.mark.asyncio
 class TestPermissionEnforcement:
     """Test permission enforcement (raises errors)."""
 
@@ -696,6 +703,7 @@ class TestPermissionEnforcement:
             )
 
 
+@pytest.mark.asyncio
 class TestPermissionGranting:
     """Test granting and revoking permissions."""
 
@@ -757,6 +765,7 @@ class TestPermissionGranting:
         assert result is True
 
 
+@pytest.mark.asyncio
 class TestBulkOperationPermissions:
     """Test permissions on bulk operations."""
 
