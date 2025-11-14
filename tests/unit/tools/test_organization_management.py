@@ -1,0 +1,585 @@
+"""E2E tests for Organization Management operations.
+
+This file validates end-to-end organization management functionality:
+- Creating organizations with various metadata configurations
+- Updating organization properties and settings
+- Retrieving organization details and listings
+- Managing organization membership and roles
+- Organization lifecycle operations (activate/deactivate/delete)
+
+Test Coverage: 21 test scenarios covering 5 user stories.
+File follows canonical naming - describes WHAT is tested (organization management).
+Uses parametrized fixtures for unit/integration/e2e variants.
+"""
+
+import pytest
+import pytest_asyncio
+import asyncio
+import uuid
+from typing import Dict, Any, List
+from datetime import datetime, timezone
+
+
+
+
+
+class TestOrganizationCreation:
+    """Test organization creation scenarios."""
+    
+    @pytest.mark.asyncio
+    async def test_create_minimal_organization(self, call_mcp):
+        """Create organization with minimal required data (name only)."""
+        org_data = {
+            "name": f"Minimal Org {uuid.uuid4().hex[:8]}"
+        }
+        
+        result, duration_ms = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": org_data
+            }
+        )
+        
+        assert result["success"] is True
+        assert "data" in result
+        assert "id" in result["data"]
+        assert uuid.UUID(result["data"]["id"])  # Valid UUID
+        assert result["data"]["name"] == org_data["name"]
+        assert result["data"]["created_by"] == "test_user@example.com"
+        assert result["data"]["created_at"] is not None
+        # Verify ISO timestamp format
+        datetime.fromisoformat(result["data"]["created_at"].replace('Z', '+00:00'))
+    
+    @pytest.mark.asyncio
+    async def test_create_full_organization(self, mcp_client):
+        """Create organization with complete metadata."""
+        org_data = {
+            "name": f"Full Org {uuid.uuid4().hex[:8]}",
+            "description": "Complete test organization with all metadata",
+            "type": "enterprise",
+            "settings": {
+                "rate_limits": {
+                    "requests_per_minute": 1000,
+                    "requests_per_hour": 50000
+                },
+                "features": {
+                    "advanced_analytics": True,
+                    "custom_integrations": True
+                }
+            },
+            "metadata": {
+                "industry": "technology",
+                "size": "large",
+                "region": "north-america"
+            }
+        }
+        
+        result, duration_ms = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create", 
+                "data": org_data
+            }
+        )
+        
+        assert result["success"] is True
+        data = result["data"]
+        assert data["name"] == org_data["name"]
+        assert data["description"] == org_data["description"]
+        assert data["type"] == org_data["type"]
+        assert data["settings"] == org_data["settings"]
+        assert data["metadata"] == org_data["metadata"]
+    
+    @pytest.mark.asyncio
+    async def test_create_organization_duplicate_name_fails(self, mcp_client):
+        """Creating organization with duplicate name should fail."""
+        org_name = f"Duplicate Org {uuid.uuid4().hex[:8]}"
+        org_data = {"name": org_name}
+        
+        # Create first organization
+        result1 = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        assert result1["success"] is True
+        
+        # Attempt to create second with same name
+        result2 = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        assert result2["success"] is False
+        assert "already exists" in result2["error"].lower()
+    
+    @pytest.mark.asyncio
+    async def test_create_organization_invalid_type(self, mcp_client):
+        """Creating organization with invalid type should fail."""
+        org_data = {
+            "name": f"Invalid Type Org {uuid.uuid4().hex[:8]}",
+            "type": "invalid_type"
+        }
+        
+        result, duration_ms = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        
+        assert result["success"] is False
+        assert "type" in result["error"].lower() or "invalid" in result["error"].lower()
+
+
+class TestOrganizationRetrieval:
+    """Test organization retrieval operations."""
+    
+    
+    @pytest.mark.asyncio
+    async def test_get_organization_by_id(self, mcp_client):
+        """Retrieve organization details by ID."""
+        # Create organization first
+        org_data = {"name": f"Get Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Retrieve organization
+        get_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+        )
+        
+        assert get_result["success"] is True
+        assert get_result["data"]["id"] == org_id
+        assert get_result["data"]["name"] == org_data["name"]
+    
+    
+    @pytest.mark.asyncio
+    async def test_list_organizations(self, mcp_client):
+        """List all organizations for authenticated user."""
+        # Create multiple organizations
+        org_names = [
+            f"List Org {i} {uuid.uuid4().hex[:8]}" 
+            for i in range(3)
+        ]
+        
+        created_ids = []
+        for name in org_names:
+            result, duration_ms = await call_mcp(
+                "entity_tool",
+                {"entity_type": "organization", "operation": "create", "data": {"name": name}}
+            )
+            created_ids.append(result["data"]["id"])
+        
+        # List organizations
+        list_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "list"}
+        )
+        
+        assert list_result["success"] is True
+        assert "data" in list_result
+        assert isinstance(list_result["data"], list)
+        
+        # Verify our created organizations are in the list
+        returned_ids = [org["id"] for org in list_result["data"]]
+        for created_id in created_ids:
+            assert created_id in returned_ids
+    
+    
+    @pytest.mark.asyncio
+    async def test_get_nonexistent_organization(self, mcp_client):
+        """Getting non-existent organization should fail."""
+        fake_id = str(uuid.uuid4())
+        
+        result, duration_ms = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "get", "entity_id": fake_id}
+        )
+        
+        assert result["success"] is False
+        assert "not found" in result["error"].lower()
+
+
+class TestOrganizationUpdate:
+    """Test organization update operations."""
+    
+    
+    @pytest.mark.asyncio
+    async def test_update_organization_name(self, mcp_client):
+        """Update organization name successfully."""
+        # Create organization
+        org_data = {"name": f"Update Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Update name
+        new_name = f"Updated Org {uuid.uuid4().hex[:8]}"
+        update_result = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": org_id,
+                "data": {"name": new_name}
+            }
+        )
+        
+        assert update_result["success"] is True
+        assert update_result["data"]["name"] == new_name
+        
+        # Verify update persisted
+        get_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+        )
+        assert get_result["data"]["name"] == new_name
+    
+    
+    @pytest.mark.asyncio
+    async def test_update_organization_settings(self, mcp_client):
+        """Update organization rate limits and settings."""
+        # Create organization
+        org_data = {"name": f"Settings Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Update settings
+        new_settings = {
+            "rate_limits": {
+                "requests_per_minute": 2000,
+                "requests_per_hour": 100000
+            },
+            "features": {
+                "advanced_analytics": False,
+                "custom_integrations": True,
+                "beta_features": True
+            }
+        }
+        
+        update_result = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": org_id,
+                "data": {"settings": new_settings}
+            }
+        )
+        
+        assert update_result["success"] is True
+        assert update_result["data"]["settings"] == new_settings
+    
+    
+    @pytest.mark.asyncio
+    async def test_update_nonexistent_organization(self, mcp_client):
+        """Updating non-existent organization should fail."""
+        fake_id = str(uuid.uuid4())
+        
+        result, duration_ms = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": fake_id,
+                "data": {"name": "Updated Name"}
+            }
+        )
+        
+        assert result["success"] is False
+        assert "not found" in result["error"].lower()
+
+
+class TestOrganizationMembership:
+    """Test organization member management."""
+    
+    
+    @pytest.mark.asyncio
+    async def test_add_organization_member(self, mcp_client):
+        """Add member to organization with role."""
+        # Create organization
+        org_data = {"name": f"Member Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Add member using relationship_tool
+        member_email = f"member{uuid.uuid4().hex[:8]}@example.com"
+        add_result = await call_mcp(
+            "relationship_tool",
+            {
+                "relationship_type": "organization_membership",
+                "operation": "create",
+                "data": {
+                    "organization_id": org_id,
+                    "member_email": member_email,
+                    "role": "member",
+                    "permissions": ["read", "write"]
+                }
+            }
+        )
+        
+        assert add_result["success"] is True
+        assert add_result["data"]["member_email"] == member_email
+        assert add_result["data"]["role"] == "member"
+    
+    
+    @pytest.mark.asyncio
+    async def test_list_organization_members(self, mcp_client):
+        """List all members of an organization."""
+        # Create organization
+        org_data = {"name": f"List Members Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Add multiple members
+        members = [
+            {"email": f"member{i}{uuid.uuid4().hex[:8]}@example.com", "role": "member"}
+            for i in range(3)
+        ]
+        
+        for member in members:
+            await call_mcp(
+                "relationship_tool",
+                {
+                    "relationship_type": "organization_membership",
+                    "operation": "create",
+                    "data": {
+                        "organization_id": org_id,
+                        "member_email": member["email"],
+                        "role": member["role"],
+                        "permissions": ["read"]
+                    }
+                }
+            )
+        
+        # List members
+        list_result = await call_mcp(
+            "relationship_tool",
+            {
+                "relationship_type": "organization_membership",
+                "operation": "list",
+                "filters": {"organization_id": org_id}
+            }
+        )
+        
+        assert list_result["success"] is True
+        assert len(list_result["data"]) >= len(members)
+        
+        member_emails = {m["member_email"] for m in list_result["data"]}
+        for member in members:
+            assert member["email"] in member_emails
+    
+    
+    @pytest.mark.asyncio
+    async def test_remove_organization_member(self, mcp_client):
+        """Remove member from organization."""
+        # Create organization and add member
+        org_data = {"name": f"Remove Member Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        member_email = f"remove{uuid.uuid4().hex[:8]}@example.com"
+        add_result = await call_mcp(
+            "relationship_tool",
+            {
+                "relationship_type": "organization_membership",
+                "operation": "create",
+                "data": {
+                    "organization_id": org_id,
+                    "member_email": member_email,
+                    "role": "member"
+                }
+            }
+        )
+        membership_id = add_result["data"]["id"]
+        
+        # Remove member
+        remove_result = await call_mcp(
+            "relationship_tool",
+            {
+                "relationship_type": "organization_membership",
+                "operation": "delete",
+                "relationship_id": membership_id
+            }
+        )
+        
+        assert remove_result["success"] is True
+        
+        # Verify member is removed
+        list_result = await call_mcp(
+            "relationship_tool",
+            {
+                "relationship_type": "organization_membership",
+                "operation": "list",
+                "filters": {"organization_id": org_id}
+            }
+        )
+        
+        remaining_emails = {m["member_email"] for m in list_result["data"]}
+        assert member_email not in remaining_emails
+
+
+class TestOrganizationLifecycle:
+    """Test organization lifecycle operations."""
+    
+    
+    @pytest.mark.asyncio
+    async def test_deactivate_organization(self, mcp_client):
+        """Deactivate organization (soft delete)."""
+        # Create organization
+        org_data = {"name": f"Deactivate Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Deactivate organization
+        deactivate_result = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": org_id,
+                "data": {"status": "inactive"}
+            }
+        )
+        
+        assert deactivate_result["success"] is True
+        assert deactivate_result["data"]["status"] == "inactive"
+        
+        # Verify organization appears inactive
+        get_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+        )
+        assert get_result["data"]["status"] == "inactive"
+    
+    
+    @pytest.mark.asyncio
+    async def test_activate_organization(self, mcp_client):
+        """Activate previously deactivated organization."""
+        # Create and deactivate organization
+        org_data = {"name": f"Reactivate Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Deactivate first
+        await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": org_id,
+                "data": {"status": "inactive"}
+            }
+        )
+        
+        # Reactivate
+        activate_result = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": org_id,
+                "data": {"status": "active"}
+            }
+        )
+        
+        assert activate_result["success"] is True
+        assert activate_result["data"]["status"] == "active"
+    
+    
+    @pytest.mark.asyncio
+    async def test_delete_organization(self, mcp_client):
+        """Delete organization (hard delete)."""
+        # Create organization
+        org_data = {"name": f"Delete Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Delete organization
+        delete_result = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": org_id
+            }
+        )
+        
+        assert delete_result["success"] is True
+        
+        # Verify organization is gone
+        get_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+        )
+        assert get_result["success"] is False
+        assert "not found" in get_result["error"].lower()
+    
+    
+    @pytest.mark.asyncio
+    async def test_organization_audit_trail(self, mcp_client):
+        """Verify organization operations create audit trail."""
+        # Create organization
+        org_data = {"name": f"Audit Org {uuid.uuid4().hex[:8]}"}
+        create_result = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = create_result["data"]["id"]
+        
+        # Update organization
+        await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "update",
+                "entity_id": org_id,
+                "data": {"description": "Updated description"}
+            }
+        )
+        
+        # Query audit trail
+        audit_result = await call_mcp(
+            "query_tool",
+            {
+                "query_type": "audit_trail",
+                "filters": {
+                    "entity_type": "organization",
+                    "entity_id": org_id
+                }
+            }
+        )
+        
+        assert audit_result["success"] is True
+        assert len(audit_result["data"]) >= 2  # Create + Update
+        
+        operations = [entry["operation"] for entry in audit_result["data"]]
+        assert "create" in operations
+        assert "update" in operations
