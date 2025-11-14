@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from supabase import Client
@@ -122,7 +122,11 @@ class PermissionManager:
             # Check expiration
             if "expires_at" in user_perm and user_perm["expires_at"]:
                 expires = datetime.fromisoformat(user_perm["expires_at"])
-                if datetime.utcnow() > expires:
+                # Handle both naive and aware datetimes
+                if expires.tzinfo is None:
+                    # Naive datetime - assume UTC
+                    expires = expires.replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) > expires:
                     return False
 
             return True

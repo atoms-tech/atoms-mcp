@@ -435,7 +435,8 @@ class TestPermissionIntegration:
 class TestPermissionPerformance:
     """Test permission system performance."""
     
-    def test_permission_check_performance(self):
+    @pytest.mark.asyncio
+    async def test_permission_check_performance(self):
         """Test permission checking is efficient."""
         import time
         
@@ -452,7 +453,7 @@ class TestPermissionPerformance:
         # Check many permissions quickly
         start_time = time.time()
         for _ in range(1000):
-            checker.check_permission(user, Permission.READ, resource)
+            await checker.check_permission(user, Permission.READ, resource)
         end_time = time.time()
         
         # Should be very fast (< 0.1 seconds for 1000 checks)

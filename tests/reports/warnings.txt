@@ -3,13 +3,15 @@
 ⚠️  TEST WARNINGS & PERFORMANCE ISSUES
 ======================================================================
 
-🐌 SLOW (3):
+🐌 SLOW (2):
   🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
      → Slow: 1.10s (threshold: 1.0s)
   🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
-     → Slow: 1.10s (threshold: 1.0s)
-  🟡 tests/unit/infrastructure/test_mock_clients.py::TestHttpMcpClient::test_health_check_no_connection
-     → Slow: 1.23s (threshold: 1.0s)
+     → Slow: 1.11s (threshold: 1.0s)
+
+🔄 FLAKY (1):
+  🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestOptimisticUpdate::test_optimistic_update_retry_on_conflict
+     → Test passed after retry (potentially flaky)
 
 ----------------------------------------------------------------------
 Total Warnings: 3
