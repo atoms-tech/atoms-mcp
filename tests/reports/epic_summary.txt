@@ -11,9 +11,9 @@
 ║ Workspace Navigation          │       6 │        0 │         ○○○ ║
 ║ Entity Relationships          │       4 │        0 │         ○○○ ║
 ║ Search & Discovery            │       7 │        0 │         ○○○ ║
-║ Workflow Automation           │       5 │        1 │         ✓○○ ║
+║ Workflow Automation           │       5 │        0 │         ○○○ ║
 ║ Data Management               │       3 │        0 │         ○○○ ║
 ║ Security & Access             │       4 │        3 │         ✓✓○ ║
 ╠──────────────────────────────────────────────────────────────────────────────╣
-║ Total: 4/48 user stories complete (8%)                                       ║
+║ Total: 3/48 user stories complete (6%)                                       ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

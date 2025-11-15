@@ -27,53 +27,53 @@
 ║ 📦 Requirements Traceability (0/4) ○○○                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create requirements (5/5 failing)                               ║
-║   ❌ User can pull requirements from system (No matching tests found)         ║
+║   ❌ User can pull requirements from system (1/1 failing)                     ║
 ║   ❌ User can search requirements (4/4 failing)                               ║
 ║   ❌ User can trace links between requirements and t... (1/1 failing)         ║
 ║                                                                              ║
 ║ 📦 Test Case Management (0/2) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can create test cases (No matching tests found)                     ║
-║   ❌ User can view test results (No matching tests found)                     ║
+║   ❌ User can create test cases (1/1 failing)                                 ║
+║   ❌ User can view test results (1/1 failing)                                 ║
 ║                                                                              ║
 ║ 📦 Workspace Navigation (0/6) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can view current workspace context (1/1 failing)                    ║
-║   ❌ User can switch to organization workspace (No matching tests found)      ║
-║   ❌ User can switch to project workspace (No matching tests found)           ║
-║   ❌ User can switch to document workspace (No matching tests found)          ║
-║   ❌ User can list all available workspaces (No matching tests found)         ║
-║   ❌ User can get workspace defaults (No matching tests found)                ║
+║   ❌ User can switch to organization workspace (1/1 failing)                  ║
+║   ❌ User can switch to project workspace (1/1 failing)                       ║
+║   ❌ User can switch to document workspace (1/1 failing)                      ║
+║   ❌ User can list all available workspaces (1/1 failing)                     ║
+║   ❌ User can get workspace defaults (1/1 failing)                            ║
 ║                                                                              ║
 ║ 📦 Entity Relationships (0/4) ○○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can link entities together (No matching tests found)                ║
-║   ❌ User can unlink related entities (No matching tests found)               ║
-║   ❌ User can view entity relationships (No matching tests found)             ║
+║   ❌ User can link entities together (2/2 failing)                            ║
+║   ❌ User can unlink related entities (1/1 failing)                           ║
+║   ❌ User can view entity relationships (1/1 failing)                         ║
 ║   ❌ User can check if entities are related (2/2 failing)                     ║
 ║                                                                              ║
 ║ 📦 Search & Discovery (0/7) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can search across all entities (9/9 failing)                        ║
+║   ❌ User can search across all entities (8/8 failing)                        ║
 ║   ❌ User can filter search results (4/4 failing)                             ║
-║   ❌ User can perform semantic search (3/3 failing)                           ║
-║   ❌ User can perform keyword search (No matching tests found)                ║
+║   ❌ User can perform semantic search (2/2 failing)                           ║
+║   ❌ User can perform keyword search (1/1 failing)                            ║
 ║   ❌ User can perform hybrid search (3/3 failing)                             ║
-║   ❌ User can get entity count aggregates (No matching tests found)           ║
-║   ❌ User can find similar entities (No matching tests found)                 ║
+║   ❌ User can get entity count aggregates (1/1 failing)                       ║
+║   ❌ User can find similar entities (1/1 failing)                             ║
 ║                                                                              ║
-║ 📦 Workflow Automation (1/5) ✓○○                                              ║
+║ 📦 Workflow Automation (0/5) ○○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can set up new project workflow (No matching tests found)           ║
-║   ❌ User can import requirements via workflow (No matching tests found)      ║
-║   ❌ User can bulk update statuses (No matching tests found)                  ║
-║   ❌ User can onboard new organization (No matching tests found)              ║
-║   ✅ User can run workflows with transactions                                 ║
+║   ❌ User can set up new project workflow (1/1 failing)                       ║
+║   ❌ User can import requirements via workflow (1/1 failing)                  ║
+║   ❌ User can bulk update statuses (1/1 failing)                              ║
+║   ❌ User can onboard new organization (1/1 failing)                          ║
+║   ❌ User can run workflows with transactions (1/1 failing)                   ║
 ║                                                                              ║
 ║ 📦 Data Management (0/3) ○○○                                                  ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can batch create multiple entities (3/3 failing)                    ║
-║   ❌ User can paginate through large lists (No matching tests found)          ║
+║   ❌ User can paginate through large lists (1/1 failing)                      ║
 ║   ❌ User can sort query results (6/6 failing)                                ║
 ║                                                                              ║
 ║ 📦 Security & Access (3/4) ✓✓○                                                ║
@@ -81,7 +81,7 @@
 ║   ✅ User can log in with AuthKit                                             ║
 ║   ✅ User can maintain active session                                         ║
 ║   ✅ User can log out securely                                                ║
-║   ❌ User data is protected by row-level security (No matching tests found)   ║
+║   ❌ User data is protected by row-level security (5/5 failing)               ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 4/48 user stories complete (8%)                                     ║
+║ Overall: 3/48 user stories complete (6%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
