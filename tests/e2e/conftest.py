@@ -272,9 +272,9 @@ async def authkit_auth_token():
     except Exception as e:
         logger_local.warning(f"Error authenticating with AuthKit: {e}")
     
-    # Fallback to empty token if auth fails
-    logger_local.info("Using fallback token (AuthKit auth failed)")
-    return ""
+    # Fallback: no token available (will use other auth mechanisms)
+    logger_local.info("AuthKit authentication not available - tests will use mock harness or skip")
+    return None
 
 
 @pytest_asyncio.fixture
@@ -313,7 +313,7 @@ async def e2e_auth_token(authkit_auth_token):
     
     # **Strategy 1: Use real AuthKit JWT from cloud authentication (RECOMMENDED for cloud)**
     # This uses actual credentials to authenticate with AuthKit
-    if authkit_auth_token:
+    if authkit_auth_token is not None:
         logger_local.info(f"Using real AuthKit JWT for E2E authentication")
         return authkit_auth_token
     
