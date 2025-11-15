@@ -12,7 +12,7 @@ class TestDocumentCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a document")
-    async def test_create_document_minimal(self, mcp_client):
+    async def test_create_document_minimal(self, end_to_end_client):
         """Create document with minimal data."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -33,7 +33,7 @@ class TestDocumentCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a document")
-    async def test_create_document_full_metadata(self, mcp_client):
+    async def test_create_document_full_metadata(self, end_to_end_client):
         """Create document with full metadata."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -59,7 +59,7 @@ class TestDocumentCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a document")
-    async def test_create_document_invalid_fails(self, mcp_client):
+    async def test_create_document_invalid_fails(self, end_to_end_client):
         """Creating document with invalid data fails."""
         result = await mcp_client.entity_tool(
             entity_type="document",
@@ -72,7 +72,7 @@ class TestDocumentCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a document")
-    async def test_create_document_auto_version(self, mcp_client):
+    async def test_create_document_auto_version(self, end_to_end_client):
         """Document version auto-incremented."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -97,7 +97,7 @@ class TestDocumentReading:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can view document content")
-    async def test_read_document_by_id(self, mcp_client):
+    async def test_read_document_by_id(self, end_to_end_client):
         """Read document by ID."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -125,7 +125,7 @@ class TestDocumentReading:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can view document content")
-    async def test_read_document_with_content(self, mcp_client):
+    async def test_read_document_with_content(self, end_to_end_client):
         """Read document returns content."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -152,7 +152,7 @@ class TestDocumentReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_read_nonexistent_document_fails(self, mcp_client):
+    async def test_read_nonexistent_document_fails(self, end_to_end_client):
         """Reading non-existent document fails."""
         result = await mcp_client.entity_tool(
             entity_type="document",
@@ -169,7 +169,7 @@ class TestDocumentListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list documents in project")
-    async def test_list_documents_in_project(self, mcp_client):
+    async def test_list_documents_in_project(self, end_to_end_client):
         """List documents in project."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -200,7 +200,7 @@ class TestDocumentListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list documents in project")
-    async def test_list_documents_with_pagination(self, mcp_client):
+    async def test_list_documents_with_pagination(self, end_to_end_client):
         """List documents with limit."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -224,7 +224,7 @@ class TestDocumentListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list documents in project")
-    async def test_list_documents_sorted(self, mcp_client):
+    async def test_list_documents_sorted(self, end_to_end_client):
         """List documents sorted by name."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",

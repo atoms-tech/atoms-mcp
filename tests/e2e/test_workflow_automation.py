@@ -11,7 +11,7 @@ class TestWorkflowExecution:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_execute_simple_workflow(self, mcp_client):
+    async def test_execute_simple_workflow(self, end_to_end_client):
         """Execute simple single-step workflow."""
         result = await mcp_client.workflow_execute(
             workflow_name="create_entity",
@@ -23,7 +23,7 @@ class TestWorkflowExecution:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_execute_multi_step_workflow(self, mcp_client):
+    async def test_execute_multi_step_workflow(self, end_to_end_client):
         """Execute multi-step workflow."""
         result = await mcp_client.workflow_execute(
             workflow_name="setup_project",
@@ -38,7 +38,7 @@ class TestWorkflowExecution:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_workflow_with_transaction(self, mcp_client):
+    async def test_workflow_with_transaction(self, end_to_end_client):
         """Workflow executes as transaction."""
         result = await mcp_client.workflow_execute(
             workflow_name="batch_operation",
@@ -53,7 +53,7 @@ class TestWorkflowExecution:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_workflow_error_rollback(self, mcp_client):
+    async def test_workflow_error_rollback(self, end_to_end_client):
         """Workflow rolls back on error."""
         result = await mcp_client.workflow_execute(
             workflow_name="batch_operation",
@@ -69,7 +69,7 @@ class TestWorkflowExecution:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_workflow_with_retry(self, mcp_client):
+    async def test_workflow_with_retry(self, end_to_end_client):
         """Workflow retries on transient failure."""
         result = await mcp_client.workflow_execute(
             workflow_name="resilient_operation",
@@ -87,7 +87,7 @@ class TestProjectSetupWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_setup_new_project_workflow(self, mcp_client):
+    async def test_setup_new_project_workflow(self, end_to_end_client):
         """Execute project setup workflow."""
         result = await mcp_client.workflow_execute(
             workflow_name="setup_new_project",
@@ -101,7 +101,7 @@ class TestProjectSetupWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_scaffold_default_entities(self, mcp_client):
+    async def test_scaffold_default_entities(self, end_to_end_client):
         """Workflow scaffolds default documents."""
         result = await mcp_client.workflow_execute(
             workflow_name="scaffold_project",
@@ -114,7 +114,7 @@ class TestProjectSetupWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_scaffold_with_initial_members(self, mcp_client):
+    async def test_scaffold_with_initial_members(self, end_to_end_client):
         """Scaffold project with initial members."""
         result = await mcp_client.workflow_execute(
             workflow_name="setup_with_team",
@@ -134,7 +134,7 @@ class TestBatchImportWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_import_requirements_workflow(self, mcp_client):
+    async def test_import_requirements_workflow(self, end_to_end_client):
         """Import requirements via workflow."""
         requirements = [
             {"name": f"REQ {i}", "priority": "high"} for i in range(10)
@@ -150,7 +150,7 @@ class TestBatchImportWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_import_with_validation(self, mcp_client):
+    async def test_import_with_validation(self, end_to_end_client):
         """Import with validation and error reporting."""
         requirements = [
             {"name": f"REQ {i}", "priority": "high"} for i in range(5)
@@ -167,7 +167,7 @@ class TestBatchImportWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_import_csv_file(self, mcp_client):
+    async def test_import_csv_file(self, end_to_end_client):
         """Import from CSV file."""
         result = await mcp_client.workflow_execute(
             workflow_name="import_csv",
@@ -185,7 +185,7 @@ class TestBulkUpdateWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_bulk_update_status_workflow(self, mcp_client):
+    async def test_bulk_update_status_workflow(self, end_to_end_client):
         """Bulk update entity statuses."""
         result = await mcp_client.workflow_execute(
             workflow_name="bulk_update_status",
@@ -198,7 +198,7 @@ class TestBulkUpdateWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_bulk_update_with_transaction(self, mcp_client):
+    async def test_bulk_update_with_transaction(self, end_to_end_client):
         """Bulk update as transaction."""
         result = await mcp_client.workflow_execute(
             workflow_name="bulk_update_transactional",
@@ -212,7 +212,7 @@ class TestBulkUpdateWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_bulk_update_with_rollback(self, mcp_client):
+    async def test_bulk_update_with_rollback(self, end_to_end_client):
         """Bulk update with rollback on error."""
         result = await mcp_client.workflow_execute(
             workflow_name="bulk_update_safe",
@@ -229,7 +229,7 @@ class TestOnboardingWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_onboard_new_organization(self, mcp_client):
+    async def test_onboard_new_organization(self, end_to_end_client):
         """Execute organization onboarding workflow."""
         result = await mcp_client.workflow_execute(
             workflow_name="onboard_organization",
@@ -244,7 +244,7 @@ class TestOnboardingWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_onboard_with_initial_setup(self, mcp_client):
+    async def test_onboard_with_initial_setup(self, end_to_end_client):
         """Onboard with complete setup."""
         result = await mcp_client.workflow_execute(
             workflow_name="complete_onboarding",
@@ -260,7 +260,7 @@ class TestOnboardingWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_onboard_with_members(self, mcp_client):
+    async def test_onboard_with_members(self, end_to_end_client):
         """Onboard with team members."""
         result = await mcp_client.workflow_execute(
             workflow_name="onboard_with_team",
@@ -275,7 +275,7 @@ class TestOnboardingWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
-    async def test_onboard_send_invitations(self, mcp_client):
+    async def test_onboard_send_invitations(self, end_to_end_client):
         """Onboarding sends member invitations."""
         result = await mcp_client.workflow_execute(
             workflow_name="onboard_send_invites",

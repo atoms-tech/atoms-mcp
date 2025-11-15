@@ -22,7 +22,7 @@ class TestOrganizationCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_create_organization_minimal(self, mcp_client):
+    async def test_create_organization_minimal(self, end_to_end_client):
         """Create organization with minimal data (name only).
         
         Validates:
@@ -47,7 +47,7 @@ class TestOrganizationCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_create_organization_full_metadata(self, mcp_client):
+    async def test_create_organization_full_metadata(self, end_to_end_client):
         """Create organization with full metadata.
         
         Validates:
@@ -78,7 +78,7 @@ class TestOrganizationCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_create_organization_duplicate_name_allowed(self, mcp_client):
+    async def test_create_organization_duplicate_name_allowed(self, end_to_end_client):
         """Creating org with duplicate name should be allowed (separate entities).
         
         Validates:
@@ -111,7 +111,7 @@ class TestOrganizationCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_create_organization_invalid_data_fails(self, mcp_client):
+    async def test_create_organization_invalid_data_fails(self, end_to_end_client):
         """Creating org with invalid data should fail gracefully.
         
         Validates:
@@ -136,7 +136,7 @@ class TestOrganizationReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_read_organization_by_id(self, mcp_client):
+    async def test_read_organization_by_id(self, end_to_end_client):
         """Read organization by UUID.
         
         Validates:
@@ -167,7 +167,7 @@ class TestOrganizationReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_read_organization_fuzzy_name_match(self, mcp_client):
+    async def test_read_organization_fuzzy_name_match(self, end_to_end_client):
         """Read organization by fuzzy name match (partial match >= 70%).
         
         Validates:
@@ -197,7 +197,7 @@ class TestOrganizationReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_read_nonexistent_organization_fails(self, mcp_client):
+    async def test_read_nonexistent_organization_fails(self, end_to_end_client):
         """Reading non-existent organization should fail gracefully.
         
         Validates:
@@ -221,7 +221,7 @@ class TestOrganizationUpdate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_update_organization_name(self, mcp_client):
+    async def test_update_organization_name(self, end_to_end_client):
         """Update organization name.
         
         Validates:
@@ -257,7 +257,7 @@ class TestOrganizationUpdate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_update_organization_partial(self, mcp_client):
+    async def test_update_organization_partial(self, end_to_end_client):
         """Partial update changes only specified fields.
         
         Validates:
@@ -291,7 +291,7 @@ class TestOrganizationUpdate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_update_organization_invalid_data_fails(self, mcp_client):
+    async def test_update_organization_invalid_data_fails(self, end_to_end_client):
         """Updating with invalid data should fail.
         
         Validates:
@@ -322,7 +322,7 @@ class TestOrganizationDeletion:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_soft_delete_organization(self, mcp_client):
+    async def test_soft_delete_organization(self, end_to_end_client):
         """Soft delete sets deleted_at timestamp.
         
         Validates:
@@ -351,7 +351,7 @@ class TestOrganizationDeletion:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_soft_deleted_organization_not_in_list(self, mcp_client):
+    async def test_soft_deleted_organization_not_in_list(self, end_to_end_client):
         """Soft-deleted organization excluded from list() by default.
         
         Validates:
@@ -387,7 +387,7 @@ class TestOrganizationDeletion:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_restore_soft_deleted_organization(self, mcp_client):
+    async def test_restore_soft_deleted_organization(self, end_to_end_client):
         """Restore organization from soft delete.
         
         Validates:
@@ -425,7 +425,7 @@ class TestOrganizationListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_list_organizations_paginated(self, mcp_client):
+    async def test_list_organizations_paginated(self, end_to_end_client):
         """List organizations with pagination.
         
         Validates:
@@ -458,7 +458,7 @@ class TestOrganizationListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_list_organizations_sorted(self, mcp_client):
+    async def test_list_organizations_sorted(self, end_to_end_client):
         """List organizations with sorting.
         
         Validates:
@@ -490,7 +490,7 @@ class TestOrganizationListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_list_organizations_filter_by_type(self, mcp_client):
+    async def test_list_organizations_filter_by_type(self, end_to_end_client):
         """List organizations filtered by type.
         
         Validates:
@@ -523,7 +523,7 @@ class TestOrganizationListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_list_organizations_excludes_deleted(self, mcp_client):
+    async def test_list_organizations_excludes_deleted(self, end_to_end_client):
         """List by default excludes soft-deleted organizations.
         
         Validates:

@@ -12,7 +12,7 @@ class TestBatchCreate:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can batch create multiple entities")
-    async def test_batch_create_10_entities(self, mcp_client):
+    async def test_batch_create_10_entities(self, end_to_end_client):
         """Create 10 entities in batch."""
         entities = [{"name": f"Entity {i}"} for i in range(10)]
         
@@ -29,7 +29,7 @@ class TestBatchCreate:
     @pytest.mark.entity
     @pytest.mark.slow
     @pytest.mark.story("User can batch create multiple entities")
-    async def test_batch_create_1000_entities(self, mcp_client):
+    async def test_batch_create_1000_entities(self, end_to_end_client):
         """Create 1000 entities in batch."""
         entities = [{"name": f"Entity {i}"} for i in range(1000)]
         
@@ -46,7 +46,7 @@ class TestBatchCreate:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can batch create multiple entities")
-    async def test_batch_create_with_metadata(self, mcp_client):
+    async def test_batch_create_with_metadata(self, end_to_end_client):
         """Batch create with full metadata."""
         entities = [
             {"name": f"Entity {i}", "description": f"Description {i}", "status": "active"}
@@ -70,7 +70,7 @@ class TestPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_list_with_limit(self, mcp_client):
+    async def test_list_with_limit(self, end_to_end_client):
         """List with limit parameter."""
         result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -83,7 +83,7 @@ class TestPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_list_with_offset(self, mcp_client):
+    async def test_list_with_offset(self, end_to_end_client):
         """List with offset parameter."""
         # First page
         page1 = await mcp_client.entity_tool(
@@ -109,7 +109,7 @@ class TestPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_pagination_cursor_based(self, mcp_client):
+    async def test_pagination_cursor_based(self, end_to_end_client):
         """Cursor-based pagination if supported."""
         result = await mcp_client.entity_tool(
             entity_type="project",
@@ -123,7 +123,7 @@ class TestPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_pagination_total_count(self, mcp_client):
+    async def test_pagination_total_count(self, end_to_end_client):
         """Get total count with pagination."""
         result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -137,7 +137,7 @@ class TestPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_pagination_large_dataset(self, mcp_client):
+    async def test_pagination_large_dataset(self, end_to_end_client):
         """Paginate through large result set (1000+ items)."""
         # First page
         page1 = await mcp_client.entity_tool(
@@ -157,7 +157,7 @@ class TestSorting:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can sort query results")
-    async def test_sort_by_name_ascending(self, mcp_client):
+    async def test_sort_by_name_ascending(self, end_to_end_client):
         """Sort by name ascending."""
         result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -175,7 +175,7 @@ class TestSorting:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can sort query results")
-    async def test_sort_by_name_descending(self, mcp_client):
+    async def test_sort_by_name_descending(self, end_to_end_client):
         """Sort by name descending."""
         result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -189,7 +189,7 @@ class TestSorting:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can sort query results")
-    async def test_sort_by_created_date(self, mcp_client):
+    async def test_sort_by_created_date(self, end_to_end_client):
         """Sort by creation date."""
         result = await mcp_client.entity_tool(
             entity_type="project",
@@ -203,7 +203,7 @@ class TestSorting:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can sort query results")
-    async def test_sort_by_updated_date(self, mcp_client):
+    async def test_sort_by_updated_date(self, end_to_end_client):
         """Sort by modification date."""
         result = await mcp_client.entity_tool(
             entity_type="project",
@@ -217,7 +217,7 @@ class TestSorting:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can sort query results")
-    async def test_sort_by_custom_field(self, mcp_client):
+    async def test_sort_by_custom_field(self, end_to_end_client):
         """Sort by custom field."""
         result = await mcp_client.entity_tool(
             entity_type="project",
@@ -230,7 +230,7 @@ class TestSorting:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_multi_field_sort(self, mcp_client):
+    async def test_multi_field_sort(self, end_to_end_client):
         """Sort by multiple fields."""
         result = await mcp_client.entity_tool(
             entity_type="project",
@@ -248,7 +248,7 @@ class TestSortWithPagination:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can sort query results")
-    async def test_sorted_paginated_list(self, mcp_client):
+    async def test_sorted_paginated_list(self, end_to_end_client):
         """List sorted and paginated together."""
         page1 = await mcp_client.entity_tool(
             entity_type="organization",
@@ -272,7 +272,7 @@ class TestSortWithPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
-    async def test_reverse_sort_paginated(self, mcp_client):
+    async def test_reverse_sort_paginated(self, end_to_end_client):
         """Reverse sorted pagination."""
         page1 = await mcp_client.entity_tool(
             entity_type="project",

@@ -12,7 +12,7 @@ class TestWorkspaceContext:
     @pytest.mark.asyncio
     @pytest.mark.workspace
     @pytest.mark.story("User can view current workspace context")
-    async def test_get_current_workspace_context(self, mcp_client):
+    async def test_get_current_workspace_context(self, end_to_end_client):
         """Get current workspace context."""
         result = await mcp_client.workspace_tool(operation="get_context")
         assert result["success"] is True
@@ -20,7 +20,7 @@ class TestWorkspaceContext:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_get_context_at_org_level(self, mcp_client):
+    async def test_get_context_at_org_level(self, end_to_end_client):
         """Get workspace context at organization level."""
         org_result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -40,7 +40,7 @@ class TestWorkspaceContext:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_get_context_at_project_level(self, mcp_client):
+    async def test_get_context_at_project_level(self, end_to_end_client):
         """Get workspace context at project level."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -63,7 +63,7 @@ class TestContextSwitching:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_switch_to_organization_context(self, mcp_client):
+    async def test_switch_to_organization_context(self, end_to_end_client):
         """Switch to organization workspace."""
         org_result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -82,7 +82,7 @@ class TestContextSwitching:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_switch_to_project_context(self, mcp_client):
+    async def test_switch_to_project_context(self, end_to_end_client):
         """Switch to project workspace."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -101,7 +101,7 @@ class TestContextSwitching:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_switch_to_document_context(self, mcp_client):
+    async def test_switch_to_document_context(self, end_to_end_client):
         """Switch to document workspace."""
         project_result = await mcp_client.entity_tool(
             entity_type="project",
@@ -127,7 +127,7 @@ class TestContextSwitching:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_switch_with_fuzzy_entity_name(self, mcp_client):
+    async def test_switch_with_fuzzy_entity_name(self, end_to_end_client):
         """Switch context using fuzzy entity name."""
         org_result = await mcp_client.entity_tool(
             entity_type="organization",
@@ -147,7 +147,7 @@ class TestContextSwitching:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_switch_invalid_context_fails(self, mcp_client):
+    async def test_switch_invalid_context_fails(self, end_to_end_client):
         """Switching to invalid context fails."""
         result = await mcp_client.workspace_tool(
             operation="set_context",
@@ -163,7 +163,7 @@ class TestWorkspaceDefaults:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_get_defaults_organization_context(self, mcp_client):
+    async def test_get_defaults_organization_context(self, end_to_end_client):
         """Get defaults for organization context."""
         result = await mcp_client.workspace_tool(
             operation="get_defaults",
@@ -175,7 +175,7 @@ class TestWorkspaceDefaults:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_get_defaults_project_context(self, mcp_client):
+    async def test_get_defaults_project_context(self, end_to_end_client):
         """Get defaults for project context."""
         result = await mcp_client.workspace_tool(
             operation="get_defaults",
@@ -186,7 +186,7 @@ class TestWorkspaceDefaults:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_get_defaults_includes_templates(self, mcp_client):
+    async def test_get_defaults_includes_templates(self, end_to_end_client):
         """Defaults include available templates."""
         result = await mcp_client.workspace_tool(
             operation="get_defaults",
@@ -198,7 +198,7 @@ class TestWorkspaceDefaults:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_get_defaults_includes_rate_limits(self, mcp_client):
+    async def test_get_defaults_includes_rate_limits(self, end_to_end_client):
         """Defaults include rate limit info."""
         result = await mcp_client.workspace_tool(
             operation="get_defaults",
@@ -213,7 +213,7 @@ class TestWorkspaceListing:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_list_all_workspaces(self, mcp_client):
+    async def test_list_all_workspaces(self, end_to_end_client):
         """List all available workspaces."""
         result = await mcp_client.workspace_tool(operation="list_workspaces")
         
@@ -222,7 +222,7 @@ class TestWorkspaceListing:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_list_workspaces_includes_orgs(self, mcp_client):
+    async def test_list_workspaces_includes_orgs(self, end_to_end_client):
         """List includes organizations."""
         # Create an org
         org_result = await mcp_client.entity_tool(
@@ -239,7 +239,7 @@ class TestWorkspaceListing:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
-    async def test_list_workspaces_hierarchical(self, mcp_client):
+    async def test_list_workspaces_hierarchical(self, end_to_end_client):
         """Workspace list shows hierarchy."""
         result = await mcp_client.workspace_tool(operation="list_workspaces")
         

@@ -22,7 +22,7 @@ class TestProjectCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a project")
-    async def test_create_project_in_organization(self, mcp_client):
+    async def test_create_project_in_organization(self, end_to_end_client):
         """Create project within organization.
         
         Validates:
@@ -55,7 +55,7 @@ class TestProjectCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a project")
-    async def test_create_project_with_full_metadata(self, mcp_client):
+    async def test_create_project_with_full_metadata(self, end_to_end_client):
         """Create project with full metadata.
         
         Validates:
@@ -89,7 +89,7 @@ class TestProjectCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a project")
-    async def test_create_project_without_org_fails(self, mcp_client):
+    async def test_create_project_without_org_fails(self, end_to_end_client):
         """Creating project without org should fail or set null.
         
         Validates:
@@ -107,7 +107,7 @@ class TestProjectCreation:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can create a project")
-    async def test_create_project_invalid_data_fails(self, mcp_client):
+    async def test_create_project_invalid_data_fails(self, end_to_end_client):
         """Creating project with invalid data fails.
         
         Validates:
@@ -136,7 +136,7 @@ class TestProjectReading:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can view project details")
-    async def test_read_project_by_id(self, mcp_client):
+    async def test_read_project_by_id(self, end_to_end_client):
         """Read project by UUID.
         
         Validates:
@@ -175,7 +175,7 @@ class TestProjectReading:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can view project details")
-    async def test_read_project_with_relations(self, mcp_client):
+    async def test_read_project_with_relations(self, end_to_end_client):
         """Read project with relationships included.
         
         Validates:
@@ -211,7 +211,7 @@ class TestProjectReading:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can view project details")
-    async def test_read_nonexistent_project_fails(self, mcp_client):
+    async def test_read_nonexistent_project_fails(self, end_to_end_client):
         """Reading non-existent project fails gracefully.
         
         Validates:
@@ -234,7 +234,7 @@ class TestProjectUpdate:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can update project information")
-    async def test_update_project_name(self, mcp_client):
+    async def test_update_project_name(self, end_to_end_client):
         """Update project name.
         
         Validates:
@@ -275,7 +275,7 @@ class TestProjectUpdate:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can update project information")
-    async def test_update_project_status(self, mcp_client):
+    async def test_update_project_status(self, end_to_end_client):
         """Update project status.
         
         Validates:
@@ -313,7 +313,7 @@ class TestProjectUpdate:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can update project information")
-    async def test_update_project_partial(self, mcp_client):
+    async def test_update_project_partial(self, end_to_end_client):
         """Partial update only changes specified fields.
         
         Validates:
@@ -358,7 +358,7 @@ class TestProjectArchive:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can archive a project")
-    async def test_archive_project(self, mcp_client):
+    async def test_archive_project(self, end_to_end_client):
         """Archive (soft delete) project.
         
         Validates:
@@ -395,7 +395,7 @@ class TestProjectArchive:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can archive a project")
-    async def test_archived_project_excluded_from_list(self, mcp_client):
+    async def test_archived_project_excluded_from_list(self, end_to_end_client):
         """Archived project excluded from list by default.
         
         Validates:
@@ -441,7 +441,7 @@ class TestProjectArchive:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can archive a project")
-    async def test_restore_archived_project(self, mcp_client):
+    async def test_restore_archived_project(self, end_to_end_client):
         """Restore archived project.
         
         Validates:
@@ -489,7 +489,7 @@ class TestProjectListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list projects in organization")
-    async def test_list_projects_in_organization(self, mcp_client):
+    async def test_list_projects_in_organization(self, end_to_end_client):
         """List projects in organization.
         
         Validates:
@@ -529,7 +529,7 @@ class TestProjectListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list projects in organization")
-    async def test_list_projects_with_pagination(self, mcp_client):
+    async def test_list_projects_with_pagination(self, end_to_end_client):
         """List projects with limit and offset.
         
         Validates:
@@ -559,7 +559,7 @@ class TestProjectListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list projects in organization")
-    async def test_list_projects_sorted(self, mcp_client):
+    async def test_list_projects_sorted(self, end_to_end_client):
         """List projects sorted by name.
         
         Validates:
@@ -596,7 +596,7 @@ class TestProjectListing:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.story("User can list projects in organization")
-    async def test_list_projects_excludes_archived(self, mcp_client):
+    async def test_list_projects_excludes_archived(self, end_to_end_client):
         """List excludes archived projects by default.
         
         Validates:
