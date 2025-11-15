@@ -38,6 +38,7 @@ class TestWorkflowExecution:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
+    @pytest.mark.story("User can run workflows with transactions")
     async def test_workflow_with_transaction(self, end_to_end_client):
         """Workflow executes as transaction."""
         result = await end_to_end_client.workflow_execute(
@@ -87,6 +88,7 @@ class TestProjectSetupWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
+    @pytest.mark.story("User can set up new project workflow")
     async def test_setup_new_project_workflow(self, end_to_end_client):
         """Execute project setup workflow."""
         result = await end_to_end_client.workflow_execute(
@@ -134,6 +136,7 @@ class TestBatchImportWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
+    @pytest.mark.story("User can import requirements via workflow")
     async def test_import_requirements_workflow(self, end_to_end_client):
         """Import requirements via workflow."""
         requirements = [
@@ -185,6 +188,7 @@ class TestBulkUpdateWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
+    @pytest.mark.story("User can bulk update statuses")
     async def test_bulk_update_status_workflow(self, end_to_end_client):
         """Bulk update entity statuses."""
         result = await end_to_end_client.workflow_execute(
@@ -229,6 +233,7 @@ class TestOnboardingWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.workflow
+    @pytest.mark.story("User can onboard new organization")
     async def test_onboard_new_organization(self, end_to_end_client):
         """Execute organization onboarding workflow."""
         result = await end_to_end_client.workflow_execute(

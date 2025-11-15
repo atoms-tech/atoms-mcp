@@ -72,6 +72,7 @@ class TestRequirementBatch:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can pull requirements from system")
     async def test_batch_import_requirements(self, end_to_end_client):
         """Batch import multiple requirements."""
         requirements = [
