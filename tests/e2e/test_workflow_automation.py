@@ -1,3 +1,4 @@
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Workflow Automation E2E Tests - Story 9"""
 
 import pytest

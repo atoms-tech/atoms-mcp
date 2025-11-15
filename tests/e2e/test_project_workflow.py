@@ -198,7 +198,7 @@ async def test_delete_cascade_marks_dependents(
     """Deleting the organization in soft-delete mode cascades through tree."""
 
     graph = await workflow_scenarios["complete_project"]()
-    await mcp_client.call_tool(
+    await end_to_end_client.call_tool(
         "entity_tool",
         {
             "operation": "delete",
@@ -221,12 +221,12 @@ async def test_delete_cascade_marks_dependents(
 async def test_restore_from_soft_delete_recovers_entities(
     deployment_harness,
     workflow_scenarios,
-    mcp_client,
+    end_to_end_client,
 ):
     """Restoring previously soft-deleted records re-activates the tree."""
 
     graph = await workflow_scenarios["complete_project"]()
-    await mcp_client.call_tool(
+    await end_to_end_client.call_tool(
         "entity_tool",
         {
             "operation": "delete",
@@ -237,7 +237,7 @@ async def test_restore_from_soft_delete_recovers_entities(
         },
     )
 
-    await mcp_client.call_tool(
+    await end_to_end_client.call_tool(
         "entity_tool",
         {
             "operation": "update",
@@ -254,7 +254,7 @@ async def test_restore_from_soft_delete_recovers_entities(
 
         # restore one document manually to ensure leaves can revive
         doc_id = graph["document_ids"][0]
-        await mcp_client.call_tool(
+        await end_to_end_client.call_tool(
             "entity_tool",
             {
                 "operation": "update",

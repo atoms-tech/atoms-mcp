@@ -15,6 +15,14 @@ from typing import Dict, Any
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
+# Skip these tests unless running with proper auth or mock harness
+skip_reason = "Requires valid ATOMS_INTERNAL_TOKEN or USE_MOCK_HARNESS=true"
+has_internal_token = os.getenv("ATOMS_INTERNAL_TOKEN") and not os.getenv("ATOMS_INTERNAL_TOKEN").startswith("test-e2e-token")
+has_mock_harness = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
+
+if not (has_internal_token or has_mock_harness):
+    pytestmark.append(pytest.mark.skip(reason=skip_reason))
+
 
 class TestBearerTokenAuthentication:
     """Test Bearer token authentication (current implementation).

@@ -4,11 +4,11 @@
 ║                                                                              ║
 ║ 📦 Organization Management (0/5) ○○○                                          ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can create an organization (2/2 failing)                            ║
-║   ❌ User can view organization details (1/1 failing)                         ║
-║   ❌ User can update organization settings (1/1 failing)                      ║
-║   ❌ User can delete an organization (1/1 failing)                            ║
-║   ❌ User can list all organizations (2/2 failing)                            ║
+║   ❌ User can create an organization (No matching tests found)                ║
+║   ❌ User can view organization details (No matching tests found)             ║
+║   ❌ User can update organization settings (No matching tests found)          ║
+║   ❌ User can delete an organization (No matching tests found)                ║
+║   ❌ User can list all organizations (No matching tests found)                ║
 ║                                                                              ║
 ║ 📦 Project Management (0/5) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -62,13 +62,13 @@
 ║   ❌ User can get entity count aggregates (No matching tests found)           ║
 ║   ❌ User can find similar entities (No matching tests found)                 ║
 ║                                                                              ║
-║ 📦 Workflow Automation (1/5) ✓○○                                              ║
+║ 📦 Workflow Automation (0/5) ○○○                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can set up new project workflow (No matching tests found)           ║
 ║   ❌ User can import requirements via workflow (No matching tests found)      ║
 ║   ❌ User can bulk update statuses (No matching tests found)                  ║
 ║   ❌ User can onboard new organization (No matching tests found)              ║
-║   ✅ User can run workflows with transactions                                 ║
+║   ❌ User can run workflows with transactions (No matching tests found)       ║
 ║                                                                              ║
 ║ 📦 Data Management (0/3) ○○○                                                  ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -76,12 +76,12 @@
 ║   ❌ User can paginate through large lists (No matching tests found)          ║
 ║   ❌ User can sort query results (No matching tests found)                    ║
 ║                                                                              ║
-║ 📦 Security & Access (3/4) ✓✓○                                                ║
+║ 📦 Security & Access (0/4) ○○○                                                ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can log in with AuthKit                                             ║
-║   ✅ User can maintain active session                                         ║
-║   ✅ User can log out securely                                                ║
+║   ❌ User can log in with AuthKit (No matching tests found)                   ║
+║   ❌ User can maintain active session (No matching tests found)               ║
+║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 4/48 user stories complete (8%)                                     ║
+║ Overall: 0/48 user stories complete (0%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

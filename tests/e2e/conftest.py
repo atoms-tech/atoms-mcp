@@ -345,13 +345,23 @@ async def end_to_end_client(e2e_auth_token):
     import os
     from unittest.mock import AsyncMock
     
-    # Check if mock harness should be used
-    use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
+    # Auto-enable mock harness if using test token
+    if e2e_auth_token and e2e_auth_token.startswith("test-e2e-token"):
+        use_mock = True
+    else:
+        use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
     
     if use_mock:
         # Use mock client for testing
         from tests.e2e.mock_client import MockMcpClient
+        from unittest.mock import AsyncMock
+        
         client = MockMcpClient()
+        # Wrap call_tool to allow mocking via side_effect
+        original_call_tool = client.call_tool
+        mock_call_tool = AsyncMock(side_effect=original_call_tool)
+        client.call_tool = mock_call_tool
+        
         yield client
     else:
         # Use real HTTP client

@@ -1,3 +1,4 @@
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Data Management E2E Tests - Story 10"""
 
 import pytest
