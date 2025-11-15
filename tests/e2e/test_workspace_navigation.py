@@ -1,8 +1,9 @@
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Workspace Navigation E2E Tests - Story 6"""
 
 import pytest
 import uuid
+
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestWorkspaceContext:

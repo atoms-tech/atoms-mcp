@@ -1,8 +1,9 @@
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Document Management E2E Tests - Story 3: Create, Read, List documents"""
 
 import pytest
 import uuid
+
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestDocumentCreation:

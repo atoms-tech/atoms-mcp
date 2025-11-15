@@ -1,7 +1,8 @@
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Search & Discovery E2E Tests - Story 8"""
 
 import pytest
+
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestKeywordSearch:

@@ -1,8 +1,9 @@
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Data Management E2E Tests - Story 10"""
 
 import pytest
 import uuid
+
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestBatchCreate:

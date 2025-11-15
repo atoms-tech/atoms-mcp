@@ -15,6 +15,7 @@ import uuid
 
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
+
 class TestProjectCreation:
     """Create operation tests."""
 

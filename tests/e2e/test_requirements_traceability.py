@@ -1,8 +1,9 @@
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 """Requirements Traceability E2E Tests - Stories 4 & 5"""
 
 import pytest
 import uuid
+
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 class TestRequirementCreation:
