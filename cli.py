@@ -131,7 +131,7 @@ def version() -> None:
 
 @app.command()
 def test(
-    scope: str = typer.Option("unit", "--scope", help="Test scope: unit, integration, or e2e"),
+    scope: Optional[str] = typer.Option(None, "--scope", help="Test scope: unit, integration, or e2e (if omitted, runs all tests)"),
     verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
     coverage: bool = typer.Option(False, "--cov", help="Generate coverage report"),
     marker: Optional[str] = typer.Option(None, "-m", "--marker", help="Run specific marker (e.g., 'unit', 'story')"),
@@ -141,18 +141,20 @@ def test(
     """Run the test suite with automatic environment targeting.
     
     The CLI automatically targets the correct environment:
-    - unit tests → local (no deployment needed)
-    - integration tests → dev (mcpdev.atoms.tech) by default, or local
-    - e2e tests → dev (mcpdev.atoms.tech) by default, or local
+    - no scope → all tests (local)
+    - --scope unit → unit tests (local, no deployment needed)
+    - --scope integration → integration tests (dev by default, or local)
+    - --scope e2e → e2e tests (dev by default, or prod)
     
     Examples:
-        atoms test                          # Run unit tests (local)
+        atoms test                          # Run all tests (local)
+        atoms test --scope unit             # Unit tests only (local)
         atoms test --scope integration      # Integration tests (dev: mcpdev.atoms.tech)
         atoms test --scope e2e              # E2E tests (dev: mcpdev.atoms.tech)
         atoms test --scope e2e --env prod   # E2E tests against production
         atoms test --scope unit -v          # Verbose unit tests
         atoms test --scope integration --env local  # Integration against local server
-        atoms test --cov                    # Unit tests with coverage
+        atoms test -v --cov                 # All tests with coverage and verbose
     """
     from cli_modules.test_env_manager import TestEnvManager, TestEnvironment
     
@@ -164,8 +166,12 @@ def test(
             print(f"❌ Invalid environment: {env}. Use: local, dev, or prod")
             sys.exit(1)
     else:
-        # Auto-detect based on scope
-        environment = TestEnvManager.get_environment_for_scope(scope)
+        # Auto-detect based on scope (if provided)
+        # If no scope, default to local for all tests
+        if scope:
+            environment = TestEnvManager.get_environment_for_scope(scope)
+        else:
+            environment = TestEnvironment.LOCAL
     
     # Set up environment variables
     TestEnvManager.setup_environment(environment)
@@ -181,10 +187,11 @@ def test(
     if coverage:
         cmd.extend(["--cov=.", "--cov-report=html", "--cov-report=term"])
     
-    # Add marker based on scope if not explicitly provided
+    # Add marker based on explicit scope or marker option (not default)
     if marker:
         cmd.extend(["-m", marker])
-    elif scope in ["unit", "integration", "e2e"]:
+    elif scope and scope in ["unit", "integration", "e2e"]:
+        # Only add marker if scope was explicitly provided
         cmd.extend(["-m", scope])
     
     if keyword:
