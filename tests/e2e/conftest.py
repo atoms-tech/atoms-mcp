@@ -33,6 +33,12 @@ if not os.getenv("ATOMS_INTERNAL_TOKEN"):
     # Use a predictable test token for E2E tests
     os.environ["ATOMS_INTERNAL_TOKEN"] = "test-e2e-token-for-atoms-mcp"
 
+# Configure Supabase credentials for cloud testing
+if not os.getenv("ATOMS_TEST_EMAIL"):
+    os.environ["ATOMS_TEST_EMAIL"] = "kooshapari@kooshapari.com"
+if not os.getenv("ATOMS_TEST_PASSWORD"):
+    os.environ["ATOMS_TEST_PASSWORD"] = "ASD3on54_Pax90"
+
 
 @pytest_asyncio.fixture(params=["unit", "integration", "e2e"])
 async def mcp_client(request, end_to_end_client):
@@ -216,29 +222,86 @@ async def full_deployment():
 
 
 @pytest_asyncio.fixture
-async def e2e_auth_token():
+async def authkit_auth_token():
+    """Authenticate with AuthKit and get a real JWT token for cloud testing.
+    
+    Uses the configured ATOMS_TEST_EMAIL and ATOMS_TEST_PASSWORD to authenticate
+    with AuthKit and retrieve a valid access token.
+    
+    Returns:
+        Valid AuthKit JWT token for authenticated API calls
+    """
+    import os
+    import logging
+    
+    logger_local = logging.getLogger(__name__)
+    
+    email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
+    password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
+    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "https://decent-hymn-17-staging.authkit.app")
+    workos_client_id = os.getenv("WORKOS_CLIENT_ID", "client_01K4CGW2J1FGWZYZJDMVWGQZBD")
+    workos_api_key = os.getenv("WORKOS_API_KEY", "")
+    
+    try:
+        import httpx
+        
+        # Authenticate with AuthKit
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            auth_response = await client.post(
+                f"{authkit_domain}/api/auth/sessions/authenticate",
+                json={
+                    "email": email,
+                    "password": password,
+                },
+                headers={
+                    "Authorization": f"Bearer {workos_api_key}" if workos_api_key else "",
+                    "Content-Type": "application/json",
+                },
+            )
+            
+            if auth_response.status_code == 200:
+                auth_data = auth_response.json()
+                # AuthKit returns either 'access_token' or 'session_token'
+                token = auth_data.get("access_token") or auth_data.get("session_token")
+                if token:
+                    logger_local.info(f"✅ Authenticated with AuthKit as {email}")
+                    return token
+            else:
+                logger_local.warning(f"Failed to authenticate with AuthKit: {auth_response.status_code}")
+                logger_local.debug(f"Response: {auth_response.text}")
+    except Exception as e:
+        logger_local.warning(f"Error authenticating with AuthKit: {e}")
+    
+    # Fallback to empty token if auth fails
+    logger_local.info("Using fallback token (AuthKit auth failed)")
+    return ""
+
+
+@pytest_asyncio.fixture
+async def e2e_auth_token(authkit_auth_token):
     """Generate authentication token for E2E tests.
     
     Provides a valid bearer token that the MCP server will accept. The token can be:
-    1. Internal bearer token (if ATOMS_INTERNAL_TOKEN is configured)
-    2. AuthKit JWT (if signing key is available)
+    1. Real AuthKit JWT (from cloud authentication with user credentials)
+    2. Internal bearer token (if ATOMS_INTERNAL_TOKEN is configured)
     3. Unsigned JWT for testing (when ATOMS_TEST_MODE is enabled)
     
     Strategy:
-    - First attempts to use ATOMS_INTERNAL_TOKEN if configured (fastest, no signing needed)
-    - Then tries to generate a properly signed AuthKit JWT
-    - Falls back to unsigned JWT that requires ATOMS_TEST_MODE on server (for testing)
+    - First attempts to get real AuthKit token via authkit_auth_token fixture
+    - Then attempts to use ATOMS_INTERNAL_TOKEN if configured
+    - Finally falls back to unsigned JWT for local testing
     
     For running against deployed server (mcpdev.atoms.tech):
-    - If ATOMS_INTERNAL_TOKEN env var is set: Use that directly (recommended)
-    - Otherwise: Generates unsigned JWT (requires server with ATOMS_TEST_MODE=true)
+    - Uses real AuthKit JWT from cloud authentication (recommended)
+    - Falls back to ATOMS_INTERNAL_TOKEN if configured
+    - Finally uses unsigned JWT (requires server with ATOMS_TEST_MODE=true)
     
     For running against local server (localhost:8000):
     - Uses unsigned JWT if ATOMS_TEST_MODE=true on server
-    - Or generates a valid token if credentials are available
+    - Or real AuthKit token if credentials are available
     
-    Note: This fixture does NOT make any external service calls. It generates
-    tokens locally without requiring Supabase or AuthKit auth endpoints.
+    Note: This fixture can make external service calls to AuthKit when authenticating
+    with real credentials.
     """
     import os
     import json
@@ -248,7 +311,13 @@ async def e2e_auth_token():
     
     logger_local = logging.getLogger(__name__)
     
-    # **Strategy 1: Use internal bearer token (RECOMMENDED)**
+    # **Strategy 1: Use real AuthKit JWT from cloud authentication (RECOMMENDED for cloud)**
+    # This uses actual credentials to authenticate with AuthKit
+    if authkit_auth_token:
+        logger_local.info(f"Using real AuthKit JWT for E2E authentication")
+        return authkit_auth_token
+    
+    # **Strategy 2: Use internal bearer token (RECOMMENDED for local)**
     # This is the most direct approach - internal_token is a static token
     # that bypasses JWKS validation
     # For E2E tests, we always use internal token from environment
@@ -256,34 +325,6 @@ async def e2e_auth_token():
     if internal_token:
         logger_local.info(f"Using ATOMS_INTERNAL_TOKEN for E2E authentication: {internal_token[:20]}...")
         return internal_token
-    
-    # **Strategy 2: Generate signed AuthKit JWT**
-    # If private key is available, sign the JWT properly
-    try:
-        private_key = os.getenv("AUTHKIT_PRIVATE_KEY")
-        if private_key:
-            import jwt as pyjwt
-            
-            logger_local.info("Generating signed AuthKit JWT for E2E tests")
-            user_id = str(uuid.uuid4())
-            current_time = datetime.now(timezone.utc)
-            expires_at = current_time + timedelta(hours=1)
-            
-            jwt_claims = {
-                "iss": "https://api.workos.com",
-                "sub": user_id,
-                "aud": os.getenv("WORKOS_CLIENT_ID", "test-client"),
-                "iat": int(current_time.timestamp()),
-                "exp": int(expires_at.timestamp()),
-                "email": "test-user@example.com",
-                "email_verified": True,
-                "name": "Test User",
-            }
-            
-            token = pyjwt.encode(jwt_claims, private_key, algorithm="RS256")
-            return token
-    except Exception as e:
-        logger_local.debug(f"Could not generate signed JWT: {e}")
     
     # **Strategy 3: Generate unsigned JWT (requires ATOMS_TEST_MODE on server)**
     # This works when server has ATOMS_TEST_MODE=true in its environment
