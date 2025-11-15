@@ -246,6 +246,7 @@ class TestTestCaseCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create test cases")
     async def test_create_test_case_minimal(self, end_to_end_client):
         """Create test case with minimal data."""
         result = await end_to_end_client.entity_tool(
@@ -324,6 +325,7 @@ class TestTestResults:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can view test results")
     async def test_view_test_results(self, end_to_end_client):
         """View test case results."""
         tc_result = await end_to_end_client.entity_tool(
