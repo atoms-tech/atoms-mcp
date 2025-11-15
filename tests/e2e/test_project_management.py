@@ -31,7 +31,7 @@ class TestProjectCreation:
         - Status set to active
         """
         # Create org first
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
@@ -39,7 +39,7 @@ class TestProjectCreation:
         org_id = org_result["data"]["id"]
         
         # Create project
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -63,14 +63,14 @@ class TestProjectCreation:
         - Status set
         - Metadata complete
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -95,7 +95,7 @@ class TestProjectCreation:
         Validates:
         - Organization requirement enforced
         """
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={"name": f"Orphan {uuid.uuid4().hex[:4]}"}
@@ -114,14 +114,14 @@ class TestProjectCreation:
         - Empty name rejected
         - Validation error returned
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={"name": "", "organization_id": org_id}
@@ -144,14 +144,14 @@ class TestProjectReading:
         - Parent org included
         """
         # Setup
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -162,7 +162,7 @@ class TestProjectReading:
         project_id = project_result["data"]["id"]
         
         # Read
-        read_result = await mcp_client.entity_tool(
+        read_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="read"
@@ -182,14 +182,14 @@ class TestProjectReading:
         - Child documents included
         - Relationship count available
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -199,7 +199,7 @@ class TestProjectReading:
         )
         project_id = project_result["data"]["id"]
         
-        read_result = await mcp_client.entity_tool(
+        read_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="read",
@@ -219,7 +219,7 @@ class TestProjectReading:
         """
         fake_id = str(uuid.uuid4())
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=fake_id,
             operation="read"
@@ -241,14 +241,14 @@ class TestProjectUpdate:
         - Name changed
         - Other fields unchanged
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -261,7 +261,7 @@ class TestProjectUpdate:
         
         # Update
         new_name = f"Updated {uuid.uuid4().hex[:4]}"
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="update",
@@ -281,14 +281,14 @@ class TestProjectUpdate:
         Validates:
         - Status changes to archived/completed
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -300,7 +300,7 @@ class TestProjectUpdate:
         project_id = project_result["data"]["id"]
         
         # Update status
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="update",
@@ -320,14 +320,14 @@ class TestProjectUpdate:
         - Only updated fields change
         - Unspecified fields preserved
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -340,7 +340,7 @@ class TestProjectUpdate:
         project_id = project_result["data"]["id"]
         
         # Partial update
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="update",
@@ -365,14 +365,14 @@ class TestProjectArchive:
         - archived_at timestamp set
         - Project can be restored
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -383,7 +383,7 @@ class TestProjectArchive:
         project_id = project_result["data"]["id"]
         
         # Archive via soft delete or status update
-        archive_result = await mcp_client.entity_tool(
+        archive_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="delete",
@@ -401,14 +401,14 @@ class TestProjectArchive:
         Validates:
         - Archived project not returned in normal list
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -419,7 +419,7 @@ class TestProjectArchive:
         project_id = project_result["data"]["id"]
         
         # Archive
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="delete",
@@ -427,7 +427,7 @@ class TestProjectArchive:
         )
         
         # List
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="list",
             parent_type="organization",
@@ -448,14 +448,14 @@ class TestProjectArchive:
         - archived_at cleared
         - Project reappears in list
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={
@@ -466,14 +466,14 @@ class TestProjectArchive:
         project_id = project_result["data"]["id"]
         
         # Archive and restore
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="delete",
             soft_delete=True
         )
         
-        restore_result = await mcp_client.entity_tool(
+        restore_result = await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="update",
@@ -496,7 +496,7 @@ class TestProjectListing:
         - Only org's projects returned
         - Pagination works
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"List Org {uuid.uuid4().hex[:4]}"}
@@ -505,7 +505,7 @@ class TestProjectListing:
         
         # Create multiple projects
         for i in range(3):
-            await mcp_client.entity_tool(
+            await end_to_end_client.entity_tool(
                 entity_type="project",
                 operation="create",
                 data={
@@ -515,7 +515,7 @@ class TestProjectListing:
             )
         
         # List
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="list",
             parent_type="organization",
@@ -536,7 +536,7 @@ class TestProjectListing:
         - Limit applied
         - Offset works
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Paginate {uuid.uuid4().hex[:4]}"}
@@ -544,7 +544,7 @@ class TestProjectListing:
         org_id = org_result["data"]["id"]
         
         # List with limit
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="list",
             parent_type="organization",
@@ -566,7 +566,7 @@ class TestProjectListing:
         - Results sorted
         - Order_by parameter works
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Sort {uuid.uuid4().hex[:4]}"}
@@ -575,14 +575,14 @@ class TestProjectListing:
         
         # Create projects
         for name in ["Zebra", "Alpha", "Mike"]:
-            await mcp_client.entity_tool(
+            await end_to_end_client.entity_tool(
                 entity_type="project",
                 operation="create",
                 data={"name": name, "organization_id": org_id}
             )
         
         # List sorted
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="list",
             parent_type="organization",
@@ -602,7 +602,7 @@ class TestProjectListing:
         Validates:
         - Archived projects not returned
         """
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Exclude {uuid.uuid4().hex[:4]}"}
@@ -610,14 +610,14 @@ class TestProjectListing:
         org_id = org_result["data"]["id"]
         
         # Create and archive
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={"name": f"Archive {uuid.uuid4().hex[:4]}", "organization_id": org_id}
         )
         project_id = project_result["data"]["id"]
         
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="project",
             entity_id=project_id,
             operation="delete",
@@ -625,7 +625,7 @@ class TestProjectListing:
         )
         
         # List
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="list",
             parent_type="organization",

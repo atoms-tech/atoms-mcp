@@ -9,9 +9,9 @@
 ║ Relationship Ops  │       8 │        0 │           8 │        ○○○ ║
 ║ Query & Search    │       9 │        0 │           9 │        ○○○ ║
 ║ Workflow Execution │       6 │        0 │           6 │        ○○○ ║
-║ Auth & Permissions │       4 │        0 │           4 │        ○○○ ║
+║ Auth & Permissions │       4 │        1 │           3 │        ✓○○ ║
 ╠────────────────────────────────────────────────────────────────────╣
-║ Overall Progress: 0/46 stories complete (0%)                       ║
+║ Overall Progress: 1/46 stories complete (2%)                       ║
 ║                                                                    ║
 ║ Blockers:                                                          ║
 ║    • Entity CRUD requires attention                                ║

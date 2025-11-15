@@ -14,7 +14,7 @@ class TestRequirementCreation:
     @pytest.mark.story("User can create requirements")
     async def test_create_requirement_minimal(self, end_to_end_client):
         """Create requirement with minimal data."""
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             data={"name": f"REQ {uuid.uuid4().hex[:4]}"}
@@ -26,7 +26,7 @@ class TestRequirementCreation:
     @pytest.mark.story("User can create requirements")
     async def test_create_requirement_full(self, end_to_end_client):
         """Create requirement with full metadata."""
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             data={
@@ -44,7 +44,7 @@ class TestRequirementCreation:
     @pytest.mark.story("User can create requirements")
     async def test_create_requirement_from_template(self, end_to_end_client):
         """Create requirement from template."""
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             data={
@@ -59,7 +59,7 @@ class TestRequirementCreation:
     @pytest.mark.story("User can create requirements")
     async def test_create_requirement_invalid_fails(self, end_to_end_client):
         """Invalid requirement creation fails."""
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             data={"name": ""}
@@ -78,7 +78,7 @@ class TestRequirementBatch:
             {"name": f"REQ {i}", "priority": "high"} for i in range(10)
         ]
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             batch=requirements
@@ -94,7 +94,7 @@ class TestRequirementBatch:
             {"name": f"REQ {i}", "priority": "medium"} for i in range(5)
         ]
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             batch=requirements
@@ -111,7 +111,7 @@ class TestRequirementBatch:
         ]
         requirements.append({"name": ""})  # Invalid
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             batch=requirements
@@ -129,7 +129,7 @@ class TestRequirementSearch:
     @pytest.mark.story("User can search requirements")
     async def test_search_requirements_keyword(self, end_to_end_client):
         """Search requirements by keyword."""
-        result = await mcp_client.data_query(
+        result = await end_to_end_client.data_query(
             operation="search",
             entity_type="requirement",
             search_term="login",
@@ -144,7 +144,7 @@ class TestRequirementSearch:
     @pytest.mark.story("User can search requirements")
     async def test_search_requirements_filter_status(self, end_to_end_client):
         """Search requirements filtered by status."""
-        result = await mcp_client.data_query(
+        result = await end_to_end_client.data_query(
             operation="search",
             entity_type="requirement",
             filters={"status": "open"},
@@ -158,7 +158,7 @@ class TestRequirementSearch:
     @pytest.mark.story("User can search requirements")
     async def test_search_requirements_filter_priority(self, end_to_end_client):
         """Search requirements filtered by priority."""
-        result = await mcp_client.data_query(
+        result = await end_to_end_client.data_query(
             operation="search",
             entity_type="requirement",
             filters={"priority": "high"},
@@ -172,7 +172,7 @@ class TestRequirementSearch:
     @pytest.mark.story("User can search requirements")
     async def test_search_requirements_hybrid(self, end_to_end_client):
         """Hybrid search (keyword + filter)."""
-        result = await mcp_client.data_query(
+        result = await end_to_end_client.data_query(
             operation="search",
             entity_type="requirement",
             search_term="payment",
@@ -191,7 +191,7 @@ class TestRequirementTracing:
     @pytest.mark.story("User can create requirements")
     async def test_create_requirement_test_link(self, end_to_end_client):
         """Link requirement to test case."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="requirement_test",
             source={"type": "requirement", "id": str(uuid.uuid4())},
@@ -204,7 +204,7 @@ class TestRequirementTracing:
     @pytest.mark.relationship
     async def test_list_requirement_test_links(self, end_to_end_client):
         """List links for requirement."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="list",
             relationship_type="requirement_test",
             source={"type": "requirement", "id": str(uuid.uuid4())}
@@ -218,7 +218,7 @@ class TestRequirementTracing:
     async def test_trace_requirement_chain(self, end_to_end_client):
         """Trace full requirement chain."""
         # Implementation would trace: requirement → test_case → build → deployment
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="list",
             relationship_type="trace_link",
             source={"type": "requirement", "id": str(uuid.uuid4())}
@@ -230,7 +230,7 @@ class TestRequirementTracing:
     @pytest.mark.relationship
     async def test_update_trace_link_metadata(self, end_to_end_client):
         """Update trace link metadata."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="update",
             relationship_type="requirement_test",
             source={"type": "requirement", "id": str(uuid.uuid4())},
@@ -247,7 +247,7 @@ class TestTestCaseCreation:
     @pytest.mark.entity
     async def test_create_test_case_minimal(self, end_to_end_client):
         """Create test case with minimal data."""
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             operation="create",
             data={"name": f"TC {uuid.uuid4().hex[:4]}"}
@@ -258,14 +258,14 @@ class TestTestCaseCreation:
     @pytest.mark.entity
     async def test_create_test_case_linked_to_requirement(self, end_to_end_client):
         """Create test case linked to requirement."""
-        req_result = await mcp_client.entity_tool(
+        req_result = await end_to_end_client.entity_tool(
             entity_type="requirement",
             operation="create",
             data={"name": f"REQ {uuid.uuid4().hex[:4]}"}
         )
         req_id = req_result["data"]["id"]
         
-        tc_result = await mcp_client.entity_tool(
+        tc_result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             operation="create",
             data={
@@ -281,7 +281,7 @@ class TestTestCaseCreation:
     @pytest.mark.entity
     async def test_create_test_case_with_steps(self, end_to_end_client):
         """Create test case with steps."""
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             operation="create",
             data={
@@ -300,14 +300,14 @@ class TestTestCaseCreation:
     @pytest.mark.entity
     async def test_update_test_case_status(self, end_to_end_client):
         """Update test case status (pending/passed/failed)."""
-        tc_result = await mcp_client.entity_tool(
+        tc_result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             operation="create",
             data={"name": f"TC {uuid.uuid4().hex[:4]}", "status": "pending"}
         )
         tc_id = tc_result["data"]["id"]
         
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             entity_id=tc_id,
             operation="update",
@@ -325,14 +325,14 @@ class TestTestResults:
     @pytest.mark.entity
     async def test_view_test_results(self, end_to_end_client):
         """View test case results."""
-        tc_result = await mcp_client.entity_tool(
+        tc_result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             operation="create",
             data={"name": f"TC {uuid.uuid4().hex[:4]}", "status": "passed"}
         )
         tc_id = tc_result["data"]["id"]
         
-        read_result = await mcp_client.entity_tool(
+        read_result = await end_to_end_client.entity_tool(
             entity_type="test_case",
             entity_id=tc_id,
             operation="read"
@@ -345,7 +345,7 @@ class TestTestResults:
     @pytest.mark.query
     async def test_list_results_per_requirement(self, end_to_end_client):
         """List test results per requirement."""
-        result = await mcp_client.data_query(
+        result = await end_to_end_client.data_query(
             operation="search",
             entity_type="test_case",
             filters={"status": "passed"},
@@ -359,7 +359,7 @@ class TestTestResults:
     async def test_calculate_coverage_percentage(self, end_to_end_client):
         """Calculate test coverage for requirement."""
         # Would query: passed_tests / total_tests for requirement
-        result = await mcp_client.data_query(
+        result = await end_to_end_client.data_query(
             operation="aggregate",
             entity_type="test_case",
             group_by="status",

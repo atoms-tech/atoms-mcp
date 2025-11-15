@@ -1,2 +1,13 @@
 
-✅ No warnings detected
+======================================================================
+⚠️  TEST WARNINGS & PERFORMANCE ISSUES
+======================================================================
+
+🔄 FLAKY (1):
+  🟡 tests/e2e/test_resilience.py::TestErrorRecoveryResilience::test_database_connection_retry
+     → Test passed after retry (potentially flaky)
+
+----------------------------------------------------------------------
+Total Warnings: 1
+  🔴 High: 0  🟡 Medium: 1  🟢 Low: 0
+======================================================================

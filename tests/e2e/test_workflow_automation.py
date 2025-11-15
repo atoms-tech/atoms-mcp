@@ -13,7 +13,7 @@ class TestWorkflowExecution:
     @pytest.mark.workflow
     async def test_execute_simple_workflow(self, end_to_end_client):
         """Execute simple single-step workflow."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="create_entity",
             entity_type="organization",
             data={"name": f"WF Org {uuid.uuid4().hex[:4]}"}
@@ -25,7 +25,7 @@ class TestWorkflowExecution:
     @pytest.mark.workflow
     async def test_execute_multi_step_workflow(self, end_to_end_client):
         """Execute multi-step workflow."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="setup_project",
             steps=[
                 {"step": "create_org", "data": {"name": f"Org {uuid.uuid4().hex[:4]}"}},
@@ -40,7 +40,7 @@ class TestWorkflowExecution:
     @pytest.mark.workflow
     async def test_workflow_with_transaction(self, end_to_end_client):
         """Workflow executes as transaction."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="batch_operation",
             transactional=True,
             operations=[
@@ -55,7 +55,7 @@ class TestWorkflowExecution:
     @pytest.mark.workflow
     async def test_workflow_error_rollback(self, end_to_end_client):
         """Workflow rolls back on error."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="batch_operation",
             transactional=True,
             operations=[
@@ -71,7 +71,7 @@ class TestWorkflowExecution:
     @pytest.mark.workflow
     async def test_workflow_with_retry(self, end_to_end_client):
         """Workflow retries on transient failure."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="resilient_operation",
             retry_count=3,
             operations=[
@@ -89,7 +89,7 @@ class TestProjectSetupWorkflow:
     @pytest.mark.workflow
     async def test_setup_new_project_workflow(self, end_to_end_client):
         """Execute project setup workflow."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="setup_new_project",
             project_data={
                 "name": f"Setup Project {uuid.uuid4().hex[:4]}",
@@ -103,7 +103,7 @@ class TestProjectSetupWorkflow:
     @pytest.mark.workflow
     async def test_scaffold_default_entities(self, end_to_end_client):
         """Workflow scaffolds default documents."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="scaffold_project",
             project_name=f"Scaffold {uuid.uuid4().hex[:4]}",
             create_documents=True,
@@ -116,7 +116,7 @@ class TestProjectSetupWorkflow:
     @pytest.mark.workflow
     async def test_scaffold_with_initial_members(self, end_to_end_client):
         """Scaffold project with initial members."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="setup_with_team",
             project_data={"name": f"Team Project {uuid.uuid4().hex[:4]}"},
             members=[
@@ -140,7 +140,7 @@ class TestBatchImportWorkflow:
             {"name": f"REQ {i}", "priority": "high"} for i in range(10)
         ]
         
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="import_requirements",
             requirements=requirements,
             project_id=str(uuid.uuid4())
@@ -156,7 +156,7 @@ class TestBatchImportWorkflow:
             {"name": f"REQ {i}", "priority": "high"} for i in range(5)
         ]
         
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="import_validated",
             data=requirements,
             validate=True,
@@ -169,7 +169,7 @@ class TestBatchImportWorkflow:
     @pytest.mark.workflow
     async def test_import_csv_file(self, end_to_end_client):
         """Import from CSV file."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="import_csv",
             file_path="requirements.csv",
             entity_type="requirement",
@@ -187,7 +187,7 @@ class TestBulkUpdateWorkflow:
     @pytest.mark.workflow
     async def test_bulk_update_status_workflow(self, end_to_end_client):
         """Bulk update entity statuses."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="bulk_update_status",
             entity_type="requirement",
             filters={"status": "open"},
@@ -200,7 +200,7 @@ class TestBulkUpdateWorkflow:
     @pytest.mark.workflow
     async def test_bulk_update_with_transaction(self, end_to_end_client):
         """Bulk update as transaction."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="bulk_update_transactional",
             entity_type="project",
             entity_ids=[str(uuid.uuid4()) for _ in range(5)],
@@ -214,7 +214,7 @@ class TestBulkUpdateWorkflow:
     @pytest.mark.workflow
     async def test_bulk_update_with_rollback(self, end_to_end_client):
         """Bulk update with rollback on error."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="bulk_update_safe",
             entity_ids=[str(uuid.uuid4()) for _ in range(3)],
             update_data={"status": "completed"},
@@ -231,7 +231,7 @@ class TestOnboardingWorkflow:
     @pytest.mark.workflow
     async def test_onboard_new_organization(self, end_to_end_client):
         """Execute organization onboarding workflow."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="onboard_organization",
             org_data={
                 "name": f"New Org {uuid.uuid4().hex[:4]}",
@@ -246,7 +246,7 @@ class TestOnboardingWorkflow:
     @pytest.mark.workflow
     async def test_onboard_with_initial_setup(self, end_to_end_client):
         """Onboard with complete setup."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="complete_onboarding",
             org_data={"name": f"Complete {uuid.uuid4().hex[:4]}"},
             setup_options={
@@ -262,7 +262,7 @@ class TestOnboardingWorkflow:
     @pytest.mark.workflow
     async def test_onboard_with_members(self, end_to_end_client):
         """Onboard with team members."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="onboard_with_team",
             org_data={"name": f"Team Org {uuid.uuid4().hex[:4]}"},
             members=[
@@ -277,7 +277,7 @@ class TestOnboardingWorkflow:
     @pytest.mark.workflow
     async def test_onboard_send_invitations(self, end_to_end_client):
         """Onboarding sends member invitations."""
-        result = await mcp_client.workflow_execute(
+        result = await end_to_end_client.workflow_execute(
             workflow_name="onboard_send_invites",
             org_id=str(uuid.uuid4()),
             members=[f"user{i}@example.com" for i in range(3)],

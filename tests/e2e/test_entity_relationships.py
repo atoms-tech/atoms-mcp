@@ -11,16 +11,17 @@ class TestRelationshipLinking:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can link entities together")
     async def test_link_member_to_organization(self, end_to_end_client):
         """Link user as member to organization."""
-        org_result = await mcp_client.entity_tool(
+        org_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Org {uuid.uuid4().hex[:4]}"}
         )
         org_id = org_result["data"]["id"]
         
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="member",
             source={"type": "user", "id": "test-user"},
@@ -33,14 +34,14 @@ class TestRelationshipLinking:
     @pytest.mark.relationship
     async def test_link_member_to_project(self, end_to_end_client):
         """Link user as member to project."""
-        project_result = await mcp_client.entity_tool(
+        project_result = await end_to_end_client.entity_tool(
             entity_type="project",
             operation="create",
             data={"name": f"Project {uuid.uuid4().hex[:4]}"}
         )
         project_id = project_result["data"]["id"]
         
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="member",
             source={"type": "user", "id": "test-user"},
@@ -53,7 +54,7 @@ class TestRelationshipLinking:
     @pytest.mark.relationship
     async def test_link_assignment_task(self, end_to_end_client):
         """Link task assignment."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="assignment",
             source={"type": "task", "id": str(uuid.uuid4())},
@@ -66,7 +67,7 @@ class TestRelationshipLinking:
     @pytest.mark.relationship
     async def test_link_trace_requirement_to_test(self, end_to_end_client):
         """Link requirement to test case."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="trace_link",
             source={"type": "requirement", "id": str(uuid.uuid4())},
@@ -77,9 +78,10 @@ class TestRelationshipLinking:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can link entities together")
     async def test_link_with_metadata(self, end_to_end_client):
         """Link with metadata."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="member",
             source={"type": "user", "id": "test-user"},
@@ -93,7 +95,7 @@ class TestRelationshipLinking:
     @pytest.mark.relationship
     async def test_link_invalid_relationship_fails(self, end_to_end_client):
         """Invalid relationship link fails."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="invalid_type",
             source={"type": "org", "id": str(uuid.uuid4())},
@@ -108,7 +110,7 @@ class TestRelationshipLinking:
         """Linking entity to itself fails."""
         entity_id = str(uuid.uuid4())
         
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="member",
             source={"type": "org", "id": entity_id},
@@ -125,7 +127,7 @@ class TestRelationshipLinking:
         user_id = "test-user"
         
         # First link
-        await mcp_client.relationship_tool(
+        await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="member",
             source={"type": "user", "id": user_id},
@@ -133,7 +135,7 @@ class TestRelationshipLinking:
         )
         
         # Duplicate link
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="link",
             relationship_type="member",
             source={"type": "user", "id": user_id},
@@ -149,9 +151,10 @@ class TestRelationshipUnlinking:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can unlink related entities")
     async def test_unlink_member(self, end_to_end_client):
         """Unlink member from organization."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="unlink",
             relationship_type="member",
             source={"type": "user", "id": "test-user"},
@@ -164,7 +167,7 @@ class TestRelationshipUnlinking:
     @pytest.mark.relationship
     async def test_unlink_assignment(self, end_to_end_client):
         """Unlink task assignment."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="unlink",
             relationship_type="assignment",
             source={"type": "task", "id": str(uuid.uuid4())},
@@ -177,7 +180,7 @@ class TestRelationshipUnlinking:
     @pytest.mark.relationship
     async def test_unlink_trace(self, end_to_end_client):
         """Unlink trace relationship."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="unlink",
             relationship_type="trace_link",
             source={"type": "requirement", "id": str(uuid.uuid4())},
@@ -190,7 +193,7 @@ class TestRelationshipUnlinking:
     @pytest.mark.relationship
     async def test_unlink_nonexistent_fails(self, end_to_end_client):
         """Unlinking non-existent relationship fails gracefully."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="unlink",
             relationship_type="member",
             source={"type": "user", "id": str(uuid.uuid4())},
@@ -206,11 +209,12 @@ class TestRelationshipQuerying:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can view entity relationships")
     async def test_list_inbound_relationships(self, end_to_end_client):
         """List inbound relationships for entity."""
         org_id = str(uuid.uuid4())
         
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="list",
             relationship_type="member",
             source={"type": "organization", "id": org_id}
@@ -225,7 +229,7 @@ class TestRelationshipQuerying:
         """List outbound relationships from entity."""
         user_id = "test-user"
         
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="list",
             relationship_type="member",
             source={"type": "user", "id": user_id}
@@ -238,7 +242,7 @@ class TestRelationshipQuerying:
     @pytest.mark.relationship
     async def test_list_relationships_by_type(self, end_to_end_client):
         """List relationships filtered by type."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="list",
             relationship_type="member",
             source={"type": "organization", "id": str(uuid.uuid4())}
@@ -251,7 +255,7 @@ class TestRelationshipQuerying:
     @pytest.mark.story("User can check if entities are related")
     async def test_check_relationship_exists_true(self, end_to_end_client):
         """Check relationship exists - true case."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="check",
             relationship_type="member",
             source={"type": "user", "id": "test-user"},
@@ -266,7 +270,7 @@ class TestRelationshipQuerying:
     @pytest.mark.story("User can check if entities are related")
     async def test_check_relationship_exists_false(self, end_to_end_client):
         """Check relationship exists - false case."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="check",
             relationship_type="member",
             source={"type": "user", "id": str(uuid.uuid4())},
@@ -283,7 +287,7 @@ class TestRelationshipMetadata:
     @pytest.mark.relationship
     async def test_update_member_role(self, end_to_end_client):
         """Update member role metadata."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="update",
             relationship_type="member",
             source={"type": "user", "id": "test-user"},
@@ -297,7 +301,7 @@ class TestRelationshipMetadata:
     @pytest.mark.relationship
     async def test_update_assignment_status(self, end_to_end_client):
         """Update assignment status."""
-        result = await mcp_client.relationship_tool(
+        result = await end_to_end_client.relationship_tool(
             operation="update",
             relationship_type="assignment",
             source={"type": "task", "id": str(uuid.uuid4())},

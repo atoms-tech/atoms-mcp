@@ -9,7 +9,7 @@ Covers:
 - Story 1.4: Delete organization (soft delete)
 - Story 1.5: List organizations
 
-Each test runs in 3 variants (unit/integration/e2e) via parametrized mcp_client fixture.
+Each test runs in 3 variants (unit/integration/e2e) via parametrized end_to_end_client fixture.
 """
 
 import pytest
@@ -33,7 +33,7 @@ class TestOrganizationCreation:
         """
         org_name = f"Test Org {uuid.uuid4().hex[:8]}"
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": org_name}
@@ -63,7 +63,7 @@ class TestOrganizationCreation:
             "rate_limit_per_minute": 1000
         }
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data=org_data
@@ -88,7 +88,7 @@ class TestOrganizationCreation:
         org_name = f"Duplicate {uuid.uuid4().hex[:8]}"
         
         # Create first org
-        result1 = await mcp_client.entity_tool(
+        result1 = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": org_name}
@@ -97,7 +97,7 @@ class TestOrganizationCreation:
         org_id_1 = result1["data"]["id"]
         
         # Create second org with same name
-        result2 = await mcp_client.entity_tool(
+        result2 = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": org_name}
@@ -120,7 +120,7 @@ class TestOrganizationCreation:
         - Error classification correct
         """
         # Empty name
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": ""}
@@ -145,7 +145,7 @@ class TestOrganizationReading:
         - Timestamps present
         """
         # Create org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Read Test {uuid.uuid4().hex[:8]}"}
@@ -153,7 +153,7 @@ class TestOrganizationReading:
         org_id = create_result["data"]["id"]
         
         # Read by ID
-        read_result = await mcp_client.entity_tool(
+        read_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="read"
@@ -177,7 +177,7 @@ class TestOrganizationReading:
         """
         # Create org with full name
         org_name = f"Vehicle Project {uuid.uuid4().hex[:8]}"
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": org_name}
@@ -185,7 +185,7 @@ class TestOrganizationReading:
         org_id = create_result["data"]["id"]
         
         # Read by partial name
-        read_result = await mcp_client.entity_tool(
+        read_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id="Vehicle",  # Fuzzy match
             operation="read"
@@ -206,7 +206,7 @@ class TestOrganizationReading:
         """
         fake_id = str(uuid.uuid4())
         
-        result = await mcp_client.entity_tool(
+        result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=fake_id,
             operation="read"
@@ -230,7 +230,7 @@ class TestOrganizationUpdate:
         - updated_at timestamp changes
         """
         # Create org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={
@@ -243,7 +243,7 @@ class TestOrganizationUpdate:
         
         # Update name
         new_name = f"Updated {uuid.uuid4().hex[:8]}"
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="update",
@@ -266,7 +266,7 @@ class TestOrganizationUpdate:
         - No null overwrites
         """
         # Create org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={
@@ -278,7 +278,7 @@ class TestOrganizationUpdate:
         org_id = create_result["data"]["id"]
         
         # Update only rate limit
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="update",
@@ -299,7 +299,7 @@ class TestOrganizationUpdate:
         - Organization unchanged on failure
         """
         # Create org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Invalid Test {uuid.uuid4().hex[:8]}"}
@@ -307,7 +307,7 @@ class TestOrganizationUpdate:
         org_id = create_result["data"]["id"]
         
         # Try invalid update (empty name)
-        update_result = await mcp_client.entity_tool(
+        update_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="update",
@@ -331,7 +331,7 @@ class TestOrganizationDeletion:
         - Can be restored
         """
         # Create org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Delete Test {uuid.uuid4().hex[:8]}"}
@@ -339,7 +339,7 @@ class TestOrganizationDeletion:
         org_id = create_result["data"]["id"]
         
         # Soft delete
-        delete_result = await mcp_client.entity_tool(
+        delete_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="delete",
@@ -359,7 +359,7 @@ class TestOrganizationDeletion:
         - Can be included with include_archived=True
         """
         # Create org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"List Test {uuid.uuid4().hex[:8]}"}
@@ -367,7 +367,7 @@ class TestOrganizationDeletion:
         org_id = create_result["data"]["id"]
         
         # Soft delete
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="delete",
@@ -375,7 +375,7 @@ class TestOrganizationDeletion:
         )
         
         # List without including archived
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="list",
             include_archived=False
@@ -395,14 +395,14 @@ class TestOrganizationDeletion:
         - Organization appears in list again
         """
         # Create and soft delete
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Restore Test {uuid.uuid4().hex[:8]}"}
         )
         org_id = create_result["data"]["id"]
         
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="delete",
@@ -410,7 +410,7 @@ class TestOrganizationDeletion:
         )
         
         # Restore by clearing deleted_at
-        restore_result = await mcp_client.entity_tool(
+        restore_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="update",
@@ -436,7 +436,7 @@ class TestOrganizationListing:
         # Create multiple orgs
         org_ids = []
         for i in range(5):
-            result = await mcp_client.entity_tool(
+            result = await end_to_end_client.entity_tool(
                 entity_type="organization",
                 operation="create",
                 data={"name": f"Paginate Org {i} {uuid.uuid4().hex[:4]}"}
@@ -445,7 +445,7 @@ class TestOrganizationListing:
                 org_ids.append(result["data"]["id"])
         
         # List with limit
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="list",
             limit=2,
@@ -468,14 +468,14 @@ class TestOrganizationListing:
         # Create multiple orgs
         org_names = [f"Sort {c} {uuid.uuid4().hex[:4]}" for c in "ABC"]
         for name in org_names:
-            await mcp_client.entity_tool(
+            await end_to_end_client.entity_tool(
                 entity_type="organization",
                 operation="create",
                 data={"name": name}
             )
         
         # List sorted by name
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="list",
             order_by="name",
@@ -498,19 +498,19 @@ class TestOrganizationListing:
         - Filter applied correctly
         """
         # Create orgs of different types
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Enterprise {uuid.uuid4().hex[:4]}", "type": "enterprise"}
         )
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Team {uuid.uuid4().hex[:4]}", "type": "team"}
         )
         
         # List only enterprises
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="list",
             filters={"type": "enterprise"},
@@ -531,21 +531,21 @@ class TestOrganizationListing:
         - include_archived parameter works
         """
         # Create and delete org
-        create_result = await mcp_client.entity_tool(
+        create_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="create",
             data={"name": f"Deleted {uuid.uuid4().hex[:4]}"}
         )
         org_id = create_result["data"]["id"]
         
-        await mcp_client.entity_tool(
+        await end_to_end_client.entity_tool(
             entity_type="organization",
             entity_id=org_id,
             operation="delete"
         )
         
         # List without archived
-        list_result = await mcp_client.entity_tool(
+        list_result = await end_to_end_client.entity_tool(
             entity_type="organization",
             operation="list",
             include_archived=False
