@@ -26,10 +26,10 @@ import json
 pytestmark = [pytest.mark.unit, pytest.mark.performance]
 
 
-@pytest.mark.asyncio
 class TestLargeDatasetHandling:
     """Test handling of large datasets."""
 
+    @pytest.mark.asyncio
     @pytest.mark.performance
     async def test_list_1000_items_pagination(self, call_mcp):
         """Test listing 1000 items with pagination."""
@@ -41,6 +41,7 @@ class TestLargeDatasetHandling:
         pages = item_count // page_size
         assert pages == 10
 
+    @pytest.mark.asyncio
     @pytest.mark.performance
     async def test_list_large_dataset_memory_efficient(self):
         """Test listing large dataset uses memory efficiently."""
@@ -117,10 +118,10 @@ class TestBulkOperationsAtScale:
         assert succeeded + failed == total
 
 
-@pytest.mark.asyncio
 class TestSearchPerformanceAtScale:
     """Test search performance with large indexes."""
 
+    @pytest.mark.asyncio
     @pytest.mark.performance
     async def test_search_large_index_performance(self):
         """Test search on large index completes reasonably."""
@@ -278,10 +279,10 @@ class TestDeepRelationshipGraphs:
         assert len(graph) == 100
 
 
-@pytest.mark.asyncio
 class TestConcurrentLoadHandling:
     """Test handling concurrent operations at scale."""
 
+    @pytest.mark.asyncio
     @pytest.mark.performance
     async def test_concurrent_operations_100(self):
         """Test 100 concurrent operations."""
@@ -296,6 +297,7 @@ class TestConcurrentLoadHandling:
         assert len(results) == 100
         assert all(r == "success" for r in results)
 
+    @pytest.mark.asyncio
     @pytest.mark.performance
     async def test_concurrent_bulk_updates(self):
         """Test concurrent bulk updates."""

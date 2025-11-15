@@ -8,6 +8,7 @@ class TestKeywordSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_keyword_basic(self, mcp_client):
         """Basic keyword search."""
         result = await mcp_client.data_query(
@@ -20,6 +21,7 @@ class TestKeywordSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_keyword_partial_match(self, mcp_client):
         """Partial keyword match."""
         result = await mcp_client.data_query(
@@ -31,6 +33,7 @@ class TestKeywordSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_keyword_case_insensitive(self, mcp_client):
         """Case-insensitive search."""
         result = await mcp_client.data_query(
@@ -42,6 +45,7 @@ class TestKeywordSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_keyword_fuzzy_match(self, mcp_client):
         """Fuzzy keyword match."""
         result = await mcp_client.data_query(
@@ -54,6 +58,7 @@ class TestKeywordSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_keyword_phrase(self, mcp_client):
         """Search by phrase."""
         result = await mcp_client.data_query(
@@ -69,6 +74,7 @@ class TestFiltering:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can filter search results")
     async def test_filter_by_type(self, mcp_client):
         """Filter results by entity type."""
         result = await mcp_client.data_query(
@@ -80,6 +86,7 @@ class TestFiltering:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can filter search results")
     async def test_filter_by_owner(self, mcp_client):
         """Filter by owner/creator."""
         result = await mcp_client.data_query(
@@ -91,6 +98,7 @@ class TestFiltering:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can filter search results")
     async def test_filter_by_status(self, mcp_client):
         """Filter by status."""
         result = await mcp_client.data_query(
@@ -102,6 +110,7 @@ class TestFiltering:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can filter search results")
     async def test_filter_by_date_range(self, mcp_client):
         """Filter by date range."""
         result = await mcp_client.data_query(
@@ -117,6 +126,7 @@ class TestSemanticSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can perform semantic search")
     async def test_semantic_search_basic(self, mcp_client):
         """Basic semantic search."""
         result = await mcp_client.data_query(
@@ -128,6 +138,7 @@ class TestSemanticSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can perform semantic search")
     async def test_semantic_search_similar_concepts(self, mcp_client):
         """Semantic search finds conceptually similar items."""
         result = await mcp_client.data_query(
@@ -139,6 +150,7 @@ class TestSemanticSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can perform semantic search")
     async def test_semantic_search_threshold(self, mcp_client):
         """Semantic search with similarity threshold."""
         result = await mcp_client.data_query(
@@ -155,6 +167,7 @@ class TestHybridSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can perform hybrid search")
     async def test_hybrid_search_basic(self, mcp_client):
         """Basic hybrid search."""
         result = await mcp_client.data_query(
@@ -167,6 +180,7 @@ class TestHybridSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can perform hybrid search")
     async def test_hybrid_search_weighted_keyword(self, mcp_client):
         """Hybrid with keyword emphasis."""
         result = await mcp_client.data_query(
@@ -179,6 +193,7 @@ class TestHybridSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can perform hybrid search")
     async def test_hybrid_search_weighted_semantic(self, mcp_client):
         """Hybrid with semantic emphasis."""
         result = await mcp_client.data_query(
@@ -277,6 +292,7 @@ class TestAdvancedOperators:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_with_and_operator(self, mcp_client):
         """Search with AND operator."""
         result = await mcp_client.data_query(
@@ -288,6 +304,7 @@ class TestAdvancedOperators:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_with_or_operator(self, mcp_client):
         """Search with OR operator."""
         result = await mcp_client.data_query(
@@ -299,6 +316,7 @@ class TestAdvancedOperators:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_with_not_operator(self, mcp_client):
         """Search with NOT operator."""
         result = await mcp_client.data_query(
@@ -310,6 +328,7 @@ class TestAdvancedOperators:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search across all entities")
     async def test_search_complex_expression(self, mcp_client):
         """Complex search expression."""
         result = await mcp_client.data_query(

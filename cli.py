@@ -131,36 +131,73 @@ def version() -> None:
 
 @app.command()
 def test(
+    scope: str = typer.Option("unit", "--scope", help="Test scope: unit, integration, or e2e"),
     verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
     coverage: bool = typer.Option(False, "--cov", help="Generate coverage report"),
     marker: Optional[str] = typer.Option(None, "-m", "--marker", help="Run specific marker (e.g., 'unit', 'story')"),
     keyword: Optional[str] = typer.Option(None, "-k", "--keyword", help="Run tests matching keyword"),
+    env: Optional[str] = typer.Option(None, "--env", help="Environment: local, dev, or prod (auto-detected if not specified)"),
 ) -> None:
-    """Run the full test suite.
+    """Run the test suite with automatic environment targeting.
+    
+    The CLI automatically targets the correct environment:
+    - unit tests → local (no deployment needed)
+    - integration tests → dev (mcpdev.atoms.tech) by default, or local
+    - e2e tests → dev (mcpdev.atoms.tech) by default, or local
     
     Examples:
-        atoms test              # Run all tests
-        atoms test -v           # Verbose output
-        atoms test --cov        # With coverage
-        atoms test -m unit      # Only unit tests
-        atoms test -k auth      # Tests matching 'auth'
+        atoms test                          # Run unit tests (local)
+        atoms test --scope integration      # Integration tests (dev: mcpdev.atoms.tech)
+        atoms test --scope e2e              # E2E tests (dev: mcpdev.atoms.tech)
+        atoms test --scope e2e --env prod   # E2E tests against production
+        atoms test --scope unit -v          # Verbose unit tests
+        atoms test --scope integration --env local  # Integration against local server
+        atoms test --cov                    # Unit tests with coverage
     """
+    from cli_modules.test_env_manager import TestEnvManager, TestEnvironment
+    
+    # Determine environment
+    if env:
+        try:
+            environment = TestEnvironment(env.lower())
+        except ValueError:
+            print(f"❌ Invalid environment: {env}. Use: local, dev, or prod")
+            sys.exit(1)
+    else:
+        # Auto-detect based on scope
+        environment = TestEnvManager.get_environment_for_scope(scope)
+    
+    # Set up environment variables
+    TestEnvManager.setup_environment(environment)
+    
+    # Print environment info
+    TestEnvManager.print_environment_info(environment)
+    
+    # Build pytest command
     cmd = ["python", "-m", "pytest"]
     
     if verbose:
         cmd.append("-v")
     if coverage:
         cmd.extend(["--cov=.", "--cov-report=html", "--cov-report=term"])
+    
+    # Add marker based on scope if not explicitly provided
     if marker:
         cmd.extend(["-m", marker])
+    elif scope in ["unit", "integration", "e2e"]:
+        cmd.extend(["-m", scope])
+    
     if keyword:
         cmd.extend(["-k", keyword])
-    else:
-        # Default: run all tests
-        cmd.append("tests/")
     
-    print(f"🧪 Running tests: {' '.join(cmd[3:])}")
-    subprocess.run(cmd)
+    # Add test path
+    cmd.append("tests/")
+    
+    print(f"\n🧪 Running tests: {' '.join(cmd[3:])}\n")
+    result = subprocess.run(cmd)
+    
+    # Exit with test result code
+    sys.exit(result.returncode)
 
 
 @app.command("test:unit")
@@ -169,67 +206,134 @@ def test_unit(
 ) -> None:
     """Run unit tests only (fast, no external services).
     
+    Always uses local environment (no deployment needed).
+    
     Example:
         atoms test:unit -v
     """
+    from cli_modules.test_env_manager import TestEnvManager, TestEnvironment
+    
+    # Unit tests always use local
+    environment = TestEnvironment.LOCAL
+    TestEnvManager.setup_environment(environment)
+    
     cmd = ["python", "-m", "pytest", "-m", "unit", "tests/"]
     if verbose:
         cmd.insert(-1, "-v")
     
-    print("🧪 Running unit tests...")
-    subprocess.run(cmd)
+    print("🧪 Running unit tests (local)...")
+    result = subprocess.run(cmd)
+    sys.exit(result.returncode)
 
 
 @app.command("test:int")
 def test_integration(
     verbose: bool = typer.Option(False, "-v", "--verbose"),
+    env: Optional[str] = typer.Option(None, "--env", help="Environment: local, dev, or prod"),
 ) -> None:
     """Run integration tests (requires services).
     
-    Example:
-        atoms test:int -v
+    Automatically targets dev deployment (mcpdev.atoms.tech) by default.
+    Override with --env local to use local server or --env prod for production.
+    
+    Examples:
+        atoms test:int                  # Integration tests on dev
+        atoms test:int -v               # Verbose
+        atoms test:int --env local      # Against local server
+        atoms test:int --env prod       # Against production
     """
+    from cli_modules.test_env_manager import TestEnvManager, TestEnvironment
+    
+    # Determine environment
+    if env:
+        try:
+            environment = TestEnvironment(env.lower())
+        except ValueError:
+            print(f"❌ Invalid environment: {env}. Use: local, dev, or prod")
+            sys.exit(1)
+    else:
+        # Default to dev for integration tests
+        environment = TestEnvironment.DEV
+    
+    TestEnvManager.setup_environment(environment)
+    TestEnvManager.print_environment_info(environment)
+    
     cmd = ["python", "-m", "pytest", "-m", "integration", "tests/"]
     if verbose:
         cmd.insert(-1, "-v")
     
-    print("🧪 Running integration tests...")
-    subprocess.run(cmd)
+    print()
+    result = subprocess.run(cmd)
+    sys.exit(result.returncode)
 
 
 @app.command("test:e2e")
 def test_e2e(
     verbose: bool = typer.Option(False, "-v", "--verbose"),
+    env: Optional[str] = typer.Option(None, "--env", help="Environment: local, dev, or prod"),
 ) -> None:
     """Run end-to-end tests (full system).
     
-    Example:
-        atoms test:e2e -v
+    Automatically targets dev deployment (mcpdev.atoms.tech) by default.
+    Override with --env local to use local server or --env prod for production.
+    
+    Examples:
+        atoms test:e2e                  # E2E tests on dev
+        atoms test:e2e -v               # Verbose
+        atoms test:e2e --env local      # Against local server
+        atoms test:e2e --env prod       # Against production
     """
+    from cli_modules.test_env_manager import TestEnvManager, TestEnvironment
+    
+    # Determine environment
+    if env:
+        try:
+            environment = TestEnvironment(env.lower())
+        except ValueError:
+            print(f"❌ Invalid environment: {env}. Use: local, dev, or prod")
+            sys.exit(1)
+    else:
+        # Default to dev for e2e tests
+        environment = TestEnvironment.DEV
+    
+    TestEnvManager.setup_environment(environment)
+    TestEnvManager.print_environment_info(environment)
+    
     cmd = ["python", "-m", "pytest", "-m", "e2e", "tests/"]
     if verbose:
         cmd.insert(-1, "-v")
     
-    print("🧪 Running e2e tests...")
-    subprocess.run(cmd)
+    print()
+    result = subprocess.run(cmd)
+    sys.exit(result.returncode)
 
 
 @app.command("test:cov")
 def test_coverage() -> None:
-    """Run tests with coverage report (HTML + terminal).
+    """Run unit tests with coverage report (HTML + terminal).
+    
+    Always uses local environment (coverage only for unit tests).
     
     Output:
         htmlcov/index.html - Interactive coverage report
     """
-    print("🧪 Running tests with coverage...")
-    subprocess.run([
+    from cli_modules.test_env_manager import TestEnvManager, TestEnvironment
+    
+    # Coverage always uses local + unit tests
+    environment = TestEnvironment.LOCAL
+    TestEnvManager.setup_environment(environment)
+    
+    print("🧪 Running unit tests with coverage...")
+    result = subprocess.run([
         "python", "-m", "pytest",
+        "-m", "unit",
         "--cov=.",
         "--cov-report=html",
         "--cov-report=term-missing",
         "tests/"
     ])
     print("\n📊 Coverage report: htmlcov/index.html")
+    sys.exit(result.returncode)
 
 
 @app.command("test:story")

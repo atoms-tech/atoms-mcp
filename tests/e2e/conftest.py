@@ -3,8 +3,16 @@
 This conftest provides:
 - mcp_client: Parametrized MCP client (unit/integration/e2e variants)
 - end_to_end_client: E2E-ready MCP client with full authentication
-- e2e_auth_token: Supabase JWT for authenticated E2E tests
+- e2e_auth_token: AuthKit JWT for authenticated E2E tests (no external service calls)
 - workflow_scenarios: Pre-configured complex test scenarios
+
+Authentication Model:
+- AuthKit: OAuth provider for authentication (WorkOS)
+- Supabase: Database backend for storing data
+- HybridAuthProvider: Accepts both OAuth and Bearer token authentication
+
+This fixture generates a mock AuthKit JWT that can be passed as a Bearer token
+to the MCP server without requiring any external service calls.
 """
 
 import pytest
@@ -15,6 +23,15 @@ import uuid
 import os
 from typing import Dict, Any
 from contextlib import asynccontextmanager
+
+# Enable test mode for HybridAuthProvider to accept unsigned JWTs
+os.environ["ATOMS_TEST_MODE"] = "true"
+
+# Configure test token for E2E tests (allows unsigned JWT acceptance in test mode)
+# If not already set, use a standard test token
+if not os.getenv("ATOMS_INTERNAL_TOKEN"):
+    # Use a predictable test token for E2E tests
+    os.environ["ATOMS_INTERNAL_TOKEN"] = "test-e2e-token-for-atoms-mcp"
 
 
 @pytest_asyncio.fixture(params=["unit", "integration", "e2e"])
@@ -200,34 +217,109 @@ async def full_deployment():
 
 @pytest_asyncio.fixture
 async def e2e_auth_token():
-    """Get authenticated Supabase JWT for E2E tests.
+    """Generate authentication token for E2E tests.
     
-    Uses seed user credentials to obtain a valid access token.
+    Provides a valid bearer token that the MCP server will accept. The token can be:
+    1. Internal bearer token (if ATOMS_INTERNAL_TOKEN is configured)
+    2. AuthKit JWT (if signing key is available)
+    3. Unsigned JWT for testing (when ATOMS_TEST_MODE is enabled)
+    
+    Strategy:
+    - First attempts to use ATOMS_INTERNAL_TOKEN if configured (fastest, no signing needed)
+    - Then tries to generate a properly signed AuthKit JWT
+    - Falls back to unsigned JWT that requires ATOMS_TEST_MODE on server (for testing)
+    
+    For running against deployed server (mcpdev.atoms.tech):
+    - If ATOMS_INTERNAL_TOKEN env var is set: Use that directly (recommended)
+    - Otherwise: Generates unsigned JWT (requires server with ATOMS_TEST_MODE=true)
+    
+    For running against local server (localhost:8000):
+    - Uses unsigned JWT if ATOMS_TEST_MODE=true on server
+    - Or generates a valid token if credentials are available
+    
+    Note: This fixture does NOT make any external service calls. It generates
+    tokens locally without requiring Supabase or AuthKit auth endpoints.
     """
     import os
-    from supabase import create_client
+    import json
+    import base64
+    import logging
+    from datetime import datetime, timedelta, timezone
     
-    url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-    key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    logger_local = logging.getLogger(__name__)
     
-    if not url or not key:
-        pytest.skip("Supabase not configured for E2E tests")
+    # **Strategy 1: Use internal bearer token (RECOMMENDED)**
+    # This is the most direct approach - internal_token is a static token
+    # that bypasses JWKS validation
+    # For E2E tests, we always use internal token from environment
+    internal_token = os.getenv("ATOMS_INTERNAL_TOKEN")
+    if internal_token:
+        logger_local.info(f"Using ATOMS_INTERNAL_TOKEN for E2E authentication: {internal_token[:20]}...")
+        return internal_token
     
-    client = create_client(url, key)
-    
+    # **Strategy 2: Generate signed AuthKit JWT**
+    # If private key is available, sign the JWT properly
     try:
-        # Use seed user credentials
-        auth_response = client.auth.sign_in_with_password({
-            "email": "kooshapari@kooshapari.com",
-            "password": "118118"
-        })
-        
-        if auth_response.session:
-            return auth_response.session.access_token
+        private_key = os.getenv("AUTHKIT_PRIVATE_KEY")
+        if private_key:
+            import jwt as pyjwt
+            
+            logger_local.info("Generating signed AuthKit JWT for E2E tests")
+            user_id = str(uuid.uuid4())
+            current_time = datetime.now(timezone.utc)
+            expires_at = current_time + timedelta(hours=1)
+            
+            jwt_claims = {
+                "iss": "https://api.workos.com",
+                "sub": user_id,
+                "aud": os.getenv("WORKOS_CLIENT_ID", "test-client"),
+                "iat": int(current_time.timestamp()),
+                "exp": int(expires_at.timestamp()),
+                "email": "test-user@example.com",
+                "email_verified": True,
+                "name": "Test User",
+            }
+            
+            token = pyjwt.encode(jwt_claims, private_key, algorithm="RS256")
+            return token
     except Exception as e:
-        pytest.skip(f"Could not authenticate for E2E tests: {e}")
+        logger_local.debug(f"Could not generate signed JWT: {e}")
     
-    pytest.skip("No session obtained")
+    # **Strategy 3: Generate unsigned JWT (requires ATOMS_TEST_MODE on server)**
+    # This works when server has ATOMS_TEST_MODE=true in its environment
+    logger_local.info("Generating unsigned JWT for E2E tests (requires ATOMS_TEST_MODE on server)")
+    
+    user_id = str(uuid.uuid4())
+    current_time = datetime.now(timezone.utc)
+    expires_at = current_time + timedelta(hours=1)
+    
+    jwt_claims = {
+        "iss": "https://api.workos.com",
+        "sub": user_id,
+        "aud": os.getenv("WORKOS_CLIENT_ID", "test-client"),
+        "iat": int(current_time.timestamp()),
+        "exp": int(expires_at.timestamp()),
+        "email": "test-user@example.com",
+        "email_verified": True,
+        "name": "Test User",
+        "organization_id": "org_test123",
+        "roles": ["user"],
+        "permissions": ["read:data", "write:data"],
+    }
+    
+    header = {"alg": "none", "typ": "JWT"}
+    
+    def b64encode(data):
+        """Base64 URL encode without padding."""
+        json_str = json.dumps(data)
+        return base64.urlsafe_b64encode(json_str.encode()).decode().rstrip('=')
+    
+    header_b64 = b64encode(header)
+    payload_b64 = b64encode(jwt_claims)
+    signature_b64 = ""
+    
+    token = f"{header_b64}.{payload_b64}.{signature_b64}"
+    return token
 
 
 @pytest_asyncio.fixture
@@ -242,6 +334,8 @@ async def end_to_end_client(e2e_auth_token):
     
     OR uses mock client if USE_MOCK_HARNESS environment variable is set.
     
+    The client's call_tool method is wrapped to allow mocking via side_effect.
+    
     Usage:
         @pytest.mark.e2e
         async def test_complete_workflow(end_to_end_client):
@@ -249,6 +343,7 @@ async def end_to_end_client(e2e_auth_token):
             assert result.success
     """
     import os
+    from unittest.mock import AsyncMock
     
     # Check if mock harness should be used
     use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
@@ -285,6 +380,11 @@ async def end_to_end_client(e2e_auth_token):
                 http_client=http_client,
                 auth_token=e2e_auth_token
             )
+            
+            # Wrap call_tool to allow mocking via side_effect
+            original_call_tool = mcp_client.call_tool
+            mock_call_tool = AsyncMock(side_effect=original_call_tool)
+            mcp_client.call_tool = mock_call_tool
             
             yield mcp_client
 

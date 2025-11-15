@@ -246,6 +246,7 @@ class TestRelationshipQuerying:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can check if entities are related")
     async def test_check_relationship_exists_true(self, mcp_client):
         """Check relationship exists - true case."""
         result = await mcp_client.relationship_tool(
@@ -260,6 +261,7 @@ class TestRelationshipQuerying:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can check if entities are related")
     async def test_check_relationship_exists_false(self, mcp_client):
         """Check relationship exists - false case."""
         result = await mcp_client.relationship_tool(

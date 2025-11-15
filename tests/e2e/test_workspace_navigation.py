@@ -9,6 +9,7 @@ class TestWorkspaceContext:
 
     @pytest.mark.asyncio
     @pytest.mark.workspace
+    @pytest.mark.story("User can view current workspace context")
     async def test_get_current_workspace_context(self, mcp_client):
         """Get current workspace context."""
         result = await mcp_client.workspace_tool(operation="get_context")

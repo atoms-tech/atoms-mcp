@@ -19,6 +19,7 @@ class TestProjectCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a project")
     async def test_create_project_in_organization(self, mcp_client):
         """Create project within organization.
         
@@ -51,6 +52,7 @@ class TestProjectCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a project")
     async def test_create_project_with_full_metadata(self, mcp_client):
         """Create project with full metadata.
         
@@ -84,6 +86,7 @@ class TestProjectCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a project")
     async def test_create_project_without_org_fails(self, mcp_client):
         """Creating project without org should fail or set null.
         
@@ -101,6 +104,7 @@ class TestProjectCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a project")
     async def test_create_project_invalid_data_fails(self, mcp_client):
         """Creating project with invalid data fails.
         
@@ -129,6 +133,7 @@ class TestProjectReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can view project details")
     async def test_read_project_by_id(self, mcp_client):
         """Read project by UUID.
         
@@ -167,6 +172,7 @@ class TestProjectReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can view project details")
     async def test_read_project_with_relations(self, mcp_client):
         """Read project with relationships included.
         
@@ -202,6 +208,7 @@ class TestProjectReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can view project details")
     async def test_read_nonexistent_project_fails(self, mcp_client):
         """Reading non-existent project fails gracefully.
         
@@ -224,6 +231,7 @@ class TestProjectUpdate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can update project information")
     async def test_update_project_name(self, mcp_client):
         """Update project name.
         
@@ -264,6 +272,7 @@ class TestProjectUpdate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can update project information")
     async def test_update_project_status(self, mcp_client):
         """Update project status.
         
@@ -301,6 +310,7 @@ class TestProjectUpdate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can update project information")
     async def test_update_project_partial(self, mcp_client):
         """Partial update only changes specified fields.
         
@@ -345,6 +355,7 @@ class TestProjectArchive:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can archive a project")
     async def test_archive_project(self, mcp_client):
         """Archive (soft delete) project.
         
@@ -381,6 +392,7 @@ class TestProjectArchive:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can archive a project")
     async def test_archived_project_excluded_from_list(self, mcp_client):
         """Archived project excluded from list by default.
         
@@ -426,6 +438,7 @@ class TestProjectArchive:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can archive a project")
     async def test_restore_archived_project(self, mcp_client):
         """Restore archived project.
         
@@ -473,6 +486,7 @@ class TestProjectListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list projects in organization")
     async def test_list_projects_in_organization(self, mcp_client):
         """List projects in organization.
         
@@ -512,6 +526,7 @@ class TestProjectListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list projects in organization")
     async def test_list_projects_with_pagination(self, mcp_client):
         """List projects with limit and offset.
         
@@ -541,6 +556,7 @@ class TestProjectListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list projects in organization")
     async def test_list_projects_sorted(self, mcp_client):
         """List projects sorted by name.
         
@@ -577,6 +593,7 @@ class TestProjectListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list projects in organization")
     async def test_list_projects_excludes_archived(self, mcp_client):
         """List excludes archived projects by default.
         

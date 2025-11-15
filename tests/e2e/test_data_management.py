@@ -9,6 +9,7 @@ class TestBatchCreate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can batch create multiple entities")
     async def test_batch_create_10_entities(self, mcp_client):
         """Create 10 entities in batch."""
         entities = [{"name": f"Entity {i}"} for i in range(10)]
@@ -25,6 +26,7 @@ class TestBatchCreate:
     @pytest.mark.asyncio
     @pytest.mark.entity
     @pytest.mark.slow
+    @pytest.mark.story("User can batch create multiple entities")
     async def test_batch_create_1000_entities(self, mcp_client):
         """Create 1000 entities in batch."""
         entities = [{"name": f"Entity {i}"} for i in range(1000)]
@@ -41,6 +43,7 @@ class TestBatchCreate:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can batch create multiple entities")
     async def test_batch_create_with_metadata(self, mcp_client):
         """Batch create with full metadata."""
         entities = [
@@ -151,6 +154,7 @@ class TestSorting:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can sort query results")
     async def test_sort_by_name_ascending(self, mcp_client):
         """Sort by name ascending."""
         result = await mcp_client.entity_tool(
@@ -168,6 +172,7 @@ class TestSorting:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can sort query results")
     async def test_sort_by_name_descending(self, mcp_client):
         """Sort by name descending."""
         result = await mcp_client.entity_tool(
@@ -181,6 +186,7 @@ class TestSorting:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can sort query results")
     async def test_sort_by_created_date(self, mcp_client):
         """Sort by creation date."""
         result = await mcp_client.entity_tool(
@@ -194,6 +200,7 @@ class TestSorting:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can sort query results")
     async def test_sort_by_updated_date(self, mcp_client):
         """Sort by modification date."""
         result = await mcp_client.entity_tool(
@@ -207,6 +214,7 @@ class TestSorting:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can sort query results")
     async def test_sort_by_custom_field(self, mcp_client):
         """Sort by custom field."""
         result = await mcp_client.entity_tool(
@@ -237,6 +245,7 @@ class TestSortWithPagination:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can sort query results")
     async def test_sorted_paginated_list(self, mcp_client):
         """List sorted and paginated together."""
         page1 = await mcp_client.entity_tool(

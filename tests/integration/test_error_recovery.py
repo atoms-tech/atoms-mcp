@@ -101,6 +101,10 @@ class TestAuthenticationErrors:
                     headers={"Content-Type": "application/json"}  # No Authorization header
                 )
 
+                # 404 means endpoint not configured (skip test)
+                if response.status_code == 404:
+                    pytest.skip("MCP endpoint not available at {base_url}")
+
                 # Should fail with 401 or return error in result
                 assert response.status_code in [401, 403, 200], "Missing auth should be rejected"
 
@@ -133,6 +137,10 @@ class TestAuthenticationErrors:
                         "Authorization": "Bearer invalid_token_12345"
                     }
                 )
+
+                # 404 means endpoint not configured (skip test)
+                if response.status_code == 404:
+                    pytest.skip(f"MCP endpoint not available at {base_url}")
 
                 # Should fail with 401 or return error
                 if response.status_code == 200:

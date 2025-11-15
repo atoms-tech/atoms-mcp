@@ -22,7 +22,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log in with AuthKit")
+    @pytest.mark.story("User can log in with AuthKit")
     def test_authkit_jwt_validation_valid(self):
         """Test valid AuthKit JWT validation."""
         # Create a valid-looking JWT
@@ -41,7 +41,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log in with AuthKit")
+    @pytest.mark.story("User can log in with AuthKit")
     def test_authkit_jwt_validation_expired(self):
         """Test expired JWT rejection."""
         payload = {
@@ -55,7 +55,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log in with AuthKit")
+    @pytest.mark.story("User can log in with AuthKit")
     def test_authkit_jwt_validation_invalid_signature(self):
         """Test invalid signature rejection."""
         invalid_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature"
@@ -68,7 +68,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log in with AuthKit")
+    @pytest.mark.story("User can log in with AuthKit")
     def test_authkit_user_info_extraction(self):
         """Test extracting user info from AuthKit JWT."""
         payload = {
@@ -91,7 +91,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log in with AuthKit")
+    @pytest.mark.story("User can log in with AuthKit")
     def test_authkit_token_refresh(self):
         """Test token refresh flow."""
         old_token = "old_token_123"
@@ -105,7 +105,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log in with AuthKit")
+    @pytest.mark.story("User can log in with AuthKit")
     def test_authkit_session_creation(self):
         """Test AuthKit session creation."""
         user_info = {
@@ -125,7 +125,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can maintain active session")
+    @pytest.mark.story("User can maintain active session")
     def test_authkit_session_validation(self):
         """Test validating active session."""
         session = {
@@ -141,7 +141,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can log out securely")
+    @pytest.mark.story("User can log out securely")
     def test_authkit_logout_session_invalidation(self):
         """Test session invalidation on logout."""
         session_id = "sess-123"
@@ -155,7 +155,7 @@ class TestAuthKitAuthentication:
     @pytest.mark.mock_only
     @pytest.mark.e2e
     @pytest.mark.database
-    @pytest.mark.story("Security & Access - User can maintain active session")
+    @pytest.mark.story("User can maintain active session")
     def test_authkit_multi_session_per_user(self):
         """Test multiple sessions per user."""
         user_id = "user-123"

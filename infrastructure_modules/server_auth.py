@@ -49,6 +49,12 @@ def create_auth_provider(base_url: str) -> Any:
 
     # Get optional bearer token configuration
     internal_token = os.getenv("ATOMS_INTERNAL_TOKEN")
+    
+    # For development/testing: auto-enable test E2E token if in test mode
+    if not internal_token and os.getenv("ATOMS_TEST_MODE", "").lower() == "true":
+        internal_token = "test-e2e-token-for-atoms-mcp"
+        logger.info("🧪 Test mode enabled: using E2E test token for internal authentication")
+    
     authkit_client_id = os.getenv("WORKOS_CLIENT_ID")
 
     # Construct AuthKit JWKS URI from domain

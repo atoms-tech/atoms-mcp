@@ -9,6 +9,7 @@ class TestRequirementCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create requirements")
     async def test_create_requirement_minimal(self, mcp_client):
         """Create requirement with minimal data."""
         result = await mcp_client.entity_tool(
@@ -20,6 +21,7 @@ class TestRequirementCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create requirements")
     async def test_create_requirement_full(self, mcp_client):
         """Create requirement with full metadata."""
         result = await mcp_client.entity_tool(
@@ -37,6 +39,7 @@ class TestRequirementCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create requirements")
     async def test_create_requirement_from_template(self, mcp_client):
         """Create requirement from template."""
         result = await mcp_client.entity_tool(
@@ -51,6 +54,7 @@ class TestRequirementCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create requirements")
     async def test_create_requirement_invalid_fails(self, mcp_client):
         """Invalid requirement creation fails."""
         result = await mcp_client.entity_tool(
@@ -120,6 +124,7 @@ class TestRequirementSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search requirements")
     async def test_search_requirements_keyword(self, mcp_client):
         """Search requirements by keyword."""
         result = await mcp_client.data_query(
@@ -134,6 +139,7 @@ class TestRequirementSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search requirements")
     async def test_search_requirements_filter_status(self, mcp_client):
         """Search requirements filtered by status."""
         result = await mcp_client.data_query(
@@ -147,6 +153,7 @@ class TestRequirementSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search requirements")
     async def test_search_requirements_filter_priority(self, mcp_client):
         """Search requirements filtered by priority."""
         result = await mcp_client.data_query(
@@ -160,6 +167,7 @@ class TestRequirementSearch:
 
     @pytest.mark.asyncio
     @pytest.mark.query
+    @pytest.mark.story("User can search requirements")
     async def test_search_requirements_hybrid(self, mcp_client):
         """Hybrid search (keyword + filter)."""
         result = await mcp_client.data_query(
@@ -178,6 +186,7 @@ class TestRequirementTracing:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can create requirements")
     async def test_create_requirement_test_link(self, mcp_client):
         """Link requirement to test case."""
         result = await mcp_client.relationship_tool(
@@ -203,6 +212,7 @@ class TestRequirementTracing:
 
     @pytest.mark.asyncio
     @pytest.mark.relationship
+    @pytest.mark.story("User can trace links between requirements and tests")
     async def test_trace_requirement_chain(self, mcp_client):
         """Trace full requirement chain."""
         # Implementation would trace: requirement → test_case → build → deployment

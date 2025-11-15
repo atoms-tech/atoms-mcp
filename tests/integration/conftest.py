@@ -161,6 +161,18 @@ async def integration_auth_token(live_supabase):
         pytest.skip(f"Authentication failed: {e}")
 
 
+@pytest_asyncio.fixture
+async def integration_client():
+    """Integration client wrapper for backward compatibility."""
+    import os
+    
+    # Use deployed mcpdev target if available
+    base_url = os.getenv("MCP_INTEGRATION_BASE_URL", "http://127.0.0.1:8000/api/mcp")
+    
+    async with Client(base_url, timeout=10.0) as client:
+        yield client
+
+
 @pytest.fixture
 def integration_test_data():
     """Test data specific to integration environment."""

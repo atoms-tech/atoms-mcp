@@ -9,6 +9,7 @@ class TestDocumentCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a document")
     async def test_create_document_minimal(self, mcp_client):
         """Create document with minimal data."""
         project_result = await mcp_client.entity_tool(
@@ -29,6 +30,7 @@ class TestDocumentCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a document")
     async def test_create_document_full_metadata(self, mcp_client):
         """Create document with full metadata."""
         project_result = await mcp_client.entity_tool(
@@ -54,6 +56,7 @@ class TestDocumentCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a document")
     async def test_create_document_invalid_fails(self, mcp_client):
         """Creating document with invalid data fails."""
         result = await mcp_client.entity_tool(
@@ -66,6 +69,7 @@ class TestDocumentCreation:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can create a document")
     async def test_create_document_auto_version(self, mcp_client):
         """Document version auto-incremented."""
         project_result = await mcp_client.entity_tool(
@@ -90,6 +94,7 @@ class TestDocumentReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can view document content")
     async def test_read_document_by_id(self, mcp_client):
         """Read document by ID."""
         project_result = await mcp_client.entity_tool(
@@ -117,6 +122,7 @@ class TestDocumentReading:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can view document content")
     async def test_read_document_with_content(self, mcp_client):
         """Read document returns content."""
         project_result = await mcp_client.entity_tool(
@@ -160,6 +166,7 @@ class TestDocumentListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list documents in project")
     async def test_list_documents_in_project(self, mcp_client):
         """List documents in project."""
         project_result = await mcp_client.entity_tool(
@@ -190,6 +197,7 @@ class TestDocumentListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list documents in project")
     async def test_list_documents_with_pagination(self, mcp_client):
         """List documents with limit."""
         project_result = await mcp_client.entity_tool(
@@ -213,6 +221,7 @@ class TestDocumentListing:
 
     @pytest.mark.asyncio
     @pytest.mark.entity
+    @pytest.mark.story("User can list documents in project")
     async def test_list_documents_sorted(self, mcp_client):
         """List documents sorted by name."""
         project_result = await mcp_client.entity_tool(
