@@ -14,7 +14,7 @@ Required:
 from __future__ import annotations
 
 import hashlib
-from typing import Dict, List, Optional, NamedTuple
+from typing import Any, Dict, List, Optional, NamedTuple
 import os
 import logging
 from pathlib import Path
@@ -108,11 +108,11 @@ class VertexAIEmbeddingService:
                 ) from e
 
         # Use Vertex AI aiplatform endpoint with ADC
-        # Model: text-embedding-004 (768 dimensions)
+        # Model: gemini-embedding-001 (3072 dimensions, pre-normalized)
         self.endpoint = (
             f"https://{self.location}-aiplatform.googleapis.com/v1/"
             f"projects/{self.project}/locations/{self.location}/"
-            f"publishers/google/models/text-embedding-004:predict"
+            f"publishers/google/models/gemini-embedding-001:predict"
         )
 
         logger.info(f"✅ Vertex AI initialized: {project}/{location}")
@@ -166,9 +166,9 @@ class VertexAIEmbeddingService:
         except Exception as e:
             logger.warning(f"Failed to save persistent cache: {e}")
 
-    def _get_cache_key(self, text: str, model: str) -> str:
-        """Generate cache key for text and model."""
-        content = f"{model}:{text}"
+    def _get_cache_key(self, text: str, model: str, task_type: Optional[str] = None, output_dimensionality: int = 3072) -> str:
+        """Generate cache key for text, model, task type, and dimensions."""
+        content = f"{model}:{task_type or 'default'}:{output_dimensionality}:{text}"
         return hashlib.md5(content.encode()).hexdigest()
     
     def _manage_cache_size(self):
@@ -184,7 +184,9 @@ class VertexAIEmbeddingService:
         self,
         text: str,
         model: Optional[str] = None,
-        use_cache: bool = True
+        use_cache: bool = True,
+        task_type: Optional[str] = None,
+        output_dimensionality: int = 3072
     ) -> EmbeddingResult:
         """Generate embedding for a single text using REST API.
 
@@ -192,6 +194,8 @@ class VertexAIEmbeddingService:
             text: Text to embed
             model: Must be gemini-embedding-001 (ignored if different)
             use_cache: Whether to use caching (local + Upstash Redis)
+            task_type: Task type for optimization (RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, etc.)
+            output_dimensionality: Output dimensions (768, 1536, or 3072), default 3072
 
         Returns:
             EmbeddingResult with embedding vector and metadata
@@ -201,7 +205,7 @@ class VertexAIEmbeddingService:
 
         # Only gemini-embedding-001 is supported
         model = self.default_model
-        cache_key = self._get_cache_key(text, model)
+        cache_key = self._get_cache_key(text, model, task_type, output_dimensionality)
 
         # Check in-memory cache first (local)
         if use_cache and cache_key in self.cache:
@@ -248,16 +252,35 @@ class VertexAIEmbeddingService:
             # Use REST API with ADC bearer token
             import httpx
 
+            # Update endpoint for gemini-embedding-001
+            endpoint = (
+                f"https://{self.location}-aiplatform.googleapis.com/v1/"
+                f"projects/{self.project}/locations/{self.location}/"
+                f"publishers/google/models/gemini-embedding-001:predict"
+            )
+
+            # Build request body with task type and output dimensionality
+            request_body: Dict[str, Any] = {
+                "instances": [{"content": text}]
+            }
+            
+            # Add task_type if provided
+            if task_type:
+                request_body["instances"][0]["task_type"] = task_type
+            
+            # Add output dimensionality parameter
+            request_body["parameters"] = {
+                "outputDimensionality": output_dimensionality
+            }
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    self.endpoint,
+                    endpoint,
                     headers={
                         "Authorization": f"Bearer {access_token}",
                         "Content-Type": "application/json"
                     },
-                    json={
-                        "instances": [{"content": text}]  # Vertex AI format
-                    },
+                    json=request_body,
                     timeout=30.0
                 )
 
@@ -266,6 +289,12 @@ class VertexAIEmbeddingService:
 
                 # Extract embedding from Vertex AI response
                 values = data["predictions"][0]["embeddings"]["values"]
+                
+                # Normalize if 768-dim (3072-dim are pre-normalized by Google)
+                if output_dimensionality == 768:
+                    magnitude = sum(v * v for v in values) ** 0.5
+                    if magnitude > 0:
+                        values = [v / magnitude for v in values]
 
             result = EmbeddingResult(
                 embedding=values,

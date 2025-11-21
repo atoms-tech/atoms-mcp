@@ -24,10 +24,13 @@ class TestDatabaseConnection:
     @pytest.mark.requires_db
     async def test_database_connection_established(self, mcp_client):
         """Verify database connection is active."""
-        result = await mcp_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"DB Test {uuid.uuid4().hex[:4]}"}
+        result = await mcp_client(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"DB Test {uuid.uuid4().hex[:4]}"}
+            }
         )
         assert result["success"] is True
 
@@ -38,10 +41,13 @@ class TestDatabaseConnection:
         """Multiple requests reuse connection pool."""
         results = []
         for i in range(5):
-            result = await mcp_client.entity_tool(
-                entity_type="organization",
-                operation="create",
-                data={"name": f"Pool Test {i}"}
+            result = await mcp_client(
+                "entity_tool",
+                {
+                    "entity_type": "organization",
+                    "operation": "create",
+                    "data": {"name": f"Pool Test {i}"}
+                }
             )
             results.append(result["success"])
         
@@ -53,10 +59,13 @@ class TestDatabaseConnection:
     async def test_connection_timeout_handling(self, mcp_client):
         """Timeout errors handled gracefully."""
         # This would require network simulation
-        result = await mcp_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Timeout {uuid.uuid4().hex[:4]}"}
+        result = await mcp_client(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Timeout {uuid.uuid4().hex[:4]}"}
+            }
         )
         assert "success" in result
 

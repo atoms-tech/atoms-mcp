@@ -33,10 +33,13 @@ class TestOrganizationCreation:
         """
         org_name = f"Test Org {uuid.uuid4().hex[:8]}"
         
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": org_name}
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": org_name}
+            }
         )
         
         assert result["success"] is True, f"Expected success, got {result.get('error')}"
@@ -63,10 +66,13 @@ class TestOrganizationCreation:
             "rate_limit_per_minute": 1000
         }
         
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data=org_data
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": org_data
+            }
         )
         
         assert result["success"] is True
@@ -88,19 +94,25 @@ class TestOrganizationCreation:
         org_name = f"Duplicate {uuid.uuid4().hex[:8]}"
         
         # Create first org
-        result1 = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": org_name}
+        result1 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": org_name}
+            }
         )
         assert result1["success"] is True
         org_id_1 = result1["data"]["id"]
         
         # Create second org with same name
-        result2 = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": org_name}
+        result2 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": org_name}
+            }
         )
         assert result2["success"] is True
         org_id_2 = result2["data"]["id"]
@@ -120,10 +132,13 @@ class TestOrganizationCreation:
         - Error classification correct
         """
         # Empty name
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": ""}
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": ""}
+            }
         )
         
         assert result["success"] is False
@@ -145,18 +160,24 @@ class TestOrganizationReading:
         - Timestamps present
         """
         # Create org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Read Test {uuid.uuid4().hex[:8]}"}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Read Test {uuid.uuid4().hex[:8]}"}
+            }
         )
         org_id = create_result["data"]["id"]
         
         # Read by ID
-        read_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="read"
+        read_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "read"
+            }
         )
         
         assert read_result["success"] is True
@@ -177,18 +198,24 @@ class TestOrganizationReading:
         """
         # Create org with full name
         org_name = f"Vehicle Project {uuid.uuid4().hex[:8]}"
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": org_name}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": org_name}
+            }
         )
         org_id = create_result["data"]["id"]
         
         # Read by partial name
-        read_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id="Vehicle",  # Fuzzy match
-            operation="read"
+        read_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": "Vehicle",  # Fuzzy match
+                "operation": "read"
+            }
         )
         
         # Should resolve to the created org (if it's the best match)
@@ -206,10 +233,13 @@ class TestOrganizationReading:
         """
         fake_id = str(uuid.uuid4())
         
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=fake_id,
-            operation="read"
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": fake_id,
+                "operation": "read"
+            }
         )
         
         assert result["success"] is False
@@ -230,12 +260,15 @@ class TestOrganizationUpdate:
         - updated_at timestamp changes
         """
         # Create org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={
-                "name": f"Original {uuid.uuid4().hex[:8]}",
-                "description": "Original description"
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {
+                    "name": f"Original {uuid.uuid4().hex[:8]}",
+                    "description": "Original description"
+                }
             }
         )
         org_id = create_result["data"]["id"]
@@ -243,11 +276,14 @@ class TestOrganizationUpdate:
         
         # Update name
         new_name = f"Updated {uuid.uuid4().hex[:8]}"
-        update_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="update",
-            data={"name": new_name}
+        update_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "update",
+                "data": {"name": new_name}
+            }
         )
         
         assert update_result["success"] is True
@@ -266,23 +302,29 @@ class TestOrganizationUpdate:
         - No null overwrites
         """
         # Create org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={
-                "name": f"Partial Test {uuid.uuid4().hex[:8]}",
-                "description": "Keep this",
-                "rate_limit_per_minute": 100
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {
+                    "name": f"Partial Test {uuid.uuid4().hex[:8]}",
+                    "description": "Keep this",
+                    "rate_limit_per_minute": 100
+                }
             }
         )
         org_id = create_result["data"]["id"]
         
         # Update only rate limit
-        update_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="update",
-            data={"rate_limit_per_minute": 500}
+        update_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "update",
+                "data": {"rate_limit_per_minute": 500}
+            }
         )
         
         assert update_result["success"] is True
@@ -299,19 +341,25 @@ class TestOrganizationUpdate:
         - Organization unchanged on failure
         """
         # Create org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Invalid Test {uuid.uuid4().hex[:8]}"}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Invalid Test {uuid.uuid4().hex[:8]}"}
+            }
         )
         org_id = create_result["data"]["id"]
         
         # Try invalid update (empty name)
-        update_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="update",
-            data={"name": ""}
+        update_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "update",
+                "data": {"name": ""}
+            }
         )
         
         assert update_result["success"] is False
@@ -331,19 +379,24 @@ class TestOrganizationDeletion:
         - Can be restored
         """
         # Create org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Delete Test {uuid.uuid4().hex[:8]}"}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Delete Test {uuid.uuid4().hex[:8]}"}
+            }
         )
         org_id = create_result["data"]["id"]
         
         # Soft delete
-        delete_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="delete",
-            soft_delete=True  # Default
+        delete_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "delete"
+            }
         )
         
         assert delete_result["success"] is True
@@ -359,26 +412,33 @@ class TestOrganizationDeletion:
         - Can be included with include_archived=True
         """
         # Create org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"List Test {uuid.uuid4().hex[:8]}"}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"List Test {uuid.uuid4().hex[:8]}"}
+            }
         )
         org_id = create_result["data"]["id"]
         
         # Soft delete
-        await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="delete",
-            soft_delete=True
+        await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "delete"
+            }
         )
         
         # List without including archived
-        list_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            include_archived=False
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list"
+            }
         )
         
         # Deleted org should not be in list
@@ -395,26 +455,34 @@ class TestOrganizationDeletion:
         - Organization appears in list again
         """
         # Create and soft delete
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Restore Test {uuid.uuid4().hex[:8]}"}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Restore Test {uuid.uuid4().hex[:8]}"}
+            }
         )
         org_id = create_result["data"]["id"]
         
-        await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="delete",
-            soft_delete=True
+        await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "delete"
+            }
         )
         
         # Restore by clearing deleted_at
-        restore_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="update",
-            data={"deleted_at": None}
+        restore_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "update",
+                "data": {"deleted_at": None}
+            }
         )
         
         assert restore_result["success"] is True
@@ -436,20 +504,26 @@ class TestOrganizationListing:
         # Create multiple orgs
         org_ids = []
         for i in range(5):
-            result = await end_to_end_client.entity_tool(
-                entity_type="organization",
-                operation="create",
-                data={"name": f"Paginate Org {i} {uuid.uuid4().hex[:4]}"}
+            result = await end_to_end_client.call_tool(
+                "entity_tool",
+                {
+                    "entity_type": "organization",
+                    "operation": "create",
+                    "data": {"name": f"Paginate Org {i} {uuid.uuid4().hex[:4]}"}
+                }
             )
             if result["success"]:
                 org_ids.append(result["data"]["id"])
         
         # List with limit
-        list_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            limit=2,
-            offset=0
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "limit": 2,
+                "offset": 0
+            }
         )
         
         assert list_result["success"] is True
@@ -468,18 +542,24 @@ class TestOrganizationListing:
         # Create multiple orgs
         org_names = [f"Sort {c} {uuid.uuid4().hex[:4]}" for c in "ABC"]
         for name in org_names:
-            await end_to_end_client.entity_tool(
-                entity_type="organization",
-                operation="create",
-                data={"name": name}
+            await end_to_end_client.call_tool(
+                "entity_tool",
+                {
+                    "entity_type": "organization",
+                    "operation": "create",
+                    "data": {"name": name}
+                }
             )
         
         # List sorted by name
-        list_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            order_by="name",
-            limit=100
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "order_by": "name",
+                "limit": 100
+            }
         )
         
         assert list_result["success"] is True
@@ -498,23 +578,32 @@ class TestOrganizationListing:
         - Filter applied correctly
         """
         # Create orgs of different types
-        await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Enterprise {uuid.uuid4().hex[:4]}", "type": "enterprise"}
+        await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Enterprise {uuid.uuid4().hex[:4]}", "type": "enterprise"}
+            }
         )
-        await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Team {uuid.uuid4().hex[:4]}", "type": "team"}
+        await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Team {uuid.uuid4().hex[:4]}", "type": "team"}
+            }
         )
         
         # List only enterprises
-        list_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            filters={"type": "enterprise"},
-            limit=100
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "conditions": {"type": "enterprise"},
+                "limit": 100
+            }
         )
         
         assert list_result["success"] is True
@@ -531,24 +620,32 @@ class TestOrganizationListing:
         - include_archived parameter works
         """
         # Create and delete org
-        create_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="create",
-            data={"name": f"Deleted {uuid.uuid4().hex[:4]}"}
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Deleted {uuid.uuid4().hex[:4]}"}
+            }
         )
         org_id = create_result["data"]["id"]
         
-        await end_to_end_client.entity_tool(
-            entity_type="organization",
-            entity_id=org_id,
-            operation="delete"
+        await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "operation": "delete"
+            }
         )
         
         # List without archived
-        list_result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            include_archived=False
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list"
+            }
         )
         
         org_ids = [o["id"] for o in list_result["data"]]

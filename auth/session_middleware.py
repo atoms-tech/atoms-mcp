@@ -62,7 +62,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 print(f"   Token first 20 chars: {jwt_token[:20]}...")  # Force print
 
                 # Try multiple claim names for user_id
-                # AuthKit/Supabase JWTs may use different claim names
+                # AuthKit JWTs may use different claim names
                 user_id = (
                     decoded.get('sub') or           # Standard JWT claim
                     decoded.get('user_id') or       # Custom claim

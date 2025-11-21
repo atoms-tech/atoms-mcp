@@ -9,7 +9,8 @@
     "deploy:prod": "sst deploy --stage production",
     "remove": "sst remove",
     "console": "sst console",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:rls": "python -m pytest tests/unit/security/test_rls_protection.py tests/integration/test_auth_integration.py::TestRLSEnforcement tests/e2e/test_security.py -v"
   },
   "dependencies": {
     "sst": "^3.3.29"

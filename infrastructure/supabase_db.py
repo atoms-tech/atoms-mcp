@@ -107,7 +107,7 @@ class SupabaseDatabaseAdapter(DatabaseAdapter):
         self._access_token = token
 
     def _get_client(self) -> Any:  # Returns supabase.Client but avoiding import
-        """Get Supabase client with user's JWT for RLS context.
+        """Get Supabase client with user's AuthKit JWT for RLS context.
 
         Creates a fresh client with the user's access token to ensure
         auth.uid() returns the correct user ID for RLS policies.

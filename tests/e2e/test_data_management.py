@@ -2,8 +2,13 @@
 
 import pytest
 import uuid
+import os
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
+
+# Note: Tests will attempt authentication with user credentials
+# If authentication fails, tests will show clear error messages
+# To use mock harness instead, set USE_MOCK_HARNESS=true
 
 
 class TestBatchCreate:
@@ -16,11 +21,18 @@ class TestBatchCreate:
         """Create 10 entities in batch."""
         entities = [{"name": f"Entity {i}"} for i in range(10)]
         
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="create",
-            batch=entities
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "create",
+                "batch": entities
+            }
         )
+        
+        if not result.get("success"):
+            error_msg = result.get("error", "Unknown error")
+            pytest.fail(f"Tool call failed: {error_msg}. Full result: {result}")
         
         assert result["success"] is True
         assert len(result["data"]) == 10
@@ -33,10 +45,13 @@ class TestBatchCreate:
         """Create 1000 entities in batch."""
         entities = [{"name": f"Entity {i}"} for i in range(1000)]
         
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="create",
-            batch=entities
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "create",
+                "batch": entities
+            }
         )
         
         assert result["success"] is True
@@ -53,10 +68,13 @@ class TestBatchCreate:
             for i in range(5)
         ]
         
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="create",
-            batch=entities
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "create",
+                "batch": entities
+            }
         )
         
         assert result["success"] is True
@@ -73,11 +91,18 @@ class TestPagination:
     @pytest.mark.story("User can paginate through large lists")
     async def test_list_with_limit(self, end_to_end_client):
         """List with limit parameter."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            limit=5
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "limit": 5
+            }
         )
+        
+        if not result.get("success"):
+            error_msg = result.get("error", "Unknown error")
+            pytest.fail(f"Tool call failed: {error_msg}. Full result: {result}")
         
         assert result["success"] is True
         assert len(result["data"]) <= 5
@@ -87,19 +112,25 @@ class TestPagination:
     async def test_list_with_offset(self, end_to_end_client):
         """List with offset parameter."""
         # First page
-        page1 = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            limit=5,
-            offset=0
+        page1 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "limit": 5,
+                "offset": 0
+            }
         )
         
         # Second page
-        page2 = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            limit=5,
-            offset=5
+        page2 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "limit": 5,
+                "offset": 5
+            }
         )
         
         assert page1["success"] is True
@@ -112,11 +143,14 @@ class TestPagination:
     @pytest.mark.entity
     async def test_pagination_cursor_based(self, end_to_end_client):
         """Cursor-based pagination if supported."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            limit=10,
-            cursor=None
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "limit": 10,
+                "cursor": None
+            }
         )
         
         assert result["success"] is True
@@ -126,10 +160,13 @@ class TestPagination:
     @pytest.mark.entity
     async def test_pagination_total_count(self, end_to_end_client):
         """Get total count with pagination."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            limit=5
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "limit": 5
+            }
         )
         
         assert result["success"] is True
@@ -141,11 +178,14 @@ class TestPagination:
     async def test_pagination_large_dataset(self, end_to_end_client):
         """Paginate through large result set (1000+ items)."""
         # First page
-        page1 = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            limit=100,
-            offset=0
+        page1 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "limit": 100,
+                "offset": 0
+            }
         )
         
         assert page1["success"] is True
@@ -160,11 +200,14 @@ class TestSorting:
     @pytest.mark.story("User can sort query results")
     async def test_sort_by_name_ascending(self, end_to_end_client):
         """Sort by name ascending."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            order_by="name",
-            limit=100
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "order_by": "name",
+                "limit": 100
+            }
         )
         
         assert result["success"] is True
@@ -178,11 +221,14 @@ class TestSorting:
     @pytest.mark.story("User can sort query results")
     async def test_sort_by_name_descending(self, end_to_end_client):
         """Sort by name descending."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            order_by="-name",  # Descending
-            limit=100
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "order_by": "-name",  # Descending
+                "limit": 100
+            }
         )
         
         assert result["success"] is True
@@ -192,11 +238,14 @@ class TestSorting:
     @pytest.mark.story("User can sort query results")
     async def test_sort_by_created_date(self, end_to_end_client):
         """Sort by creation date."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            order_by="created_at",
-            limit=100
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "order_by": "created_at",
+                "limit": 100
+            }
         )
         
         assert result["success"] is True
@@ -206,11 +255,14 @@ class TestSorting:
     @pytest.mark.story("User can sort query results")
     async def test_sort_by_updated_date(self, end_to_end_client):
         """Sort by modification date."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            order_by="updated_at",
-            limit=100
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "order_by": "updated_at",
+                "limit": 100
+            }
         )
         
         assert result["success"] is True
@@ -220,11 +272,14 @@ class TestSorting:
     @pytest.mark.story("User can sort query results")
     async def test_sort_by_custom_field(self, end_to_end_client):
         """Sort by custom field."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            order_by="priority",
-            limit=100
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "order_by": "priority",
+                "limit": 100
+            }
         )
         
         assert result["success"] is True
@@ -233,11 +288,14 @@ class TestSorting:
     @pytest.mark.entity
     async def test_multi_field_sort(self, end_to_end_client):
         """Sort by multiple fields."""
-        result = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            order_by="status,name",  # Sort by status, then name
-            limit=100
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "order_by": "status,name",  # Sort by status, then name
+                "limit": 100
+            }
         )
         
         assert "success" in result
@@ -251,20 +309,26 @@ class TestSortWithPagination:
     @pytest.mark.story("User can sort query results")
     async def test_sorted_paginated_list(self, end_to_end_client):
         """List sorted and paginated together."""
-        page1 = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            order_by="name",
-            limit=10,
-            offset=0
+        page1 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "order_by": "name",
+                "limit": 10,
+                "offset": 0
+            }
         )
         
-        page2 = await end_to_end_client.entity_tool(
-            entity_type="organization",
-            operation="list",
-            order_by="name",
-            limit=10,
-            offset=10
+        page2 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "list",
+                "order_by": "name",
+                "limit": 10,
+                "offset": 10
+            }
         )
         
         assert page1["success"] is True
@@ -275,20 +339,26 @@ class TestSortWithPagination:
     @pytest.mark.entity
     async def test_reverse_sort_paginated(self, end_to_end_client):
         """Reverse sorted pagination."""
-        page1 = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            order_by="-created_at",
-            limit=10,
-            offset=0
+        page1 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "order_by": "-created_at",
+                "limit": 10,
+                "offset": 0
+            }
         )
         
-        page2 = await end_to_end_client.entity_tool(
-            entity_type="project",
-            operation="list",
-            order_by="-created_at",
-            limit=10,
-            offset=10
+        page2 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "list",
+                "order_by": "-created_at",
+                "limit": 10,
+                "offset": 10
+            }
         )
         
         assert page1["success"] is True

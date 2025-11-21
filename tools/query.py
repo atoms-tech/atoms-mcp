@@ -97,9 +97,19 @@ class DataQueryEngine(ToolBase):
         self,
         entities: List[str],
         conditions: Optional[Dict[str, Any]] = None,
-        projections: Optional[List[str]] = None
+        projections: Optional[List[str]] = None,
+        aggregate_type: Optional[str] = None,
+        group_by: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """Perform aggregation queries across entities with parallel execution."""
+        """Perform aggregation queries across entities with parallel execution.
+        
+        Args:
+            entities: List of entity types to aggregate
+            conditions: Filter conditions
+            projections: Fields to project
+            aggregate_type: Type of aggregation (count_by_type, count_by_owner, count_by_status, total_count, group_by)
+            group_by: Fields to group by (for group_by aggregate_type)
+        """
 
         async def aggregate_entity(entity_type: str):
             """Aggregate a single entity type."""
@@ -152,18 +162,97 @@ class DataQueryEngine(ToolBase):
                     "total_count": 0
                 })
 
-        # Execute all aggregations in parallel
-        agg_tasks = [aggregate_entity(et) for et in entities]
-        agg_results = await asyncio.gather(*agg_tasks)
-
-        # Convert to dict
-        results = dict(agg_results)
-
-        return {
-            "aggregation_type": "summary_stats",
-            "entities_analyzed": entities,
-            "results": results
-        }
+        # Handle specific aggregate types
+        if aggregate_type == "count_by_type":
+            # Count entities by type
+            agg_tasks = [aggregate_entity(et) for et in entities]
+            agg_results = await asyncio.gather(*agg_tasks)
+            results = dict(agg_results)
+            return {
+                "aggregation_type": "count_by_type",
+                "entities_analyzed": entities,
+                "results": {et: results.get(et, {}).get("total_count", 0) for et in entities}
+            }
+        elif aggregate_type == "count_by_owner":
+            # Count entities by owner/creator
+            owner_counts = {}
+            for entity_type in entities:
+                table = self._resolve_entity_table(entity_type)
+                filters = conditions.copy() if conditions else {}
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                    filters["is_deleted"] = False
+                records = await self._db_query(table, select="created_by", filters=filters)
+                for record in records:
+                    owner = record.get("created_by", "unknown")
+                    owner_counts[owner] = owner_counts.get(owner, 0) + 1
+            return {
+                "aggregation_type": "count_by_owner",
+                "results": owner_counts
+            }
+        elif aggregate_type == "count_by_status":
+            # Count entities by status
+            status_counts = {}
+            for entity_type in entities:
+                table = self._resolve_entity_table(entity_type)
+                filters = conditions.copy() if conditions else {}
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                    filters["is_deleted"] = False
+                records = await self._db_query(table, select="status", filters=filters)
+                for record in records:
+                    status = record.get("status", "unknown")
+                    status_counts[status] = status_counts.get(status, 0) + 1
+            return {
+                "aggregation_type": "count_by_status",
+                "results": status_counts
+            }
+        elif aggregate_type == "total_count":
+            # Total count across all entities
+            total = 0
+            for entity_type in entities:
+                table = self._resolve_entity_table(entity_type)
+                filters = conditions.copy() if conditions else {}
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                    filters["is_deleted"] = False
+                count = await self._db_count(table, filters)
+                total += count
+            return {
+                "aggregation_type": "total_count",
+                "total": total
+            }
+        elif aggregate_type == "group_by" and group_by:
+            # Group by specified fields
+            grouped_results = {}
+            for entity_type in entities:
+                table = self._resolve_entity_table(entity_type)
+                filters = conditions.copy() if conditions else {}
+                tables_without_soft_delete = {'test_req', 'properties'}
+                if "is_deleted" not in filters and table not in tables_without_soft_delete:
+                    filters["is_deleted"] = False
+                select_fields = ",".join(group_by)
+                records = await self._db_query(table, select=select_fields, filters=filters)
+                for record in records:
+                    key = tuple(record.get(field, "unknown") for field in group_by)
+                    if key not in grouped_results:
+                        grouped_results[key] = 0
+                    grouped_results[key] += 1
+            return {
+                "aggregation_type": "group_by",
+                "group_by": group_by,
+                "results": {str(k): v for k, v in grouped_results.items()}
+            }
+        else:
+            # Default: summary stats
+            agg_tasks = [aggregate_entity(et) for et in entities]
+            agg_results = await asyncio.gather(*agg_tasks)
+            results = dict(agg_results)
+            return {
+                "aggregation_type": aggregate_type or "summary_stats",
+                "entities_analyzed": entities,
+                "results": results
+            }
     
     async def _analyze_query(
         self,
@@ -386,7 +475,9 @@ class DataQueryEngine(ToolBase):
         entities: Optional[List[str]] = None,
         similarity_threshold: float = 0.7,
         limit: int = 10,
-        conditions: Optional[Dict[str, Any]] = None
+        conditions: Optional[Dict[str, Any]] = None,
+        keyword_weight: Optional[float] = None,
+        semantic_weight: Optional[float] = None
     ) -> Dict[str, Any]:
         """Perform RAG-enabled search across entities."""
         self._init_rag_services()
@@ -417,12 +508,17 @@ class DataQueryEngine(ToolBase):
                     filters=conditions
                 )
             elif mode == "hybrid":
+                # Use provided weights or defaults
+                kw_weight = keyword_weight if keyword_weight is not None else 0.5
+                sem_weight = semantic_weight if semantic_weight is not None else 0.5
                 search_response = await self._vector_search_service.hybrid_search(
                     query=query,
                     similarity_threshold=similarity_threshold,
                     limit=limit,
                     entity_types=entities,
-                    filters=conditions
+                    filters=conditions,
+                    keyword_weight=kw_weight,
+                    semantic_weight=sem_weight
                 )
             else:
                 raise ValueError(f"Unsupported search mode: {mode}")
@@ -529,7 +625,10 @@ async def data_query(
     similarity_threshold: float = 0.7,
     content: Optional[str] = None,
     entity_type: Optional[str] = None,
-    exclude_id: Optional[str] = None
+    exclude_id: Optional[str] = None,
+    # Hybrid search weights
+    keyword_weight: Optional[float] = None,
+    semantic_weight: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Query and analyze data across multiple entity types with RAG capabilities.
     
@@ -565,6 +664,17 @@ async def data_query(
                 # Skip invalid entity types
                 pass
         
+        # For aggregate queries, if no entities specified, use common entity types
+        if not valid_entities and query_type == "aggregate":
+            # Default to common entity types for aggregate queries
+            common_entities = ["organization", "project", "document", "requirement"]
+            for entity in common_entities:
+                try:
+                    _query_engine._resolve_entity_table(entity)
+                    valid_entities.append(entity)
+                except ValueError:
+                    pass
+        
         if not valid_entities:
             raise ValueError("No valid entity types provided")
         
@@ -577,8 +687,14 @@ async def data_query(
             )
         
         elif query_type == "aggregate":
+            # Extract aggregate_type and group_by from conditions if present
+            aggregate_type = None
+            group_by = None
+            if conditions:
+                aggregate_type = conditions.pop("_aggregate_type", None)
+                group_by = conditions.pop("_group_by", None)
             result = await _query_engine._aggregate_query(
-                valid_entities, conditions, projections
+                valid_entities, conditions, projections, aggregate_type, group_by
             )
         
         elif query_type == "analyze":
@@ -600,7 +716,9 @@ async def data_query(
                 entities=valid_entities,
                 similarity_threshold=similarity_threshold,
                 limit=limit,
-                conditions=conditions
+                conditions=conditions,
+                keyword_weight=keyword_weight,
+                semantic_weight=semantic_weight
             )
         
         elif query_type == "similarity":

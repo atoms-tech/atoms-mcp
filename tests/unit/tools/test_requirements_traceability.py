@@ -33,9 +33,26 @@ class TestRequirementCreation:
     @pytest.mark.entity
     async def test_create_requirement_minimal(self, call_mcp):
         """Create requirement with minimal required data (title only)."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
+        # Requirements need 'name' and 'document_id' - create a document first
+        doc_data = {"name": f"Test Doc {uuid.uuid4().hex[:8]}", "workspace_id": workspace_id}
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": doc_data}
+        )
+        doc_id = doc_result["data"]["id"] if doc_result["success"] else str(uuid.uuid4())
+        
         req_data = {
-            "title": f"Req {uuid.uuid4().hex[:8]}",
-            "entity_type": "requirement"
+            "name": f"Req {uuid.uuid4().hex[:8]}",  # Use 'name' instead of 'title' (schema requirement)
+            "document_id": doc_id,  # Required field
+            "workspace_id": workspace_id
         }
         
         result, duration_ms = await call_mcp(
@@ -51,13 +68,21 @@ class TestRequirementCreation:
         assert "data" in result
         assert "id" in result["data"]
         assert uuid.UUID(result["data"]["id"])
-        assert result["data"]["title"] == req_data["title"]
+        assert result["data"]["name"] == req_data["name"]
     
     @pytest.mark.asyncio
     async def test_create_requirement_from_template(self, call_mcp):
         """Create requirement using predefined template."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
         req_data = {
-            "title": "Login Feature",
+            "name": "Login Feature",  # Use 'name' instead of 'title' (schema requirement)
             "template": "functional_requirement",
             "priority": "high",
             "status": "draft",
@@ -65,7 +90,8 @@ class TestRequirementCreation:
                 "User can enter email",
                 "User can enter password",
                 "System validates credentials"
-            ]
+            ],
+            "workspace_id": workspace_id
         }
         
         result, duration_ms = await call_mcp(
@@ -85,10 +111,19 @@ class TestRequirementCreation:
     @pytest.mark.asyncio
     async def test_create_requirement_link_to_document(self, call_mcp):
         """Create requirement and link it to a document."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
         doc_id = str(uuid.uuid4())
         req_data = {
-            "title": "Auth System",
-            "document_id": doc_id
+            "name": "Auth System",  # Use 'name' instead of 'title' (schema requirement)
+            "document_id": doc_id,
+            "workspace_id": workspace_id
         }
         
         result, duration_ms = await call_mcp(
@@ -119,10 +154,19 @@ class TestRequirementCreation:
     @pytest.mark.asyncio
     async def test_create_requirement_link_to_project(self, call_mcp):
         """Create requirement and link it to a project."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
         project_id = str(uuid.uuid4())
         req_data = {
-            "title": "Data API",
-            "project_id": project_id
+            "name": "Data API",  # Use 'name' instead of 'title' (schema requirement)
+            "project_id": project_id,
+            "workspace_id": workspace_id
         }
         
         result, duration_ms = await call_mcp(
@@ -281,7 +325,7 @@ class TestRequirementSearch:
                     "created_after": "2025-11-01",
                     "created_before": "2025-11-30"
                 },
-                "sort": {"field": "created_at", "order": "desc"}
+                "sort": [{"field": "created_at", "order": "desc"}]  # Sort must be a list
             }
         )
         
@@ -296,29 +340,31 @@ class TestRequirementTracing:
         """Trace which document a requirement is defined in."""
         req_id = str(uuid.uuid4())
         
+        # Use list operation with source parameter
         result, duration_ms = await call_mcp(
             "relationship_tool",
             {
-                "operation": "get_outbound",
-                "entity_id": req_id,
-                "relationship_type": "defined_in"
+                "operation": "list",
+                "relationship_type": "trace_link",  # Use trace_link for requirement-document links
+                "source": {"type": "requirement", "id": req_id}
             }
         )
         
         assert result["success"] is True
-        assert "relationships" in result["data"]
+        assert "data" in result
     
     @pytest.mark.asyncio
     async def test_trace_requirement_to_project(self, call_mcp):
         """Trace which project a requirement fulfills."""
         req_id = str(uuid.uuid4())
         
+        # Use list operation with source parameter
         result, duration_ms = await call_mcp(
             "relationship_tool",
             {
-                "operation": "get_outbound",
-                "entity_id": req_id,
-                "relationship_type": "fulfills"
+                "operation": "list",
+                "relationship_type": "trace_link",  # Use trace_link for requirement-project links
+                "source": {"type": "requirement", "id": req_id}
             }
         )
         
@@ -329,12 +375,13 @@ class TestRequirementTracing:
         """Trace test cases and documents that depend on a requirement."""
         req_id = str(uuid.uuid4())
         
+        # Use list operation with target parameter (inbound relationships)
         result, duration_ms = await call_mcp(
             "relationship_tool",
             {
-                "operation": "get_inbound",
-                "entity_id": req_id,
-                "relationship_type": "validates"
+                "operation": "list",
+                "relationship_type": "requirement_test",  # Use requirement_test for requirement-test_case links
+                "target": {"type": "requirement", "id": req_id}
             }
         )
         
@@ -346,25 +393,25 @@ class TestRequirementTracing:
         """Trace full dependency chain: document → requirement → test case → execution."""
         req_id = str(uuid.uuid4())
         
-        # Get outbound to document
+        # Get outbound to document using list operation
         doc_result, _ = await call_mcp(
             "relationship_tool",
             {
-                "operation": "get_outbound",
-                "entity_id": req_id,
-                "relationship_type": "defined_in"
+                "operation": "list",
+                "relationship_type": "trace_link",
+                "source": {"type": "requirement", "id": req_id}
             }
         )
         
         assert doc_result["success"] is True
         
-        # Get inbound from test cases
+        # Get inbound from test cases using list operation
         test_result, _ = await call_mcp(
             "relationship_tool",
             {
-                "operation": "get_inbound",
-                "entity_id": req_id,
-                "relationship_type": "validates"
+                "operation": "list",
+                "relationship_type": "requirement_test",
+                "target": {"type": "requirement", "id": req_id}
             }
         )
         

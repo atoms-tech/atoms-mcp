@@ -6,6 +6,7 @@ Vercel replicas need to share rate limit state.
 
 from __future__ import annotations
 
+import os
 import time
 import logging
 from typing import Dict, Any, Optional
@@ -262,23 +263,38 @@ async def get_distributed_rate_limiter() -> DistributedRateLimiter:
     
     Returns:
         DistributedRateLimiter instance
+        
+    Note: Falls back to in-memory if Upstash Redis is not configured or fails to connect.
+    Only falls back if Upstash is not configured (no env vars) or connection fails.
     """
     global _rate_limiter
     
     if _rate_limiter is None:
         # Try to get Redis client
         redis_client = None
-        try:
-            from .upstash_provider import get_upstash_redis
-            redis_client = await get_upstash_redis()
-        except Exception as e:
-            logger.warning(f"Failed to get Upstash Redis: {e}")
+        upstash_configured = bool(
+            os.getenv("UPSTASH_REDIS_REST_URL") and os.getenv("UPSTASH_REDIS_REST_TOKEN")
+        )
+        
+        if upstash_configured:
+            try:
+                from .upstash_provider import get_upstash_redis
+                redis_client = await get_upstash_redis()
+                if redis_client:
+                    # Test connection
+                    await redis_client.ping()
+                    logger.info("✅ Connected to Upstash Redis for rate limiting")
+                else:
+                    logger.warning("Upstash Redis configured but failed to initialize, using in-memory")
+            except Exception as e:
+                logger.error(f"Failed to connect to Upstash Redis for rate limiting: {e}")
+                logger.warning("Falling back to in-memory rate limiter")
+        else:
+            logger.debug("Upstash Redis not configured, using in-memory rate limiter")
         
         _rate_limiter = DistributedRateLimiter(redis_client)
-        logger.info(
-            f"Initialized distributed rate limiter "
-            f"({'Upstash Redis' if redis_client else 'in-memory'})"
-        )
+        backend = "Upstash Redis" if redis_client else "in-memory"
+        logger.info(f"Initialized distributed rate limiter ({backend})")
     
     return _rate_limiter
 

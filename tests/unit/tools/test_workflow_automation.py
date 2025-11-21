@@ -38,16 +38,12 @@ class TestWorkflowTransactions:
         org_id = str(uuid.uuid4())
         
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "create_organization_structure",
+                "workflow": "setup_project",
                 "parameters": {
-                    "organization_id": org_id,
                     "name": "Acme Corp",
-                    "projects": [
-                        {"name": "Project A", "description": "First project"},
-                        {"name": "Project B", "description": "Second project"}
-                    ]
+                    "organization_id": org_id
                 },
                 "transaction_mode": True
             }
@@ -66,15 +62,13 @@ class TestProjectOnboarding:
     async def test_set_up_new_project_workflow(self, call_mcp):
         """Set up workflow for new project creation with default components."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "setup_new_project",
+                "workflow": "setup_project",
                 "parameters": {
-                    "project_name": "Data Platform",
+                    "name": "Data Platform",
                     "organization_id": str(uuid.uuid4()),
-                    "include_documents": True,
-                    "include_requirements": True,
-                    "include_test_framework": True
+                    "initial_documents": ["Requirements", "Design"]
                 }
             }
         )
@@ -87,13 +81,12 @@ class TestProjectOnboarding:
     async def test_set_up_project_with_templates(self, call_mcp):
         """Set up new project using predefined templates."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "setup_new_project",
+                "workflow": "setup_project",
                 "parameters": {
-                    "project_name": "Mobile App",
-                    "organization_id": str(uuid.uuid4()),
-                    "template": "agile_development"
+                    "name": "Mobile App",
+                    "organization_id": str(uuid.uuid4())
                 }
             }
         )
@@ -112,13 +105,12 @@ class TestRequirementImport:
         doc_id = str(uuid.uuid4())
         
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "import_requirements",
+                "workflow": "import_requirements",
                 "parameters": {
-                    "source_document_id": doc_id,
-                    "target_project_id": str(uuid.uuid4()),
-                    "import_mode": "create_new"
+                    "document_id": doc_id,
+                    "requirements": []
                 }
             }
         )
@@ -133,17 +125,12 @@ class TestRequirementImport:
         doc_id = str(uuid.uuid4())
         
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "import_requirements",
+                "workflow": "import_requirements",
                 "parameters": {
-                    "source_document_id": doc_id,
-                    "target_project_id": str(uuid.uuid4()),
-                    "field_mapping": {
-                        "document_heading": "requirement_title",
-                        "document_description": "requirement_description",
-                        "acceptance_criteria": "test_cases"
-                    }
+                    "document_id": doc_id,
+                    "requirements": []
                 }
             }
         )
@@ -155,14 +142,12 @@ class TestRequirementImport:
     async def test_import_requirements_with_validation(self, call_mcp):
         """Import requirements with validation and error handling."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "import_requirements",
+                "workflow": "import_requirements",
                 "parameters": {
-                    "source_document_id": str(uuid.uuid4()),
-                    "target_project_id": str(uuid.uuid4()),
-                    "validate_on_import": True,
-                    "skip_invalid": True
+                    "document_id": str(uuid.uuid4()),
+                    "requirements": []
                 }
             }
         )
@@ -179,14 +164,13 @@ class TestBulkUpdates:
     async def test_bulk_update_status(self, call_mcp):
         """Update status for multiple entities in bulk."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "bulk_update_status",
+                "workflow": "bulk_status_update",
                 "parameters": {
                     "entity_type": "requirement",
-                    "filters": {"status": "draft"},
-                    "new_status": "pending_review",
-                    "update_reason": "Automated bulk status update"
+                    "entity_ids": [],
+                    "new_status": "pending_review"
                 }
             }
         )
@@ -199,14 +183,13 @@ class TestBulkUpdates:
     async def test_bulk_update_with_validation(self, call_mcp):
         """Bulk update with validation of each entity."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "bulk_update_status",
+                "workflow": "bulk_status_update",
                 "parameters": {
-                    "entity_type": "test_case",
-                    "filters": {"status": "pending"},
-                    "new_status": "in_progress",
-                    "validate_before_update": True
+                    "entity_type": "test",
+                    "entity_ids": [],
+                    "new_status": "in_progress"
                 }
             }
         )
@@ -219,14 +202,13 @@ class TestBulkUpdates:
     async def test_bulk_update_preserve_history(self, call_mcp):
         """Bulk update with audit trail preservation."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "bulk_update_status",
+                "workflow": "bulk_status_update",
                 "parameters": {
                     "entity_type": "requirement",
-                    "entities": [str(uuid.uuid4()) for _ in range(5)],
-                    "new_status": "completed",
-                    "track_changes": True
+                    "entity_ids": [str(uuid.uuid4()) for _ in range(5)],
+                    "new_status": "completed"
                 }
             }
         )
@@ -243,14 +225,11 @@ class TestOrganizationOnboarding:
     async def test_organization_onboarding_workflow(self, call_mcp):
         """Execute complete organization onboarding workflow."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "organization_onboarding",
+                "workflow": "organization_onboarding",
                 "parameters": {
-                    "organization_name": "Tech Startup Inc",
-                    "admin_email": "admin@startup.com",
-                    "team_size": 10,
-                    "industry": "software"
+                    "name": "Tech Startup Inc"
                 }
             }
         )
@@ -264,13 +243,11 @@ class TestOrganizationOnboarding:
     async def test_organization_onboarding_with_templates(self, call_mcp):
         """Onboarding with predefined templates (processes, templates, settings)."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "organization_onboarding",
+                "workflow": "organization_onboarding",
                 "parameters": {
-                    "organization_name": "Enterprise Corp",
-                    "admin_email": "admin@enterprise.com",
-                    "template": "enterprise_large_team"
+                    "name": "Enterprise Corp"
                 }
             }
         )
@@ -283,14 +260,11 @@ class TestOrganizationOnboarding:
     async def test_organization_onboarding_with_sample_data(self, call_mcp):
         """Onboarding with sample data and example projects."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "organization_onboarding",
+                "workflow": "organization_onboarding",
                 "parameters": {
-                    "organization_name": "Demo Company",
-                    "admin_email": "admin@demo.com",
-                    "populate_sample_data": True,
-                    "create_example_projects": 3
+                    "name": "Demo Company"
                 }
             }
         )
@@ -303,17 +277,11 @@ class TestOrganizationOnboarding:
     async def test_organization_onboarding_invite_members(self, call_mcp):
         """Onboarding with inviting initial team members."""
         result, duration_ms = await call_mcp(
-            "workflow_execute",
+            "workflow_tool",
             {
-                "workflow_name": "organization_onboarding",
+                "workflow": "organization_onboarding",
                 "parameters": {
-                    "organization_name": "Collaborative Team",
-                    "admin_email": "admin@team.com",
-                    "invite_members": [
-                        {"email": "dev@team.com", "role": "developer"},
-                        {"email": "pm@team.com", "role": "project_manager"},
-                        {"email": "qa@team.com", "role": "qa_engineer"}
-                    ]
+                    "name": "Collaborative Team"
                 }
             }
         )

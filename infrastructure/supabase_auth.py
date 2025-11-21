@@ -1,7 +1,7 @@
-"""Simplified Supabase authentication adapter.
+"""Supabase authentication adapter for AuthKit JWTs.
 
-With WorkOS configured as Supabase third-party auth provider,
-AuthKit JWTs are validated directly by Supabase - no exchange needed!
+This adapter validates AuthKit JWTs and uses them with Supabase for RLS context.
+AuthKit JWTs are validated via FastMCP's JWTVerifier at the server level.
 """
 
 from __future__ import annotations
@@ -34,18 +34,22 @@ class Session:
 
 
 class SupabaseAuthAdapter(AuthAdapter):
-    """Simplified Supabase auth adapter - works with Supabase and AuthKit JWTs."""
+    """Supabase auth adapter for AuthKit JWTs only.
+
+    Validates AuthKit JWTs and extracts user info for Supabase RLS context.
+    Note: JWT signature verification happens at the FastMCP server level via JWTVerifier.
+    """
 
     def __init__(self):
         self._sessions: Dict[str, Session] = {}
 
     async def validate_token(self, token: str) -> Dict[str, Any]:
-        """Validate token - Supabase validates both Supabase and AuthKit JWTs.
+        """Validate AuthKit JWT token.
 
-        With WorkOS configured as third-party provider in Supabase,
-        AuthKit JWTs are automatically validated by Supabase!
+        Note: JWT signature verification happens at the FastMCP server level
+        via JWTVerifier. This method extracts user info from already-verified tokens.
         
-        Validates with caching to reduce AuthKit JWKS calls.
+        Uses caching to reduce redundant processing.
 
         Returns user info including access_token for RLS context.
         """
@@ -81,53 +85,33 @@ class SupabaseAuthAdapter(AuthAdapter):
             
             return result
 
-        # 3. Validate JWT - decode and extract user info
+        # 3. Validate AuthKit JWT - extract user info
+        # Note: Signature verification happens at FastMCP server level via JWTVerifier
         try:
-            # Decode without verification to get claims
+            # Decode JWT to extract claims (signature already verified by JWTVerifier)
             decoded = jwt_lib.decode(token, options={"verify_signature": False})
             iss = decoded.get('iss', '')
 
-            # Check if Supabase JWT (more permissive check)
-            if 'supabase.co' in iss or '/auth/v1' in iss:
-                # Extract user info directly from JWT claims
-                user_id = decoded.get('sub')
-                email = decoded.get('email')
-                user_metadata = decoded.get('user_metadata', {})
+            # Only accept AuthKit/WorkOS JWTs
+            if 'workos' in iss or 'authkit' in iss.lower():
+                logger.debug("✅ AuthKit JWT detected")
 
-                if not user_id:
-                    raise ValueError("Invalid Supabase JWT: missing 'sub' claim")
-
-                logger.info(f"✅ Supabase JWT validated for: {email} (user_id: {user_id})")
-
-                result = {
-                    "user_id": user_id,
-                    "username": email or f"user_{user_id}",
-                    "auth_type": "supabase_jwt",
-                    "user_metadata": user_metadata,
-                    "access_token": token
-                }
-                
-                # Cache result
-                try:
-                    from services.auth.token_cache import get_token_cache
-                    token_cache = await get_token_cache()
-                    cache_ttl = int(os.getenv("CACHE_TTL_TOKEN", "3600"))
-                    await token_cache.set(token, result, cache_ttl)
-                except Exception as e:
-                    logger.debug(f"Failed to cache token: {e}")
-                
-                return result
-
-            # Check if AuthKit JWT
-            elif 'workos' in iss or 'authkit' in iss.lower():
-                logger.info("✅ AuthKit JWT detected - using directly with third-party auth")
-
-                # For AuthKit JWTs, extract user info from claims
+                # Extract user info from claims
                 user_id = decoded.get('sub')  # WorkOS uses 'sub' for user ID
                 email = decoded.get('email')
+                name = decoded.get('name')
+                email_verified = decoded.get('email_verified', False)
+                role = decoded.get('role')  # Supabase RLS role claim (should be "authenticated")
+                user_role = decoded.get('user_role')  # User's organization role (optional)
 
                 if not user_id:
                     raise ValueError("No 'sub' claim in AuthKit JWT")
+
+                # Log role information for debugging
+                if role:
+                    logger.debug(f"JWT role claim: {role} (for Supabase RLS)")
+                if user_role:
+                    logger.debug(f"JWT user_role claim: {user_role} (organization role)")
 
                 logger.info(f"✅ AuthKit JWT validated for: {email} (user_id: {user_id})")
 
@@ -135,8 +119,13 @@ class SupabaseAuthAdapter(AuthAdapter):
                     "user_id": user_id,
                     "username": email or f"user_{user_id}",
                     "auth_type": "authkit_jwt",
-                    "user_metadata": {},
-                    "access_token": token  # Use AuthKit JWT directly with postgrest
+                    "user_metadata": {
+                        "name": name,
+                        "email_verified": email_verified,
+                        "role": role,  # Supabase RLS role
+                        "user_role": user_role  # Organization role (if present)
+                    },
+                    "access_token": token  # Use AuthKit JWT directly with Supabase postgrest
                 }
                 
                 # Cache result
@@ -150,11 +139,11 @@ class SupabaseAuthAdapter(AuthAdapter):
                 
                 return result
             else:
-                raise ValueError(f"Unknown token issuer: {iss}")
+                raise ValueError(f"Unsupported token issuer: {iss}. Only AuthKit/WorkOS JWTs are supported.")
 
         except Exception as e:
-            logger.warning(f"JWT validation failed: {str(e)[:200]}")
-            raise ValueError(f"Invalid or expired token: {e}")
+            logger.warning(f"AuthKit JWT validation failed: {str(e)[:200]}")
+            raise ValueError(f"Invalid or expired AuthKit JWT: {e}")
 
     async def create_session(
         self,

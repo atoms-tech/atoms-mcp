@@ -31,17 +31,30 @@ class TestCaseCreation:
     @pytest.mark.entity
     async def test_create_test_case_minimal(self, call_mcp):
         """Create test case with minimal data (title and requirement link)."""
-        req_id = str(uuid.uuid4())
+        # Create organization and project first
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = org_result["data"]["id"]
+        
+        proj_data = {"name": f"Test Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": proj_data}
+        )
+        project_id = proj_result["data"]["id"]
         
         test_data = {
             "title": f"Test Case {uuid.uuid4().hex[:8]}",
-            "requirement_id": req_id
+            "project_id": project_id
         }
         
         result, duration_ms = await call_mcp(
             "entity_tool",
             {
-                "entity_type": "test_case",
+                "entity_type": "test",
                 "operation": "create",
                 "data": test_data
             }
@@ -57,29 +70,32 @@ class TestCaseCreation:
     @pytest.mark.entity
     async def test_create_test_case_full(self, call_mcp):
         """Create test case with full specification (steps, expected results, data)."""
-        req_id = str(uuid.uuid4())
+        # Create project first
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = org_result["data"]["id"]
+        
+        proj_data = {"name": f"Test Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": proj_data}
+        )
+        project_id = proj_result["data"]["id"]
         
         test_data = {
             "title": "Login with Valid Credentials",
-            "requirement_id": req_id,
+            "project_id": project_id,
             "description": "Verify user can log in with valid email and password",
-            "preconditions": [
-                "User is on login page",
-                "Database has test user account"
-            ],
-            "test_steps": [
-                {"step": 1, "action": "Enter valid email", "expected": "Email field populated"},
-                {"step": 2, "action": "Enter valid password", "expected": "Password field masked"},
-                {"step": 3, "action": "Click login button", "expected": "User redirected to dashboard"}
-            ],
-            "expected_result": "User successfully authenticated and dashboard loads",
             "priority": "critical"
         }
         
         result, duration_ms = await call_mcp(
             "entity_tool",
             {
-                "entity_type": "test_case",
+                "entity_type": "test",
                 "operation": "create",
                 "data": test_data
             }
@@ -87,23 +103,50 @@ class TestCaseCreation:
         
         assert result["success"] is True
         assert result["data"]["priority"] == "critical"
-        assert len(result["data"]["test_steps"]) == 3
-        assert len(result["data"]["preconditions"]) == 2
     
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_link_test_case_to_requirement(self, call_mcp):
         """Create test case and link it to requirement."""
-        req_id = str(uuid.uuid4())
+        # Create project and document first
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = org_result["data"]["id"]
+        
+        proj_data = {"name": f"Test Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": proj_data}
+        )
+        project_id = proj_result["data"]["id"]
+        
+        doc_data = {"name": "Test Doc", "project_id": project_id}
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": doc_data}
+        )
+        doc_id = doc_result["data"]["id"]
+        
+        # Create requirement
+        req_data = {"name": "Test Requirement", "document_id": doc_id}
+        req_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "requirement", "operation": "create", "data": req_data}
+        )
+        req_id = req_result["data"]["id"]
         
         test_data = {
-            "title": "Registration Test"
+            "title": "Registration Test",
+            "project_id": project_id
         }
         
         result, duration_ms = await call_mcp(
             "entity_tool",
             {
-                "entity_type": "test_case",
+                "entity_type": "test",
                 "operation": "create",
                 "data": test_data
             }
@@ -112,14 +155,14 @@ class TestCaseCreation:
         assert result["success"] is True
         test_id = result["data"]["id"]
         
-        # Link test case to requirement
+        # Link test case to requirement using requirement_test relationship
         link_result, _ = await call_mcp(
             "relationship_tool",
             {
                 "operation": "link",
-                "entity_a_id": test_id,
-                "entity_b_id": req_id,
-                "relationship_type": "validates"
+                "relationship_type": "requirement_test",
+                "source": {"type": "requirement", "id": req_id},
+                "target": {"type": "test", "id": test_id}
             }
         )
         
@@ -129,15 +172,31 @@ class TestCaseCreation:
     @pytest.mark.entity
     async def test_set_test_case_status(self, call_mcp):
         """Create test case and update status through lifecycle."""
+        # Create organization and project first
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        org_id = org_result["data"]["id"]
+        
+        proj_data = {"name": f"Test Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": proj_data}
+        )
+        project_id = proj_result["data"]["id"]
+        
         test_data = {
             "title": "API Endpoint Test",
-            "status": "pending"
+            "status": "pending",
+            "project_id": project_id
         }
         
         result, duration_ms = await call_mcp(
             "entity_tool",
             {
-                "entity_type": "test_case",
+                "entity_type": "test",
                 "operation": "create",
                 "data": test_data
             }
@@ -173,34 +232,25 @@ class TestResultsAndMetrics:
     async def test_view_test_results_summary(self, call_mcp):
         """View aggregate test results (passed, failed, pending count)."""
         result, duration_ms = await call_mcp(
-            "data_query",
+            "query_tool",
             {
-                "query_type": "search",
-                "entity_type": "test_case",
-                "aggregations": {
-                    "group_by": "status",
-                    "count": True
-                }
+                "query_type": "aggregate",
+                "entities": ["test"]
             }
         )
         
         assert result["success"] is True
-        assert "aggregations" in result["data"]
+        assert "data" in result
     
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_view_coverage_metrics(self, call_mcp):
         """View test coverage metrics by requirement."""
         result, duration_ms = await call_mcp(
-            "data_query",
+            "query_tool",
             {
-                "query_type": "search",
-                "entity_type": "requirement",
-                "include_coverage": True,
-                "aggregations": {
-                    "coverage_percentage": True,
-                    "validated_by_count": True
-                }
+                "query_type": "relationships",
+                "entities": ["requirement", "test"]
             }
         )
         

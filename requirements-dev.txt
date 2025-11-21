@@ -41,12 +41,16 @@ typing-extensions>=4.12.2
 # ============================================================================
 # TESTING & QA
 # ============================================================================
-pytest>=7.4.0
+pytest>=9.0.0,<10.0.0  # Pin to 9.x for compatibility
 pytest-asyncio>=0.21.0
 pytest-mock>=3.11.0
 pytest-cov>=4.1.0
 pytest-xdist>=3.6.1
+pytest-dependency>=0.6.0
 coverage>=7.4.0
+playwright>=1.40.0  # For automated OAuth flow (get_authkit_token_playwright.py)
+pytest-playwright>=0.4.0  # Pytest integration for Playwright (better test integration)
+keyring>=25.0.0  # OS keychain access for secure token storage
 
 # ============================================================================
 # CODE QUALITY

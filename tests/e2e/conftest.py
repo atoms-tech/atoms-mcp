@@ -24,14 +24,17 @@ import os
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 
-# Enable test mode for HybridAuthProvider to accept unsigned JWTs
-os.environ["ATOMS_TEST_MODE"] = "true"
+# NO static tokens or test mode - all tests MUST use real AuthKit access tokens
+# Remove any test token configuration
+if "ATOMS_INTERNAL_TOKEN" in os.environ:
+    if os.environ["ATOMS_INTERNAL_TOKEN"] == "test-e2e-token-for-atoms-mcp":
+        del os.environ["ATOMS_INTERNAL_TOKEN"]
+        logger.info("⚠️  Removed test internal token - tests must use AuthKit access tokens")
 
-# Configure test token for E2E tests (allows unsigned JWT acceptance in test mode)
-# If not already set, use a standard test token
-if not os.getenv("ATOMS_INTERNAL_TOKEN"):
-    # Use a predictable test token for E2E tests
-    os.environ["ATOMS_INTERNAL_TOKEN"] = "test-e2e-token-for-atoms-mcp"
+# Remove test mode - only real AuthKit tokens allowed
+if "ATOMS_TEST_MODE" in os.environ:
+    del os.environ["ATOMS_TEST_MODE"]
+    logger.info("⚠️  Removed ATOMS_TEST_MODE - tests must use real AuthKit tokens")
 
 # Configure Supabase credentials for cloud testing
 if not os.getenv("ATOMS_TEST_EMAIL"):
@@ -221,146 +224,229 @@ async def full_deployment():
                 cleanup_fn()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def authkit_auth_token():
-    """Authenticate with AuthKit and get a real JWT token for cloud testing.
+    """Authenticate with WorkOS/AuthKit and get a real JWT token for E2E testing.
     
-    Uses the configured ATOMS_TEST_EMAIL and ATOMS_TEST_PASSWORD to authenticate
-    with AuthKit and retrieve a valid access token.
+    REQUIRED: All tests must use real AuthKit access tokens - no static tokens allowed.
+    
+    Automatically collects AuthKit JWT token using Playwright OAuth flow if not set.
+    Uses WorkOS User Management API or Playwright automation to get a real JWT token.
+    
+    Strategy:
+    1. Check for ATOMS_TEST_AUTH_TOKEN in environment (pre-obtained AuthKit JWT)
+    2. Try direct API authentication (if WorkOS supports it)
+    3. Automatically run Playwright OAuth flow to get token (headless)
+    4. Cache token for session scope to avoid repeated authentication
     
     Returns:
         Valid AuthKit JWT token for authenticated API calls
+        
+    Raises:
+        pytest.skip: If no AuthKit token can be obtained (tests will be skipped)
     """
     import os
     import logging
+    import asyncio
     
     logger_local = logging.getLogger(__name__)
     
+    # Check for pre-obtained token first (fastest)
+    pre_obtained_token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
+    if pre_obtained_token:
+        # Validate it's a real JWT (not a static token)
+        if len(pre_obtained_token) < 100 or pre_obtained_token.count(".") < 2:
+            error_msg = (
+                f"❌ Invalid token format in ATOMS_TEST_AUTH_TOKEN. "
+                f"Token appears to be a static token (length: {len(pre_obtained_token)}). "
+                f"Tests require real AuthKit JWTs (typically 200+ characters).\n"
+                f"To get a real token: python scripts/get_authkit_token_playwright.py"
+            )
+            logger_local.error(error_msg)
+            import pytest
+            pytest.skip(error_msg)
+        
+        logger_local.info("✅ Using pre-obtained AuthKit token from environment")
+        return pre_obtained_token
+    
     email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
     password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
-    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "https://decent-hymn-17-staging.authkit.app")
-    workos_client_id = os.getenv("WORKOS_CLIENT_ID", "client_01K4CGW2J1FGWZYZJDMVWGQZBD")
-    workos_api_key = os.getenv("WORKOS_API_KEY", "")
+    workos_api_key = os.getenv("WORKOS_API_KEY")
+    workos_client_id = os.getenv("WORKOS_CLIENT_ID")
+    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
+    base_url = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
     
+    if not workos_api_key or not workos_client_id:
+        logger_local.warning("WORKOS_API_KEY or WORKOS_CLIENT_ID not set - cannot authenticate with AuthKit")
+        return None
+    
+    # Try direct API authentication first (fastest if it works)
     try:
-        import httpx
+        from workos import WorkOSClient
         
-        # Authenticate with AuthKit
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            auth_response = await client.post(
-                f"{authkit_domain}/api/auth/sessions/authenticate",
-                json={
-                    "email": email,
-                    "password": password,
-                },
-                headers={
-                    "Authorization": f"Bearer {workos_api_key}" if workos_api_key else "",
-                    "Content-Type": "application/json",
-                },
-            )
+        workos_client = WorkOSClient(api_key=workos_api_key, client_id=workos_client_id)
+        
+        logger_local.info(f"🔐 Attempting direct API authentication as {email}")
+        
+        # Try to find user and authenticate
+        try:
+            import httpx
+            workos_api_url = os.getenv("WORKOS_API_URL", "https://api.workos.com").strip().rstrip("/")
             
-            if auth_response.status_code == 200:
-                auth_data = auth_response.json()
-                # AuthKit returns either 'access_token' or 'session_token'
-                token = auth_data.get("access_token") or auth_data.get("session_token")
-                if token:
-                    logger_local.info(f"✅ Authenticated with AuthKit as {email}")
-                    return token
-            else:
-                logger_local.warning(f"Failed to authenticate with AuthKit: {auth_response.status_code}")
-                logger_local.debug(f"Response: {auth_response.text}")
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Find user
+                users_response = await client.get(
+                    f"{workos_api_url}/user_management/users",
+                    params={"email": email},
+                    headers={
+                        "Authorization": f"Bearer {workos_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                
+                if users_response.status_code == 200:
+                    users_data = users_response.json()
+                    users_list = users_data.get("data", [])
+                    
+                    if users_list:
+                        user_id = users_list[0].get("id")
+                        # Try to authenticate
+                        auth_response = await client.post(
+                            f"{workos_api_url}/user_management/users/{user_id}/authenticate",
+                            json={"password": password},
+                            headers={
+                                "Authorization": f"Bearer {workos_api_key}",
+                                "Content-Type": "application/json",
+                            },
+                        )
+                        
+                        if auth_response.status_code == 200:
+                            auth_data = auth_response.json()
+                            token = (
+                                auth_data.get("access_token") or
+                                auth_data.get("token") or
+                                (auth_data.get("session", {}) or {}).get("access_token")
+                            )
+                            
+                            if token and isinstance(token, str) and len(token.split(".")) == 3:
+                                logger_local.info("✅ Got token from direct API authentication")
+                                return token
+        except Exception as api_error:
+            logger_local.debug(f"Direct API authentication failed: {api_error}")
+    except ImportError:
+        logger_local.debug("WorkOS SDK not available")
     except Exception as e:
-        logger_local.warning(f"Error authenticating with AuthKit: {e}")
+        logger_local.debug(f"Direct authentication attempt failed: {e}")
     
-    # Fallback: no token available (will use other auth mechanisms)
-    logger_local.info("AuthKit authentication not available - tests will use mock harness or skip")
-    return None
+    # Fallback: Automatically run Playwright OAuth flow (headless)
+    if authkit_domain and base_url:
+        logger_local.info("🔄 No token found, automatically collecting via Playwright OAuth flow (headless)...")
+        try:
+            # Import the Playwright function
+            import sys
+            import importlib.util
+            from pathlib import Path
+            
+            # Load the Playwright script as a module
+            scripts_dir = Path(__file__).parent.parent / "scripts"
+            playwright_script = scripts_dir / "get_authkit_token_playwright.py"
+            
+            if playwright_script.exists():
+                spec = importlib.util.spec_from_file_location(
+                    "get_authkit_token_playwright",
+                    playwright_script
+                )
+                playwright_module = importlib.util.module_from_spec(spec)
+                sys.modules["get_authkit_token_playwright"] = playwright_module
+                spec.loader.exec_module(playwright_module)
+                
+                # Run Playwright flow (will use headless mode by default)
+                # Set HEADLESS=true to ensure headless mode
+                original_headless = os.getenv("HEADLESS")
+                os.environ["HEADLESS"] = "true"
+                
+                try:
+                    token = await playwright_module.get_authkit_token_via_playwright()
+                finally:
+                    # Restore original HEADLESS setting
+                    if original_headless is None:
+                        os.environ.pop("HEADLESS", None)
+                    else:
+                        os.environ["HEADLESS"] = original_headless
+                
+                if token:
+                    logger_local.info("✅ Successfully collected AuthKit token via Playwright")
+                    # Cache it in environment for this session
+                    os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
+                    return token
+                else:
+                    logger_local.warning("Playwright OAuth flow did not return a token")
+            else:
+                logger_local.warning(f"Playwright script not found: {playwright_script}")
+        except ImportError as e:
+            logger_local.warning(f"Playwright not available for automatic token collection: {e}")
+            logger_local.info("Install with: pip install playwright && playwright install chromium")
+        except Exception as e:
+            logger_local.warning(f"Automatic token collection failed: {e}")
+            import traceback
+            logger_local.debug(traceback.format_exc())
+    
+    # No token available - tests REQUIRE AuthKit tokens
+    error_msg = (
+        "❌ No AuthKit access token available. "
+        "Tests require real AuthKit JWTs - no static tokens allowed.\n"
+        "To get a token:\n"
+        "  1. Run: python scripts/get_authkit_token_playwright.py\n"
+        "  2. Export: export ATOMS_TEST_AUTH_TOKEN=<token>\n"
+        "  3. Or ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set for auto-collection"
+    )
+    logger_local.error(error_msg)
+    import pytest
+    pytest.skip(error_msg)
 
 
 @pytest_asyncio.fixture
 async def e2e_auth_token(authkit_auth_token):
     """Generate authentication token for E2E tests.
     
-    Provides a valid bearer token that the MCP server will accept. The token can be:
-    1. Real AuthKit JWT (from cloud authentication with user credentials)
-    2. Internal bearer token (if ATOMS_INTERNAL_TOKEN is configured)
-    3. Unsigned JWT for testing (when ATOMS_TEST_MODE is enabled)
+    REQUIRED: All tests must use real AuthKit access tokens - no static or test tokens allowed.
+    
+    Provides a valid AuthKit JWT bearer token that the MCP server will accept.
+    The token MUST be a real AuthKit JWT obtained via:
+    1. OAuth flow (via Playwright automation)
+    2. WorkOS User Management API (authenticate_with_password)
+    3. Pre-obtained token in ATOMS_TEST_AUTH_TOKEN environment variable
     
     Strategy:
-    - First attempts to get real AuthKit token via authkit_auth_token fixture
-    - Then attempts to use ATOMS_INTERNAL_TOKEN if configured
-    - Finally falls back to unsigned JWT for local testing
-    
-    For running against deployed server (mcpdev.atoms.tech):
-    - Uses real AuthKit JWT from cloud authentication (recommended)
-    - Falls back to ATOMS_INTERNAL_TOKEN if configured
-    - Finally uses unsigned JWT (requires server with ATOMS_TEST_MODE=true)
-    
-    For running against local server (localhost:8000):
-    - Uses unsigned JWT if ATOMS_TEST_MODE=true on server
-    - Or real AuthKit token if credentials are available
+    - Uses real AuthKit JWT from authkit_auth_token fixture (REQUIRED)
+    - NO fallback to static tokens or unsigned JWTs
     
     Note: This fixture can make external service calls to AuthKit when authenticating
-    with real credentials.
+    with real credentials. If no AuthKit token is available, tests will be skipped.
     """
     import os
-    import json
-    import base64
     import logging
-    from datetime import datetime, timedelta, timezone
     
     logger_local = logging.getLogger(__name__)
     
-    # **Strategy 1: Use real AuthKit JWT from cloud authentication (RECOMMENDED for cloud)**
-    # This uses actual credentials to authenticate with AuthKit
+    # **ONLY Strategy: Use real AuthKit JWT from cloud authentication (REQUIRED)**
+    # All tests MUST use real AuthKit access tokens - no static or test tokens allowed
     if authkit_auth_token is not None:
-        logger_local.info(f"Using real AuthKit JWT for E2E authentication")
+        logger_local.info(f"✅ Using real AuthKit JWT for E2E authentication")
         return authkit_auth_token
     
-    # **Strategy 2: Use internal bearer token (RECOMMENDED for local)**
-    # This is the most direct approach - internal_token is a static token
-    # that bypasses JWKS validation
-    # For E2E tests, we always use internal token from environment
-    internal_token = os.getenv("ATOMS_INTERNAL_TOKEN")
-    if internal_token:
-        logger_local.info(f"Using ATOMS_INTERNAL_TOKEN for E2E authentication: {internal_token[:20]}...")
-        return internal_token
-    
-    # **Strategy 3: Generate unsigned JWT (requires ATOMS_TEST_MODE on server)**
-    # This works when server has ATOMS_TEST_MODE=true in its environment
-    logger_local.info("Generating unsigned JWT for E2E tests (requires ATOMS_TEST_MODE on server)")
-    
-    user_id = str(uuid.uuid4())
-    current_time = datetime.now(timezone.utc)
-    expires_at = current_time + timedelta(hours=1)
-    
-    jwt_claims = {
-        "iss": "https://api.workos.com",
-        "sub": user_id,
-        "aud": os.getenv("WORKOS_CLIENT_ID", "test-client"),
-        "iat": int(current_time.timestamp()),
-        "exp": int(expires_at.timestamp()),
-        "email": "test-user@example.com",
-        "email_verified": True,
-        "name": "Test User",
-        "organization_id": "org_test123",
-        "roles": ["user"],
-        "permissions": ["read:data", "write:data"],
-    }
-    
-    header = {"alg": "none", "typ": "JWT"}
-    
-    def b64encode(data):
-        """Base64 URL encode without padding."""
-        json_str = json.dumps(data)
-        return base64.urlsafe_b64encode(json_str.encode()).decode().rstrip('=')
-    
-    header_b64 = b64encode(header)
-    payload_b64 = b64encode(jwt_claims)
-    signature_b64 = ""
-    
-    token = f"{header_b64}.{payload_b64}.{signature_b64}"
-    return token
+    # No AuthKit token available - tests REQUIRE real tokens
+    error_msg = (
+        "❌ No AuthKit access token available. "
+        "Tests require real AuthKit JWTs - no static or test tokens allowed.\n"
+        "To get a token:\n"
+        "  1. Run: python scripts/get_authkit_token_playwright.py\n"
+        "  2. Export: export ATOMS_TEST_AUTH_TOKEN=<token>\n"
+        "  3. Or ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set for auto-collection"
+    )
+    logger_local.error(error_msg)
+    import pytest
+    pytest.skip(error_msg)
 
 
 @pytest_asyncio.fixture
@@ -386,11 +472,8 @@ async def end_to_end_client(e2e_auth_token):
     import os
     from unittest.mock import AsyncMock
     
-    # Auto-enable mock harness if using test token
-    if e2e_auth_token and e2e_auth_token.startswith("test-e2e-token"):
-        use_mock = True
-    else:
-        use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
+    # Only use the mock harness when explicitly requested via environment variable
+    use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
     
     if use_mock:
         # Use mock client for testing

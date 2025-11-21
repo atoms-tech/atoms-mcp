@@ -43,6 +43,12 @@ class MockMcpClient:
                 return await self._handle_entity_operation(args)
             elif tool_name == "relationship_tool":
                 return await self._handle_relationship_operation(args)
+            elif tool_name == "workspace_tool":
+                return await self._handle_workspace_operation(args)
+            elif tool_name == "data_query":
+                return await self._handle_data_query(args)
+            elif tool_name == "workflow_execute":
+                return await self._handle_workflow(args)
             else:
                 self.error_count += 1
                 return {"success": False, "error": f"Unknown tool: {tool_name}"}
@@ -58,6 +64,7 @@ class MockMcpClient:
         operation = args.get("operation")
         entity_type = args.get("entity_type")
         data = args.get("data", {})
+        entity_id = args.get("entity_id") or data.get("id")
         
         # Simulate some latency
         await asyncio.sleep(0.01)
@@ -78,7 +85,6 @@ class MockMcpClient:
             }
         
         elif operation == "read":
-            entity_id = data.get("id")
             if entity_id in self.entities:
                 self.success_count += 1
                 return {
@@ -89,7 +95,6 @@ class MockMcpClient:
             return {"success": False, "error": "Entity not found"}
         
         elif operation == "update":
-            entity_id = data.get("id")
             if entity_id in self.entities:
                 updated_entity = self.entities[entity_id].copy()
                 updated_entity.update(data)
@@ -104,7 +109,6 @@ class MockMcpClient:
             return {"success": False, "error": "Entity not found"}
         
         elif operation == "delete":
-            entity_id = data.get("id")
             if entity_id in self.entities:
                 deleted = self.entities.pop(entity_id)
                 self.success_count += 1
@@ -116,7 +120,7 @@ class MockMcpClient:
             return {"success": False, "error": "Entity not found"}
         
         elif operation == "list":
-            entity_type_filter = data.get("entity_type")
+            entity_type_filter = data.get("entity_type") or entity_type
             results = [
                 e for e in self.entities.values()
                 if not entity_type_filter or e.get("type") == entity_type_filter
@@ -124,7 +128,8 @@ class MockMcpClient:
             self.success_count += 1
             return {
                 "success": True,
-                "data": results
+                "data": results,
+                "count": len(results)
             }
         
         self.error_count += 1
@@ -190,6 +195,129 @@ class MockMcpClient:
         
         self.error_count += 1
         return {"success": False, "error": f"Unknown operation: {operation}"}
+
+    async def _handle_workspace_operation(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Provide basic workspace context/default responses."""
+        operation = args.get("operation")
+        context_type = args.get("context_type") or "organization"
+        entity_id = args.get("entity_id")
+
+        if operation == "get_context":
+            return {
+                "success": True,
+                "data": {
+                    "context_type": context_type,
+                    "entity_id": entity_id or str(uuid.uuid4()),
+                    "context": {
+                        "organization": {
+                            "id": entity_id or str(uuid.uuid4()),
+                            "name": f"Mock {context_type.title()}"
+                        }
+                    }
+                }
+            }
+        elif operation == "set_context":
+            return {
+                "success": True,
+                "data": {
+                    "context_type": context_type,
+                    "entity_id": entity_id
+                }
+            }
+        elif operation == "get_defaults":
+            return {
+                "success": True,
+                "data": {
+                    "context_type": context_type,
+                    "defaults": {
+                        "view_mode": "hierarchy",
+                        "limit": 25,
+                        "filters": {}
+                    }
+                }
+            }
+        elif operation == "list_workspaces":
+            return {
+                "success": True,
+                "data": [
+                    {
+                        "id": str(uuid.uuid4()),
+                        "type": "organization",
+                        "name": "Mock Org"
+                    },
+                    {
+                        "id": str(uuid.uuid4()),
+                        "type": "project",
+                        "name": "Mock Project"
+                    }
+                ]
+            }
+
+        return {"success": True, "data": {}}
+
+    async def _handle_data_query(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Return deterministic mock data for search and aggregation tests."""
+        operation = args.get("operation") or "search"
+        limit = args.get("limit", 10)
+
+        if operation == "aggregate":
+            return {
+                "success": True,
+                "data": [{"label": "mock", "count": limit}],
+                "count": limit
+            }
+
+        if operation == "count_all":
+            return {"success": True, "data": {"count": limit}}
+
+        if operation == "find_similar":
+            return {
+                "success": True,
+                "data": [
+                    {"id": str(uuid.uuid4()), "score": 0.91 - i * 0.02}
+                    for i in range(min(limit, 5))
+                ]
+            }
+
+        # Default search response
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "title": f"Mock Result {i+1}",
+                    "score": 0.8 - i * 0.05
+                }
+                for i in range(min(limit, 5))
+            ]
+        }
+
+    async def _handle_workflow(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Simulate workflow execution."""
+        workflow_name = args.get("workflow_name", "workflow")
+        return {
+            "success": True,
+            "data": {
+                "workflow": workflow_name,
+                "status": "completed",
+                "steps_executed": args.get("operations") or args.get("steps") or []
+            }
+        }
+
+    async def entity_tool(self, **kwargs) -> Dict[str, Any]:
+        return await self.call_tool("entity_tool", kwargs)
+
+    async def relationship_tool(self, **kwargs) -> Dict[str, Any]:
+        return await self.call_tool("relationship_tool", kwargs)
+
+    async def workspace_tool(self, **kwargs) -> Dict[str, Any]:
+        return await self.call_tool("workspace_tool", kwargs)
+
+    async def data_query(self, **kwargs) -> Dict[str, Any]:
+        return await self.call_tool("data_query", kwargs)
+
+    async def workflow_execute(self, **kwargs) -> Dict[str, Any]:
+        return await self.call_tool("workflow_execute", kwargs)
     
     def get_stats(self) -> Dict[str, Any]:
         """Get operation statistics."""

@@ -88,12 +88,16 @@ async def test_validate_token_uses_cache_before_jwt(mode, adapter_fixture, monke
 
 
 @pytest.mark.parametrize("mode", _mode_params())
-async def test_validate_supabase_jwt_sets_rls_context(mode, adapter_fixture, monkeypatch):
+async def test_validate_supabase_jwt_rejected(mode, adapter_fixture, monkeypatch):
+    """Verify that Supabase JWTs are rejected (only AuthKit JWTs are supported)."""
     adapter, _ = adapter_fixture
     _set_jwt_decoder(monkeypatch, {"iss": "https://xyz.supabase.co/auth/v1", "sub": "supabase-user", "email": "sup@example.com", "user_metadata": {"orgs": 2}})
-    result = await adapter.validate_token("supabase-jwt")
-    assert result["auth_type"] == "supabase_jwt"
-    assert result["access_token"] == "supabase-jwt"
+    # Supabase JWTs should be rejected - only AuthKit JWTs are supported
+    # The error message includes "Unsupported token issuer" or "Invalid or expired AuthKit JWT"
+    with pytest.raises(ValueError) as exc_info:
+        await adapter.validate_token("supabase-jwt")
+    error_msg = str(exc_info.value)
+    assert "Unsupported token issuer" in error_msg or "Invalid or expired AuthKit JWT" in error_msg
 
 
 @pytest.mark.parametrize("mode", _mode_params())

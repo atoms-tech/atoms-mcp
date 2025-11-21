@@ -26,6 +26,127 @@ load_dotenv(".env.local", override=True)
 
 
 # ============================================================================
+# GLOBAL AUTHKIT TOKEN COLLECTION (Runs before all tests)
+# ============================================================================
+
+def pytest_sessionstart(session):
+    """Collect AuthKit token globally before any tests run.
+    
+    This hook runs once at the start of the test session and ensures
+    an AuthKit access token is available for all tests.
+    
+    Checks in order:
+    1. OS keychain (most secure, persistent)
+    2. Environment variables (ATOMS_TEST_AUTH_TOKEN, AUTHKIT_TOKEN)
+    3. Auto-collect via Playwright if credentials are available
+    """
+    import os
+    import asyncio
+    import logging
+    import sys
+    from pathlib import Path
+    
+    logger = logging.getLogger(__name__)
+    
+    # Try to get token from keychain or environment first
+    try:
+        # Add scripts directory to path for imports
+        scripts_dir = Path(__file__).parent.parent / "scripts"
+        sys.path.insert(0, str(scripts_dir))
+        
+        from authkit_token_cache import get_token
+        
+        # get_token() automatically handles expiration and refresh
+        token = get_token()
+        if token:
+            # Cache in environment for this session
+            os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
+            logger.info("✅ AuthKit token available (from keychain or environment, refreshed if needed)")
+            print("✅ AuthKit token found and cached for test session (auto-refreshed if expired)")
+            return
+    except ImportError:
+        # Fall back to direct environment check
+        if os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN"):
+            token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
+            # Validate it's a real JWT
+            if len(token) >= 100 and token.count(".") >= 2:
+                logger.info("✅ AuthKit token already available in environment")
+                return
+    except Exception as e:
+        logger.debug(f"Token cache check failed: {e}")
+    
+    # Check if we have WorkOS credentials for auto-collection
+    workos_api_key = os.getenv("WORKOS_API_KEY")
+    workos_client_id = os.getenv("WORKOS_CLIENT_ID")
+    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
+    base_url = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL")
+    
+    if not (workos_api_key and workos_client_id and authkit_domain and base_url):
+        logger.info("⚠️  WorkOS credentials not fully configured - token collection skipped")
+        logger.info("   Tests will attempt to collect tokens individually if needed")
+        return
+    
+    # Try to collect token automatically using Playwright
+    logger.info("🔄 Auto-collecting AuthKit token before test session (headless)...")
+    try:
+        import sys
+        import importlib.util
+        from pathlib import Path
+        
+        scripts_dir = Path(__file__).parent.parent / "scripts"
+        playwright_script = scripts_dir / "get_authkit_token_playwright.py"
+        
+        if playwright_script.exists():
+            spec = importlib.util.spec_from_file_location(
+                "get_authkit_token_playwright",
+                playwright_script
+            )
+            playwright_module = importlib.util.module_from_spec(spec)
+            sys.modules["get_authkit_token_playwright"] = playwright_module
+            spec.loader.exec_module(playwright_module)
+            
+            # Ensure headless mode
+            original_headless = os.getenv("HEADLESS")
+            os.environ["HEADLESS"] = "true"
+            
+            try:
+                # Run Playwright flow
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    token = loop.run_until_complete(playwright_module.get_authkit_token_via_playwright())
+                    if token:
+                        # Save to keychain for future use
+                        try:
+                            from authkit_token_cache import save_token_to_keychain
+                            save_token_to_keychain(token)
+                        except Exception as save_error:
+                            logger.debug(f"Could not save to keychain: {save_error}")
+                        
+                        # Cache in environment for this session
+                        os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
+                        logger.info("✅ Successfully collected AuthKit token for test session")
+                        print("✅ AuthKit token collected, saved to keychain, and cached for all tests")
+                    else:
+                        logger.warning("⚠️  Playwright token collection returned None")
+                finally:
+                    loop.close()
+            finally:
+                if original_headless is None:
+                    os.environ.pop("HEADLESS", None)
+                else:
+                    os.environ["HEADLESS"] = original_headless
+        else:
+            logger.warning(f"Playwright script not found: {playwright_script}")
+    except ImportError as e:
+        logger.debug(f"Playwright not available for global token collection: {e}")
+    except Exception as e:
+        logger.warning(f"Global token collection failed: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
+
+
+# ============================================================================
 # PYTEST CONFIGURATION
 # ============================================================================
 
@@ -387,25 +508,27 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         # Silently handle coverage errors - not critical for test reporting
         pass
     
-    # 4. Architect view
+    summary_mode = os.getenv("ATOMS_TEST_SUMMARY_MODE", "minimal").lower()
+    verbose_reports = summary_mode == "full"
+
+    # 4-6. Matrix views
     architect_view = ArchitectView(matrix_collector).render()
-    terminalreporter.write("\n" + architect_view + "\n")
-    
-    # 5. Epic view (detailed user stories)
     epic_view_detailed = EpicView(matrix_collector).render()
-    terminalreporter.write("\n" + epic_view_detailed + "\n")
-    
-    # Epic view (compact summary)
     epic_view_compact = EpicView(matrix_collector).render_compact()
-    terminalreporter.write("\n" + epic_view_compact + "\n")
-    
-    # 6. PM view
     pm_view = PMView(matrix_collector).render()
-    terminalreporter.write("\n" + pm_view + "\n")
+
+    if verbose_reports:
+        terminalreporter.write("\n" + architect_view + "\n")
+        terminalreporter.write("\n" + epic_view_detailed + "\n")
+        terminalreporter.write("\n" + epic_view_compact + "\n")
+        terminalreporter.write("\n" + pm_view + "\n")
+    else:
+        terminalreporter.write(
+            "\nℹ️  Detailed matrix reports suppressed. Set ATOMS_TEST_SUMMARY_MODE=full to display them.\n"
+        )
     
     # Save all reports
     try:
-        import os
         reports_dir = "tests/reports"
         os.makedirs(reports_dir, exist_ok=True)
         
@@ -428,7 +551,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             f.write(warning_summary)
         
         terminalreporter.write(
-            f"\n📊 Reports saved to {reports_dir}/\n"
+            f"\n📊 Reports saved to {reports_dir}/" \
+            " (set ATOMS_TEST_SUMMARY_MODE=full to print).\n"
         )
     except Exception as e:
         terminalreporter.write(f"\n⚠️  Could not save reports: {e}\n")

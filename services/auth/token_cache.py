@@ -220,23 +220,38 @@ async def get_token_cache() -> TokenCache:
     
     Returns:
         TokenCache instance
+        
+    Note: Falls back to in-memory if Upstash Redis is not configured or fails to connect.
     """
     global _token_cache
     
     if _token_cache is None:
         # Try to get Redis client
         redis_client = None
-        try:
-            from infrastructure.upstash_provider import get_upstash_redis
-            redis_client = await get_upstash_redis()
-        except Exception as e:
-            logger.warning(f"Failed to get Upstash Redis for token cache: {e}")
+        import os
+        upstash_configured = bool(
+            os.getenv("UPSTASH_REDIS_REST_URL") and os.getenv("UPSTASH_REDIS_REST_TOKEN")
+        )
+        
+        if upstash_configured:
+            try:
+                from infrastructure.upstash_provider import get_upstash_redis
+                redis_client = await get_upstash_redis()
+                if redis_client:
+                    # Test connection
+                    await redis_client.ping()
+                    logger.info("✅ Connected to Upstash Redis for token cache")
+                else:
+                    logger.warning("Upstash Redis configured but failed to initialize for token cache, using in-memory")
+            except Exception as e:
+                logger.error(f"Failed to connect to Upstash Redis for token cache: {e}")
+                logger.warning("Falling back to in-memory token cache")
+        else:
+            logger.debug("Upstash Redis not configured, using in-memory token cache")
         
         _token_cache = TokenCache(redis_client)
-        logger.info(
-            f"Initialized token cache "
-            f"({'Upstash Redis' if redis_client else 'no-op'})"
-        )
+        backend = "Upstash Redis" if redis_client else "in-memory"
+        logger.info(f"Initialized token cache ({backend})")
     
     return _token_cache
 

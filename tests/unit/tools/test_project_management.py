@@ -638,6 +638,14 @@ class TestProjectListing:
     @pytest.mark.asyncio
     async def test_list_projects_with_sorting(self, call_mcp):
         """Test sorting projects by name and date."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
         # Create projects with specific names for sorting verification
         names = ["Zebra Project", "Alpha Project", "Beta Project"]
         created_ids = []
@@ -645,18 +653,21 @@ class TestProjectListing:
         for name in names:
             result, _ = await call_mcp(
                 "entity_tool",
-                {"entity_type": "project", "operation": "create", "data": {"name": name}}
+                {
+                    "entity_type": "project",
+                    "operation": "create",
+                    "data": {"name": name, "organization_id": workspace_id, "workspace_id": workspace_id}
+                }
             )
             created_ids.append(result["data"]["id"])
         
-        # Sort by name (ascending)
+        # Sort by name (ascending) - use sort_list instead of order_by + order_direction
         result, duration_ms = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "project",
                 "operation": "list",
-                "order_by": "name",
-                "order_direction": "asc"
+                "sort_list": [{"field": "name", "order": "asc"}]
             }
         )
         
@@ -674,6 +685,14 @@ class TestProjectListing:
     @pytest.mark.asyncio
     async def test_list_projects_with_filters(self, call_mcp):
         """Test filtering projects by status, type, etc."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
         # Create projects with different statuses
         statuses = ["active", "on_hold", "completed"]
         project_ids = {}
@@ -686,7 +705,9 @@ class TestProjectListing:
                     "operation": "create",
                     "data": {
                         "name": f"{status.title()} Project",
-                        "status": status
+                        "status": status,
+                        "organization_id": workspace_id,
+                        "workspace_id": workspace_id
                     }
                 }
             )
@@ -723,6 +744,14 @@ class TestProjectListing:
     @pytest.mark.asyncio
     async def test_search_projects_by_name(self, call_mcp):
         """Search projects by name using text search."""
+        # Create organization first to get workspace_id
+        org_data = {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": org_data}
+        )
+        workspace_id = org_result["data"]["id"]
+        
         # Create projects with searchable names
         searchable_names = ["Vehicle Management System", "Payment Gateway", "User Authentication"]
         
@@ -732,7 +761,7 @@ class TestProjectListing:
                 {
                     "entity_type": "project",
                     "operation": "create",
-                    "data": {"name": name}
+                    "data": {"name": name, "organization_id": workspace_id, "workspace_id": workspace_id}
                 }
             )
         

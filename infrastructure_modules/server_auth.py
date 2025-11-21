@@ -47,13 +47,9 @@ def create_auth_provider(base_url: str) -> Any:
     if not authkit_domain:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
-    # Get optional bearer token configuration
-    internal_token = os.getenv("ATOMS_INTERNAL_TOKEN")
-    
-    # For development/testing: auto-enable test E2E token if in test mode
-    if not internal_token and os.getenv("ATOMS_TEST_MODE", "").lower() == "true":
-        internal_token = "test-e2e-token-for-atoms-mcp"
-        logger.info("🧪 Test mode enabled: using E2E test token for internal authentication")
+    # NO static/internal tokens allowed - only AuthKit access tokens
+    # Tests must use real AuthKit JWTs obtained via OAuth or User Management API
+    internal_token = None
     
     authkit_client_id = os.getenv("WORKOS_CLIENT_ID")
 
@@ -63,26 +59,37 @@ def create_auth_provider(base_url: str) -> Any:
         # AuthKit JWKS endpoint is at /.well-known/jwks.json
         authkit_jwks_uri = f"{authkit_domain}/.well-known/jwks.json"
 
-    # Use hybrid auth provider supporting both OAuth and Bearer tokens
+    # Use RemoteAuthProvider pattern with custom TokenVerifier
+    # This accepts both AuthKit OAuth tokens AND WorkOS User Management tokens
+    # NO static tokens allowed - only real AuthKit access tokens
     try:
-        from services.auth.hybrid_auth_provider import create_hybrid_auth_provider
+        from fastmcp.server.auth import RemoteAuthProvider
+        from pydantic import AnyHttpUrl
+        from services.auth.workos_token_verifier import WorkOSTokenVerifier
     except ImportError:
-        from ..services.auth.hybrid_auth_provider import create_hybrid_auth_provider  # type: ignore[no-redef]
+        from fastmcp.server.auth import RemoteAuthProvider  # type: ignore[no-redef]
+        from pydantic import AnyHttpUrl  # type: ignore[no-redef]
+        from ..services.auth.workos_token_verifier import WorkOSTokenVerifier  # type: ignore[no-redef]
 
-    auth_provider = create_hybrid_auth_provider(
-        authkit_domain=authkit_domain,
+    # Create WorkOS token verifier (handles AuthKit OAuth + WorkOS User Management)
+    # NO static tokens - only real AuthKit access tokens allowed
+    token_verifier = WorkOSTokenVerifier(
+        jwks_uri=authkit_jwks_uri,
+        issuer=authkit_domain,  # Primary issuer (AuthKit OAuth)
+        audience=authkit_client_id,
+    )
+    
+    # Create RemoteAuthProvider with WorkOS token verifier
+    auth_provider = RemoteAuthProvider(
+        token_verifier=token_verifier,
+        authorization_servers=[AnyHttpUrl(authkit_domain)],
         base_url=base_url,
-        internal_token=internal_token,
-        authkit_client_id=authkit_client_id,
-        authkit_jwks_uri=authkit_jwks_uri
     )
 
-    logger.info("✅ Hybrid authentication configured:")
+    logger.info("✅ Remote OAuth authentication configured:")
     logger.info(f"  - OAuth (AuthKit): {authkit_domain}")
-    if internal_token:
-        logger.info("  - Internal bearer token: enabled")
-    if authkit_client_id and authkit_jwks_uri:
-        logger.info("  - AuthKit JWT: enabled")
-
-    print("✅ Hybrid authentication configured: OAuth + Bearer tokens")
+    logger.info(f"  - Token verifier: WorkOSTokenVerifier")
+    logger.info(f"    - AuthKit OAuth tokens: enabled")
+    logger.info(f"    - WorkOS User Management tokens: enabled")
+    logger.info(f"    - Static/internal tokens: DISABLED (AuthKit only)")
     return auth_provider

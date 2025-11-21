@@ -21,6 +21,7 @@ Commands (like npm scripts):
   atoms deps         - Analyze dependencies
   atoms docs         - Generate/view documentation
   atoms logs         - Tail server logs
+  atoms db:regen-types - Regenerate Supabase type definitions
 """
 
 import sys
@@ -45,17 +46,27 @@ def run(
     host: str = typer.Option("0.0.0.0", help="Host to bind to"),
     port: int = typer.Option(8000, help="Port to run on"),
     debug: bool = typer.Option(False, help="Enable debug mode"),
+    http: bool = typer.Option(False, help="Use HTTP transport instead of stdio"),
 ) -> None:
     """Start the Atoms MCP Server.
     
     Example:
         atoms run --port 8001 --debug
+        atoms run --http  # Start with HTTP transport for E2E testing
     """
     import os
     if debug:
         os.environ["DEBUG"] = "true"
     
-    print(f"🚀 Starting Atoms MCP Server on {host}:{port}")
+    if http:
+        os.environ["ATOMS_FASTMCP_TRANSPORT"] = "http"
+        os.environ["ATOMS_FASTMCP_HOST"] = host
+        os.environ["ATOMS_FASTMCP_PORT"] = str(port)
+        os.environ["ATOMS_FASTMCP_HTTP_PATH"] = "/api/mcp"
+        print(f"🚀 Starting Atoms MCP Server (HTTP) on {host}:{port}/api/mcp")
+    else:
+        print(f"🚀 Starting Atoms MCP Server (stdio) on {host}:{port}")
+    
     if debug:
         print("🔧 Debug mode enabled")
     
@@ -67,9 +78,10 @@ def run(
 def dev(
     port: int = typer.Option(8000, help="Port to run on"),
 ) -> None:
-    """Start in development mode with auto-reload.
+    """Start in development mode using Vercel dev server.
     
     Features:
+    - Uses Vercel dev server for local development
     - Auto-reloads on file changes
     - Shows detailed error messages
     - Enables all debug logging
@@ -78,25 +90,49 @@ def dev(
         atoms dev --port 8001
     """
     import os
+    import subprocess
+    import sys
+    
     os.environ["DEBUG"] = "true"
     
-    print("⚙️  Starting in development mode...")
-    print(f"🔄 Auto-reload enabled on {port}")
+    print("⚙️  Starting in development mode with Vercel...")
+    print(f"🔄 Vercel dev server will handle auto-reload")
     print("📝 Watching for file changes...")
     
+    # Check if vercel is installed
     try:
-        import uvicorn
-        uvicorn.run(
-            "app:app",
-            host="0.0.0.0",
-            port=port,
-            reload=True,
-            log_level="debug"
+        result = subprocess.run(
+            ["vercel", "--version"],
+            capture_output=True,
+            text=True,
+            check=True
         )
-    except ImportError:
-        print("❌ uvicorn not installed. Using standard server...")
-        from server import main
-        main()
+        print(f"✅ Vercel CLI found: {result.stdout.strip()}")
+        
+        # Run vercel dev
+        print("🚀 Starting Vercel dev server...")
+        print(f"🌐 Server will be available at http://localhost:{port}")
+        # Vercel dev uses --listen flag with port only (not host:port)
+        subprocess.run(
+            ["vercel", "dev", "--listen", str(port)],
+            check=True
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("❌ Vercel CLI not found. Install with: npm i -g vercel")
+        print("   Falling back to uvicorn...")
+        try:
+            import uvicorn
+            uvicorn.run(
+                "app:app",
+                host="0.0.0.0",
+                port=port,
+                reload=True,
+                log_level="debug"
+            )
+        except ImportError:
+            print("❌ uvicorn not installed. Using standard server...")
+            from server import main
+            main()
 
 
 @app.command()
@@ -137,6 +173,8 @@ def test(
     marker: Optional[str] = typer.Option(None, "-m", "--marker", help="Run specific marker (e.g., 'unit', 'story')"),
     keyword: Optional[str] = typer.Option(None, "-k", "--keyword", help="Run tests matching keyword"),
     env: Optional[str] = typer.Option(None, "--env", help="Environment: local, dev, or prod (auto-detected if not specified)"),
+    parallel: bool = typer.Option(False, "--parallel", help="Run dependency-ordered stages with pytest-xdist"),
+    max_workers: Optional[int] = typer.Option(None, "--max-workers", help="Override pytest-xdist worker count (default: auto)"),
 ) -> None:
     """Run the test suite with automatic environment targeting.
     
@@ -179,30 +217,51 @@ def test(
     # Print environment info
     TestEnvManager.print_environment_info(environment)
     
+    if parallel:
+        if scope:
+            print("⚠️ --parallel runs the full suite. Remove --scope to continue.")
+            sys.exit(1)
+        if max_workers is not None and max_workers < 1:
+            print("⚠️ --max-workers must be >= 1")
+            sys.exit(1)
+
+        from cli_modules.test_orchestrator import TestOrchestrator
+
+        orchestrator = TestOrchestrator(
+            verbose=verbose,
+            marker=marker,
+            keyword=keyword,
+            parallel=True,
+            max_workers=max_workers,
+            coverage=coverage,
+        )
+        summary = orchestrator.run()
+        sys.exit(0 if summary.success else 1)
+
     # Build pytest command
     cmd = ["python", "-m", "pytest"]
-    
+
     if verbose:
         cmd.append("-v")
     if coverage:
         cmd.extend(["--cov=.", "--cov-report=html", "--cov-report=term"])
-    
+
     # Add marker based on explicit scope or marker option (not default)
     if marker:
         cmd.extend(["-m", marker])
     elif scope and scope in ["unit", "integration", "e2e"]:
         # Only add marker if scope was explicitly provided
         cmd.extend(["-m", scope])
-    
+
     if keyword:
         cmd.extend(["-k", keyword])
-    
+
     # Add test path
     cmd.append("tests/")
-    
+
     print(f"\n🧪 Running tests: {' '.join(cmd[3:])}\n")
     result = subprocess.run(cmd)
-    
+
     # Exit with test result code
     sys.exit(result.returncode)
 
@@ -340,6 +399,31 @@ def test_coverage() -> None:
         "tests/"
     ])
     print("\n📊 Coverage report: htmlcov/index.html")
+    sys.exit(result.returncode)
+
+
+@app.command("test:rls")
+def test_rls(
+    verbose: bool = typer.Option(False, "-v", "--verbose"),
+) -> None:
+    """Run Row-Level Security (RLS) tests.
+    
+    Tests RLS enforcement across unit, integration, and e2e test suites.
+    
+    Examples:
+        atoms test:rls              # Run all RLS tests
+        atoms test:rls -v           # Verbose output
+    """
+    cmd = [
+        "python", "-m", "pytest",
+        "tests/unit/security/test_rls_protection.py",
+        "tests/integration/test_auth_integration.py::TestRLSEnforcement",
+        "tests/e2e/test_security.py",
+        "-v" if verbose else "-q",
+    ]
+    
+    print("🔒 Running Row-Level Security (RLS) tests...")
+    result = subprocess.run(cmd)
     sys.exit(result.returncode)
 
 
@@ -654,6 +738,111 @@ def docs() -> None:
         print("\n📂 Generated docs in docs/")
         for doc in docs_path.glob("**/*.md"):
             print(f"  • {doc.relative_to('.')}")
+
+
+# ============================================================================
+# Database Commands
+# ============================================================================
+
+@app.command("db:regen-types")
+def db_regen_types(
+    method: Optional[str] = typer.Option(
+        "auto",
+        "--method",
+        help="Generation method: 'auto' (try pydantic first), 'pydantic', or 'simple'"
+    ),
+) -> None:
+    """Regenerate Supabase type definitions from database schema.
+    
+    Generates Pydantic models from the Supabase database schema and writes
+    them to schemas/generated/models.py.
+    
+    Methods:
+    - auto: Try supabase-pydantic first, fall back to simple introspection
+    - pydantic: Use supabase-pydantic (recommended, requires supabase-pydantic)
+    - simple: Use simple introspection (no extra dependencies)
+    
+    Environment variables required:
+    - SUPABASE_URL: Your Supabase project URL
+    - SUPABASE_SERVICE_KEY: Service role key (for schema introspection)
+    
+    Examples:
+        atoms db:regen-types                    # Auto-detect best method
+        atoms db:regen-types --method pydantic  # Force pydantic method
+        atoms db:regen-types --method simple    # Force simple method
+    """
+    import os
+    
+    # Check environment variables
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
+    
+    if not supabase_url:
+        print("❌ Error: SUPABASE_URL environment variable not set")
+        print("   Set it with: export SUPABASE_URL='your-project-url'")
+        sys.exit(1)
+    
+    if not supabase_key:
+        print("❌ Error: SUPABASE_SERVICE_KEY or SUPABASE_KEY environment variable not set")
+        print("   Set it with: export SUPABASE_SERVICE_KEY='your-service-key'")
+        sys.exit(1)
+    
+    print("🔄 Regenerating Supabase type definitions...")
+    print(f"📍 Supabase URL: {supabase_url}")
+    print(f"🔑 Using service key: {'*' * 20}...{supabase_key[-4:] if len(supabase_key) > 4 else '****'}")
+    print()
+    
+    # Determine which method to use
+    use_pydantic = False
+    use_simple = False
+    
+    if method == "pydantic":
+        use_pydantic = True
+    elif method == "simple":
+        use_simple = True
+    else:  # auto
+        # Try pydantic first
+        try:
+            import supabase_pydantic
+            use_pydantic = True
+            print("✅ Found supabase-pydantic, using recommended method")
+        except ImportError:
+            print("⚠️  supabase-pydantic not found, using simple introspection")
+            use_simple = True
+    
+    # Run the appropriate script
+    script_path = None
+    if use_pydantic:
+        script_path = Path("scripts/generate_schemas.py")
+        if not script_path.exists():
+            print(f"❌ Error: {script_path} not found")
+            sys.exit(1)
+    else:
+        script_path = Path("scripts/generate_schemas_simple.py")
+        if not script_path.exists():
+            print(f"❌ Error: {script_path} not found")
+            sys.exit(1)
+    
+    print(f"📜 Running: {script_path.name}")
+    print()
+    
+    # Execute the script
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        env=os.environ.copy(),
+    )
+    
+    if result.returncode == 0:
+        print()
+        print("✅ Successfully regenerated Supabase types")
+        print("📄 Output: schemas/generated/models.py")
+        print("📄 Exports: schemas/generated/__init__.py")
+    else:
+        print()
+        print("❌ Failed to regenerate types")
+        if use_pydantic:
+            print("💡 Tip: Try --method simple if supabase-pydantic is causing issues")
+        sys.exit(result.returncode)
 
 
 # ============================================================================

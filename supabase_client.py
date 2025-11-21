@@ -1,6 +1,7 @@
-"""Simplified Supabase client - no service role needed!
+"""Supabase client for AuthKit JWTs.
 
-With WorkOS third-party auth, we only need anon key + user JWTs.
+With WorkOS third-party auth configured, AuthKit JWTs work directly with Supabase.
+No service role needed - only anon key + AuthKit JWTs.
 """
 
 from __future__ import annotations
@@ -29,14 +30,14 @@ class MissingSupabaseConfig(RuntimeError):
 
 
 def get_supabase(access_token: Optional[str] = None) -> Client:
-    """Get Supabase client with user JWT for RLS context.
+    """Get Supabase client with AuthKit JWT for RLS context.
 
     With WorkOS configured as Supabase third-party provider,
-    both Supabase JWTs and AuthKit JWTs work directly!
+    AuthKit JWTs work directly with Supabase!
 
     Args:
-        access_token: User's JWT (Supabase or AuthKit).
-                     With third-party auth configured, both types work!
+        access_token: User's AuthKit JWT token.
+                     With third-party auth configured, AuthKit JWTs work directly!
 
     Returns:
         Supabase client instance

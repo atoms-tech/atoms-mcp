@@ -228,7 +228,7 @@ def create_session_manager(access_token: Optional[str] = None) -> SessionManager
     """Factory function to create a SessionManager with Supabase client.
 
     Args:
-        access_token: Optional access token for user context (Supabase JWT)
+        access_token: Optional access token for user context (AuthKit JWT)
 
     Returns:
         Configured SessionManager instance
