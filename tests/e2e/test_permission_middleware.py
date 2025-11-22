@@ -12,9 +12,22 @@ Covers:
 
 import pytest
 import uuid
+import os
 from typing import Dict, Any
 
 pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
+
+
+async def _create_entity(client, entity_type, data):
+    """Helper to create entity - relies on automatic auth flow from end_to_end_client."""
+    return await client.call_tool(
+        "entity_tool",
+        {
+            "entity_type": entity_type,
+            "operation": "create",
+            "data": data
+        }
+    )
 
 
 class TestPermissionMiddlewareE2E:
@@ -25,37 +38,27 @@ class TestPermissionMiddlewareE2E:
     @pytest.mark.story("User permissions are enforced at API level")
     async def test_create_permission_denied_cross_workspace(self, end_to_end_client):
         """Test create permission denied when user not in workspace."""
-        # Create organization and workspace
-        org_result = await end_to_end_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
-            }
+        # Create organization (auth handled automatically by end_to_end_client)
+        org_result = await _create_entity(
+            end_to_end_client,
+            "organization",
+            {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
         )
-        
-        if not org_result.get("success") or "data" not in org_result:
-            pytest.skip("Failed to create organization - may be auth issue")
-        
+        assert org_result.get("success") is True, f"Failed to create organization: {org_result.get('error')}"
+        assert "data" in org_result, f"Organization creation missing data: {org_result}"
         org_id = org_result["data"]["id"]
         
-        # Create project in workspace
-        project_result = await end_to_end_client.call_tool(
-            "entity_tool",
+        # Create project in workspace (auth handled automatically)
+        project_result = await _create_entity(
+            end_to_end_client,
+            "project",
             {
-                "entity_type": "project",
-                "operation": "create",
-                "data": {
-                    "name": f"Test Project {uuid.uuid4().hex[:8]}",
-                    "organization_id": org_id
-                }
+                "name": f"Test Project {uuid.uuid4().hex[:8]}",
+                "organization_id": org_id
             }
         )
-        
-        if not project_result.get("success") or "data" not in project_result:
-            pytest.skip("Failed to create project - may be auth issue")
-        
+        assert project_result.get("success") is True, f"Failed to create project: {project_result.get('error')}"
+        assert "data" in project_result, f"Project creation missing data: {project_result}"
         project_id = project_result["data"]["id"]
         
         # Create document in project (this should work - user is in workspace)
@@ -136,10 +139,9 @@ class TestPermissionMiddlewareE2E:
             assert len(error_msg) > 0, "Error message should not be empty"
             error_lower = error_msg.lower()
             
-            # In e2e, we may get auth errors (401) before permission checks
-            # If it's an auth error, skip the detailed assertion
-            if "invalid_token" in error_lower or "authentication" in error_lower or "401" in error_lower:
-                pytest.skip("Authentication error - token may have expired")
+            # In e2e, auth is handled automatically by end_to_end_client fixture
+            # If we get an auth error, it means the token is invalid/expired
+            # The fixture should handle token refresh automatically
             
             # Otherwise, error should mention workspace_id, permission, or required field
             assert (
@@ -158,35 +160,24 @@ class TestPermissionMiddlewareE2E:
     async def test_workspace_membership_validation(self, end_to_end_client):
         """Test workspace membership is properly validated in e2e."""
         # Create organization and project (user becomes member)
-        org_result = await end_to_end_client.call_tool(
-            "entity_tool",
-            {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
-            }
+        org_result = await _create_entity_with_auth_check(
+            end_to_end_client,
+            "organization",
+            {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
         )
-        
-        if not org_result.get("success") or "data" not in org_result:
-            pytest.skip("Failed to create organization - may be auth issue")
-        
+        assert "data" in org_result, f"Organization creation missing data: {org_result}"
         org_id = org_result["data"]["id"]
         
-        project_result = await end_to_end_client.call_tool(
-            "entity_tool",
+        project_result = await _create_entity_with_auth_check(
+            end_to_end_client,
+            "project",
             {
-                "entity_type": "project",
-                "operation": "create",
-                "data": {
-                    "name": f"Test Project {uuid.uuid4().hex[:8]}",
-                    "organization_id": org_id
-                }
-            }
+                "name": f"Test Project {uuid.uuid4().hex[:8]}",
+                "organization_id": org_id
+            },
+            context=f"in organization {org_id}"
         )
-        
-        if not project_result.get("success") or "data" not in project_result:
-            pytest.skip("Failed to create project - may be auth issue")
-        
+        assert "data" in project_result, f"Project creation missing data: {project_result}"
         project_id = project_result["data"]["id"]
         
         # Should allow list in own workspace (user is member)
@@ -240,9 +231,16 @@ class TestPermissionMiddlewareE2E:
             }
         )
         
-        if not org_result.get("success") or "data" not in org_result:
-            pytest.skip("Failed to create organization - may be auth issue")
-        
+        if not org_result.get("success"):
+            error_msg = str(org_result.get("error", "Unknown error"))
+            # Check if it's an authentication error
+            if "invalid_token" in error_msg.lower() or "401" in error_msg or "authentication" in error_msg.lower():
+                pytest.fail(
+                    f"Authentication failed when creating organization: {error_msg}\n"
+                    "This may indicate the AuthKit token has expired. Check ATOMS_TEST_AUTH_TOKEN or WORKOS credentials."
+                )
+            pytest.fail(f"Failed to create organization: {error_msg}")
+        assert "data" in org_result, f"Organization creation missing data: {org_result}"
         org_id = org_result["data"]["id"]
         
         project_result = await end_to_end_client.call_tool(
@@ -257,9 +255,16 @@ class TestPermissionMiddlewareE2E:
             }
         )
         
-        if not project_result.get("success") or "data" not in project_result:
-            pytest.skip("Failed to create project - may be auth issue")
-        
+        if not project_result.get("success"):
+            error_msg = str(project_result.get("error", "Unknown error"))
+            # Check if it's an authentication error
+            if "invalid_token" in error_msg.lower() or "401" in error_msg or "authentication" in error_msg.lower():
+                pytest.fail(
+                    f"Authentication failed when creating project: {error_msg}\n"
+                    "This may indicate the AuthKit token has expired. Check ATOMS_TEST_AUTH_TOKEN or WORKOS credentials."
+                )
+            pytest.fail(f"Failed to create project: {error_msg}")
+        assert "data" in project_result, f"Project creation missing data: {project_result}"
         project_id = project_result["data"]["id"]
         
         # Test list permission (should work for all workspace members)
@@ -314,9 +319,16 @@ class TestPermissionMiddlewareE2E:
             }
         )
         
-        if not org_result.get("success") or "data" not in org_result:
-            pytest.skip("Failed to create organization - may be auth issue")
-        
+        if not org_result.get("success"):
+            error_msg = str(org_result.get("error", "Unknown error"))
+            # Check if it's an authentication error
+            if "invalid_token" in error_msg.lower() or "401" in error_msg or "authentication" in error_msg.lower():
+                pytest.fail(
+                    f"Authentication failed when creating organization: {error_msg}\n"
+                    "This may indicate the AuthKit token has expired. Check ATOMS_TEST_AUTH_TOKEN or WORKOS credentials."
+                )
+            pytest.fail(f"Failed to create organization: {error_msg}")
+        assert "data" in org_result, f"Organization creation missing data: {org_result}"
         org_id = org_result["data"]["id"]
         
         project_result = await end_to_end_client.call_tool(
@@ -331,9 +343,16 @@ class TestPermissionMiddlewareE2E:
             }
         )
         
-        if not project_result.get("success") or "data" not in project_result:
-            pytest.skip("Failed to create project - may be auth issue")
-        
+        if not project_result.get("success"):
+            error_msg = str(project_result.get("error", "Unknown error"))
+            # Check if it's an authentication error
+            if "invalid_token" in error_msg.lower() or "401" in error_msg or "authentication" in error_msg.lower():
+                pytest.fail(
+                    f"Authentication failed when creating project: {error_msg}\n"
+                    "This may indicate the AuthKit token has expired. Check ATOMS_TEST_AUTH_TOKEN or WORKOS credentials."
+                )
+            pytest.fail(f"Failed to create project: {error_msg}")
+        assert "data" in project_result, f"Project creation missing data: {project_result}"
         project_id = project_result["data"]["id"]
         
         # Create a document
@@ -399,9 +418,16 @@ class TestPermissionMiddlewareE2E:
             }
         )
         
-        if not org_result.get("success") or "data" not in org_result:
-            pytest.skip("Failed to create organization - may be auth issue")
-        
+        if not org_result.get("success"):
+            error_msg = str(org_result.get("error", "Unknown error"))
+            # Check if it's an authentication error
+            if "invalid_token" in error_msg.lower() or "401" in error_msg or "authentication" in error_msg.lower():
+                pytest.fail(
+                    f"Authentication failed when creating organization: {error_msg}\n"
+                    "This may indicate the AuthKit token has expired. Check ATOMS_TEST_AUTH_TOKEN or WORKOS credentials."
+                )
+            pytest.fail(f"Failed to create organization: {error_msg}")
+        assert "data" in org_result, f"Organization creation missing data: {org_result}"
         org_id = org_result["data"]["id"]
         
         # Create project
@@ -417,9 +443,16 @@ class TestPermissionMiddlewareE2E:
             }
         )
         
-        if not project_result.get("success") or "data" not in project_result:
-            pytest.skip("Failed to create project - may be auth issue")
-        
+        if not project_result.get("success"):
+            error_msg = str(project_result.get("error", "Unknown error"))
+            # Check if it's an authentication error
+            if "invalid_token" in error_msg.lower() or "401" in error_msg or "authentication" in error_msg.lower():
+                pytest.fail(
+                    f"Authentication failed when creating project: {error_msg}\n"
+                    "This may indicate the AuthKit token has expired. Check ATOMS_TEST_AUTH_TOKEN or WORKOS credentials."
+                )
+            pytest.fail(f"Failed to create project: {error_msg}")
+        assert "data" in project_result, f"Project creation missing data: {project_result}"
         project_id = project_result["data"]["id"]
         
         # Create document (should succeed - user is in workspace)

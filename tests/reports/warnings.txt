@@ -3,17 +3,26 @@
 ⚠️  TEST WARNINGS & PERFORMANCE ISSUES
 ======================================================================
 
-🔄 FLAKY (2):
-  🟡 tests/e2e/test_resilience.py::TestErrorRecoveryResilience::test_database_connection_retry
-     → Test passed after retry (potentially flaky)
-  🟡 tests/e2e/test_workflow_automation.py::TestWorkflowExecution::test_workflow_with_retry
-     → Test passed after retry (potentially flaky)
+🐌 SLOW (12):
+  🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
+     → Slow: 1.21s (threshold: 1.0s)
+  🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
+     → Slow: 1.28s (threshold: 1.0s)
+  🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestConcurrencyPerformance::test_memory_usage
+     → Slow: 1.75s (threshold: 1.0s)
+  🟡 tests/unit/tools/test_entity_relationships.py::TestEntityRelationshipViews::test_list_relationships_with_pagination[unit]
+     → Slow: 1.04s (threshold: 1.0s)
+  🔴 tests/unit/tools/test_multi_tenant.py::TestTenantRelationshipIsolation::test_cannot_relate_across_tenants[unit]
+     → Very slow: 11.62s (threshold: 5.0s)
+  ... and 7 more
 
-🐌 SLOW (1):
-  🟡 tests/unit/infrastructure/test_database_adapter.py::test_access_token_applied_for_rls[e2e]
-     → Slow: 2.56s (threshold: 1.0s)
+🔄 FLAKY (2):
+  🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestOptimisticUpdate::test_optimistic_update_retry_on_conflict
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_advanced_features.py::TestErrorRecovery::test_operation_retry_with_backoff[unit]
+     → Test passed after retry (potentially flaky)
 
 ----------------------------------------------------------------------
-Total Warnings: 3
-  🔴 High: 0  🟡 Medium: 3  🟢 Low: 0
+Total Warnings: 14
+  🔴 High: 1  🟡 Medium: 13  🟢 Low: 0
 ======================================================================
