@@ -380,34 +380,39 @@ async def end_to_end_client(e2e_auth_token):
 
         print(f"✅ Target environment: {env_name}")
         print("   Using real WorkOS authentication (same keys for all environments)")
-        
+
         # Create httpx client with authentication headers
         headers = {
             "Authorization": f"Bearer {e2e_auth_token}",
             "Content-Type": "application/json",
         }
-        
-        # Create httpx AsyncClient with auth headers
-        async with httpx.AsyncClient(
+
+        # Create httpx AsyncClient with auth headers (keep alive for test duration)
+        http_client = httpx.AsyncClient(
             base_url=deployment_url.rsplit('/api/mcp', 1)[0] if '/api/mcp' in deployment_url else deployment_url,
             headers=headers,
             timeout=30.0
-        ) as http_client:
+        )
+
+        try:
             # Create MCP client wrapper that uses authenticated httpx client
             from tests.e2e.mcp_http_wrapper import AuthenticatedMcpClient
-            
+
             mcp_client = AuthenticatedMcpClient(
                 base_url=deployment_url,
                 http_client=http_client,
                 auth_token=e2e_auth_token
             )
-            
+
             # Wrap call_tool to allow mocking via side_effect
             original_call_tool = mcp_client.call_tool
             mock_call_tool = AsyncMock(side_effect=original_call_tool)
             mcp_client.call_tool = mock_call_tool
-            
+
             yield mcp_client
+        finally:
+            # Close the httpx client after test completes
+            await http_client.aclose()
 
 
 @pytest_asyncio.fixture
