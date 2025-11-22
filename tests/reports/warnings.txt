@@ -8,10 +8,10 @@
      → Test passed after retry (potentially flaky)
 
 🐌 SLOW (1):
-  🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
-     → Slow: 4.68s (threshold: 1.0s)
+  🔴 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
+     → Very slow: 5.33s (threshold: 5.0s)
 
 ----------------------------------------------------------------------
 Total Warnings: 2
-  🔴 High: 0  🟡 Medium: 2  🟢 Low: 0
+  🔴 High: 1  🟡 Medium: 1  🟢 Low: 0
 ======================================================================

@@ -8,7 +8,7 @@
 ║   ✅ User can view organization details                                       ║
 ║   ✅ User can update organization settings                                    ║
 ║   ✅ User can delete an organization                                          ║
-║   ✅ User can list all organizations (98 passing, 19 failing)                 ║
+║   ✅ User can list all organizations (101 passing, 16 failing)                ║
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -26,9 +26,9 @@
 ║                                                                              ║
 ║ 📦 Requirements Traceability (4/4) ✓✓✓                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create requirements (2 passing, 3 failing)                      ║
+║   ✅ User can create requirements (1 passing, 4 failing)                      ║
 ║   ✅ User can pull requirements from system                                   ║
-║   ✅ User can search requirements (43 passing, 22 failing)                    ║
+║   ✅ User can search requirements (49 passing, 16 failing)                    ║
 ║   ✅ User can trace links between requirements and t... (10 passing, 4 fai... ║
 ║                                                                              ║
 ║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
@@ -54,7 +54,7 @@
 ║                                                                              ║
 ║ 📦 Search & Discovery (7/7) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can search across all entities (45 passing, 18 failing)             ║
+║   ✅ User can search across all entities (48 passing, 15 failing)             ║
 ║   ✅ User can filter search results                                           ║
 ║   ✅ User can perform semantic search                                         ║
 ║   ✅ User can perform keyword search (2 passing, 4 failing)                   ║
