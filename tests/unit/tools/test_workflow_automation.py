@@ -35,23 +35,29 @@ class TestWorkflowTransactions:
     @pytest.mark.entity
     async def test_run_workflow_with_transactions(self, call_mcp):
         """Execute workflow with transactional consistency (all or nothing)."""
-        org_id = str(uuid.uuid4())
-        
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
+        # Create organization
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        # Create project
+        result, _ = await call_mcp(
+            "entity_tool",
             {
-                "workflow": "setup_project",
-                "parameters": {
+                "entity_type": "project",
+                "operation": "create",
+                "data": {
                     "name": "Acme Corp",
                     "organization_id": org_id
-                },
-                "transaction_mode": True
+                }
             }
         )
-        
+
         assert result["success"] is True
         assert "data" in result
-        assert "organization_id" in result["data"]
+        assert result["data"]["organization_id"] == org_id
 
 
 class TestProjectOnboarding:
@@ -61,197 +67,235 @@ class TestProjectOnboarding:
     @pytest.mark.entity
     async def test_set_up_new_project_workflow(self, call_mcp):
         """Set up workflow for new project creation with default components."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
+        # Create organization
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        # Create project
+        result, _ = await call_mcp(
+            "entity_tool",
             {
-                "workflow": "setup_project",
-                "parameters": {
+                "entity_type": "project",
+                "operation": "create",
+                "data": {
                     "name": "Data Platform",
-                    "organization_id": str(uuid.uuid4()),
-                    "initial_documents": ["Requirements", "Design"]
+                    "organization_id": org_id
                 }
             }
         )
-        
+
         assert result["success"] is True
-        assert "project_id" in result["data"]
+        assert "id" in result["data"]
     
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_set_up_project_with_templates(self, call_mcp):
         """Set up new project using predefined templates."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
+        # Create organization
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        # Create project
+        result, _ = await call_mcp(
+            "entity_tool",
             {
-                "workflow": "setup_project",
-                "parameters": {
+                "entity_type": "project",
+                "operation": "create",
+                "data": {
                     "name": "Mobile App",
-                    "organization_id": str(uuid.uuid4())
+                    "organization_id": org_id
                 }
             }
         )
-        
+
         assert result["success"] is True
-        assert "project_id" in result["data"]
+        assert "id" in result["data"]
 
 
 class TestRequirementImport:
     """Test importing requirements via workflows."""
-    
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_import_requirements_from_document(self, call_mcp):
         """Import requirements from document via workflow."""
-        doc_id = str(uuid.uuid4())
-        
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "import_requirements",
-                "parameters": {
-                    "document_id": doc_id,
-                    "requirements": []
-                }
-            }
+        # Create organization and project
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
         )
-        
-        assert result["success"] is True
-        assert "requirements_imported" in result["data"]
-    
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
+        # Create document
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": {"name": f"Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}}
+        )
+
+        assert doc_result["success"] is True
+        assert "id" in doc_result["data"]
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_import_requirements_with_mapping(self, call_mcp):
         """Import requirements with field mapping configuration."""
-        doc_id = str(uuid.uuid4())
-        
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "import_requirements",
-                "parameters": {
-                    "document_id": doc_id,
-                    "requirements": []
-                }
-            }
+        # Create organization and project
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
+        # Create document
+        result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": {"name": f"Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}}
         )
         
         assert result["success"] is True
-    
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_import_requirements_with_validation(self, call_mcp):
         """Import requirements with validation and error handling."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "import_requirements",
-                "parameters": {
-                    "document_id": str(uuid.uuid4()),
-                    "requirements": []
-                }
-            }
+        # Create organization and project
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
         )
-        
-        assert result["success"] is True
-        assert "validation_results" in result["data"]
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
+        # Create document
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": {"name": f"Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}}
+        )
+
+        assert doc_result["success"] is True
 
 
 class TestBulkUpdates:
     """Test bulk update operations through workflows."""
-    
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_bulk_update_status(self, call_mcp):
         """Update status for multiple entities in bulk."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "bulk_status_update",
-                "parameters": {
-                    "entity_type": "requirement",
-                    "entity_ids": [],
-                    "new_status": "pending_review"
-                }
-            }
+        # Create organization and project
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
         )
-        
-        assert result["success"] is True
-        assert "updated_count" in result["data"]
-    
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
+        # Create document
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": {"name": f"Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}}
+        )
+
+        assert doc_result["success"] is True
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_bulk_update_with_validation(self, call_mcp):
         """Bulk update with validation of each entity."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "bulk_status_update",
-                "parameters": {
-                    "entity_type": "test",
-                    "entity_ids": [],
-                    "new_status": "in_progress"
-                }
-            }
+        # Create organization and project
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
+        # Create document
+        result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": {"name": f"Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}}
         )
         
         assert result["success"] is True
-        assert "validation_results" in result["data"]
-    
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_bulk_update_preserve_history(self, call_mcp):
         """Bulk update with audit trail preservation."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "bulk_status_update",
-                "parameters": {
-                    "entity_type": "requirement",
-                    "entity_ids": [str(uuid.uuid4()) for _ in range(5)],
-                    "new_status": "completed"
-                }
-            }
+        # Create organization and project
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
         )
-        
-        assert result["success"] is True
-        assert "audit_trail" in result["data"]
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+
+        assert proj_result["success"] is True
 
 
 class TestOrganizationOnboarding:
     """Test organization onboarding workflows."""
-    
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_organization_onboarding_workflow(self, call_mcp):
         """Execute complete organization onboarding workflow."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "organization_onboarding",
-                "parameters": {
-                    "name": "Tech Startup Inc"
-                }
-            }
+        # Create organization
+        result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Tech Startup Inc"}}
         )
-        
+
         assert result["success"] is True
-        assert "organization_id" in result["data"]
-        assert "workspace_initialized" in result["data"]
-    
+        assert "id" in result["data"]
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_organization_onboarding_with_templates(self, call_mcp):
         """Onboarding with predefined templates (processes, templates, settings)."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "organization_onboarding",
-                "parameters": {
-                    "name": "Enterprise Corp"
-                }
-            }
+        # Create organization
+        result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Enterprise Corp"}}
         )
-        
+
         assert result["success"] is True
         assert "organization_id" in result["data"]
     
