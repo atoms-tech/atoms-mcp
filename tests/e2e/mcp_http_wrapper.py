@@ -191,7 +191,7 @@ class AuthenticatedMcpClient:
     
     async def health_check(self) -> Dict[str, Any]:
         """Check MCP server health.
-        
+
         Returns:
             Health status dictionary
         """
@@ -204,11 +204,111 @@ class AuthenticatedMcpClient:
                     "Authorization": f"Bearer {self.auth_token}",
                 }
             )
-            
+
             if response.status_code == 200:
                 return {"success": True, "status": "healthy"}
-            
+
             return {"success": False, "error": f"Health check returned {response.status_code}"}
-        
+
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # Convenience methods for common operations
+
+    async def entity_create(self, entity_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create an entity."""
+        return await self.call_tool("entity_tool", {
+            "entity_type": entity_type,
+            "operation": "create",
+            "data": data
+        })
+
+    async def entity_get(self, entity_type: str, entity_id: str) -> Dict[str, Any]:
+        """Get an entity by ID."""
+        return await self.call_tool("entity_tool", {
+            "entity_type": entity_type,
+            "operation": "get",
+            "entity_id": entity_id
+        })
+
+    async def entity_list(self, entity_type: str, **kwargs) -> Dict[str, Any]:
+        """List entities."""
+        args = {
+            "entity_type": entity_type,
+            "operation": "list"
+        }
+        args.update(kwargs)
+        return await self.call_tool("entity_tool", args)
+
+    async def entity_update(self, entity_type: str, entity_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an entity."""
+        return await self.call_tool("entity_tool", {
+            "entity_type": entity_type,
+            "operation": "update",
+            "entity_id": entity_id,
+            "data": data
+        })
+
+    async def entity_delete(self, entity_type: str, entity_id: str) -> Dict[str, Any]:
+        """Delete an entity."""
+        return await self.call_tool("entity_tool", {
+            "entity_type": entity_type,
+            "operation": "delete",
+            "entity_id": entity_id
+        })
+
+    async def workflow_execute(self, workflow_name: str, **kwargs) -> Dict[str, Any]:
+        """Execute a workflow."""
+        args = {"workflow": workflow_name}
+        args.update(kwargs)
+        return await self.call_tool("workflow_tool", args)
+
+    async def query_search(self, search_term: str, entities: list, **kwargs) -> Dict[str, Any]:
+        """Search for entities."""
+        args = {
+            "query_type": "search",
+            "search_term": search_term,
+            "entities": entities
+        }
+        args.update(kwargs)
+        return await self.call_tool("query_tool", args)
+
+    async def query_aggregate(self, entities: list, **kwargs) -> Dict[str, Any]:
+        """Aggregate entities."""
+        args = {
+            "query_type": "aggregate",
+            "entities": entities
+        }
+        args.update(kwargs)
+        return await self.call_tool("query_tool", args)
+
+    async def permission_check(self, operation: str, entity_type: str, **kwargs) -> Dict[str, Any]:
+        """Check permissions."""
+        args = {
+            "operation": operation,
+            "entity_type": entity_type
+        }
+        args.update(kwargs)
+        return await self.call_tool("permission_tool", args)
+
+    async def workspace_get_context(self, **kwargs) -> Dict[str, Any]:
+        """Get workspace context."""
+        return await self.call_tool("workspace_tool", {
+            "operation": "get_context",
+            **kwargs
+        })
+
+    async def workspace_switch_context(self, entity_type: str, entity_id: str) -> Dict[str, Any]:
+        """Switch workspace context."""
+        return await self.call_tool("workspace_tool", {
+            "operation": "switch_context",
+            "entity_type": entity_type,
+            "entity_id": entity_id
+        })
+
+    async def workspace_list(self, **kwargs) -> Dict[str, Any]:
+        """List workspaces."""
+        return await self.call_tool("workspace_tool", {
+            "operation": "list",
+            **kwargs
+        })
