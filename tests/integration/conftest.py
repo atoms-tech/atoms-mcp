@@ -84,7 +84,7 @@ async def test_server():
 @pytest_asyncio.fixture
 async def mcp_client_http(test_server, integration_auth_token):
     """Provide HTTP MCP client for integration tests.
-    
+
     Usage:
         @pytest.mark.integration
         async def test_entity_creation(mcp_client_http):
@@ -94,27 +94,35 @@ async def mcp_client_http(test_server, integration_auth_token):
                 "data": {...}
             })
             assert result["success"] is True
-    
+
     Benefits:
         - Tests real HTTP transport
-        - Uses live database  
+        - Uses live database
         - Validates authentication and middleware
         - Real-world performance characteristics
     """
     import os
     import httpx
     import uuid
-    
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    # Skip if no auth token available
+    if not integration_auth_token:
+        logger.warning("⏭️  Skipping integration tests - no authentication token available")
+        pytest.skip("No authentication token available for integration tests")
+
     # Use deployed mcpdev target if available, otherwise fall back to local
     base_url = os.getenv("MCP_INTEGRATION_BASE_URL", "http://127.0.0.1:8000/api/mcp")
-    
+
     # Strip trailing slash and construct full URL
     server_url = f"{base_url.rstrip('/')}"
-    
-    # Set up authentication headers if we have a token (production)
+
+    # Set up authentication headers with token
     headers = {"Content-Type": "application/json"}
-    if integration_auth_token:
-        headers["Authorization"] = f"Bearer {integration_auth_token}"
+    headers["Authorization"] = f"Bearer {integration_auth_token}"
+    logger.info(f"🔐 Integration client using token: {integration_auth_token[:50]}...")
     
     async def call_tool(tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Call MCP tool via authenticated HTTP transport."""
@@ -219,6 +227,9 @@ async def integration_auth_token():
     This is the standard, reliable way to get JWT tokens for testing.
     """
     import os
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     # Use WorkOS User Management (password grant) - always available
     from tests.utils.workos_auth import authenticate_with_workos
@@ -226,53 +237,21 @@ async def integration_auth_token():
     email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
     password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
 
+    logger.info(f"🔐 Attempting WorkOS authentication for {email}...")
     token = await authenticate_with_workos(email, password)
     if token:
+        logger.info(f"✅ Got WorkOS token for {email}")
         return token
 
     # Fallback: try environment variable
     if os.getenv("ATOMS_TEST_AUTH_TOKEN"):
+        logger.info("✅ Using ATOMS_TEST_AUTH_TOKEN from environment")
         return os.getenv("ATOMS_TEST_AUTH_TOKEN")
-    
-    # Generate test token locally
-    def create_unsigned_jwt(claims):
-        """Create an unsigned JWT token."""
-        header = {"alg": "none", "typ": "JWT"}
-        header_b64 = base64.urlsafe_b64encode(
-            json.dumps(header).encode()
-        ).decode().rstrip("=")
-        
-        payload_b64 = base64.urlsafe_b64encode(
-            json.dumps(claims).encode()
-        ).decode().rstrip("=")
-        
-        return f"{header_b64}.{payload_b64}."
-    
-    now = int(time.time())
-    email = "kooshapari@kooshapari.com"
-    user_id = str(uuid.uuid4())
-    
-    claims = {
-        "sub": user_id,
-        "email": email,
-        "email_verified": True,
-        "aud": "fastmcp-mcp-server",
-        "iss": "authkit-test-generator",
-        "iat": now,
-        "exp": now + 3600,
-        "name": "Kosh Apari",
-        "given_name": "Kosh",
-        "family_name": "Apari",
-    }
-    
-    token = create_unsigned_jwt(claims)
-    
-    # Log token info for debugging
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Generated test JWT for {email}: {token[:50]}...")
-    
-    return token
+
+    # No token available - skip integration tests
+    logger.error("❌ No authentication token available for integration tests")
+    logger.error("   Set ATOMS_TEST_EMAIL, ATOMS_TEST_PASSWORD, or ATOMS_TEST_AUTH_TOKEN")
+    return None
 
 
 @pytest_asyncio.fixture
