@@ -177,14 +177,15 @@ class HybridAuthProvider(AuthProvider):
                     return None
                 
                 logger.info(f"✅ AuthKit OAuth JWT verified: sub={decoded.get('sub')}, email={decoded.get('email')}")
-                
-                return {
-                    "sub": decoded.get("sub"),
-                    "email": decoded.get("email"),
-                    "email_verified": decoded.get("email_verified", False),
-                    "name": decoded.get("name"),
-                    "claims": decoded,
-                }
+
+                # Return AccessToken object expected by FastMCP bearer auth middleware
+                from mcp.server.auth.middleware.bearer_auth import AccessToken
+                return AccessToken(
+                    token=token,
+                    client_id=decoded.get("sub", ""),
+                    scopes=[],
+                    expires_at=decoded.get("exp"),
+                )
             except Exception as e:
                 logger.debug(f"JWKS verification failed: {e}")
                 return None
@@ -302,15 +303,15 @@ class HybridAuthProvider(AuthProvider):
                 return None
             
             logger.info(f"✅ WorkOS User Management JWT verified: sub={decoded.get('sub')}, email={decoded.get('email')}")
-            
-            # Return in format expected by FastMCP
-            return {
-                "sub": decoded.get("sub"),
-                "email": decoded.get("email"),
-                "email_verified": decoded.get("email_verified", False),
-                "name": decoded.get("name"),
-                "claims": decoded,
-            }
+
+            # Return AccessToken object expected by FastMCP bearer auth middleware
+            from mcp.server.auth.middleware.bearer_auth import AccessToken
+            return AccessToken(
+                token=token,
+                client_id=decoded.get("sub", ""),
+                scopes=[],
+                expires_at=decoded.get("exp"),
+            )
         except jwt.InvalidTokenError as e:
             logger.debug(f"WorkOS User Management JWT verification failed: {e}")
             return None
@@ -360,15 +361,15 @@ class HybridAuthProvider(AuthProvider):
             claims = json.loads(payload_json)
             
             logger.debug(f"✅ Unsigned JWT verified in test mode: sub={claims.get('sub')}")
-            
-            # Return claims in format expected by FastMCP
-            return {
-                "sub": claims.get("sub"),
-                "email": claims.get("email"),
-                "email_verified": claims.get("email_verified", False),
-                "name": claims.get("name"),
-                "claims": claims  # Store original claims for reference
-            }
+
+            # Return AccessToken object expected by FastMCP bearer auth middleware
+            from mcp.server.auth.middleware.bearer_auth import AccessToken
+            return AccessToken(
+                token=token,
+                client_id=claims.get("sub", ""),
+                scopes=[],
+                expires_at=claims.get("exp"),
+            )
         except Exception as e:
             logger.debug(f"Unsigned JWT verification failed: {e}")
             return None
