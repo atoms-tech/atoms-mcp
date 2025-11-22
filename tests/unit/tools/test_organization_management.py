@@ -79,8 +79,8 @@ class TestOrganizationCreation:
         assert "updated_at" in data
     
     @pytest.mark.asyncio
-    async def test_create_organization_duplicate_name_fails(self, call_mcp):
-        """Creating organization with duplicate name should fail."""
+    async def test_create_organization_duplicate_name_allowed(self, call_mcp):
+        """Creating organization with duplicate name is allowed (no unique constraint)."""
         org_name = f"Duplicate Org {uuid.uuid4().hex[:8]}"
         org_data = {"name": org_name}
 
@@ -90,14 +90,19 @@ class TestOrganizationCreation:
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         assert result1["success"] is True
+        org_id_1 = result1["data"]["id"]
 
-        # Attempt to create second with same name
+        # Create second with same name (should succeed - no unique constraint)
         result2, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
-        assert result2["success"] is False
-        assert "already exists" in result2["error"].lower()
+        assert result2["success"] is True
+        org_id_2 = result2["data"]["id"]
+
+        # Verify they are different organizations
+        assert org_id_1 != org_id_2
+        assert result1["data"]["name"] == result2["data"]["name"]
     
     @pytest.mark.asyncio
     async def test_create_organization_invalid_type(self, call_mcp):
