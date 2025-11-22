@@ -40,6 +40,31 @@ def resolve_base_url() -> str:
     return base_url
 
 
+class HybridAuthProviderFactory:
+    """Factory class for HybridAuthProvider that FastMCP can instantiate.
+
+    FastMCP calls server_auth_class() with no arguments, so we need a factory
+    that can be instantiated without arguments and returns the configured provider.
+    """
+
+    def __init__(self):
+        """Initialize by creating the actual auth provider."""
+        base_url = resolve_base_url()
+        self._provider = create_auth_provider(base_url)
+
+    def __getattr__(self, name):
+        """Delegate all attribute access to the actual provider."""
+        return getattr(self._provider, name)
+
+    async def authenticate(self, request):
+        """Delegate authenticate to the actual provider."""
+        return await self._provider.authenticate(request)
+
+    async def verify_token(self, token: str):
+        """Delegate verify_token to the actual provider."""
+        return await self._provider.verify_token(token)
+
+
 def create_auth_provider(base_url: str) -> Any:
     """Create authentication provider based on FASTMCP_SERVER_AUTH configuration."""
     # Check which auth provider is configured
