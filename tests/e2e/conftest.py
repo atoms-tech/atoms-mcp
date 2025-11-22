@@ -297,9 +297,8 @@ async def authkit_auth_token():
         "❌ No AuthKit access token available. "
         "Tests require real AuthKit JWTs - no static tokens allowed.\n"
         "To get a token:\n"
-        "  1. Run: python scripts/get_authkit_token_playwright.py\n"
-        "  2. Export: export ATOMS_TEST_AUTH_TOKEN=<token>\n"
-        "  3. Or ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set for auto-collection"
+        "  1. Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set\n"
+        "  2. Or export: export ATOMS_TEST_AUTH_TOKEN=<token>"
     )
     logger_local.error(error_msg)
     import pytest
@@ -309,41 +308,39 @@ async def authkit_auth_token():
 @pytest_asyncio.fixture
 async def e2e_auth_token(authkit_auth_token):
     """Generate authentication token for E2E tests.
-    
+
     REQUIRED: All tests must use real AuthKit access tokens - no static or test tokens allowed.
-    
+
     Provides a valid AuthKit JWT bearer token that the MCP server will accept.
     The token MUST be a real AuthKit JWT obtained via:
-    1. OAuth flow (via Playwright automation)
-    2. WorkOS User Management API (authenticate_with_password)
-    3. Pre-obtained token in ATOMS_TEST_AUTH_TOKEN environment variable
-    
+    1. WorkOS User Management API (password grant)
+    2. Pre-obtained token in ATOMS_TEST_AUTH_TOKEN environment variable
+
     Strategy:
     - Uses real AuthKit JWT from authkit_auth_token fixture (REQUIRED)
     - NO fallback to static tokens or unsigned JWTs
-    
+
     Note: This fixture can make external service calls to AuthKit when authenticating
     with real credentials. If no AuthKit token is available, tests will be skipped.
     """
     import os
     import logging
-    
+
     logger_local = logging.getLogger(__name__)
-    
+
     # **ONLY Strategy: Use real AuthKit JWT from cloud authentication (REQUIRED)**
     # All tests MUST use real AuthKit access tokens - no static or test tokens allowed
     if authkit_auth_token is not None:
         logger_local.info(f"✅ Using real AuthKit JWT for E2E authentication")
         return authkit_auth_token
-    
+
     # No AuthKit token available - tests REQUIRE real tokens
     error_msg = (
         "❌ No AuthKit access token available. "
         "Tests require real AuthKit JWTs - no static or test tokens allowed.\n"
         "To get a token:\n"
-        "  1. Run: python scripts/get_authkit_token_playwright.py\n"
-        "  2. Export: export ATOMS_TEST_AUTH_TOKEN=<token>\n"
-        "  3. Or ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set for auto-collection"
+        "  1. Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set\n"
+        "  2. Or export: export ATOMS_TEST_AUTH_TOKEN=<token>"
     )
     logger_local.error(error_msg)
     import pytest

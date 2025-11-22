@@ -86,60 +86,30 @@ def pytest_sessionstart(session):
         logger.info("   Tests will attempt to collect tokens individually if needed")
         return
     
-    # Try to collect token automatically using Playwright
-    logger.info("🔄 Auto-collecting AuthKit token before test session (headless)...")
+    # Try to collect token automatically using WorkOS User Management
+    logger.info("🔄 Auto-collecting AuthKit token before test session via WorkOS...")
     try:
-        import sys
-        import importlib.util
-        from pathlib import Path
-        
-        scripts_dir = Path(__file__).parent.parent / "scripts"
-        playwright_script = scripts_dir / "get_authkit_token_playwright.py"
-        
-        if playwright_script.exists():
-            spec = importlib.util.spec_from_file_location(
-                "get_authkit_token_playwright",
-                playwright_script
-            )
-            playwright_module = importlib.util.module_from_spec(spec)
-            sys.modules["get_authkit_token_playwright"] = playwright_module
-            spec.loader.exec_module(playwright_module)
-            
-            # Ensure headless mode
-            original_headless = os.getenv("HEADLESS")
-            os.environ["HEADLESS"] = "true"
-            
-            try:
-                # Run Playwright flow
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    token = loop.run_until_complete(playwright_module.get_authkit_token_via_playwright())
-                    if token:
-                        # Save to keychain for future use
-                        try:
-                            from authkit_token_cache import save_token_to_keychain
-                            save_token_to_keychain(token)
-                        except Exception as save_error:
-                            logger.debug(f"Could not save to keychain: {save_error}")
-                        
-                        # Cache in environment for this session
-                        os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
-                        logger.info("✅ Successfully collected AuthKit token for test session")
-                        print("✅ AuthKit token collected, saved to keychain, and cached for all tests")
-                    else:
-                        logger.warning("⚠️  Playwright token collection returned None")
-                finally:
-                    loop.close()
-            finally:
-                if original_headless is None:
-                    os.environ.pop("HEADLESS", None)
-                else:
-                    os.environ["HEADLESS"] = original_headless
-        else:
-            logger.warning(f"Playwright script not found: {playwright_script}")
+        from tests.utils.workos_auth import authenticate_with_workos
+
+        email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
+        password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
+
+        # Run WorkOS authentication
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            token = loop.run_until_complete(authenticate_with_workos(email, password))
+            if token:
+                # Cache in environment for this session
+                os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
+                logger.info("✅ Successfully collected AuthKit token for test session via WorkOS")
+                print("✅ AuthKit token collected via WorkOS and cached for all tests")
+            else:
+                logger.warning("⚠️  WorkOS token collection returned None")
+        finally:
+            loop.close()
     except ImportError as e:
-        logger.debug(f"Playwright not available for global token collection: {e}")
+        logger.debug(f"WorkOS auth module not available: {e}")
     except Exception as e:
         logger.warning(f"Global token collection failed: {e}")
         import traceback
