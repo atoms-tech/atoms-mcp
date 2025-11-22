@@ -392,20 +392,40 @@ async def end_to_end_client(e2e_auth_token):
         import httpx
 
         # Get deployment URL from environment or use local default
-        # Priority: MCP_E2E_BASE_URL env var > local server > mcpdev
+        # Priority: MCP_E2E_BASE_URL env var > local server (if ATOMS_TEST_MODE) > mcpdev
         deployment_url = os.getenv("MCP_E2E_BASE_URL")
         if not deployment_url:
-            # Try local server first
-            try:
-                async with httpx.AsyncClient() as test_client:
-                    response = await test_client.get("http://localhost:8000/health", timeout=2)
-                    if response.status_code == 200:
-                        deployment_url = "http://localhost:8000/api/mcp"
-                        print("✅ Using local MCP server at http://localhost:8000")
-            except Exception:
-                pass
+            # If test mode is enabled, MUST use local server (unsigned JWTs not accepted by deployed server)
+            if os.getenv("ATOMS_TEST_MODE", "false").lower() == "true":
+                try:
+                    async with httpx.AsyncClient() as test_client:
+                        response = await test_client.get("http://localhost:8000/health", timeout=2)
+                        if response.status_code == 200:
+                            deployment_url = "http://localhost:8000/api/mcp"
+                            print("✅ Test mode enabled - using local MCP server at http://localhost:8000")
+                        else:
+                            raise Exception("Local server health check failed")
+                except Exception as e:
+                    error_msg = (
+                        "❌ Test mode enabled but local server not available at http://localhost:8000\n"
+                        "Please start the local server: python server.py\n"
+                        f"Error: {e}"
+                    )
+                    print(error_msg)
+                    import pytest
+                    pytest.skip(error_msg)
+            else:
+                # Try local server first (if available)
+                try:
+                    async with httpx.AsyncClient() as test_client:
+                        response = await test_client.get("http://localhost:8000/health", timeout=2)
+                        if response.status_code == 200:
+                            deployment_url = "http://localhost:8000/api/mcp"
+                            print("✅ Using local MCP server at http://localhost:8000")
+                except Exception:
+                    pass
 
-        # Fall back to mcpdev if local not available
+        # Fall back to mcpdev if local not available and not in test mode
         if not deployment_url:
             deployment_url = "https://mcpdev.atoms.tech/api/mcp"
             print("⚠️  Local server not available, using mcpdev.atoms.tech")
