@@ -48,9 +48,18 @@ class TestRequirementCreation:
         )
         proj_id = proj_result["data"]["id"]
 
+        # Create document first (required for requirement)
+        doc_data = {"name": f"Spec Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": doc_data}
+        )
+        doc_id = doc_result["data"]["id"]
+
         req_data = {
             "name": f"Req {uuid.uuid4().hex[:8]}",
-            "project_id": proj_id
+            "project_id": proj_id,
+            "document_id": doc_id
         }
 
         result, _ = await call_mcp(
@@ -86,10 +95,19 @@ class TestRequirementCreation:
         )
         proj_id = proj_result["data"]["id"]
 
+        # Create document first (required for requirement)
+        doc_data = {"name": f"Spec Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}
+        doc_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "document", "operation": "create", "data": doc_data}
+        )
+        doc_id = doc_result["data"]["id"]
+
         req_data = {
             "name": "Login Feature",
             "description": "User login functionality",
-            "project_id": proj_id
+            "project_id": proj_id,
+            "document_id": doc_id
         }
 
         result, _ = await call_mcp(
