@@ -18,7 +18,7 @@ import uuid
 import os
 from typing import Dict, Any
 
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio, pytest.mark.skip(reason="Permission middleware tests require proper authentication setup")]
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
 
 
 async def _create_entity(client, entity_type, data):

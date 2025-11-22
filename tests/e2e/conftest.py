@@ -453,20 +453,12 @@ async def production_supabase():
 @pytest_asyncio.fixture
 async def workflow_scenarios(end_to_end_client):
     """Pre-configured complex workflow scenarios for E2E testing.
-    
+
     This fixture works with both mock harness and real HTTP client.
-    When mock harness is enabled, all workflow tests will run.
+    Supports both local and deployed server testing.
     """
-    # Check if we're using mock client
     import os
-    use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
-    
-    # Only skip for real HTTP client when not using mock harness
-    if not use_mock:
-        # Check if we're using a real HTTP client vs mock
-        if hasattr(end_to_end_client, '__class__') and \
-           end_to_end_client.__class__.__name__ == 'AuthenticatedMcpClient':
-            pytest.skip("workflow_scenarios fixture requires mock harness (use USE_MOCK_HARNESS=true)")
+    import uuid
     
     async def create_complete_project_scenario():
         """Create a complete project scenario with org → project → docs → reqs → tests."""
