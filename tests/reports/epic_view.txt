@@ -29,7 +29,7 @@
 ║   ✅ User can create requirements (3 passing, 2 failing)                      ║
 ║   ✅ User can pull requirements from system                                   ║
 ║   ✅ User can search requirements (63 passing, 2 failing)                     ║
-║   ✅ User can trace links between requirements and t... (11 passing, 3 fai... ║
+║   ✅ User can trace links between requirements and t... (12 passing, 2 fai... ║
 ║                                                                              ║
 ║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -47,7 +47,7 @@
 ║                                                                              ║
 ║ 📦 Entity Relationships (4/4) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can link entities together (12 passing, 1 failing)                  ║
+║   ✅ User can link entities together                                          ║
 ║   ✅ User can unlink related entities                                         ║
 ║   ✅ User can view entity relationships                                       ║
 ║   ✅ User can check if entities are related                                   ║
