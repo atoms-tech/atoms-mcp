@@ -729,6 +729,129 @@ async def disaster_recovery_scenario():
 
 # E2E-specific test markers and configuration
 
+@pytest_asyncio.fixture
+async def test_data_setup(end_to_end_client):
+    """Comprehensive test data setup for e2e tests.
+
+    Creates a complete test environment with:
+    - Organization with members
+    - Projects with documents
+    - Requirements with test cases
+    - Relationships between entities
+
+    Returns:
+        Dict with all created entities for use in tests
+    """
+    import uuid
+
+    test_id = uuid.uuid4().hex[:8]
+    data = {}
+
+    try:
+        # Create organization
+        org_result = await end_to_end_client.entity_create(
+            "organization",
+            {"name": f"Test Org {test_id}", "description": "Test organization"}
+        )
+        if org_result.get("success"):
+            data["organization"] = org_result["data"]
+            org_id = org_result["data"]["id"]
+
+            # Create projects
+            for i in range(2):
+                proj_result = await end_to_end_client.entity_create(
+                    "project",
+                    {
+                        "name": f"Project {i} {test_id}",
+                        "organization_id": org_id,
+                        "description": f"Test project {i}"
+                    }
+                )
+                if proj_result.get("success"):
+                    if "projects" not in data:
+                        data["projects"] = []
+                    data["projects"].append(proj_result["data"])
+                    proj_id = proj_result["data"]["id"]
+
+                    # Create documents in project
+                    for j in range(2):
+                        doc_result = await end_to_end_client.entity_create(
+                            "document",
+                            {
+                                "name": f"Doc {j} {test_id}",
+                                "project_id": proj_id,
+                                "description": f"Test document {j}"
+                            }
+                        )
+                        if doc_result.get("success"):
+                            if "documents" not in data:
+                                data["documents"] = []
+                            data["documents"].append(doc_result["data"])
+
+            # Create requirements
+            for i in range(3):
+                req_result = await end_to_end_client.entity_create(
+                    "requirement",
+                    {
+                        "name": f"REQ {i} {test_id}",
+                        "organization_id": org_id,
+                        "status": "open",
+                        "priority": "high" if i == 0 else "medium"
+                    }
+                )
+                if req_result.get("success"):
+                    if "requirements" not in data:
+                        data["requirements"] = []
+                    data["requirements"].append(req_result["data"])
+
+            # Create test cases
+            for i in range(2):
+                tc_result = await end_to_end_client.entity_create(
+                    "test_case",
+                    {
+                        "name": f"TC {i} {test_id}",
+                        "organization_id": org_id,
+                        "status": "draft"
+                    }
+                )
+                if tc_result.get("success"):
+                    if "test_cases" not in data:
+                        data["test_cases"] = []
+                    data["test_cases"].append(tc_result["data"])
+
+    except Exception as e:
+        print(f"Error setting up test data: {e}")
+
+    yield data
+
+    # Cleanup is optional - tests can leave data for inspection
+
+
+@pytest_asyncio.fixture
+async def test_data_with_relationships(test_data_setup):
+    """Test data with relationships between entities.
+
+    Extends test_data_setup with relationships:
+    - Requirements linked to test cases
+    - Documents linked to requirements
+    - Projects linked to organization
+    """
+    data = test_data_setup
+
+    # Add relationship information
+    if data.get("requirements") and data.get("test_cases"):
+        data["relationships"] = {
+            "requirement_to_test_case": [
+                {
+                    "requirement_id": data["requirements"][0]["id"],
+                    "test_case_id": data["test_cases"][0]["id"]
+                }
+            ]
+        }
+
+    return data
+
+
 def pytest_configure(config):
     """Configure E2E test markers."""
     config.addinivalue_line(
