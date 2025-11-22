@@ -9,7 +9,11 @@
   🟡 tests/e2e/test_workflow_automation.py::TestWorkflowExecution::test_workflow_with_retry
      → Test passed after retry (potentially flaky)
 
+🐌 SLOW (1):
+  🔴 tests/e2e/test_workflow_automation.py::TestWorkflowExecution::test_workflow_with_transaction
+     → Very slow: 8.09s (threshold: 5.0s)
+
 ----------------------------------------------------------------------
-Total Warnings: 2
-  🔴 High: 0  🟡 Medium: 2  🟢 Low: 0
+Total Warnings: 3
+  🔴 High: 1  🟡 Medium: 2  🟢 Low: 0
 ======================================================================
