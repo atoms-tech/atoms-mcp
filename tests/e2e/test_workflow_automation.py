@@ -1,9 +1,58 @@
-"""Simplified Workflow Automation E2E Tests"""
+"""Consolidated Workflow Automation E2E Tests
+
+Tests for:
+1. Simple and multi-step workflow execution
+2. Workflow transactions and rollback
+3. Concurrent workflow execution
+4. Project workflow scenarios
+5. Workflow error handling and recovery
+
+This file consolidates test_workflow_automation.py, test_concurrent_workflows.py,
+and test_project_workflow.py with canonical naming.
+"""
 
 import pytest
 import uuid
+import asyncio
+import pytest_asyncio
 
-pytestmark = [pytest.mark.e2e, pytest.mark.asyncio]
+from tests.e2e.helpers import E2EDeploymentHarness
+
+pytestmark = [pytest.mark.e2e, pytest.mark.asyncio, pytest.mark.full_workflow]
+
+
+@pytest_asyncio.fixture
+async def deployment_harness(end_to_end_client):
+    """Fixture for deployment harness."""
+    harness = E2EDeploymentHarness()
+    end_to_end_client.call_tool.side_effect = harness.call_tool
+    return harness
+
+
+@pytest_asyncio.fixture
+async def e2e_test_cleanup(end_to_end_client):
+    """Fixture for test cleanup."""
+    entities_to_cleanup = []
+
+    def track_entity(entity_type, entity_id):
+        entities_to_cleanup.append((entity_type, entity_id))
+
+    yield track_entity, entities_to_cleanup
+
+    # Cleanup after test
+    for entity_type, entity_id in entities_to_cleanup:
+        try:
+            await end_to_end_client.call_tool(
+                "entity_tool",
+                {
+                    "operation": "delete",
+                    "entity_type": entity_type,
+                    "entity_id": entity_id,
+                    "soft_delete": True,
+                },
+            )
+        except Exception:
+            pass  # Ignore cleanup errors
 
 
 class TestWorkflowExecution:
@@ -113,4 +162,76 @@ class TestProjectSetupWorkflow:
                 {"name": f"Team Project {uuid.uuid4().hex[:4]}", "organization_id": org_id}
             )
             assert "success" in result or "error" in result
+
+
+class TestConcurrentWorkflows:
+    """Concurrent workflow execution tests."""
+
+    @pytest.mark.asyncio
+    async def test_parallel_organization_creation(
+        self,
+        deployment_harness,
+        workflow_scenarios,
+        e2e_test_cleanup,
+    ):
+        """Scenario builder spins up 5 orgs concurrently without collisions."""
+        track_entity, _ = e2e_test_cleanup
+        report = await workflow_scenarios["parallel_workflow"]()
+
+        assert report["total_created"] == 5
+        assert report["successful"] == 5
+        for org in report["organizations"]:
+            track_entity("organization", org["id"])
+            stored = deployment_harness.get_entities("organization")[org["id"]]
+            assert stored["name"].startswith("Parallel Org")
+
+    @pytest.mark.asyncio
+    async def test_parallel_project_creation(
+        self,
+        deployment_harness,
+        workflow_scenarios,
+        end_to_end_client,
+    ):
+        """Create projects concurrently anchored to scenario org context."""
+        graph = await workflow_scenarios["complete_project"]()
+        org_id = graph["organization_id"]
+
+        # Create multiple projects concurrently
+        tasks = [
+            end_to_end_client.entity_create(
+                "project",
+                {"name": f"Parallel Project {i}", "organization_id": org_id}
+            )
+            for i in range(3)
+        ]
+
+        results = await asyncio.gather(*tasks)
+        successful = sum(1 for r in results if r.get("success"))
+        assert successful >= 1  # At least one should succeed
+
+    @pytest.mark.asyncio
+    async def test_concurrent_entity_updates(
+        self,
+        deployment_harness,
+        workflow_scenarios,
+        end_to_end_client,
+    ):
+        """Update same entity concurrently from multiple workflows."""
+        graph = await workflow_scenarios["complete_project"]()
+        org_id = graph["organization_id"]
+
+        # Update organization concurrently
+        tasks = [
+            end_to_end_client.entity_update(
+                "organization",
+                org_id,
+                {"name": f"Updated {i}"}
+            )
+            for i in range(3)
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # At least one should succeed
+        successful = sum(1 for r in results if isinstance(r, dict) and r.get("success"))
+        assert successful >= 1
 

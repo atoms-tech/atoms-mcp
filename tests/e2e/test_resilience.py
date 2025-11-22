@@ -1,18 +1,27 @@
 """
-Error recovery and resilience tests.
+Consolidated error recovery and resilience tests.
 
 Tests for:
 1. Connection retries and timeouts
 2. Transaction handling on errors
 3. Authentication token expiration
 4. Permission denied scenarios
+5. Invalid input handling
+6. Concurrent update conflicts
+7. Partial batch failures
+
+This file consolidates test_resilience.py and test_error_recovery.py with canonical naming.
 """
 
 import pytest
 import time
+import asyncio
 from unittest.mock import MagicMock
+import pytest_asyncio
 
-pytestmark = pytest.mark.integration
+from tests.e2e.helpers import E2EDeploymentHarness
+
+pytestmark = [pytest.mark.e2e, pytest.mark.full_workflow]
 
 
 class TestErrorRecoveryResilience:
@@ -154,3 +163,73 @@ class TestErrorRecoveryResilience:
                     circuit_open = True
 
         assert circuit_open is True
+
+
+@pytest_asyncio.fixture
+async def deployment_harness(end_to_end_client):
+    """Fixture for deployment harness."""
+    harness = E2EDeploymentHarness()
+    end_to_end_client.call_tool.side_effect = harness.call_tool
+    return harness
+
+
+class TestErrorRecoveryScenarios:
+    """Test error recovery scenarios from test_error_recovery.py."""
+
+    @pytest.mark.asyncio
+    async def test_invalid_input_handling(
+        self,
+        deployment_harness,
+        workflow_scenarios,
+        end_to_end_client,
+    ):
+        """Invalid entity type from scenario builder should be rejected with error."""
+        scenario = workflow_scenarios["error_recovery"]
+        payloads = await scenario()
+
+        result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "operation": "create",
+                "entity_type": payloads["invalid_entity_type"],
+                "data": payloads["missing_required_data"],
+            },
+        )
+
+        assert result["success"] is False
+        assert "Unsupported" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_concurrent_update_conflicts(
+        self,
+        deployment_harness,
+        workflow_scenarios,
+        end_to_end_client,
+    ):
+        """Concurrent updates to same entity should handle conflicts."""
+        graph = await workflow_scenarios["complete_project"]()
+        org_id = graph["organization_id"]
+
+        # Simulate concurrent updates
+        update1 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "operation": "update",
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "data": {"name": "Updated Name 1"},
+            },
+        )
+
+        update2 = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "operation": "update",
+                "entity_type": "organization",
+                "entity_id": org_id,
+                "data": {"name": "Updated Name 2"},
+            },
+        )
+
+        # At least one should succeed
+        assert update1.get("success") or update2.get("success")
