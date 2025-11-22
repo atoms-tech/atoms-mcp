@@ -20,67 +20,93 @@ python -m pytest tests/unit
 - ~1 second per test
 - Use: `tests/unit/`
 
-### 2. **Integration Tests** (Local Server, Real Services)
+### 2. **E2E Tests** (Flexible Targeting via atoms CLI)
+All E2E tests use **real WorkOS authentication** with the same keys from `.env`
+
+**Local Server:**
 ```bash
 # Terminal 1: Start local server
 python server.py
 
-# Terminal 2: Run integration tests
-MCP_E2E_BASE_URL=http://localhost:8000/api/mcp python -m pytest tests/e2e
+# Terminal 2: Run E2E tests against local server
+atoms test:e2e --env local
 ```
-- Real local server at `http://localhost:8000`
+- Local server at `http://localhost:8000`
 - Real Supabase database
-- Unsigned JWTs (test mode)
+- Real WorkOS JWT (same keys as prod)
 - ~2-5 seconds per test
-- Use: `tests/e2e/` with `MCP_E2E_BASE_URL=http://localhost:8000/api/mcp`
 
-### 3. **E2E Tests** (Deployed Server, Real Authentication)
+**Development Server:**
 ```bash
-# Requires WorkOS credentials
-export WORKOS_API_KEY=<your_key>
-export WORKOS_CLIENT_ID=<your_client_id>
-
-# Run E2E tests against deployed server
-python -m pytest tests/e2e
+atoms test:e2e --env dev
 ```
 - Deployed server at `mcpdev.atoms.tech`
 - Real WorkOS authentication
-- Real data on your account
+- Real data on dev account
 - ~5-10 seconds per test
-- Use: `tests/e2e/` (default)
+
+**Production Server:**
+```bash
+atoms test:e2e --env prod
+```
+- Deployed server at `mcp.atoms.tech`
+- Real WorkOS authentication
+- Real data on prod account
+- ~5-10 seconds per test
 
 ## Authentication Flow
 
-### Local Testing (Integration)
+All environments use **real WorkOS authentication** with the same keys:
+
 ```
-Test → Unsigned JWT (test mode) → Local Server → Accepts unsigned JWT
+Test → WorkOS Password Grant → Real JWT → Target Server → Validates JWT
+                                              ↓
+                                    Local (localhost:8000)
+                                    Dev (mcpdev.atoms.tech)
+                                    Prod (mcp.atoms.tech)
 ```
 
-### Deployed Testing (E2E)
-```
-Test → WorkOS Password Grant → Real JWT → mcpdev.atoms.tech → Validates JWT
-```
+**Key Point:** Local server uses the same WorkOS keys as dev/prod (from `.env`)
 
 ## Running Tests
 
-### Run all E2E tests (deployed server)
+### Using atoms CLI (Recommended)
+
+**Run E2E tests against local server:**
 ```bash
-python cli.py test --scope e2e
+atoms test:e2e --env local
 ```
 
-### Run specific E2E test
+**Run E2E tests against dev server:**
+```bash
+atoms test:e2e --env dev
+```
+
+**Run E2E tests against prod server:**
+```bash
+atoms test:e2e --env prod
+```
+
+**Run unit tests:**
+```bash
+atoms test:unit
+```
+
+### Using pytest directly
+
+**Run all E2E tests (uses dev by default):**
+```bash
+python -m pytest tests/e2e -m e2e
+```
+
+**Run specific E2E test:**
 ```bash
 python -m pytest tests/e2e/test_organization_crud.py -xvs
 ```
 
-### Run integration tests (local server)
+**Run unit tests:**
 ```bash
-MCP_E2E_BASE_URL=http://localhost:8000/api/mcp python -m pytest tests/e2e
-```
-
-### Run unit tests
-```bash
-python cli.py test --scope unit
+python -m pytest tests/unit -m unit
 ```
 
 ## Important Notes

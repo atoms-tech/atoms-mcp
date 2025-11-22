@@ -218,23 +218,19 @@ async def full_deployment():
 
 @pytest_asyncio.fixture(scope="session")
 async def authkit_auth_token():
-    """Authenticate with WorkOS/AuthKit and get a JWT token for E2E testing.
+    """Authenticate with WorkOS and get a real JWT token for E2E testing.
 
-    Supports two modes:
-    1. Local testing: Generate unsigned JWT for testing (when ATOMS_TEST_MODE=true)
-    2. Production: Use real AuthKit access tokens from WorkOS
+    All environments (local, dev, prod) use real WorkOS authentication.
+    The same WorkOS keys are used for all environments (from .env).
 
     Returns:
-        Valid JWT token for authenticated API calls
+        Valid WorkOS JWT token for authenticated API calls
 
     Raises:
         pytest.skip: If no token can be obtained (tests will be skipped)
     """
     import os
     import logging
-    import asyncio
-    import json
-    import base64
 
     logger_local = logging.getLogger(__name__)
 
@@ -244,48 +240,25 @@ async def authkit_auth_token():
         logger_local.info("✅ Using pre-obtained token from environment")
         return pre_obtained_token
 
-    # For local testing: Generate unsigned JWT
-    if os.getenv("ATOMS_TEST_MODE", "false").lower() == "true":
-        logger_local.info("🧪 Generating unsigned JWT for local testing")
+    # Use real WorkOS authentication for all environments
+    email = os.getenv("WORKOS_TEST_EMAIL", "kooshapari@kooshapari.com")
+    password = os.getenv("WORKOS_TEST_PASSWORD", "ASD3on54_Pax90")
 
-        # Create unsigned JWT (alg: "none")
-        header = {"alg": "none", "typ": "JWT"}
-        payload = {
-            "sub": "test-user-" + str(uuid.uuid4())[:8],
-            "email": "test@atoms.local",
-            "email_verified": True,
-            "name": "Test User",
-            "iat": int(time.time()),
-            "exp": int(time.time()) + 3600
-        }
-
-        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
-        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
-
-        # Unsigned JWT: header.payload. (empty signature)
-        token = f"{header_b64}.{payload_b64}."
-        logger_local.info(f"✅ Generated unsigned JWT for testing: sub={payload['sub']}")
-        return token
-
-    # Production: Use real AuthKit tokens
-    email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
-    password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
-
-    # Use WorkOS User Management password grant (always available)
+    # Use WorkOS User Management password grant
     from tests.utils.workos_auth import authenticate_with_workos
 
-    logger_local.info(f"🔐 Authenticating with WorkOS User Management as {email}")
+    logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
     token = await authenticate_with_workos(email, password)
 
     if token:
-        logger_local.info("✅ Successfully obtained AuthKit token via WorkOS")
+        logger_local.info("✅ Successfully obtained real WorkOS JWT token")
         # Cache it in environment for this session
         os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
         return token
     else:
         error_msg = (
-            f"❌ Failed to obtain AuthKit token via WorkOS User Management.\n"
-            f"Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set."
+            f"❌ Failed to obtain WorkOS JWT token.\n"
+            f"Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set in .env"
         )
         logger_local.error(error_msg)
         import pytest
@@ -378,9 +351,11 @@ async def end_to_end_client(e2e_auth_token):
 
         # Get deployment URL from environment variable set by TestEnvManager (atoms CLI)
         # This respects the --env flag from atoms CLI:
-        # - atoms test:e2e --env local → http://localhost:8000/api/mcp (unsigned JWT, test mode)
+        # - atoms test:e2e --env local → http://localhost:8000/api/mcp (real JWT, same WorkOS keys)
         # - atoms test:e2e --env dev → https://mcpdev.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
         # - atoms test:e2e --env prod → https://mcp.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
+        #
+        # ALL environments use real WorkOS authentication with the same keys from .env
 
         deployment_url = os.getenv("MCP_E2E_BASE_URL")
         if not deployment_url:
@@ -388,29 +363,23 @@ async def end_to_end_client(e2e_auth_token):
             deployment_url = "https://mcpdev.atoms.tech/api/mcp"
             print("⚠️  MCP_E2E_BASE_URL not set, using dev: mcpdev.atoms.tech")
 
-        # Determine if we're using local server or deployed server
-        is_local = "localhost" in deployment_url or "127.0.0.1" in deployment_url
+        # Disable test mode for all environments - use real WorkOS authentication
+        # Local server uses the same WorkOS keys as prod (from .env)
+        if "ATOMS_TEST_MODE" in os.environ:
+            del os.environ["ATOMS_TEST_MODE"]
 
-        if is_local:
-            # Local server: Enable test mode for unsigned JWTs
-            os.environ["ATOMS_TEST_MODE"] = "true"
-            print(f"✅ Local server: {deployment_url}")
-            print("   Using unsigned JWTs (test mode)")
+        # Determine environment name for logging
+        if "localhost" in deployment_url or "127.0.0.1" in deployment_url:
+            env_name = "Local (localhost:8000)"
+        elif "mcpdev" in deployment_url:
+            env_name = "Development (mcpdev.atoms.tech)"
+        elif "mcp.atoms.tech" in deployment_url:
+            env_name = "Production (mcp.atoms.tech)"
         else:
-            # Deployed server (dev/prod): Disable test mode, use real authentication
-            if "ATOMS_TEST_MODE" in os.environ:
-                del os.environ["ATOMS_TEST_MODE"]
+            env_name = deployment_url
 
-            # Extract environment name from URL
-            if "mcpdev" in deployment_url:
-                env_name = "Development (mcpdev.atoms.tech)"
-            elif "mcp.atoms.tech" in deployment_url:
-                env_name = "Production (mcp.atoms.tech)"
-            else:
-                env_name = deployment_url
-
-            print(f"✅ Deployed server: {env_name}")
-            print("   Using real WorkOS authentication")
+        print(f"✅ Target environment: {env_name}")
+        print("   Using real WorkOS authentication (same keys for all environments)")
         
         # Create httpx client with authentication headers
         headers = {
