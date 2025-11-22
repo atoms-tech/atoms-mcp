@@ -44,6 +44,8 @@ def create_auth_provider(base_url: str) -> Any:
     """Create authentication provider based on FASTMCP_SERVER_AUTH configuration."""
     # Check which auth provider is configured
     auth_provider_class = os.getenv("FASTMCP_SERVER_AUTH", "fastmcp.server.auth.providers.workos.AuthKitProvider")
+    print(f"🔐 create_auth_provider called with auth_provider_class={auth_provider_class}")
+    logger.info(f"🔐 create_auth_provider called with auth_provider_class={auth_provider_class}")
 
     authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
     if not authkit_domain:

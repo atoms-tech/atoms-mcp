@@ -319,7 +319,12 @@ def create_consolidated_server() -> FastMCP:
     # - Vercel Production: https://mcp.atoms.tech
 
     base_url = resolve_base_url()
+    import sys
+    print(f"🔐🔐🔐 About to call create_auth_provider with base_url={base_url}", flush=True)
+    sys.stdout.flush()
     auth_provider = create_auth_provider(base_url)
+    print(f"🔐🔐🔐 create_auth_provider returned: {type(auth_provider)}", flush=True)
+    sys.stdout.flush()
 
     # Initialize distributed rate limiter (Upstash Redis with in-memory fallback)
     try:

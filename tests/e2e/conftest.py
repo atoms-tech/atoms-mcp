@@ -332,7 +332,8 @@ async def end_to_end_client(e2e_auth_token):
     
     # Only use the mock harness when explicitly requested via environment variable
     use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
-    
+    print(f"🧪 end_to_end_client fixture: use_mock={use_mock}")
+
     if use_mock:
         # Use mock client for testing
         from tests.e2e.mock_client import MockMcpClient
