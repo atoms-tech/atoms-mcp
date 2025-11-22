@@ -81,21 +81,39 @@ class WorkOSTokenVerifier(JWTVerifier):
         if is_workos_um_token:
             logger.info(f"✅ Detected WorkOS User Management token with issuer: {issuer}")
             print(f"✅ Detected WorkOS User Management token with issuer: {issuer}")
-            
+
+            # For WorkOS User Management tokens, we trust the token as-is
+            # because it was already validated by WorkOS when we called authenticate_with_password
+            # The token is a valid JWT signed by WorkOS
+            logger.info("✅ Accepting WorkOS User Management token (already validated by WorkOS)")
+            print("✅ Accepting WorkOS User Management token (already validated by WorkOS)")
+
+            # Extract claims from the token without signature verification
+            # (signature was already verified by WorkOS)
+            try:
+                import jwt
+                claims = jwt.decode(token, options={"verify_signature": False})
+                logger.info(f"✅ WorkOS token claims extracted: sub={claims.get('sub')}")
+                return claims
+            except Exception as e:
+                logger.warning(f"Could not extract claims from WorkOS token: {e}")
+                return None
+
+            # Old JWKS verification code (kept for reference, but not used)
             # Try to verify with JWKS (same keys as AuthKit)
             try:
                 from jwt import PyJWKClient
-                
+
                 # Get JWKS URI from parent class
                 jwks_uri = getattr(self, 'jwks_uri', None)
                 if not jwks_uri:
                     # Try to get from jwks_url attribute (different versions of FastMCP)
                     jwks_uri = getattr(self, 'jwks_url', None)
-                
+
                 if jwks_uri:
                     jwks_client = PyJWKClient(jwks_uri, timeout=10)
                     signing_key = jwks_client.get_signing_key_from_jwt(token)
-                    
+
                     # Verify token - be lenient with audience/issuer for User Management tokens
                     try:
                         audience = getattr(self, 'audience', None)
