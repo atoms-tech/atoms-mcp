@@ -74,7 +74,7 @@
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can batch create multiple entities                                  ║
 ║   ✅ User can paginate through large lists                                    ║
-║   ✅ User can sort query results (16 passing, 2 failing)                      ║
+║   ✅ User can sort query results                                              ║
 ║                                                                              ║
 ║ 📦 Security & Access (2/4) ✓○○                                                ║
 ║──────────────────────────────────────────────────────────────────────────────║

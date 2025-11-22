@@ -9,7 +9,7 @@
 
 🐌 SLOW (1):
   🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
-     → Slow: 4.73s (threshold: 1.0s)
+     → Slow: 3.18s (threshold: 1.0s)
 
 ----------------------------------------------------------------------
 Total Warnings: 2
