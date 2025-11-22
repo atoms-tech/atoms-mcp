@@ -376,29 +376,22 @@ async def end_to_end_client(e2e_auth_token):
         # Use real HTTP client
         import httpx
 
-        # Get deployment URL from environment or use local default
-        # Priority: MCP_E2E_BASE_URL env var > local server > mcpdev
+        # E2E tests should use DEPLOYED server (mcpdev.atoms.tech) with REAL authentication
+        # NOT local server with unsigned JWTs
+        #
+        # Priority: MCP_E2E_BASE_URL env var > mcpdev.atoms.tech (deployed)
+        # Local server is only for integration/unit tests, not E2E
+
         deployment_url = os.getenv("MCP_E2E_BASE_URL")
         if not deployment_url:
-            # Try local server first (if available)
-            try:
-                async with httpx.AsyncClient() as test_client:
-                    response = await test_client.get("http://localhost:8000/health", timeout=2)
-                    if response.status_code == 200:
-                        deployment_url = "http://localhost:8000/api/mcp"
-                        # Enable test mode for local server
-                        os.environ["ATOMS_TEST_MODE"] = "true"
-                        print("✅ Using local MCP server at http://localhost:8000 (test mode enabled)")
-            except Exception:
-                pass
-
-        # Fall back to mcpdev if local not available
-        if not deployment_url:
+            # E2E tests use deployed server by default
             deployment_url = "https://mcpdev.atoms.tech/api/mcp"
-            # Disable test mode for deployed server
-            if "ATOMS_TEST_MODE" in os.environ:
-                del os.environ["ATOMS_TEST_MODE"]
-            print("⚠️  Local server not available, using mcpdev.atoms.tech")
+            print("🎯 E2E Tests: Using deployed server at mcpdev.atoms.tech")
+            print("   (For local testing, use integration tests or set MCP_E2E_BASE_URL=http://localhost:8000/api/mcp)")
+
+        # Disable test mode for deployed server - use real authentication
+        if "ATOMS_TEST_MODE" in os.environ:
+            del os.environ["ATOMS_TEST_MODE"]
         
         # Create httpx client with authentication headers
         headers = {
