@@ -41,16 +41,14 @@ def resolve_base_url() -> str:
 
 
 def create_auth_provider(base_url: str) -> Any:
-    """Create hybrid authentication provider supporting OAuth and Bearer tokens."""
-    # Configure hybrid authentication (OAuth + Bearer tokens)
+    """Create authentication provider based on FASTMCP_SERVER_AUTH configuration."""
+    # Check which auth provider is configured
+    auth_provider_class = os.getenv("FASTMCP_SERVER_AUTH", "fastmcp.server.auth.providers.workos.AuthKitProvider")
+
     authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN")
     if not authkit_domain:
         raise ValueError("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN required")
 
-    # NO static/internal tokens allowed - only AuthKit access tokens
-    # Tests must use real AuthKit JWTs obtained via OAuth or User Management API
-    internal_token = None
-    
     authkit_client_id = os.getenv("WORKOS_CLIENT_ID")
 
     # Construct AuthKit JWKS URI from domain
@@ -59,9 +57,29 @@ def create_auth_provider(base_url: str) -> Any:
         # AuthKit JWKS endpoint is at /.well-known/jwks.json
         authkit_jwks_uri = f"{authkit_domain}/.well-known/jwks.json"
 
-    # Use RemoteAuthProvider pattern with custom TokenVerifier
-    # This accepts both AuthKit OAuth tokens AND WorkOS User Management tokens
-    # NO static tokens allowed - only real AuthKit access tokens
+    # Use HybridAuthProvider if configured
+    if "HybridAuthProvider" in auth_provider_class:
+        logger.info("✅ Using HybridAuthProvider (OAuth + Bearer tokens + WorkOS User Management)")
+        try:
+            from services.auth.hybrid_auth_provider import create_hybrid_auth_provider
+        except ImportError:
+            from ..services.auth.hybrid_auth_provider import create_hybrid_auth_provider  # type: ignore[no-redef]
+
+        auth_provider = create_hybrid_auth_provider(
+            authkit_domain=authkit_domain,
+            base_url=base_url,
+            internal_token=None,  # NO static tokens - only real AuthKit JWTs
+            authkit_client_id=authkit_client_id,
+            authkit_jwks_uri=authkit_jwks_uri,
+        )
+        logger.info("✅ Hybrid authentication configured:")
+        logger.info(f"  - OAuth (AuthKit): {authkit_domain}")
+        logger.info(f"  - Bearer tokens: enabled (WorkOS User Management + AuthKit JWTs)")
+        logger.info(f"  - Static/internal tokens: DISABLED")
+        return auth_provider
+
+    # Default: Use RemoteAuthProvider with WorkOS token verifier
+    logger.info("✅ Using RemoteAuthProvider with WorkOSTokenVerifier")
     try:
         from fastmcp.server.auth import RemoteAuthProvider
         from pydantic import AnyHttpUrl
@@ -72,13 +90,12 @@ def create_auth_provider(base_url: str) -> Any:
         from ..services.auth.workos_token_verifier import WorkOSTokenVerifier  # type: ignore[no-redef]
 
     # Create WorkOS token verifier (handles AuthKit OAuth + WorkOS User Management)
-    # NO static tokens - only real AuthKit access tokens allowed
     token_verifier = WorkOSTokenVerifier(
         jwks_uri=authkit_jwks_uri,
         issuer=authkit_domain,  # Primary issuer (AuthKit OAuth)
         audience=authkit_client_id,
     )
-    
+
     # Create RemoteAuthProvider with WorkOS token verifier
     auth_provider = RemoteAuthProvider(
         token_verifier=token_verifier,
