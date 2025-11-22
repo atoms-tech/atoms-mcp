@@ -210,16 +210,15 @@ class TestCaseCreation:
         update_result, _ = await call_mcp(
             "entity_tool",
             {
-                "entity_type": "test_case",
+                "entity_type": "test",
                 "operation": "update",
                 "entity_id": test_id,
                 "data": {
-                    "status": "passed",
-                    "execution_date": datetime.now(timezone.utc).isoformat()
+                    "status": "passed"
                 }
             }
         )
-        
+
         assert update_result["success"] is True
         assert update_result["data"]["status"] == "passed"
 
