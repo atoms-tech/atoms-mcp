@@ -66,90 +66,107 @@ class HybridAuthProvider(AuthProvider):
         # Store JWKS config for manual JWT verification in authenticate() method
         # We handle ALL JWT verification in authenticate() to support both
         # AuthKit OAuth tokens and WorkOS User Management tokens
-        self.authkit_jwt_verifier = None  # Don't create JWTVerifier - handle in authenticate()
         self.authkit_jwks_uri = authkit_jwks_uri
         self.authkit_client_id = authkit_client_id
+        self.authkit_jwt_verifier = None
         if authkit_jwks_uri and authkit_client_id:
-            logger.info("✅ AuthKit JWT authentication enabled (handled in authenticate() method)")
+            # Create JWT verifier for AuthKit tokens
+            self.authkit_jwt_verifier = JWTVerifier(
+                jwks_uri=authkit_jwks_uri,
+                audience=authkit_client_id
+            )
+            logger.info("✅ AuthKit JWT authentication enabled")
             logger.info("✅ WorkOS User Management JWT will be handled in authenticate() method")
     
     async def _verify_authkit_jwt(self, token: str) -> Optional[Dict[str, Any]]:
         """Verify AuthKit OAuth JWT token using JWKS.
-        
+
         These tokens come from the OAuth flow and have issuer matching AuthKit domain.
-        
+
         Args:
             token: JWT token from AuthKit OAuth
-            
+
         Returns:
             Claims dict if valid, None otherwise
         """
-        if not self.authkit_jwks_uri or not self.authkit_client_id:
+        if not self.authkit_jwt_verifier:
             return None
-        
+
         try:
-            import jwt
-            from jwt import PyJWKClient
-            
-            # Quick format check
-            if not token or not isinstance(token, str) or len(token.split(".")) != 3:
+            # Use the JWT verifier if available
+            result = await self.authkit_jwt_verifier.verify_token(token)
+            logger.debug("✅ AuthKit OAuth token verified with JWT verifier")
+            return result
+        except Exception as e:
+            logger.debug(f"AuthKit JWT verification failed: {e}")
+
+            # Fallback to manual verification if verifier fails
+            if not self.authkit_jwks_uri or not self.authkit_client_id:
                 return None
-            
-            # Decode without verification first to check issuer
+
             try:
-                unverified = jwt.decode(token, options={"verify_signature": False})
-            except Exception as e:
-                logger.debug(f"Failed to decode token (not a valid JWT): {e}")
-                return None
-            
-            issuer = unverified.get("iss", "")
-            
-            # Check if this is an AuthKit OAuth token (not User Management)
-            # AuthKit OAuth tokens typically have issuer matching the AuthKit domain
-            is_authkit_oauth = (
-                self.authkit_domain and 
-                (issuer.startswith(self.authkit_domain) or 
-                 issuer.startswith("https://api.workos.com/") and "user_management" not in issuer.lower())
-            )
-            
-            if not is_authkit_oauth:
-                logger.debug(f"Token issuer '{issuer}' is not an AuthKit OAuth token")
-                return None
-            
-            logger.debug(f"Detected AuthKit OAuth token with issuer: {issuer}")
-            
-            # Verify with JWKS
-            try:
-                jwks_client = PyJWKClient(self.authkit_jwks_uri, timeout=10)
-                signing_key = jwks_client.get_signing_key_from_jwt(token)
-                
-                # Verify token
+                import jwt
+                from jwt import PyJWKClient
+
+                # Quick format check
+                if not token or not isinstance(token, str) or len(token.split(".")) != 3:
+                    return None
+
+                # Decode without verification first to check issuer
                 try:
-                    decoded = jwt.decode(
-                        token,
-                        signing_key.key,
-                        algorithms=["RS256"],
-                        audience=self.authkit_client_id,
-                        issuer=issuer,
-                    )
-                    logger.debug("✅ AuthKit OAuth token verified with JWKS")
-                except jwt.InvalidAudienceError:
-                    logger.debug("Token has no audience, verifying without audience check")
-                    decoded = jwt.decode(
-                        token,
-                        signing_key.key,
-                        algorithms=["RS256"],
-                        issuer=issuer,
-                        options={"verify_aud": False},
-                    )
-                except jwt.InvalidIssuerError:
-                    logger.debug("Token issuer doesn't match, verifying without issuer check")
-                    decoded = jwt.decode(
-                        token,
-                        signing_key.key,
-                        algorithms=["RS256"],
-                        options={"verify_aud": False, "verify_iss": False},
-                    )
+                    unverified = jwt.decode(token, options={"verify_signature": False})
+                except Exception as e:
+                    logger.debug(f"Failed to decode token (not a valid JWT): {e}")
+                    return None
+
+                issuer = unverified.get("iss", "")
+
+                # Check if this is an AuthKit OAuth token (not User Management)
+                # AuthKit OAuth tokens typically have issuer matching the AuthKit domain
+                is_authkit_oauth = (
+                    self.authkit_domain and
+                    (issuer.startswith(self.authkit_domain) or
+                     issuer.startswith("https://api.workos.com/") and "user_management" not in issuer.lower())
+                )
+
+                if not is_authkit_oauth:
+                    logger.debug(f"Token issuer '{issuer}' is not an AuthKit OAuth token")
+                    return None
+
+                logger.debug(f"Detected AuthKit OAuth token with issuer: {issuer}")
+
+                # Verify with JWKS
+                try:
+                    jwks_client = PyJWKClient(self.authkit_jwks_uri, timeout=10)
+                    signing_key = jwks_client.get_signing_key_from_jwt(token)
+
+                    # Verify token
+                    try:
+                        decoded = jwt.decode(
+                            token,
+                            signing_key.key,
+                            algorithms=["RS256"],
+                            audience=self.authkit_client_id,
+                            issuer=issuer,
+                        )
+                        logger.debug("✅ AuthKit OAuth token verified with JWKS")
+                    except jwt.InvalidAudienceError:
+                        logger.debug("Token has no audience, verifying without audience check")
+                        decoded = jwt.decode(
+                            token,
+                            signing_key.key,
+                            algorithms=["RS256"],
+                            issuer=issuer,
+                            options={"verify_aud": False},
+                        )
+                    except jwt.InvalidIssuerError:
+                        logger.debug("Token issuer doesn't match, verifying without issuer check")
+                        decoded = jwt.decode(
+                            token,
+                            signing_key.key,
+                            algorithms=["RS256"],
+                            options={"verify_aud": False, "verify_iss": False},
+                        )
                 except jwt.InvalidTokenError as e:
                     logger.debug(f"Token signature verification failed: {e}")
                     return None
