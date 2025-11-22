@@ -1,17 +1,2 @@
 
-======================================================================
-⚠️  TEST WARNINGS & PERFORMANCE ISSUES
-======================================================================
-
-🔄 FLAKY (1):
-  🟡 tests/unit/tools/test_advanced_features.py::TestErrorRecovery::test_operation_retry_with_backoff[unit]
-     → Test passed after retry (potentially flaky)
-
-🐌 SLOW (1):
-  🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
-     → Slow: 4.88s (threshold: 1.0s)
-
-----------------------------------------------------------------------
-Total Warnings: 2
-  🔴 High: 0  🟡 Medium: 2  🟢 Low: 0
-======================================================================
+✅ No warnings detected

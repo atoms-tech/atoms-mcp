@@ -62,17 +62,25 @@ class PermissionMiddleware:
             )
             return True
         
-        # In test mode, allow entity creation without workspace_id
-        # Tests may not provide workspace_id, and we'll infer it from context if needed
-        import os
-        if os.getenv("ATOMS_TEST_MODE") == "true":
-            logger.debug(
-                f"Test mode: Allowing creation of {entity_type} without workspace_id check"
+        # Require workspace_id for all other entities
+        if not workspace_id:
+            raise PermissionError(
+                f"User {user_ctx.user_id} lacks create permission for {entity_type}: "
+                f"workspace_id required"
             )
+        
+        # System admin bypasses all checks
+        if user_ctx.is_system_admin:
             return True
         
-        if not workspace_id:
-            raise PermissionError("Workspace ID required for entity creation")
+        # Check workspace membership first
+        if not self.permission_checker.validate_multi_tenant_access(
+            user_ctx, workspace_id
+        ):
+            raise PermissionError(
+                f"User {user_ctx.user_id} lacks create permission for {entity_type} "
+                f"in workspace {workspace_id}: not a member of workspace"
+            )
         
         resource_ctx = create_resource_context(
             entity_type=entity_type,
@@ -241,14 +249,14 @@ class PermissionMiddleware:
     async def check_list_permission(
         self,
         entity_type: str,
-        workspace_id: str,
+        workspace_id: Optional[str],
         filters: Optional[Dict[str, Any]] = None
     ) -> bool:
         """Check if user can list entities of type in workspace.
         
         Args:
             entity_type: Type of entity
-            workspace_id: Workspace ID
+            workspace_id: Workspace ID (required)
             filters: Query filters
             
         Returns:
@@ -262,6 +270,13 @@ class PermissionMiddleware:
         # System admin bypasses all checks
         if user_ctx.is_system_admin:
             return True
+        
+        # Require workspace_id
+        if not workspace_id:
+            raise PermissionError(
+                f"User {user_ctx.user_id} lacks list permission for {entity_type}: "
+                f"workspace_id required"
+            )
         
         # Check workspace membership first
         if not self.permission_checker.validate_multi_tenant_access(
