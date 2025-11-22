@@ -7,11 +7,13 @@
   🟡 tests/unit/tools/test_advanced_features.py::TestErrorRecovery::test_operation_retry_with_backoff[unit]
      → Test passed after retry (potentially flaky)
 
-🐌 SLOW (1):
-  🔴 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
-     → Very slow: 5.07s (threshold: 5.0s)
+🐌 SLOW (2):
+  🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
+     → Slow: 4.90s (threshold: 1.0s)
+  🟡 tests/unit/tools/test_search_and_discovery.py::TestSimilarEntities::test_similarity_threshold_tuning[unit]
+     → Slow: 1.44s (threshold: 1.0s)
 
 ----------------------------------------------------------------------
-Total Warnings: 2
-  🔴 High: 1  🟡 Medium: 1  🟢 Low: 0
+Total Warnings: 3
+  🔴 High: 0  🟡 Medium: 3  🟢 Low: 0
 ======================================================================
