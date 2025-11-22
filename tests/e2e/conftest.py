@@ -289,8 +289,6 @@ async def authkit_auth_token():
         logger_local.error(error_msg)
         import pytest
         pytest.skip(error_msg)
-            import traceback
-            logger_local.debug(traceback.format_exc())
     
     # No token available - tests REQUIRE AuthKit tokens
     error_msg = (
