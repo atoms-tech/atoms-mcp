@@ -49,8 +49,15 @@ class TestEntityLinking:
     @pytest.mark.asyncio
     async def test_link_member_to_project(self, call_mcp):
         """Link member (add user to project)."""
+        # Create organization first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
         # Create project
-        project_data = {"name": f"Member Project {uuid.uuid4().hex[:8]}"}
+        project_data = {"name": f"Member Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
         project_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "project", "operation": "create", "data": project_data}
@@ -74,8 +81,21 @@ class TestEntityLinking:
     @pytest.mark.asyncio
     async def test_link_assignment_to_user(self, call_mcp):
         """Link assignment (assign entity to user)."""
+        # Create organization and project first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
         # Create document
-        doc_data = {"name": f"Assignment Doc {uuid.uuid4().hex[:8]}"}
+        doc_data = {"name": f"Assignment Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         doc_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "document", "operation": "create", "data": doc_data}
@@ -99,15 +119,28 @@ class TestEntityLinking:
     @pytest.mark.asyncio
     async def test_link_trace_requirement_to_implementation(self, call_mcp):
         """Link trace_link (requirement → implementation)."""
+        # Create organization and project first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
         # Create requirement and document
-        req_data = {"name": f"Test Requirement {uuid.uuid4().hex[:8]}"}
+        req_data = {"name": f"Test Requirement {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         req_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "requirement", "operation": "create", "data": req_data}
         )
         req_id = req_result["data"]["id"]
 
-        doc_data = {"name": f"Implementation Doc {uuid.uuid4().hex[:8]}"}
+        doc_data = {"name": f"Implementation Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         doc_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "document", "operation": "create", "data": doc_data}
@@ -131,15 +164,28 @@ class TestEntityLinking:
     @pytest.mark.asyncio
     async def test_link_requirement_to_test(self, call_mcp):
         """Link requirement_test (requirement → test case)."""
+        # Create organization and project first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
         # Create requirement and test
-        req_data = {"name": f"Req for Test {uuid.uuid4().hex[:8]}"}
+        req_data = {"name": f"Req for Test {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         req_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "requirement", "operation": "create", "data": req_data}
         )
         req_id = req_result["data"]["id"]
 
-        test_data = {"name": f"Test Case {uuid.uuid4().hex[:8]}"}
+        test_data = {"name": f"Test Case {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         test_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "test", "operation": "create", "data": test_data}
@@ -165,18 +211,13 @@ class TestEntityLinking:
     @pytest.mark.asyncio
     async def test_link_with_metadata(self, call_mcp):
         """Create link with additional metadata."""
-        # Create two entities
+        # Create organization
         org_data = {"name": f"Metadata Org {uuid.uuid4().hex[:8]}"}
         org_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
-
-        project_data = {"name": f"Metadata Project {uuid.uuid4().hex[:8]}"}
-        project_result, _ = await call_mcp(
-            "entity_tool",
-            {"entity_type": "project", "operation": "create", "data": project_data}
-        )
+        org_id = org_result["data"]["id"]
 
         # Link with rich metadata using correct API format
         result, _ = await call_mcp(
@@ -184,7 +225,7 @@ class TestEntityLinking:
             {
                 "operation": "link",
                 "relationship_type": "member",
-                "source": {"type": "organization", "id": org_result["data"]["id"]},
+                "source": {"type": "organization", "id": org_id},
                 "target": {"type": "user", "id": "user_admin"},
                 "metadata": {
                     "role": "admin",
@@ -317,8 +358,21 @@ class TestEntityUnlinking:
     @pytest.mark.asyncio
     async def test_unlink_assignment(self, call_mcp):
         """Remove assignment relationship."""
+        # Create organization and project first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
         # Create document and assignment
-        doc_data = {"name": f"Unlink Assignment Doc {uuid.uuid4().hex[:8]}"}
+        doc_data = {"name": f"Unlink Assignment Doc {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         doc_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "document", "operation": "create", "data": doc_data}
@@ -350,21 +404,34 @@ class TestEntityUnlinking:
                 "target": {"type": "user", "id": user_id}
             }
         )
-        
+
         assert result["success"] is True
     
     @pytest.mark.asyncio
     async def test_unlink_trace_link(self, call_mcp):
         """Remove trace link between requirement and implementation."""
+        # Create organization and project first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        proj_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "project", "operation": "create", "data": {"name": f"Proj {uuid.uuid4().hex[:8]}", "organization_id": org_id}}
+        )
+        proj_id = proj_result["data"]["id"]
+
         # Create requirement and document
-        req_data = {"name": f"Unlink Requirement {uuid.uuid4().hex[:8]}"}
+        req_data = {"name": f"Unlink Requirement {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         req_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "requirement", "operation": "create", "data": req_data}
         )
         req_id = req_result["data"]["id"]
 
-        doc_data = {"name": f"Unlink Implementation {uuid.uuid4().hex[:8]}"}
+        doc_data = {"name": f"Unlink Implementation {uuid.uuid4().hex[:8]}", "project_id": proj_id}
         doc_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "document", "operation": "create", "data": doc_data}
@@ -461,8 +528,15 @@ class TestEntityRelationshipViews:
     @pytest.mark.asyncio
     async def test_list_outbound_relationships(self, call_mcp):
         """List all outbound relationships from an entity."""
-        # Create project and link it to organization
-        project_data = {"name": f"Outbound Project {uuid.uuid4().hex[:8]}"}
+        # Create organization first
+        org_result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": f"Org {uuid.uuid4().hex[:8]}"}}
+        )
+        org_id = org_result["data"]["id"]
+
+        # Create project
+        project_data = {"name": f"Outbound Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
         project_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "project", "operation": "create", "data": project_data}
@@ -504,7 +578,7 @@ class TestEntityRelationshipViews:
         )
         org_id = org_result["data"]["id"]
 
-        project_data = {"name": f"Filtered Project {uuid.uuid4().hex[:8]}"}
+        project_data = {"name": f"Filtered Project {uuid.uuid4().hex[:8]}", "organization_id": org_id}
         project_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "project", "operation": "create", "data": project_data}
