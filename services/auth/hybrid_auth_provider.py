@@ -177,14 +177,14 @@ class HybridAuthProvider(AuthProvider):
                 
                 logger.info(f"✅ AuthKit OAuth JWT verified: sub={decoded.get('sub')}, email={decoded.get('email')}")
 
-                # Return AccessToken object expected by FastMCP bearer auth middleware
-                from mcp.server.auth.middleware.bearer_auth import AccessToken
-                return AccessToken(
-                    token=token,
-                    client_id=decoded.get("sub", ""),
-                    scopes=[],
-                    expires_at=decoded.get("exp"),
-                )
+                # Return dict with claims (FastMCP expects dict from verify_token)
+                return {
+                    "sub": decoded.get("sub", ""),
+                    "email": decoded.get("email"),
+                    "email_verified": decoded.get("email_verified", False),
+                    "name": decoded.get("name"),
+                    "claims": decoded,
+                }
             except Exception as e:
                 logger.debug(f"JWKS verification failed: {e}")
                 return None
@@ -303,14 +303,14 @@ class HybridAuthProvider(AuthProvider):
             
             logger.info(f"✅ WorkOS User Management JWT verified: sub={decoded.get('sub')}, email={decoded.get('email')}")
 
-            # Return AccessToken object expected by FastMCP bearer auth middleware
-            from mcp.server.auth.middleware.bearer_auth import AccessToken
-            return AccessToken(
-                token=token,
-                client_id=decoded.get("sub", ""),
-                scopes=[],
-                expires_at=decoded.get("exp"),
-            )
+            # Return dict with claims (FastMCP expects dict from verify_token)
+            return {
+                "sub": decoded.get("sub", ""),
+                "email": decoded.get("email"),
+                "email_verified": decoded.get("email_verified", False),
+                "name": decoded.get("name"),
+                "claims": decoded,
+            }
         except jwt.InvalidTokenError as e:
             logger.debug(f"WorkOS User Management JWT verification failed: {e}")
             return None
