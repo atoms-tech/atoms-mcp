@@ -342,6 +342,147 @@ class WorkflowExecutor(ToolBase):
             "results": results
         }
     
+    async def _create_entity_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a single entity via workflow."""
+        try:
+            from .entity import _entity_manager
+        except ImportError:
+            from tools.entity import _entity_manager
+
+        entity_type = params.get("entity_type")
+        data = params.get("data", {})
+
+        if not entity_type:
+            raise ValueError("entity_type is required")
+
+        entity = await _entity_manager.create_entity(entity_type, data)
+
+        return {
+            "success": True,
+            "workflow": "create_entity",
+            "entity_type": entity_type,
+            "entity_id": entity["id"],
+            "data": entity
+        }
+
+    async def _batch_operation_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute batch operations with optional transaction support."""
+        try:
+            from .entity import _entity_manager
+        except ImportError:
+            from tools.entity import _entity_manager
+
+        operations = params.get("operations", [])
+        transactional = params.get("transactional", False)
+        results = []
+
+        for op in operations:
+            try:
+                op_type = op.get("op")
+                entity_type = op.get("entity_type")
+                data = op.get("data", {})
+
+                if op_type == "create":
+                    entity = await _entity_manager.create_entity(entity_type, data)
+                    results.append({
+                        "operation": op_type,
+                        "entity_type": entity_type,
+                        "status": "success",
+                        "entity_id": entity["id"]
+                    })
+                elif op_type == "update":
+                    entity_id = op.get("entity_id")
+                    entity = await _entity_manager.update_entity(entity_type, entity_id, data)
+                    results.append({
+                        "operation": op_type,
+                        "entity_type": entity_type,
+                        "status": "success",
+                        "entity_id": entity_id
+                    })
+                elif op_type == "delete":
+                    entity_id = op.get("entity_id")
+                    await _entity_manager.delete_entity(entity_type, entity_id)
+                    results.append({
+                        "operation": op_type,
+                        "entity_type": entity_type,
+                        "status": "success",
+                        "entity_id": entity_id
+                    })
+            except Exception as e:
+                if transactional:
+                    # Rollback all operations
+                    return {
+                        "success": False,
+                        "workflow": "batch_operation",
+                        "error": f"Operation failed: {str(e)}",
+                        "transactional": True,
+                        "rolled_back": True,
+                        "completed_operations": len(results)
+                    }
+                else:
+                    results.append({
+                        "operation": op.get("op"),
+                        "entity_type": op.get("entity_type"),
+                        "status": "failed",
+                        "error": str(e)
+                    })
+
+        return {
+            "success": True,
+            "workflow": "batch_operation",
+            "transactional": transactional,
+            "operations_count": len(operations),
+            "successful_count": len([r for r in results if r.get("status") == "success"]),
+            "results": results
+        }
+
+    async def _resilient_operation_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute operations with retry logic."""
+        try:
+            from .entity import _entity_manager
+        except ImportError:
+            from tools.entity import _entity_manager
+
+        operations = params.get("operations", [])
+        retry_count = params.get("retry_count", 3)
+        results = []
+
+        for op in operations:
+            entity_type = op.get("entity_type")
+            data = op.get("data", {})
+            last_error = None
+
+            for attempt in range(retry_count):
+                try:
+                    entity = await _entity_manager.create_entity(entity_type, data)
+                    results.append({
+                        "operation": "create",
+                        "entity_type": entity_type,
+                        "status": "success",
+                        "entity_id": entity["id"],
+                        "attempts": attempt + 1
+                    })
+                    break
+                except Exception as e:
+                    last_error = str(e)
+                    if attempt == retry_count - 1:
+                        results.append({
+                            "operation": "create",
+                            "entity_type": entity_type,
+                            "status": "failed",
+                            "error": last_error,
+                            "attempts": attempt + 1
+                        })
+
+        return {
+            "success": True,
+            "workflow": "resilient_operation",
+            "retry_count": retry_count,
+            "operations_count": len(operations),
+            "successful_count": len([r for r in results if r.get("status") == "success"]),
+            "results": results
+        }
+
     async def _organization_onboarding_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Complete organization onboarding process."""
         try:
@@ -475,6 +616,9 @@ async def workflow_execute(
         format_type: Result format (detailed, summary, raw)
     
     Available workflows:
+        - create_entity: Create a single entity
+        - batch_operation: Execute batch operations with optional transaction support
+        - resilient_operation: Execute operations with retry logic
         - setup_project: Create project with initial structure
         - import_requirements: Import requirements from external source
         - setup_test_matrix: Set up test matrix for a project
@@ -489,7 +633,13 @@ async def workflow_execute(
         await _workflow_executor._validate_auth(auth_token)
         
         # Execute workflow based on type
-        if workflow == "setup_project":
+        if workflow == "create_entity":
+            result = await _workflow_executor._create_entity_workflow(parameters)
+        elif workflow == "batch_operation":
+            result = await _workflow_executor._batch_operation_workflow(parameters)
+        elif workflow == "resilient_operation":
+            result = await _workflow_executor._resilient_operation_workflow(parameters)
+        elif workflow == "setup_project":
             result = await _workflow_executor._setup_project_workflow(parameters)
         elif workflow == "import_requirements":
             result = await _workflow_executor._import_requirements_workflow(parameters)
