@@ -1,5 +1,9 @@
 # Comprehensive E2E & Integration Test Coverage
 
+## Why
+
+The atoms-mcp deployment is live at mcpdev.atoms.tech but lacks comprehensive test coverage. Only 1/48 user stories (2%) have passing tests, leaving the system vulnerable to regressions and making it unsafe to refactor or optimize. This proposal delivers production-grade E2E and integration tests following canonical naming conventions and TDD governance, achieving 95%+ coverage across all MCP tools and user stories.
+
 ## Summary
 
 Build out complete end-to-end and integration test suites to achieve 95%+ coverage across all MCP tools and user stories. Currently only 1/48 user stories have test coverage (2%). This proposal maps all 48 user stories to concrete test scenarios and delivers production-grade test implementations across all tool layers.

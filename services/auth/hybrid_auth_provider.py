@@ -4,7 +4,6 @@ This provider enables the same MCP server to handle:
 1. OAuth (AuthKit) for public clients - full OAuth flow
 2. Bearer tokens for internal services (atomsAgent) - static token
 3. AuthKit JWTs for frontend token forwarding - validates AuthKit JWT from frontend/backend
-4. Unsigned JWTs for testing (when ATOMS_TEST_MODE is enabled)
 """
 
 from __future__ import annotations
@@ -320,59 +319,7 @@ class HybridAuthProvider(AuthProvider):
             import traceback
             logger.debug(traceback.format_exc())
             return None
-    
-    def _verify_unsigned_jwt(self, token: str) -> Optional[Dict[str, Any]]:
-        """Verify unsigned JWT for testing (when ATOMS_TEST_MODE is enabled).
-        
-        This method allows testing with locally-generated JWTs that have alg: "none".
-        Only works when ATOMS_TEST_MODE environment variable is set.
-        
-        Args:
-            token: JWT token (unsigned, format: header.payload.signature where signature is empty)
-        
-        Returns:
-            Claims dict if valid, None otherwise
-        """
-        # Only allow unsigned JWTs in test mode
-        test_mode = os.getenv("ATOMS_TEST_MODE", "false").lower() == "true"
-        if not test_mode:
-            return None
-        
-        try:
-            # JWT format: header.payload.signature (signature empty for unsigned)
-            parts = token.split(".")
-            if len(parts) != 3:
-                logger.debug(f"Invalid JWT format: expected 3 parts, got {len(parts)}")
-                return None
-            
-            header_b64, payload_b64, signature = parts
-            
-            # Decode header
-            header_json = base64.urlsafe_b64decode(header_b64 + "==")  # Add padding
-            header = json.loads(header_json)
-            
-            # Only allow unsigned JWTs
-            if header.get("alg") != "none":
-                logger.debug(f"JWT uses algorithm {header.get('alg')}, not 'none'")
-                return None
-            
-            # Decode payload
-            payload_json = base64.urlsafe_b64decode(payload_b64 + "==")  # Add padding
-            claims = json.loads(payload_json)
-            
-            logger.debug(f"✅ Unsigned JWT verified in test mode: sub={claims.get('sub')}")
 
-            # Return AccessToken object expected by FastMCP bearer auth middleware
-            from mcp.server.auth.middleware.bearer_auth import AccessToken
-            return AccessToken(
-                token=token,
-                client_id=claims.get("sub", ""),
-                scopes=[],
-                expires_at=claims.get("exp"),
-            )
-        except Exception as e:
-            logger.debug(f"Unsigned JWT verification failed: {e}")
-            return None
     
     async def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """Verify a bearer token (called by FastMCP middleware).
@@ -427,13 +374,6 @@ class HybridAuthProvider(AuthProvider):
             else:
                 logger.debug("AuthKit JWT verification returned None")
 
-        # Try unsigned JWT for testing (when ATOMS_TEST_MODE enabled)
-        logger.debug("Trying unsigned JWT verification (verify_token)...")
-        unsigned_result = self._verify_unsigned_jwt(token)
-        if unsigned_result:
-            logger.info(f"✅ Authenticated via unsigned JWT (test mode, verify_token): {unsigned_result.get('sub')}")
-            return unsigned_result
-
         # All verification methods failed
         logger.warning(f"❌ verify_token() - ALL verification methods failed for token: {token[:50]}...")
         return None
@@ -447,7 +387,6 @@ class HybridAuthProvider(AuthProvider):
            a. Try internal static token (for system services)
            b. Try WorkOS User Management JWT (from authenticate_with_password)
            c. Try AuthKit JWT (from frontend/backend)
-           d. Try unsigned JWT for testing (if ATOMS_TEST_MODE enabled)
         3. If not present or verification fails, fall back to OAuth
 
         Args:

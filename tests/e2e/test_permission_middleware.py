@@ -21,7 +21,6 @@ from typing import Dict, Any
 pytestmark = [
     pytest.mark.e2e,
     pytest.mark.asyncio,
-    pytest.mark.skip(reason="Permission middleware tests require specific workspace context setup")
 ]
 
 

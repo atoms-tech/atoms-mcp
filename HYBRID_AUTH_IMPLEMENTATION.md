@@ -9,7 +9,6 @@ When an MCP server is configured with OAuth (AuthKit), it defaults to OAuth flow
 - ✅ Bearer tokens (WorkOS User Management JWTs) for API calls
   - AuthKit API (headless) uses WorkOS User Management API under the hood
   - Both return the same JWT format and can be used interchangeably
-- ✅ Unsigned JWTs for local testing
 
 ## Architecture
 
@@ -18,7 +17,7 @@ Request with Bearer Token
     ↓
 HybridAuthProvider.authenticate()
     ↓
-Try OAuth (AuthKit) → Try WorkOS User Management JWT → Try unsigned JWT
+Try OAuth (AuthKit) → Try WorkOS User Management JWT
     ↓
 Return AccessToken object
 ```
@@ -75,7 +74,6 @@ mcp = FastMCP(
    - Both return the same JWT format
    - Can be used interchangeably as Bearer tokens
    - Verified by WorkOSTokenVerifier
-3. **Unsigned JWT** - Local testing (test mode)
 
 ## Testing
 
@@ -85,7 +83,6 @@ atoms test --scope e2e --env local
 ```
 - Uses real WorkOS authentication
 - Same keys as production
-- No unsigned JWTs needed
 
 ### Dev/Prod Testing
 ```bash

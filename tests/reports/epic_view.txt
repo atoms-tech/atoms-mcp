@@ -2,9 +2,9 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Organization Management (1/5) ✓○○                                          ║
+║ 📦 Organization Management (0/5) ○○○                                          ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create an organization                                          ║
+║   ❌ User can create an organization (No matching tests found)                ║
 ║   ❌ User can view organization details (No matching tests found)             ║
 ║   ❌ User can update organization settings (No matching tests found)          ║
 ║   ❌ User can delete an organization (No matching tests found)                ║
@@ -83,5 +83,5 @@
 ║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 1/48 user stories complete (2%)                                     ║
+║ Overall: 0/48 user stories complete (0%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
