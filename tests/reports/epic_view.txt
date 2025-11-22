@@ -8,7 +8,7 @@
 ║   ✅ User can view organization details                                       ║
 ║   ✅ User can update organization settings (32 passing, 4 failing)            ║
 ║   ✅ User can delete an organization                                          ║
-║   ✅ User can list all organizations (93 passing, 25 failing)                 ║
+║   ✅ User can list all organizations (95 passing, 23 failing)                 ║
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -16,20 +16,20 @@
 ║   ✅ User can view project details                                            ║
 ║   ✅ User can update project information (30 passing, 6 failing)              ║
 ║   ✅ User can archive a project (20 passing, 2 failing)                       ║
-║   ✅ User can list projects in organization (51 passing, 6 failing)           ║
+║   ✅ User can list projects in organization (53 passing, 4 failing)           ║
 ║                                                                              ║
 ║ 📦 Document Management (3/3) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create a document                                               ║
 ║   ✅ User can view document content                                           ║
-║   ✅ User can list documents in project (51 passing, 6 failing)               ║
+║   ✅ User can list documents in project (53 passing, 4 failing)               ║
 ║                                                                              ║
 ║ 📦 Requirements Traceability (4/4) ✓✓✓                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create requirements (2 passing, 3 failing)                      ║
 ║   ✅ User can pull requirements from system                                   ║
 ║   ✅ User can search requirements (42 passing, 23 failing)                    ║
-║   ✅ User can trace links between requirements and t... (9 passing, 5 fail... ║
+║   ✅ User can trace links between requirements and t... (10 passing, 4 fai... ║
 ║                                                                              ║
 ║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -47,9 +47,9 @@
 ║                                                                              ║
 ║ 📦 Entity Relationships (4/4) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can link entities together (10 passing, 3 failing)                  ║
+║   ✅ User can link entities together (11 passing, 2 failing)                  ║
 ║   ✅ User can unlink related entities (6 passing, 1 failing)                  ║
-║   ✅ User can view entity relationships (2 passing, 2 failing)                ║
+║   ✅ User can view entity relationships (3 passing, 1 failing)                ║
 ║   ✅ User can check if entities are related                                   ║
 ║                                                                              ║
 ║ 📦 Search & Discovery (7/7) ✓✓✓                                               ║
