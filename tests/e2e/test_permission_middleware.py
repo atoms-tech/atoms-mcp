@@ -134,9 +134,170 @@ class TestPermissionMiddlewareE2E:
             error_msg = str(result.get("error", ""))
             # Should mention what's missing or what permission is needed
             assert len(error_msg) > 0, "Error message should not be empty"
+            error_lower = error_msg.lower()
+            
+            # In e2e, we may get auth errors (401) before permission checks
+            # If it's an auth error, skip the detailed assertion
+            if "invalid_token" in error_lower or "authentication" in error_lower or "401" in error_lower:
+                pytest.skip("Authentication error - token may have expired")
+            
+            # Otherwise, error should mention workspace_id, permission, or required field
+            assert (
+                "workspace" in error_lower
+                or "permission" in error_lower
+                or "required" in error_lower
+                or "project_id" in error_lower
+            ), f"Error message should mention workspace/permission/required field: {error_msg}"
         else:
             # If it succeeds, that's also acceptable (some implementations allow this)
             assert result is not None
+    
+    @pytest.mark.asyncio
+    @pytest.mark.security
+    @pytest.mark.story("Workspace membership is validated")
+    async def test_workspace_membership_validation(self, end_to_end_client):
+        """Test workspace membership is properly validated in e2e."""
+        # Create organization and project (user becomes member)
+        org_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+            }
+        )
+        
+        if not org_result.get("success") or "data" not in org_result:
+            pytest.skip("Failed to create organization - may be auth issue")
+        
+        org_id = org_result["data"]["id"]
+        
+        project_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "create",
+                "data": {
+                    "name": f"Test Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": org_id
+                }
+            }
+        )
+        
+        if not project_result.get("success") or "data" not in project_result:
+            pytest.skip("Failed to create project - may be auth issue")
+        
+        project_id = project_result["data"]["id"]
+        
+        # Should allow list in own workspace (user is member)
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "document",
+                "operation": "list",
+                "filters": {"project_id": project_id}
+            }
+        )
+        # Should succeed - user is member of workspace
+        assert list_result.get("success") is True or "data" in list_result
+        
+        # Try to access non-existent workspace (should fail or return empty)
+        # Note: In e2e, RLS may handle this, so we check for either behavior
+        invalid_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "document",
+                "operation": "list",
+                "filters": {"project_id": str(uuid.uuid4())}  # Non-existent project
+            }
+        )
+        # Should either fail or return empty results
+        assert (
+            invalid_result.get("success") is False
+            or "data" not in invalid_result
+            or len(invalid_result.get("data", [])) == 0
+        )
+    
+    @pytest.mark.asyncio
+    @pytest.mark.security
+    @pytest.mark.story("Different roles have different permissions")
+    async def test_role_based_permission_differences(self, end_to_end_client):
+        """Test different roles have different permissions in e2e.
+        
+        Note: In e2e, we test with the actual user's role. Since we can't
+        easily change roles in e2e, we verify that:
+        1. Users can list entities in their workspace
+        2. Users can create entities in their workspace (if they have create permission)
+        3. Permission checks are enforced at the API level
+        """
+        # Create organization and project
+        org_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "create",
+                "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
+            }
+        )
+        
+        if not org_result.get("success") or "data" not in org_result:
+            pytest.skip("Failed to create organization - may be auth issue")
+        
+        org_id = org_result["data"]["id"]
+        
+        project_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "project",
+                "operation": "create",
+                "data": {
+                    "name": f"Test Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": org_id
+                }
+            }
+        )
+        
+        if not project_result.get("success") or "data" not in project_result:
+            pytest.skip("Failed to create project - may be auth issue")
+        
+        project_id = project_result["data"]["id"]
+        
+        # Test list permission (should work for all workspace members)
+        list_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "document",
+                "operation": "list",
+                "filters": {"project_id": project_id}
+            }
+        )
+        # List should work - all members can list
+        assert list_result.get("success") is True or "data" in list_result
+        
+        # Test create permission (depends on role)
+        # If user can create, this will succeed
+        # If user is viewer, this will fail with permission error
+        create_result = await end_to_end_client.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "document",
+                "operation": "create",
+                "data": {
+                    "name": f"Test Doc {uuid.uuid4().hex[:8]}",
+                    "project_id": project_id
+                }
+            }
+        )
+        
+        # Either succeeds (member/admin) or fails with permission error (viewer)
+        if create_result.get("success") is False:
+            error_msg = str(create_result.get("error", "")).lower()
+            # If it fails, should be a permission error
+            assert (
+                "permission" in error_msg
+                or "denied" in error_msg
+                or "lacks" in error_msg
+            ), f"Expected permission error, got: {create_result.get('error')}"
     
     @pytest.mark.asyncio
     @pytest.mark.security

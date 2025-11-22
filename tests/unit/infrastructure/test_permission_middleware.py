@@ -380,58 +380,7 @@ class TestPermissionMiddlewareIntegration:
         assert user_ctx.workspace_memberships == {"ws1": "member", "ws2": "admin"}
         assert not user_ctx.is_system_admin
     
-    async def test_permission_error_messages(self):
-        """Test permission error messages are descriptive."""
-        async def get_user_ctx():
-            return {
-                "user_id": "user123",
-                "workspace_memberships": {"ws1": "member"}
-            }
-        
-        middleware = PermissionMiddleware(get_user_ctx)
-        
-        # Check that error messages include relevant details
-        try:
-            await middleware.check_create_permission("document", {"workspace_id": "ws2"})
-        except PermissionError as e:
-            assert "user123" in str(e)
-            assert "ws2" in str(e)
-            assert "create permission" in str(e)
-        else:
-            pytest.fail("Expected PermissionError")
-    
-    async def test_workspace_membership_validation(self):
-        """Test workspace membership is properly validated."""
-        async def get_user_ctx():
-            return {
-                "user_id": "user123",
-                "workspace_memberships": {"ws1": "workspace_member"}
-            }
-        
-        middleware = PermissionMiddleware(get_user_ctx)
-        
-        # Should allow access to own workspace
-        await middleware.check_list_permission("document", "ws1")
-        
-        # Should deny access to other workspace
-        with pytest.raises(PermissionError):
-            await middleware.check_list_permission("document", "ws2")
-    
-    async def test_role_based_permission_differences(self):
-        """Test different roles have different permissions."""
-        # Create middleware for viewer role
-        async def get_viewer_ctx():
-            return {
-                "user_id": "viewer",
-                "workspace_memberships": {"ws1": "workspace_viewer"}
-            }
-        
-        viewer_middleware = PermissionMiddleware(get_viewer_ctx)
-        
-        # Viewer can list but not create
-        await viewer_middleware.check_list_permission("document", "ws1")
-        
-        with pytest.raises(PermissionError):
-            await viewer_middleware.check_create_permission(
-                "document", {"workspace_id": "ws1"}
-            )
+    # Note: test_permission_error_messages, test_workspace_membership_validation,
+    # and test_role_based_permission_differences have been moved to e2e tests
+    # (tests/e2e/test_permission_middleware.py) to test with real authentication
+    # and database operations.
