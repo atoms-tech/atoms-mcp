@@ -35,7 +35,8 @@ class DataQueryEngine(ToolBase):
         entities: List[str],
         search_term: str,
         conditions: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        sort: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Perform cross-entity search with parallel execution."""
 
@@ -47,6 +48,27 @@ class DataQueryEngine(ToolBase):
                 # Build search filters
                 filters = conditions.copy() if conditions else {}
 
+                # Handle date range filters (created_after, created_before)
+                if "created_after" in filters:
+                    created_after = filters.pop("created_after")
+                    if "created_at" not in filters:
+                        filters["created_at"] = {}
+                    if not isinstance(filters["created_at"], dict):
+                        # If created_at is not a dict, convert it
+                        old_value = filters.pop("created_at")
+                        filters["created_at"] = {"eq": old_value}
+                    filters["created_at"]["gte"] = created_after
+                
+                if "created_before" in filters:
+                    created_before = filters.pop("created_before")
+                    if "created_at" not in filters:
+                        filters["created_at"] = {}
+                    if not isinstance(filters["created_at"], dict):
+                        # If created_at is not a dict, convert it
+                        old_value = filters.pop("created_at")
+                        filters["created_at"] = {"eq": old_value}
+                    filters["created_at"]["lte"] = created_before
+
                 # Add search term
                 if search_term:
                     filters["name"] = {"ilike": f"%{search_term}%"}
@@ -56,12 +78,26 @@ class DataQueryEngine(ToolBase):
                 if "is_deleted" not in filters and table not in tables_without_soft_delete:
                     filters["is_deleted"] = False
 
+                # Build order_by from sort parameter
+                order_by = "updated_at:desc"  # Default
+                if sort and isinstance(sort, list) and len(sort) > 0:
+                    # Convert sort list to order_by string
+                    order_clauses = []
+                    for sort_item in sort:
+                        if isinstance(sort_item, dict):
+                            field = sort_item.get("field")
+                            order = sort_item.get("order", "asc").lower()
+                            if field:
+                                order_clauses.append(f"{field}:{order}")
+                    if order_clauses:
+                        order_by = ",".join(order_clauses)
+
                 # Execute search
                 entity_results = await self._db_query(
                     table,
                     filters=filters,
                     limit=limit or 10,
-                    order_by="updated_at:desc"
+                    order_by=order_by
                 )
 
                 # Sanitize results
@@ -629,6 +665,8 @@ async def data_query(
     # Hybrid search weights
     keyword_weight: Optional[float] = None,
     semantic_weight: Optional[float] = None,
+    # Sort parameter
+    sort: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Query and analyze data across multiple entity types with RAG capabilities.
     
@@ -683,7 +721,7 @@ async def data_query(
             if not search_term:
                 raise ValueError("search_term is required for search queries")
             result = await _query_engine._search_query(
-                valid_entities, search_term, conditions, limit
+                valid_entities, search_term, conditions, limit, sort
             )
         
         elif query_type == "aggregate":

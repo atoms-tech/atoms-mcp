@@ -8,7 +8,7 @@
 ║   ✅ User can view organization details                                       ║
 ║   ✅ User can update organization settings                                    ║
 ║   ✅ User can delete an organization                                          ║
-║   ✅ User can list all organizations (109 passing, 8 failing)                 ║
+║   ✅ User can list all organizations (116 passing, 1 failing)                 ║
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -28,7 +28,7 @@
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create requirements (3 passing, 2 failing)                      ║
 ║   ✅ User can pull requirements from system                                   ║
-║   ✅ User can search requirements (56 passing, 9 failing)                     ║
+║   ✅ User can search requirements (63 passing, 2 failing)                     ║
 ║   ✅ User can trace links between requirements and t... (11 passing, 3 fai... ║
 ║                                                                              ║
 ║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
@@ -54,12 +54,12 @@
 ║                                                                              ║
 ║ 📦 Search & Discovery (7/7) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can search across all entities (55 passing, 8 failing)              ║
+║   ✅ User can search across all entities (62 passing, 1 failing)              ║
 ║   ✅ User can filter search results                                           ║
 ║   ✅ User can perform semantic search                                         ║
 ║   ✅ User can perform keyword search                                          ║
 ║   ✅ User can perform hybrid search                                           ║
-║   ✅ User can get entity count aggregates (7 passing, 6 failing)              ║
+║   ✅ User can get entity count aggregates                                     ║
 ║   ✅ User can find similar entities                                           ║
 ║                                                                              ║
 ║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║

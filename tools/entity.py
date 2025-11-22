@@ -1675,6 +1675,40 @@ async def entity_operation(
                 filt_list = filt_list or data.get("filters")
                 srt_list = srt_list or data.get("sort")
             
+            # Convert order_by string to sort_list format if provided
+            if order_by and not srt_list:
+                # Parse order_by formats: "name ASC", "created_at DESC", "-name", "name:asc"
+                srt_list = []
+                # Handle multiple comma-separated sorts
+                for sort_expr in order_by.split(","):
+                    sort_expr = sort_expr.strip()
+                    if not sort_expr:
+                        continue
+                    
+                    # Handle "-field" format (descending)
+                    if sort_expr.startswith("-"):
+                        field = sort_expr[1:].strip()
+                        direction = "desc"
+                    else:
+                        # Handle "field ASC/DESC" or "field:asc/desc" format
+                        if ":" in sort_expr:
+                            parts = sort_expr.split(":", 1)
+                            field = parts[0].strip()
+                            direction = parts[1].strip().lower()
+                        elif " " in sort_expr:
+                            parts = sort_expr.rsplit(" ", 1)
+                            field = parts[0].strip()
+                            direction = parts[1].strip().lower()
+                        else:
+                            field = sort_expr.strip()
+                            direction = "asc"  # Default to ascending
+                    
+                    # Normalize direction
+                    if direction not in ("asc", "desc"):
+                        direction = "asc"
+                    
+                    srt_list.append({"field": field, "direction": direction})
+            
             # If offset/limit provided, build pagination dict
             if offset is not None or limit is not None:
                 pag = pag or {}

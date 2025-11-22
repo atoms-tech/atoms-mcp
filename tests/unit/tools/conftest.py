@@ -645,7 +645,7 @@ def fast_mcp_server():
             # Use limit or max_results
             final_limit = limit or max_results
             
-            # Note: sort, aggregations, include_coverage, use_index, offset, search_mode,
+            # Note: aggregations, include_coverage, use_index, offset, search_mode,
             # fuzzy_threshold, case_sensitive, exclude_deleted, keyword_weight, semantic_weight
             # are not yet supported but we accept them to avoid validation errors
             
@@ -663,6 +663,7 @@ def fast_mcp_server():
                 content=content,
                 entity_type=entity_type,
                 exclude_id=exclude_id,
+                sort=sort,
             )
         except Exception as e:
             return {"success": False, "error": str(e), "query_type": query_type}
