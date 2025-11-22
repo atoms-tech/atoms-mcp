@@ -83,16 +83,16 @@ class TestOrganizationCreation:
         """Creating organization with duplicate name should fail."""
         org_name = f"Duplicate Org {uuid.uuid4().hex[:8]}"
         org_data = {"name": org_name}
-        
+
         # Create first organization
-        result1 = await call_mcp(
+        result1, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         assert result1["success"] is True
-        
+
         # Attempt to create second with same name
-        result2 = await call_mcp(
+        result2, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
@@ -125,18 +125,18 @@ class TestOrganizationRetrieval:
         """Retrieve organization details by ID."""
         # Create organization first
         org_data = {"name": f"Get Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Retrieve organization
-        get_result = await call_mcp(
+        get_result, _ = await call_mcp(
             "entity_tool",
-            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+            {"entity_type": "organization", "operation": "read", "entity_id": org_id}
         )
-        
+
         assert get_result["success"] is True
         assert get_result["data"]["id"] == org_id
         assert get_result["data"]["name"] == org_data["name"]
@@ -160,15 +160,15 @@ class TestOrganizationRetrieval:
             created_ids.append(result["data"]["id"])
         
         # List organizations
-        list_result = await call_mcp(
+        list_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "list"}
         )
-        
+
         assert list_result["success"] is True
         assert "data" in list_result
         assert isinstance(list_result["data"], list)
-        
+
         # Verify our created organizations are in the list
         returned_ids = [org["id"] for org in list_result["data"]]
         for created_id in created_ids:
@@ -179,12 +179,12 @@ class TestOrganizationRetrieval:
     async def test_get_nonexistent_organization(self, call_mcp):
         """Getting non-existent organization should fail."""
         fake_id = str(uuid.uuid4())
-        
-        result, duration_ms = await call_mcp(
+
+        result, _ = await call_mcp(
             "entity_tool",
-            {"entity_type": "organization", "operation": "get", "entity_id": fake_id}
+            {"entity_type": "organization", "operation": "read", "entity_id": fake_id}
         )
-        
+
         assert result["success"] is False
         assert "not found" in result["error"].lower()
 
@@ -198,15 +198,15 @@ class TestOrganizationUpdate:
         """Update organization name successfully."""
         # Create organization
         org_data = {"name": f"Update Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Update name
         new_name = f"Updated Org {uuid.uuid4().hex[:8]}"
-        update_result = await call_mcp(
+        update_result, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -215,14 +215,14 @@ class TestOrganizationUpdate:
                 "data": {"name": new_name}
             }
         )
-        
+
         assert update_result["success"] is True
         assert update_result["data"]["name"] == new_name
-        
+
         # Verify update persisted
-        get_result = await call_mcp(
+        get_result, _ = await call_mcp(
             "entity_tool",
-            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+            {"entity_type": "organization", "operation": "read", "entity_id": org_id}
         )
         assert get_result["data"]["name"] == new_name
     
@@ -232,12 +232,12 @@ class TestOrganizationUpdate:
         """Update organization rate limits and settings."""
         # Create organization
         org_data = {"name": f"Settings Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Update settings
         new_settings = {
             "rate_limits": {
@@ -250,8 +250,8 @@ class TestOrganizationUpdate:
                 "beta_features": True
             }
         }
-        
-        update_result = await call_mcp(
+
+        update_result, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -260,7 +260,7 @@ class TestOrganizationUpdate:
                 "data": {"settings": new_settings}
             }
         )
-        
+
         assert update_result["success"] is True
         assert update_result["data"]["settings"] == new_settings
     
@@ -269,8 +269,8 @@ class TestOrganizationUpdate:
     async def test_update_nonexistent_organization(self, call_mcp):
         """Updating non-existent organization should fail."""
         fake_id = str(uuid.uuid4())
-        
-        result, duration_ms = await call_mcp(
+
+        result, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -279,7 +279,7 @@ class TestOrganizationUpdate:
                 "data": {"name": "Updated Name"}
             }
         )
-        
+
         assert result["success"] is False
         assert "not found" in result["error"].lower()
 
@@ -293,15 +293,15 @@ class TestOrganizationMembership:
         """Add member to organization with role."""
         # Create organization
         org_data = {"name": f"Member Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Add member using relationship_tool
         member_email = f"member{uuid.uuid4().hex[:8]}@example.com"
-        add_result = await call_mcp(
+        add_result, _ = await call_mcp(
             "relationship_tool",
             {
                 "relationship_type": "organization_membership",
@@ -314,7 +314,7 @@ class TestOrganizationMembership:
                 }
             }
         )
-        
+
         assert add_result["success"] is True
         assert add_result["data"]["member_email"] == member_email
         assert add_result["data"]["role"] == "member"
@@ -325,20 +325,20 @@ class TestOrganizationMembership:
         """List all members of an organization."""
         # Create organization
         org_data = {"name": f"List Members Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Add multiple members
         members = [
             {"email": f"member{i}{uuid.uuid4().hex[:8]}@example.com", "role": "member"}
             for i in range(3)
         ]
-        
+
         for member in members:
-            await call_mcp(
+            _, _ = await call_mcp(
                 "relationship_tool",
                 {
                     "relationship_type": "organization_membership",
@@ -351,9 +351,9 @@ class TestOrganizationMembership:
                     }
                 }
             )
-        
+
         # List members
-        list_result = await call_mcp(
+        list_result, _ = await call_mcp(
             "relationship_tool",
             {
                 "relationship_type": "organization_membership",
@@ -375,14 +375,14 @@ class TestOrganizationMembership:
         """Remove member from organization."""
         # Create organization and add member
         org_data = {"name": f"Remove Member Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         member_email = f"remove{uuid.uuid4().hex[:8]}@example.com"
-        add_result = await call_mcp(
+        add_result, _ = await call_mcp(
             "relationship_tool",
             {
                 "relationship_type": "organization_membership",
@@ -395,9 +395,9 @@ class TestOrganizationMembership:
             }
         )
         membership_id = add_result["data"]["id"]
-        
+
         # Remove member
-        remove_result = await call_mcp(
+        remove_result, _ = await call_mcp(
             "relationship_tool",
             {
                 "relationship_type": "organization_membership",
@@ -405,11 +405,11 @@ class TestOrganizationMembership:
                 "relationship_id": membership_id
             }
         )
-        
+
         assert remove_result["success"] is True
-        
+
         # Verify member is removed
-        list_result = await call_mcp(
+        list_result, _ = await call_mcp(
             "relationship_tool",
             {
                 "relationship_type": "organization_membership",
@@ -431,14 +431,14 @@ class TestOrganizationLifecycle:
         """Deactivate organization (soft delete)."""
         # Create organization
         org_data = {"name": f"Deactivate Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Deactivate organization
-        deactivate_result = await call_mcp(
+        deactivate_result, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -447,14 +447,14 @@ class TestOrganizationLifecycle:
                 "data": {"status": "inactive"}
             }
         )
-        
+
         assert deactivate_result["success"] is True
         assert deactivate_result["data"]["status"] == "inactive"
-        
+
         # Verify organization appears inactive
-        get_result = await call_mcp(
+        get_result, _ = await call_mcp(
             "entity_tool",
-            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+            {"entity_type": "organization", "operation": "read", "entity_id": org_id}
         )
         assert get_result["data"]["status"] == "inactive"
     
@@ -464,14 +464,14 @@ class TestOrganizationLifecycle:
         """Activate previously deactivated organization."""
         # Create and deactivate organization
         org_data = {"name": f"Reactivate Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Deactivate first
-        await call_mcp(
+        _, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -480,9 +480,9 @@ class TestOrganizationLifecycle:
                 "data": {"status": "inactive"}
             }
         )
-        
+
         # Reactivate
-        activate_result = await call_mcp(
+        activate_result, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -491,7 +491,7 @@ class TestOrganizationLifecycle:
                 "data": {"status": "active"}
             }
         )
-        
+
         assert activate_result["success"] is True
         assert activate_result["data"]["status"] == "active"
     
@@ -501,14 +501,14 @@ class TestOrganizationLifecycle:
         """Delete organization (hard delete)."""
         # Create organization
         org_data = {"name": f"Delete Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Delete organization
-        delete_result = await call_mcp(
+        delete_result, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -516,13 +516,13 @@ class TestOrganizationLifecycle:
                 "entity_id": org_id
             }
         )
-        
+
         assert delete_result["success"] is True
-        
+
         # Verify organization is gone
-        get_result = await call_mcp(
+        get_result, _ = await call_mcp(
             "entity_tool",
-            {"entity_type": "organization", "operation": "get", "entity_id": org_id}
+            {"entity_type": "organization", "operation": "read", "entity_id": org_id}
         )
         assert get_result["success"] is False
         assert "not found" in get_result["error"].lower()
@@ -533,14 +533,14 @@ class TestOrganizationLifecycle:
         """Verify organization operations create audit trail."""
         # Create organization
         org_data = {"name": f"Audit Org {uuid.uuid4().hex[:8]}"}
-        create_result = await call_mcp(
+        create_result, _ = await call_mcp(
             "entity_tool",
             {"entity_type": "organization", "operation": "create", "data": org_data}
         )
         org_id = create_result["data"]["id"]
-        
+
         # Update organization
-        await call_mcp(
+        _, _ = await call_mcp(
             "entity_tool",
             {
                 "entity_type": "organization",
@@ -549,9 +549,9 @@ class TestOrganizationLifecycle:
                 "data": {"description": "Updated description"}
             }
         )
-        
+
         # Query audit trail
-        audit_result = await call_mcp(
+        audit_result, _ = await call_mcp(
             "query_tool",
             {
                 "query_type": "audit_trail",
@@ -561,10 +561,10 @@ class TestOrganizationLifecycle:
                 }
             }
         )
-        
+
         assert audit_result["success"] is True
         assert len(audit_result["data"]) >= 2  # Create + Update
-        
+
         operations = [entry["operation"] for entry in audit_result["data"]]
         assert "create" in operations
         assert "update" in operations
