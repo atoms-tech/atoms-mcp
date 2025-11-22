@@ -12,135 +12,132 @@ class TestWorkflowExecution:
     async def test_execute_workflow_basic(self):
         """Test basic workflow execution."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="test_workflow",
-            parameters={"key": "value"}
+            workflow="create_entity",
+            parameters={"entity_type": "project", "name": "Test"}
         )
-        
+
         assert result is not None
         assert "success" in result or "error" in result
 
     @pytest.mark.asyncio
-    async def test_execute_workflow_with_steps(self):
-        """Test workflow execution with multiple steps."""
+    async def test_execute_workflow_batch_operation(self):
+        """Test batch operation workflow."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="multi_step_workflow",
-            parameters={
-                "step1": {"action": "create"},
-                "step2": {"action": "update"}
-            }
+            workflow="batch_operation",
+            parameters={"operations": []}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
     async def test_workflow_error_handling(self):
         """Test workflow error handling."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="invalid_workflow",
+            workflow="invalid_workflow",
             parameters={}
         )
-        
+
         # Should handle error gracefully
         assert "error" in result or "success" in result
 
     @pytest.mark.asyncio
-    async def test_workflow_state_management(self):
-        """Test workflow state management."""
+    async def test_workflow_resilient_operation(self):
+        """Test resilient operation workflow."""
         from tools.workflow import workflow_execute
-        
-        # Execute workflow and check state
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="stateful_workflow",
-            parameters={"initial_state": "pending"}
+            workflow="resilient_operation",
+            parameters={"operation": "test"}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_rollback(self):
-        """Test workflow rollback on failure."""
+    async def test_workflow_setup_project(self):
+        """Test setup project workflow."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="rollback_workflow",
-            parameters={"should_fail": True}
+            workflow="setup_project",
+            parameters={"name": "Test Project", "organization_id": str(uuid.uuid4())}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_timeout(self):
-        """Test workflow timeout handling."""
+    async def test_workflow_import_requirements(self):
+        """Test import requirements workflow."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="slow_workflow",
-            parameters={"timeout": 1}
+            workflow="import_requirements",
+            parameters={"source": "test"}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_parallel_execution(self):
-        """Test parallel workflow execution."""
+    async def test_workflow_setup_test_matrix(self):
+        """Test setup test matrix workflow."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="parallel_workflow",
-            parameters={"parallel": True}
+            workflow="setup_test_matrix",
+            parameters={"project_id": str(uuid.uuid4())}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_conditional_steps(self):
-        """Test workflow with conditional steps."""
+    async def test_workflow_bulk_status_update(self):
+        """Test bulk status update workflow."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="conditional_workflow",
-            parameters={"condition": True}
+            workflow="bulk_status_update",
+            parameters={"entity_ids": [], "new_status": "completed"}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_retry_logic(self):
-        """Test workflow retry logic."""
+    async def test_workflow_organization_onboarding(self):
+        """Test organization onboarding workflow."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="retry_workflow",
-            parameters={"max_retries": 3}
+            workflow="organization_onboarding",
+            parameters={"name": "Test Org"}
         )
-        
+
         assert result is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_logging(self):
-        """Test workflow logging."""
+    async def test_workflow_transaction_mode(self):
+        """Test workflow with transaction mode."""
         from tools.workflow import workflow_execute
-        
+
         result = await workflow_execute(
             auth_token="test-token",
-            workflow_name="logged_workflow",
-            parameters={"log_level": "debug"}
+            workflow="batch_operation",
+            parameters={"operations": []},
+            transaction_mode=True
         )
-        
+
         assert result is not None
 
