@@ -116,6 +116,7 @@ markers = [
     "three_variant: marks tests that have unit/integration/e2e variants",
     "mock_only: marks tests that use mocks instead of real services",
     "slow: marks tests as slow",
+    "flaky: marks tests as potentially flaky (pytest-rerunfailures)",
     "regression: marks regression coverage for bug fixes",
     "dependency: marks test dependencies (pytest-dependency)",
     "order: controls test execution order (pytest-order)",
