@@ -21,7 +21,7 @@
   🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
      → Slow: 1.10s (threshold: 1.0s)
   🟡 tests/unit/tools/test_query.py::TestQueryRAGSearch::test_rag_search_semantic_mode[unit]
-     → Slow: 4.74s (threshold: 1.0s)
+     → Slow: 4.52s (threshold: 1.0s)
 
 ----------------------------------------------------------------------
 Total Warnings: 8

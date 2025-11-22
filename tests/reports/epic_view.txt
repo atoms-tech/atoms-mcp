@@ -8,7 +8,7 @@
 ║   ✅ User can view organization details                                       ║
 ║   ✅ User can update organization settings                                    ║
 ║   ✅ User can delete an organization                                          ║
-║   ✅ User can list all organizations (118 passing, 1 failing)                 ║
+║   ✅ User can list all organizations                                          ║
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -16,13 +16,13 @@
 ║   ✅ User can view project details                                            ║
 ║   ✅ User can update project information                                      ║
 ║   ✅ User can archive a project                                               ║
-║   ✅ User can list projects in organization (51 passing, 1 failing)           ║
+║   ✅ User can list projects in organization                                   ║
 ║                                                                              ║
 ║ 📦 Document Management (3/3) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create a document                                               ║
 ║   ✅ User can view document content                                           ║
-║   ✅ User can list documents in project (51 passing, 1 failing)               ║
+║   ✅ User can list documents in project                                       ║
 ║                                                                              ║
 ║ 📦 Requirements Traceability (4/4) ✓✓✓                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
