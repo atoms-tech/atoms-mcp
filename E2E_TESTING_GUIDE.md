@@ -112,10 +112,25 @@ python -m pytest tests/unit -m unit
 ## Important Notes
 
 1. **E2E tests make REAL changes** - They create/modify/delete actual data
-2. **Requires authentication** - Set `WORKOS_API_KEY` and `WORKOS_CLIENT_ID`
-3. **Slower than unit tests** - Network latency + real database operations
-4. **Use for production validation** - Verify system works end-to-end
-5. **Use integration tests for development** - Faster feedback loop
+2. **All environments use real WorkOS JWT** - Same keys from `.env` for local/dev/prod
+3. **Use `--scope` not `--marker`** - `atoms test --scope e2e` respects `--env` flag
+4. **Slower than unit tests** - Network latency + real database operations
+5. **Use for production validation** - Verify system works end-to-end
+6. **Local server uses same WorkOS keys as prod** - No special test mode needed
+
+## Common Mistakes
+
+❌ **Wrong:** `atoms test --marker e2e --env local`
+- `--marker` doesn't properly set up environment
+
+✅ **Right:** `atoms test --scope e2e --env local`
+- `--scope` properly sets up environment via TestEnvManager
+
+❌ **Wrong:** `pytest tests/e2e -m e2e`
+- Bypasses atoms CLI environment setup
+
+✅ **Right:** `atoms test:e2e --env local`
+- Uses atoms CLI to set up environment
 
 ## Troubleshooting
 
