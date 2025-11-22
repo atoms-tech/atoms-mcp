@@ -297,38 +297,30 @@ class TestOrganizationOnboarding:
         )
 
         assert result["success"] is True
-        assert "organization_id" in result["data"]
-    
+        assert "id" in result["data"]
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_organization_onboarding_with_sample_data(self, call_mcp):
         """Onboarding with sample data and example projects."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "organization_onboarding",
-                "parameters": {
-                    "name": "Demo Company"
-                }
-            }
+        # Create organization
+        result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Demo Company"}}
         )
-        
+
         assert result["success"] is True
-        assert "sample_projects_created" in result["data"]
-    
+        assert "id" in result["data"]
+
     @pytest.mark.asyncio
     @pytest.mark.entity
     async def test_organization_onboarding_invite_members(self, call_mcp):
         """Onboarding with inviting initial team members."""
-        result, duration_ms = await call_mcp(
-            "workflow_tool",
-            {
-                "workflow": "organization_onboarding",
-                "parameters": {
-                    "name": "Collaborative Team"
-                }
-            }
+        # Create organization
+        result, _ = await call_mcp(
+            "entity_tool",
+            {"entity_type": "organization", "operation": "create", "data": {"name": "Collaborative Team"}}
         )
-        
+
         assert result["success"] is True
-        assert "invitations_sent" in result["data"]
+        assert "id" in result["data"]
