@@ -23,7 +23,6 @@ class TestPermissionEnforcement:
     """E2E tests for permission enforcement."""
 
     @pytest.mark.story("User permissions are enforced at API level")
-    @pytest.mark.skip(reason="Requires auth token validation - WorkOS token not being accepted by server")
     async def test_create_permission_denied_cross_workspace(self, end_to_end_client):
         """Test create permission denied when user not in workspace."""
         # Create organization
@@ -35,6 +34,10 @@ class TestPermissionEnforcement:
                 "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
             }
         )
+        if not org_result.get("success"):
+            error_msg = org_result.get("error", "")
+            if "invalid_token" in error_msg or "HTTP 401" in error_msg:
+                pytest.skip(f"Auth token validation issue: {error_msg[:100]}")
         assert org_result.get("success") is True
         org_id = org_result["data"]["id"]
         
@@ -102,7 +105,6 @@ class TestPermissionEnforcement:
             assert "error" in result or "message" in result
 
     @pytest.mark.story("User permissions are enforced at API level")
-    @pytest.mark.skip(reason="Requires auth token validation - WorkOS token not being accepted by server")
     async def test_workspace_membership_validation(self, end_to_end_client):
         """Test workspace membership is validated."""
         # Create organization
@@ -114,6 +116,10 @@ class TestPermissionEnforcement:
                 "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
             }
         )
+        if not org_result.get("success"):
+            error_msg = org_result.get("error", "")
+            if "invalid_token" in error_msg or "HTTP 401" in error_msg:
+                pytest.skip(f"Auth token validation issue: {error_msg[:100]}")
         assert org_result.get("success") is True
         org_id = org_result["data"]["id"]
         
@@ -129,7 +135,6 @@ class TestPermissionEnforcement:
         assert "success" in list_result or "data" in list_result
 
     @pytest.mark.story("User permissions are enforced at API level")
-    @pytest.mark.skip(reason="Requires auth token validation - WorkOS token not being accepted by server")
     async def test_role_based_permission_differences(self, end_to_end_client):
         """Test role-based permission differences."""
         # Create organization
@@ -141,6 +146,10 @@ class TestPermissionEnforcement:
                 "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
             }
         )
+        if not org_result.get("success"):
+            error_msg = org_result.get("error", "")
+            if "invalid_token" in error_msg or "HTTP 401" in error_msg:
+                pytest.skip(f"Auth token validation issue: {error_msg[:100]}")
         assert org_result.get("success") is True
         org_id = org_result["data"]["id"]
         
@@ -187,7 +196,6 @@ class TestPermissionEnforcement:
         assert "success" in result or "data" in result
 
     @pytest.mark.story("User permissions are enforced at API level")
-    @pytest.mark.skip(reason="Requires auth token validation - WorkOS token not being accepted by server")
     async def test_create_permission_allowed_in_workspace(self, end_to_end_client):
         """Test create permission allowed when user is in workspace."""
         # Create organization
@@ -199,9 +207,16 @@ class TestPermissionEnforcement:
                 "data": {"name": f"Test Org {uuid.uuid4().hex[:8]}"}
             }
         )
-        assert org_result.get("success") is True
+        # Check if we got an auth error
+        if not org_result.get("success"):
+            error_msg = org_result.get("error", "")
+            if "invalid_token" in error_msg or "HTTP 401" in error_msg:
+                pytest.skip(f"Auth token validation issue: {error_msg[:100]}")
+            else:
+                assert org_result.get("success") is True, f"Failed: {error_msg}"
+
         org_id = org_result["data"]["id"]
-        
+
         # Create project (should work - user is in workspace)
         project_result = await end_to_end_client.call_tool(
             "entity_tool",
@@ -214,5 +229,10 @@ class TestPermissionEnforcement:
                 }
             }
         )
-        assert project_result.get("success") is True
+        if not project_result.get("success"):
+            error_msg = project_result.get("error", "")
+            if "invalid_token" in error_msg or "HTTP 401" in error_msg:
+                pytest.skip(f"Auth token validation issue: {error_msg[:100]}")
+            else:
+                assert project_result.get("success") is True, f"Failed: {error_msg}"
 
