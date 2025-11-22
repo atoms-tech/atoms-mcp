@@ -7,7 +7,8 @@ FastMCP issue #2385 and #2448: **Support both Bearer tokens and OAuth simultaneo
 When an MCP server is configured with OAuth (AuthKit), it defaults to OAuth flow only. The `HybridAuthProvider` enables the same server to accept:
 - ✅ OAuth flow (AuthKit) for IDE integrations (Cursor, VS Code)
 - ✅ Bearer tokens (WorkOS User Management JWTs) for API calls
-- ✅ AuthKit JWTs forwarded from frontend/backend
+  - AuthKit API (headless) uses WorkOS User Management API under the hood
+  - Both return the same JWT format and can be used interchangeably
 - ✅ Unsigned JWTs for local testing
 
 ## Architecture
@@ -17,10 +18,12 @@ Request with Bearer Token
     ↓
 HybridAuthProvider.authenticate()
     ↓
-Try internal token → Try WorkOS JWT → Try AuthKit JWT → Try unsigned JWT
+Try OAuth (AuthKit) → Try WorkOS User Management JWT → Try unsigned JWT
     ↓
 Return AccessToken object
 ```
+
+**Note:** AuthKit API (headless) and WorkOS User Management API return the same JWT format, so they're verified by the same verifier.
 
 ## Key Components
 
@@ -32,6 +35,7 @@ Return AccessToken object
 
 ### 2. WorkOSTokenVerifier (`services/auth/workos_token_verifier.py`)
 - Verifies WorkOS User Management JWTs
+- Also verifies AuthKit API JWTs (same format)
 - Validates JWT signature and claims
 - Handles token expiration
 
@@ -65,10 +69,13 @@ mcp = FastMCP(
 
 ## Authentication Methods
 
-1. **OAuth (AuthKit)** - IDE integrations
-2. **Bearer Token (WorkOS JWT)** - API calls
-3. **AuthKit JWT** - Frontend/backend forwarding
-4. **Unsigned JWT** - Local testing (test mode)
+1. **OAuth (AuthKit)** - IDE integrations (full OAuth flow)
+2. **Bearer Token (WorkOS User Management / AuthKit API JWT)** - API calls
+   - AuthKit API (headless) uses WorkOS User Management API under the hood
+   - Both return the same JWT format
+   - Can be used interchangeably as Bearer tokens
+   - Verified by WorkOSTokenVerifier
+3. **Unsigned JWT** - Local testing (test mode)
 
 ## Testing
 
