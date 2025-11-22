@@ -12,7 +12,7 @@
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create a project (5 passing, 1 failing)                         ║
+║   ✅ User can create a project                                                ║
 ║   ✅ User can view project details                                            ║
 ║   ✅ User can update project information                                      ║
 ║   ✅ User can archive a project                                               ║
@@ -67,7 +67,7 @@
 ║   ✅ User can set up new project workflow                                     ║
 ║   ✅ User can import requirements via workflow                                ║
 ║   ✅ User can bulk update statuses                                            ║
-║   ✅ User can onboard new organization (6 passing, 3 failing)                 ║
+║   ✅ User can onboard new organization                                        ║
 ║   ✅ User can run workflows with transactions                                 ║
 ║                                                                              ║
 ║ 📦 Data Management (3/3) ✓✓✓                                                  ║
