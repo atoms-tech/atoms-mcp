@@ -1,4 +1,4 @@
-"""Workspace Tool Tests - Unit Tests Only.
+"""Integration tests for Workspace Tool with real database.
 
 This test suite validates workspace_tool functionality:
 - operation: get_context, set_context, list_workspaces, get_defaults
@@ -6,12 +6,12 @@ This test suite validates workspace_tool functionality:
 - entity_id: ID of the entity to set as context
 - format_type: Result format (detailed, summary)
 
-Run with: pytest tests/unit/tools/test_workspace.py -v
+Run with: pytest tests/integration/workspace/test_workspace.py -v
 """
 
 import pytest
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 
 
 class TestWorkspaceGetContext:

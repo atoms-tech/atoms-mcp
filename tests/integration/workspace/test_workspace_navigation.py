@@ -1,4 +1,4 @@
-"""E2E tests for Workspace Navigation operations.
+"""Integration tests for Workspace Navigation operations with real database.
 
 Tests for all workspace context and navigation operations.
 
@@ -10,15 +10,14 @@ Covers:
 - Story 6.5: Manage workspace favorites
 - Story 6.6: Get workspace defaults
 
-This file validates end-to-end workspace navigation functionality:
+This file validates workspace navigation functionality with real database:
 - Getting and maintaining current workspace context
 - Switching between workspaces/organizations
 - Managing workspace settings and defaults
 - Tracking workspace state and recent activity
 
 Test Coverage: 12 test scenarios covering 6 user stories.
-File follows canonical naming - describes WHAT is tested (workspace navigation).
-Uses canonical fixture patterns for unit/integration/e2e variants.
+Uses real database (Supabase) for integration testing.
 """
 
 import pytest
@@ -26,6 +25,8 @@ import pytest_asyncio
 import uuid
 from typing import Dict, Any, List
 from datetime import datetime, timezone
+
+pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
 
 class TestWorkspaceContext:

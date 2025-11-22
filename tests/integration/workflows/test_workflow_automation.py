@@ -1,6 +1,6 @@
-"""E2E tests for Workflow Automation operations.
+"""Integration tests for Workflow Automation operations.
 
-Tests for all workflow automation operations and execution.
+Tests for all workflow automation operations and execution with real database.
 
 Covers:
 - Story 9.1: Run workflows with transactions
@@ -9,7 +9,7 @@ Covers:
 - Story 9.4: Bulk update status workflow
 - Story 9.5: Organization onboarding workflow
 
-This file validates end-to-end workflow automation functionality:
+This file validates workflow automation functionality with real database:
 - Running workflows with transactional consistency
 - Setting up new project workflows and automation rules
 - Importing data via workflows (requirements, test cases)
@@ -17,8 +17,7 @@ This file validates end-to-end workflow automation functionality:
 - Organization onboarding workflows
 
 Test Coverage: 13 test scenarios covering 5 user stories.
-File follows canonical naming - describes WHAT is tested (workflow automation).
-Uses canonical fixture patterns for unit/integration/e2e variants.
+Uses real database (Supabase) for integration testing.
 """
 
 import pytest
@@ -26,6 +25,8 @@ import pytest_asyncio
 import uuid
 from typing import Dict, Any, List
 from datetime import datetime, timezone
+
+pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
 
 class TestWorkflowTransactions:

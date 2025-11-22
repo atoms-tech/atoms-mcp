@@ -1,6 +1,6 @@
-"""Workflow tool tests - Advanced scenarios and edge cases.
+"""Integration tests for Workflow tool - Advanced scenarios and edge cases.
 
-Tests advanced workflow features:
+Tests advanced workflow features with real database:
 - Parallel document creation
 - Step result aggregation
 - Partial failures with continuation
@@ -9,12 +9,12 @@ Tests advanced workflow features:
 - Transaction boundaries
 - Error recovery
 
-Run with: pytest tests/unit/tools/test_workflow_advanced.py -v
+Run with: pytest tests/integration/workflows/test_workflow_advanced.py -v
 """
 
 import pytest
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.unit]
+pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
 
 
 class TestWorkflowAdvancedScenarios:
