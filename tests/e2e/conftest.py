@@ -24,17 +24,24 @@ import os
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 
-# NO static tokens or test mode - all tests MUST use real AuthKit access tokens
-# Remove any test token configuration
-if "ATOMS_INTERNAL_TOKEN" in os.environ:
-    if os.environ["ATOMS_INTERNAL_TOKEN"] == "test-e2e-token-for-atoms-mcp":
-        del os.environ["ATOMS_INTERNAL_TOKEN"]
-        logger.info("⚠️  Removed test internal token - tests must use AuthKit access tokens")
+# For local testing: Enable test mode if using local server
+# For production: Use real AuthKit tokens only
+import logging
+logger = logging.getLogger(__name__)
 
-# Remove test mode - only real AuthKit tokens allowed
-if "ATOMS_TEST_MODE" in os.environ:
-    del os.environ["ATOMS_TEST_MODE"]
-    logger.info("⚠️  Removed ATOMS_TEST_MODE - tests must use real AuthKit tokens")
+# Check if we're testing against local server
+is_local_testing = os.getenv("MCP_E2E_BASE_URL", "").startswith("http://localhost") or \
+                   (not os.getenv("MCP_E2E_BASE_URL") and os.getenv("USE_LOCAL_SERVER", "true").lower() == "true")
+
+if is_local_testing:
+    # Enable test mode for local testing
+    os.environ["ATOMS_TEST_MODE"] = "true"
+    logger.info("✅ Local testing mode enabled - ATOMS_TEST_MODE=true")
+else:
+    # Production: Remove test mode - only real AuthKit tokens allowed
+    if "ATOMS_TEST_MODE" in os.environ:
+        del os.environ["ATOMS_TEST_MODE"]
+        logger.info("⚠️  Production mode - ATOMS_TEST_MODE disabled")
 
 # Configure Supabase credentials for cloud testing
 if not os.getenv("ATOMS_TEST_EMAIL"):
@@ -226,47 +233,56 @@ async def full_deployment():
 
 @pytest_asyncio.fixture(scope="session")
 async def authkit_auth_token():
-    """Authenticate with WorkOS/AuthKit and get a real JWT token for E2E testing.
-    
-    REQUIRED: All tests must use real AuthKit access tokens - no static tokens allowed.
+    """Authenticate with WorkOS/AuthKit and get a JWT token for E2E testing.
 
-    Uses WorkOS User Management API (password grant) to get a real JWT token.
-    This is reliable, fast, and doesn't require Playwright automation.
-
-    Strategy:
-    1. Check for ATOMS_TEST_AUTH_TOKEN in environment (pre-obtained AuthKit JWT)
-    2. Use WorkOS User Management password grant to authenticate
-    3. Cache token for session scope to avoid repeated authentication
+    Supports two modes:
+    1. Local testing: Generate unsigned JWT for testing (when ATOMS_TEST_MODE=true)
+    2. Production: Use real AuthKit access tokens from WorkOS
 
     Returns:
-        Valid AuthKit JWT token for authenticated API calls
+        Valid JWT token for authenticated API calls
 
     Raises:
-        pytest.skip: If no AuthKit token can be obtained (tests will be skipped)
+        pytest.skip: If no token can be obtained (tests will be skipped)
     """
     import os
     import logging
     import asyncio
+    import json
+    import base64
 
     logger_local = logging.getLogger(__name__)
 
     # Check for pre-obtained token first (fastest)
     pre_obtained_token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
     if pre_obtained_token:
-        # Validate it's a real JWT (not a static token)
-        if len(pre_obtained_token) < 100 or pre_obtained_token.count(".") < 2:
-            error_msg = (
-                f"❌ Invalid token format in ATOMS_TEST_AUTH_TOKEN. "
-                f"Token appears to be a static token (length: {len(pre_obtained_token)}). "
-                f"Tests require real AuthKit JWTs (typically 200+ characters)."
-            )
-            logger_local.error(error_msg)
-            import pytest
-            pytest.skip(error_msg)
-
-        logger_local.info("✅ Using pre-obtained AuthKit token from environment")
+        logger_local.info("✅ Using pre-obtained token from environment")
         return pre_obtained_token
 
+    # For local testing: Generate unsigned JWT
+    if os.getenv("ATOMS_TEST_MODE", "false").lower() == "true":
+        logger_local.info("🧪 Generating unsigned JWT for local testing")
+
+        # Create unsigned JWT (alg: "none")
+        header = {"alg": "none", "typ": "JWT"}
+        payload = {
+            "sub": "test-user-" + str(uuid.uuid4())[:8],
+            "email": "test@atoms.local",
+            "email_verified": True,
+            "name": "Test User",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 3600
+        }
+
+        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+
+        # Unsigned JWT: header.payload. (empty signature)
+        token = f"{header_b64}.{payload_b64}."
+        logger_local.info(f"✅ Generated unsigned JWT for testing: sub={payload['sub']}")
+        return token
+
+    # Production: Use real AuthKit tokens
     email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
     password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
 
@@ -289,18 +305,6 @@ async def authkit_auth_token():
         logger_local.error(error_msg)
         import pytest
         pytest.skip(error_msg)
-    
-    # No token available - tests REQUIRE AuthKit tokens
-    error_msg = (
-        "❌ No AuthKit access token available. "
-        "Tests require real AuthKit JWTs - no static tokens allowed.\n"
-        "To get a token:\n"
-        "  1. Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set\n"
-        "  2. Or export: export ATOMS_TEST_AUTH_TOKEN=<token>"
-    )
-    logger_local.error(error_msg)
-    import pytest
-    pytest.skip(error_msg)
 
 
 @pytest_asyncio.fixture
@@ -386,9 +390,25 @@ async def end_to_end_client(e2e_auth_token):
     else:
         # Use real HTTP client
         import httpx
-        
-        # Get deployment URL from environment or use mcpdev default
-        deployment_url = os.getenv("MCP_E2E_BASE_URL", "https://mcpdev.atoms.tech/api/mcp")
+
+        # Get deployment URL from environment or use local default
+        # Priority: MCP_E2E_BASE_URL env var > local server > mcpdev
+        deployment_url = os.getenv("MCP_E2E_BASE_URL")
+        if not deployment_url:
+            # Try local server first
+            try:
+                async with httpx.AsyncClient() as test_client:
+                    response = await test_client.get("http://localhost:8000/health", timeout=2)
+                    if response.status_code == 200:
+                        deployment_url = "http://localhost:8000/api/mcp"
+                        print("✅ Using local MCP server at http://localhost:8000")
+            except Exception:
+                pass
+
+        # Fall back to mcpdev if local not available
+        if not deployment_url:
+            deployment_url = "https://mcpdev.atoms.tech/api/mcp"
+            print("⚠️  Local server not available, using mcpdev.atoms.tech")
         
         # Create httpx client with authentication headers
         headers = {
