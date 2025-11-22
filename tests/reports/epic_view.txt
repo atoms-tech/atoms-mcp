@@ -65,9 +65,9 @@
 ║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can set up new project workflow                                     ║
-║   ✅ User can import requirements via workflow (4 passing, 3 failing)         ║
-║   ✅ User can bulk update statuses (26 passing, 3 failing)                    ║
-║   ✅ User can onboard new organization (5 passing, 4 failing)                 ║
+║   ✅ User can import requirements via workflow                                ║
+║   ✅ User can bulk update statuses                                            ║
+║   ✅ User can onboard new organization (6 passing, 3 failing)                 ║
 ║   ✅ User can run workflows with transactions                                 ║
 ║                                                                              ║
 ║ 📦 Data Management (3/3) ✓✓✓                                                  ║
