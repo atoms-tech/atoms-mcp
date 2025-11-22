@@ -376,22 +376,41 @@ async def end_to_end_client(e2e_auth_token):
         # Use real HTTP client
         import httpx
 
-        # E2E tests should use DEPLOYED server (mcpdev.atoms.tech) with REAL authentication
-        # NOT local server with unsigned JWTs
-        #
-        # Priority: MCP_E2E_BASE_URL env var > mcpdev.atoms.tech (deployed)
-        # Local server is only for integration/unit tests, not E2E
+        # Get deployment URL from environment variable set by TestEnvManager (atoms CLI)
+        # This respects the --env flag from atoms CLI:
+        # - atoms test:e2e --env local → http://localhost:8000/api/mcp (unsigned JWT, test mode)
+        # - atoms test:e2e --env dev → https://mcpdev.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
+        # - atoms test:e2e --env prod → https://mcp.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
 
         deployment_url = os.getenv("MCP_E2E_BASE_URL")
         if not deployment_url:
-            # E2E tests use deployed server by default
+            # Fallback to dev if not set by TestEnvManager
             deployment_url = "https://mcpdev.atoms.tech/api/mcp"
-            print("🎯 E2E Tests: Using deployed server at mcpdev.atoms.tech")
-            print("   (For local testing, use integration tests or set MCP_E2E_BASE_URL=http://localhost:8000/api/mcp)")
+            print("⚠️  MCP_E2E_BASE_URL not set, using dev: mcpdev.atoms.tech")
 
-        # Disable test mode for deployed server - use real authentication
-        if "ATOMS_TEST_MODE" in os.environ:
-            del os.environ["ATOMS_TEST_MODE"]
+        # Determine if we're using local server or deployed server
+        is_local = "localhost" in deployment_url or "127.0.0.1" in deployment_url
+
+        if is_local:
+            # Local server: Enable test mode for unsigned JWTs
+            os.environ["ATOMS_TEST_MODE"] = "true"
+            print(f"✅ Local server: {deployment_url}")
+            print("   Using unsigned JWTs (test mode)")
+        else:
+            # Deployed server (dev/prod): Disable test mode, use real authentication
+            if "ATOMS_TEST_MODE" in os.environ:
+                del os.environ["ATOMS_TEST_MODE"]
+
+            # Extract environment name from URL
+            if "mcpdev" in deployment_url:
+                env_name = "Development (mcpdev.atoms.tech)"
+            elif "mcp.atoms.tech" in deployment_url:
+                env_name = "Production (mcp.atoms.tech)"
+            else:
+                env_name = deployment_url
+
+            print(f"✅ Deployed server: {env_name}")
+            print("   Using real WorkOS authentication")
         
         # Create httpx client with authentication headers
         headers = {
