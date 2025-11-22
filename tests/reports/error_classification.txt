@@ -5,7 +5,7 @@
 ║ 🔴 INFRASTRUCTURE       │   0 error(s) ║
 ║ 🟠 PRODUCT              │   4 error(s) ║
 ║ 🟡 TEST_DATA            │   0 error(s) ║
-║ 🟢 ASSERTION            │  96 error(s) ║
+║ 🟢 ASSERTION            │  88 error(s) ║
 ║                                                            ║
-║ Total: 100 error(s)                                         ║
+║ Total: 92 error(s)                                         ║
 ╚════════════════════════════════════════════════════════════╝

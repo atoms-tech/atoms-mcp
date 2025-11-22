@@ -6,23 +6,23 @@
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create an organization (2 passing, 1 failing)                   ║
 ║   ✅ User can view organization details                                       ║
-║   ✅ User can update organization settings (31 passing, 4 failing)            ║
+║   ✅ User can update organization settings (32 passing, 4 failing)            ║
 ║   ✅ User can delete an organization                                          ║
-║   ✅ User can list all organizations (93 passing, 28 failing)                 ║
+║   ✅ User can list all organizations (92 passing, 26 failing)                 ║
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create a project (2 passing, 4 failing)                         ║
 ║   ✅ User can view project details                                            ║
-║   ✅ User can update project information (29 passing, 6 failing)              ║
+║   ✅ User can update project information (30 passing, 6 failing)              ║
 ║   ✅ User can archive a project (20 passing, 2 failing)                       ║
-║   ✅ User can list projects in organization (51 passing, 9 failing)           ║
+║   ✅ User can list projects in organization (50 passing, 7 failing)           ║
 ║                                                                              ║
 ║ 📦 Document Management (3/3) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can create a document (1 passing, 4 failing)                        ║
+║   ✅ User can create a document (2 passing, 1 failing)                        ║
 ║   ✅ User can view document content                                           ║
-║   ✅ User can list documents in project (52 passing, 11 failing)              ║
+║   ✅ User can list documents in project (50 passing, 7 failing)               ║
 ║                                                                              ║
 ║ 📦 Requirements Traceability (4/4) ✓✓✓                                        ║
 ║──────────────────────────────────────────────────────────────────────────────║
