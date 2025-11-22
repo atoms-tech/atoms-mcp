@@ -24,24 +24,9 @@ import os
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 
-# For local testing: Enable test mode if using local server
-# For production: Use real AuthKit tokens only
+# Logging setup
 import logging
 logger = logging.getLogger(__name__)
-
-# Check if we're testing against local server
-is_local_testing = os.getenv("MCP_E2E_BASE_URL", "").startswith("http://localhost") or \
-                   (not os.getenv("MCP_E2E_BASE_URL") and os.getenv("USE_LOCAL_SERVER", "true").lower() == "true")
-
-if is_local_testing:
-    # Enable test mode for local testing
-    os.environ["ATOMS_TEST_MODE"] = "true"
-    logger.info("✅ Local testing mode enabled - ATOMS_TEST_MODE=true")
-else:
-    # Production: Remove test mode - only real AuthKit tokens allowed
-    if "ATOMS_TEST_MODE" in os.environ:
-        del os.environ["ATOMS_TEST_MODE"]
-        logger.info("⚠️  Production mode - ATOMS_TEST_MODE disabled")
 
 # Configure Supabase credentials for cloud testing
 if not os.getenv("ATOMS_TEST_EMAIL"):
@@ -392,42 +377,27 @@ async def end_to_end_client(e2e_auth_token):
         import httpx
 
         # Get deployment URL from environment or use local default
-        # Priority: MCP_E2E_BASE_URL env var > local server (if ATOMS_TEST_MODE) > mcpdev
+        # Priority: MCP_E2E_BASE_URL env var > local server > mcpdev
         deployment_url = os.getenv("MCP_E2E_BASE_URL")
         if not deployment_url:
-            # If test mode is enabled, MUST use local server (unsigned JWTs not accepted by deployed server)
-            if os.getenv("ATOMS_TEST_MODE", "false").lower() == "true":
-                try:
-                    async with httpx.AsyncClient() as test_client:
-                        response = await test_client.get("http://localhost:8000/health", timeout=2)
-                        if response.status_code == 200:
-                            deployment_url = "http://localhost:8000/api/mcp"
-                            print("✅ Test mode enabled - using local MCP server at http://localhost:8000")
-                        else:
-                            raise Exception("Local server health check failed")
-                except Exception as e:
-                    error_msg = (
-                        "❌ Test mode enabled but local server not available at http://localhost:8000\n"
-                        "Please start the local server: python server.py\n"
-                        f"Error: {e}"
-                    )
-                    print(error_msg)
-                    import pytest
-                    pytest.skip(error_msg)
-            else:
-                # Try local server first (if available)
-                try:
-                    async with httpx.AsyncClient() as test_client:
-                        response = await test_client.get("http://localhost:8000/health", timeout=2)
-                        if response.status_code == 200:
-                            deployment_url = "http://localhost:8000/api/mcp"
-                            print("✅ Using local MCP server at http://localhost:8000")
-                except Exception:
-                    pass
+            # Try local server first (if available)
+            try:
+                async with httpx.AsyncClient() as test_client:
+                    response = await test_client.get("http://localhost:8000/health", timeout=2)
+                    if response.status_code == 200:
+                        deployment_url = "http://localhost:8000/api/mcp"
+                        # Enable test mode for local server
+                        os.environ["ATOMS_TEST_MODE"] = "true"
+                        print("✅ Using local MCP server at http://localhost:8000 (test mode enabled)")
+            except Exception:
+                pass
 
-        # Fall back to mcpdev if local not available and not in test mode
+        # Fall back to mcpdev if local not available
         if not deployment_url:
             deployment_url = "https://mcpdev.atoms.tech/api/mcp"
+            # Disable test mode for deployed server
+            if "ATOMS_TEST_MODE" in os.environ:
+                del os.environ["ATOMS_TEST_MODE"]
             print("⚠️  Local server not available, using mcpdev.atoms.tech")
         
         # Create httpx client with authentication headers
