@@ -12,6 +12,6 @@
 ║ Legend: ✓=Pass  ✗=Fail  ?=Skipped  ⚠️=Below Threshold              ║
 ║                                                                    ║
 ║ Error Distribution:                                                ║
-║   ❓ ASSERTION: 80 errors                                            ║
+║   ❓ ASSERTION: 73 errors                                            ║
 ║   🐛 PRODUCT: 4 errors                                               ║
 ╚════════════════════════════════════════════════════════════════════╝
