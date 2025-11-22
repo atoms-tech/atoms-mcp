@@ -71,11 +71,57 @@ Completely removed unreliable Playwright OAuth flow from entire test suite. All 
 - **Files**: `services/auth/workos_token_verifier.py`
 - **Result**: Tokens now accepted without JWKS verification
 
-## Remaining Issues
-117 tests still failing - mostly due to database access issues in unit tests. These require either:
-1. Better database mocking
-2. Integration test approach
-3. Test data setup improvements
+## Test Fixes Applied
+
+### 8. Fixed call_mcp Tuple Unpacking ✅
+- **Problem**: Tests not unpacking `(result, duration_ms)` tuple from call_mcp
+- **Solution**: Updated all tests to properly unpack the tuple
+- **Files**: `tests/unit/tools/test_organization_management.py`
+- **Result**: 8 tests fixed
+
+## Remaining Issues: 109 Failed Tests
+
+### Root Causes Analysis
+
+#### 1. **Test API Mismatches** (17 tests)
+- **Issue**: Tests using wrong API format for relationship_tool
+- **Example**: Using `operation: "create"` and `data:` instead of `operation: "link"` and `source`/`target`
+- **Files**: `test_entity_relationships.py`
+- **Fix**: Rewrite tests to use correct API format
+
+#### 2. **Test Expectations for Non-Existent Fields** (13 tests)
+- **Issue**: Tests expecting fields that don't exist in database schema
+- **Example**: Expecting `type` field in document responses
+- **Files**: `test_document_management.py`, `test_case_management.py`
+- **Fix**: Update test assertions to match actual schema
+
+#### 3. **Database Schema/RLS Issues** (79 tests)
+- **Issue**: Tests failing due to Row-Level Security (RLS) policies or missing schema
+- **Files**: `test_advanced_features.py`, `test_multi_tenant.py`, `test_search_and_discovery.py`
+- **Fix**: Review and fix RLS policies, ensure schema is correct
+
+## Test Results Summary
+- **Before**: 122 failed, 730 passed
+- **After**: 109 failed, 743 passed
+- **Improvement**: 13 tests fixed ✅
+
+## Next Steps to Fix Remaining 109 Tests
+
+### Priority 1: Fix Test API Mismatches (17 tests)
+1. Update `test_entity_relationships.py` to use correct relationship_tool API
+2. Fix operation names and parameter formats
+3. Estimated: 1-2 hours
+
+### Priority 2: Fix Test Expectations (13 tests)
+1. Review database schema for actual fields
+2. Update test assertions to match schema
+3. Estimated: 1-2 hours
+
+### Priority 3: Fix Database Issues (79 tests)
+1. Review RLS policies in Supabase
+2. Check for missing schema or constraints
+3. Verify database permissions
+4. Estimated: 2-4 hours
 
 ## Commits Made
 1. Fix authentication and test issues (Playwright → WorkOS)
