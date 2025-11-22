@@ -2,10 +2,10 @@
 ╔════════════════════════════════════════════════════════════╗
 ║              TEST ERROR SUMMARY BY CATEGORY                 ║
 ╠════════════════════════════════════════════════════════════╣
-║ 🔴 INFRASTRUCTURE       │   1 error(s) ║
+║ 🔴 INFRASTRUCTURE       │   0 error(s) ║
 ║ 🟠 PRODUCT              │   4 error(s) ║
 ║ 🟡 TEST_DATA            │   0 error(s) ║
-║ 🟢 ASSERTION            │  40 error(s) ║
+║ 🟢 ASSERTION            │  38 error(s) ║
 ║                                                            ║
-║ Total: 45 error(s)                                         ║
+║ Total: 42 error(s)                                         ║
 ╚════════════════════════════════════════════════════════════╝
