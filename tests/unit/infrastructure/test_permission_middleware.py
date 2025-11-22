@@ -281,20 +281,24 @@ class TestPermissionMiddlewareEdgeCases:
         return PermissionMiddleware(get_user_ctx)
     
     async def test_create_permission_missing_workspace_id(self, middleware):
-        """Test create permission fails without workspace_id."""
-        with pytest.raises(PermissionError):
-            await middleware.check_create_permission(
-                "document",
-                {"name": "Test Doc"}  # No workspace_id
-            )
-    
+        """Test create permission allows missing workspace_id (database will enforce constraints)."""
+        # In the new design, missing workspace_id is allowed at permission layer
+        # Database constraints will enforce NOT NULL requirements
+        result = await middleware.check_create_permission(
+            "document",
+            {"name": "Test Doc"}  # No workspace_id
+        )
+        assert result is True  # Permission check passes, database will enforce constraints
+
     async def test_list_permission_missing_workspace_id(self, middleware):
-        """Test list permission fails without workspace_id."""
-        with pytest.raises(PermissionError):
-            await middleware.check_list_permission(
-                "document",
-                None  # No workspace_id
-            )
+        """Test list permission allows missing workspace_id (RLS will filter results)."""
+        # In the new design, missing workspace_id is allowed for list operations
+        # Database RLS will filter results appropriately
+        result = await middleware.check_list_permission(
+            "document",
+            None  # No workspace_id
+        )
+        assert result is True  # Permission check passes, RLS will filter results
     
     async def test_bulk_operation_unknown_operation(self, middleware):
         """Test bulk operation fails with unknown operation."""

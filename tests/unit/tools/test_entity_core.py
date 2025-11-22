@@ -510,7 +510,8 @@ class TestEntityOperationsHistory:
             "entity_type": entity_type,
             "entity_id": f"{entity_type}-123"
         })
-        assert "success" in result or "error" in result or "data" in result
+        # History operation returns entity_id, entity_type, versions, total, limit, offset
+        assert "entity_id" in result or "error" in result or "success" in result
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("entity_type", ["organization", "project", "document", "requirement"])
