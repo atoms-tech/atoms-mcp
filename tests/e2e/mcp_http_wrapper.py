@@ -259,9 +259,10 @@ class AuthenticatedMcpClient:
 
     async def workflow_execute(self, workflow_name: str, **kwargs) -> Dict[str, Any]:
         """Execute a workflow."""
-        args = {"workflow": workflow_name}
-        args.update(kwargs)
-        return await self.call_tool("workflow_tool", args)
+        return await self.call_tool("workflow_execute", {
+            "workflow_name": workflow_name,
+            "parameters": kwargs
+        })
 
     async def query_search(self, search_term: str, entities: list, **kwargs) -> Dict[str, Any]:
         """Search for entities."""
