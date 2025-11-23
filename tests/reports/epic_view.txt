@@ -68,7 +68,7 @@
 ║   ✅ User can import requirements via workflow                                ║
 ║   ✅ User can bulk update statuses                                            ║
 ║   ✅ User can onboard new organization                                        ║
-║   ✅ User can run workflows with transactions                                 ║
+║   ✅ User can run workflows with transactions (11 passing, 1 skipped)         ║
 ║                                                                              ║
 ║ 📦 Data Management (3/3) ✓✓✓                                                  ║
 ║──────────────────────────────────────────────────────────────────────────────║
