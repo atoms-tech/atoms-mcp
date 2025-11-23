@@ -40,22 +40,25 @@ class TestHealthChecker:
 
     @pytest.mark.asyncio
     async def test_check_authentication_healthy(self, health_checker):
-        """Test authentication health check."""
-        # The health.py tries to import get_auth_adapter from infrastructure.adapters
-        # but it doesn't exist there, so it will raise an ImportError
-        # This test verifies the error handling
-        result = await health_checker.check_authentication()
-        # Since the import will fail, it should return unhealthy
-        assert result['status'] == 'unhealthy'
-        assert 'error' in result
+        """Test authentication health check when AuthKit is configured."""
+        with patch.dict('os.environ', {'FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN': 'https://authkit.example.com'}):
+            result = await health_checker.check_authentication()
+            assert result['status'] == 'healthy'
+            assert result['service'] == 'AuthKitProvider'
+            assert 'domain' in result
 
     @pytest.mark.asyncio
     async def test_check_authentication_unhealthy(self, health_checker):
-        """Test authentication health check when unhealthy."""
-        # Same as above - the import will fail
-        result = await health_checker.check_authentication()
-        assert result['status'] == 'unhealthy'
-        assert 'error' in result
+        """Test authentication health check when AuthKit is not configured."""
+        with patch.dict('os.environ', {}, clear=False):
+            # Remove the AuthKit domain env var
+            import os
+            if 'FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN' in os.environ:
+                del os.environ['FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN']
+            
+            result = await health_checker.check_authentication()
+            assert result['status'] == 'degraded'
+            assert 'warning' in result
 
     @pytest.mark.asyncio
     async def test_check_cache(self, health_checker):
