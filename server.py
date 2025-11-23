@@ -993,7 +993,7 @@ def create_consolidated_server() -> FastMCP:
     # OAuth 2.0 endpoints are now handled automatically by FastMCP AuthKitProvider
     # No need for custom OAuth endpoints - they're built into FastMCP
 
-    @mcp.tool(tags={"query", "analysis", "rag"})
+    @mcp.tool(tags={"query", "analysis", "rag", "deprecated"})
     async def query_tool(
         query_type: str,
         entities: Optional[list] = None,
@@ -1022,7 +1022,34 @@ def create_consolidated_server() -> FastMCP:
         exclude_terms: Optional[list] = None,  # Terms to exclude
         workspace_id: Optional[str] = None,
     ) -> dict:
-        """Query and analyze data across multiple entity types with RAG capabilities.
+        """⚠️ DEPRECATED: Use entity_tool instead. See migration guide below.
+
+        Query and analyze data across multiple entity types with RAG capabilities.
+        
+        **DEPRECATION NOTICE:**
+        This tool is being consolidated into entity_tool for a unified API.
+        
+        Migration Path (use entity_tool instead):
+        ┌────────────────────────────────────────────────────────────────┐
+        │ OLD (query_tool) → NEW (entity_tool)                           │
+        ├────────────────────────────────────────────────────────────────┤
+        │ query_type="search" → operation="search"                       │
+        │ entities=["X"] → entity_type="X"                               │
+        │ conditions={...} → filters={...}                               │
+        │ query_type="aggregate" → operation="aggregate"                 │
+        │ aggregate_type="count" → aggregate_type="count"                │
+        │ query_type="rag_search" → operation="rag_search"               │
+        │ content="..." → content="..."                                  │
+        │ query_type="similarity" → operation="similarity"               │
+        └────────────────────────────────────────────────────────────────┘
+        
+        Deprecation Timeline:
+        - v1.x: query_tool available (with warnings) - CURRENT
+        - v2.x: query_tool still works but strongly discouraged
+        - v3.x: query_tool will be removed
+        
+        Contact your team for the full migration guide or see:
+        docs/QUERY_TOOL_MIGRATION.md
 
         Query types:
         - search: Cross-entity text search
@@ -1050,6 +1077,14 @@ def create_consolidated_server() -> FastMCP:
         - Get statistics: query_type="aggregate", entities=["organization", "project"]
         """
         try:
+            # Log deprecation warning
+            logger.warning(
+                "⚠️  DEPRECATION: query_tool is being consolidated into entity_tool. "
+                "Please migrate to entity_tool for a unified API. "
+                "See docs/QUERY_TOOL_MIGRATION.md for details. "
+                f"Used query_type='{query_type}'"
+            )
+            
             auth_token = await _apply_rate_limit_if_configured()
 
             # Resolve workspace_id from session context if not provided
