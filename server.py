@@ -331,7 +331,6 @@ def create_consolidated_server() -> FastMCP:
     )
     auth_provider = CompositeAuthProvider(
         authkit_domain=authkit_domain,
-        client_id=authkit_client_id,
         base_url=base_url
     )
 

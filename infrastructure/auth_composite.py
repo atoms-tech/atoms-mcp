@@ -40,6 +40,14 @@ class WorkOSBearerTokenVerifier(TokenVerifier):
     the source of the JWT (we obtain tokens via password grant).
     """
     
+    def __init__(self, required_scopes: list[str] | None = None):
+        """Initialize token verifier with optional required scopes.
+        
+        Args:
+            required_scopes: Optional list of required OAuth scopes
+        """
+        self.required_scopes = required_scopes or ["openid", "profile", "email"]
+    
     async def verify_token(self, token: str) -> Optional[AccessToken]:
         """Verify WorkOS JWT token by decoding claims.
         
@@ -133,7 +141,7 @@ class CompositeAuthProvider(AuthProvider):
         # Create WorkOS Bearer token verifier for HTTP transport layer (MCP's BearerAuthBackend)
         # This verifier is used by MCP's HTTP transport to validate Bearer tokens
         # before the authenticate() method is called
-        self.bearer_token_verifier = WorkOSBearerTokenVerifier()
+        self.bearer_token_verifier = WorkOSBearerTokenVerifier(required_scopes=self.required_scopes)
         
         # Initialize underlying OAuth provider WITH the token verifier
         # This ensures both HTTP transport and OAuth use the same token validation
