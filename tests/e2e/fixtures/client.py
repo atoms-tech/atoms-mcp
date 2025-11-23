@@ -51,9 +51,9 @@ async def end_to_end_client(e2e_auth_token):
     # - atoms test:e2e --env prod → https://mcp.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
     deployment_url = os.getenv("MCP_E2E_BASE_URL")
     if not deployment_url:
-        # Fallback to dev if not set by TestEnvManager
-        deployment_url = "https://mcpdev.atoms.tech/api/mcp"
-        print("⚠️  MCP_E2E_BASE_URL not set, using dev: mcpdev.atoms.tech")
+        # Fallback to LOCAL if not set by TestEnvManager (easier for debugging)
+        deployment_url = "http://127.0.0.1:8000/api/mcp"
+        print("⚠️  MCP_E2E_BASE_URL not set, using local: http://127.0.0.1:8000")
 
     # Disable test mode for all environments - use real WorkOS authentication
     # Local server uses the same WorkOS keys as prod (from .env)

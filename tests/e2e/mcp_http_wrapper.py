@@ -56,10 +56,11 @@ class AuthenticatedMcpClient:
         arguments: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """Call MCP tool with authentication.
+        """Call MCP tool with authentication and auto-token-refresh on 401.
         
         Sends authenticated HTTP POST to MCP endpoint following FastMCP's
-        stateless HTTP protocol.
+        stateless HTTP protocol. If a 401 (authentication failed) error occurs,
+        automatically refreshes the token and retries once.
         
         Args:
             tool_name: Name of MCP tool to call
@@ -75,10 +76,51 @@ class AuthenticatedMcpClient:
             }
         
         Raises:
-            httpx.HTTPStatusError: If HTTP request fails
+            httpx.HTTPStatusError: If HTTP request fails after retry
         """
         if arguments is None:
             arguments = {}
+        
+        # Try to call tool, with automatic token refresh on 401
+        result = await self._call_tool_internal(tool_name, arguments)
+        
+        # If we got a 401 error, try to refresh token and retry
+        if (isinstance(result, dict) and 
+            not result.get("success") and 
+            "401" in result.get("error", "")):
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"🔄 Token expired (401), attempting refresh...")
+            
+            # Attempt token refresh
+            fresh_token = await self._refresh_token()
+            if fresh_token:
+                logger.info("✅ Token refreshed, retrying call_tool...")
+                self.auth_token = fresh_token
+                # Update header in http_client
+                self.http_client.headers.update({
+                    "Authorization": f"Bearer {fresh_token}"
+                })
+                # Retry with fresh token
+                result = await self._call_tool_internal(tool_name, arguments)
+        
+        return result
+    
+    async def _call_tool_internal(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Internal tool call without retry logic.
+        
+        Args:
+            tool_name: Name of MCP tool to call
+            arguments: Tool arguments as dictionary
+        
+        Returns:
+            Tool result dictionary
+        """
         
         # Construct MCP call payload following FastMCP protocol
         payload = {
@@ -319,3 +361,38 @@ class AuthenticatedMcpClient:
             "operation": "list",
             **kwargs
         })
+    
+    async def _refresh_token(self) -> Optional[str]:
+        """Refresh authentication token when it expires (on 401 error).
+        
+        Uses the smart token manager to get a fresh token, which will:
+        1. Check cache for valid token
+        2. If cached token expiring soon, refresh proactively
+        3. Otherwise authenticate fresh
+        
+        Returns:
+            Fresh JWT token or None if refresh fails
+        """
+        try:
+            from tests.utils.token_manager import get_fresh_token
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            # Get fresh token from token manager
+            # This uses smart logic: cache if valid, refresh if expiring soon, 
+            # or authenticate fresh if needed
+            fresh_token = await get_fresh_token()
+            
+            if fresh_token:
+                logger.debug(f"✅ Token refreshed (first 20 chars: {fresh_token[:20]}...)")
+                return fresh_token
+            else:
+                logger.error("❌ Failed to refresh token - get_fresh_token returned None")
+                return None
+        
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Token refresh failed: {e}")
+            return None
