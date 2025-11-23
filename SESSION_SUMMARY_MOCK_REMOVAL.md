@@ -100,48 +100,45 @@ Successfully removed all mock clients from e2e/integration tests, decomposed mon
 
 ---
 
-### 4. ✅ Test JWT Generator with Proper Scopes
+### 4. ✅ Real WorkOS Authentication for All Environments
 
-**Problem:** WorkOS User Management tokens don't have required MCP server scopes → 403 insufficient_scope errors
-
-**Solution:** Generate test JWTs with all required OAuth scopes
-
-**Created:** tests/utils/test_jwt_generator.py
-- `create_test_jwt()` - JWT with all MCP scopes
-- `create_admin_jwt()` - Admin token with all scopes
-- `verify_test_jwt()` - Verify and decode token
-- HS256 signed with test secret
-
-**Test JWT Scopes:**
-```
-✅ openid          (REQUIRED - OpenID Connect)
-✅ profile         (User profile)
-✅ email           (User email)
-✅ entity:read     (Read entities)
-✅ entity:write    (Create/update entities)
-✅ relationship:read (Read relationships)
-✅ relationship:write (Create/update relationships)
-✅ workspace:read  (Read workspaces)
-✅ workflow:execute (Execute workflows)
-```
+**Design:** Use FULL authentication system (not test JWTs) for cloud, dev, and local
 
 **Auth Strategy:** (in tests/conftest.py)
-1. Check ATOMS_TEST_AUTH_TOKEN env var
-2. Generate test JWT (DEFAULT - fastest, offline)
-3. Use WorkOS User Management (if configured)
-4. Skip tests if no auth available
+1. Check ATOMS_TEST_AUTH_TOKEN env var (pre-obtained token)
+2. Use WorkOS User Management API (REQUIRED - same for all environments)
+3. Skip tests if credentials not available
+
+**Key Points:**
+- Same WorkOS credentials work for cloud, dev, and local
+- All environments use same `WORKOS_API_KEY` and `WORKOS_CLIENT_ID` from .env
+- Tokens obtained via password grant have all required scopes
+- Smart token refresh handles long test sessions (222+ tests)
+- Tests use REAL auth, not test JWTs
+
+**To Run E2E Tests, Set:**
+```bash
+# WorkOS credentials (same for all environments)
+WORKOS_TEST_EMAIL=<test-user-email>
+WORKOS_TEST_PASSWORD=<password>
+WORKOS_API_KEY=<from WorkOS console>
+WORKOS_CLIENT_ID=<from WorkOS console>
+```
+
+**Or Set Pre-Obtained Token:**
+```bash
+ATOMS_TEST_AUTH_TOKEN=<jwt-from-workos>
+```
 
 **Benefits:**
-- Tests work WITHOUT WorkOS credentials
-- No more 403 insufficient_scope errors
-- Fast (JWT generation is instant)
-- Works offline (no network calls)
-- Proper scopes for all MCP operations
-- Still supports real WorkOS auth as fallback
+- Full auth system validation (not workaround)
+- Same credentials for cloud/dev/local
+- Proper scopes from real WorkOS configuration
+- Token refresh automatically handles expiry
+- Tests validate real authentication behavior
 
-**Commits:**
-- `62a6c6a` - Add test JWT generator with proper scopes
-- `bc41a0e` - Fix test JWT: Add required 'openid' scope
+**Commit:**
+- `78c93bd` - Prioritize real WorkOS auth for all environments
 
 ---
 
