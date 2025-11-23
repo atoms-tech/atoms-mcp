@@ -47,17 +47,23 @@ class HealthChecker:
             }
 
     async def check_authentication(self) -> Dict[str, Any]:
-        """Check authentication service"""
+        """Check authentication service (FastMCP's native AuthKitProvider)"""
         try:
-            # Verify auth infrastructure is accessible
-            from infrastructure.adapters import get_auth_adapter
-
-            # Just verify the module loads and adapter exists
-            get_auth_adapter()  # Verify it can be imported and instantiated
-
+            # Auth is now handled by FastMCP's native AuthKitProvider
+            # Just verify the WorkOS configuration is available
+            import os
+            authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "").strip()
+            
+            if not authkit_domain:
+                return {
+                    "status": "degraded",
+                    "warning": "AuthKit domain not configured"
+                }
+            
             return {
                 "status": "healthy",
-                "service": "operational"
+                "service": "AuthKitProvider",
+                "domain": authkit_domain
             }
         except Exception as e:
             logger.error(f"Authentication health check failed: {e}")

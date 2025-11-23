@@ -2,19 +2,19 @@
 ║                     ATOMS MCP - EPIC VIEW (User Stories)                     ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║                                                                              ║
-║ 📦 Organization Management (1/5) ✓○○                                          ║
+║ 📦 Organization Management (0/5) ○○○                                          ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create an organization (No matching tests found)                ║
 ║   ❌ User can view organization details (No matching tests found)             ║
-║   ✅ User can update organization settings                                    ║
+║   ❌ User can update organization settings (No matching tests found)          ║
 ║   ❌ User can delete an organization (No matching tests found)                ║
 ║   ❌ User can list all organizations (No matching tests found)                ║
 ║                                                                              ║
-║ 📦 Project Management (1/5) ✓○○                                               ║
+║ 📦 Project Management (0/5) ○○○                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ❌ User can create a project (No matching tests found)                      ║
 ║   ❌ User can view project details (No matching tests found)                  ║
-║   ✅ User can update project information                                      ║
+║   ❌ User can update project information (No matching tests found)            ║
 ║   ❌ User can archive a project (No matching tests found)                     ║
 ║   ❌ User can list projects in organization (No matching tests found)         ║
 ║                                                                              ║
@@ -83,5 +83,5 @@
 ║   ❌ User can log out securely (No matching tests found)                      ║
 ║   ❌ User data is protected by row-level security (No matching tests found)   ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 2/48 user stories complete (4%)                                     ║
+║ Overall: 0/48 user stories complete (0%)                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

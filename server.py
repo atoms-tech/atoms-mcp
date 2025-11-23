@@ -43,12 +43,6 @@ except ImportError:
         data_query,
     )
 
-# Import server setup modules
-try:
-    from .infrastructure_modules.server_auth import resolve_base_url, create_auth_provider
-except ImportError:
-    from infrastructure_modules.server_auth import resolve_base_url, create_auth_provider
-
 logger = logging.getLogger("atoms_fastmcp")
 
 
@@ -318,13 +312,15 @@ def create_consolidated_server() -> FastMCP:
     # - Vercel Preview: https://mcpdev.atoms.tech
     # - Vercel Production: https://mcp.atoms.tech
 
-    base_url = resolve_base_url()
-    import sys
-    print(f"🔐🔐🔐 About to call create_auth_provider with base_url={base_url}", flush=True)
-    sys.stdout.flush()
-    auth_provider = create_auth_provider(base_url)
-    print(f"🔐🔐🔐 create_auth_provider returned: {type(auth_provider)}", flush=True)
-    sys.stdout.flush()
+    # Use FastMCP's native AuthKitProvider (consolidated, simplified)
+    # WorkOS + Supabase: AuthKit JWTs work directly with Supabase RLS
+    from fastmcp.server.auth.providers.workos import AuthKitProvider
+    
+    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "").strip()
+    authkit_client_id = os.getenv("WORKOS_CLIENT_ID", "").strip()
+    
+    logger.info(f"🔐 AuthKit provider with domain: {authkit_domain}")
+    auth_provider = AuthKitProvider(authkit_domain=authkit_domain, client_id=authkit_client_id)
 
     # Initialize distributed rate limiter (Upstash Redis with in-memory fallback)
     try:

@@ -2,8 +2,9 @@
 
 Supports:
 - Supabase backend (live and mock)
-- AuthKit authentication with Bearer tokens
 - Service mode selection via environment variables
+
+Auth is now handled by FastMCP's native AuthKitProvider (consolidated).
 """
 
 from __future__ import annotations
@@ -13,8 +14,7 @@ import json
 from typing import Dict, Any, Optional
 
 try:
-    from .adapters import AuthAdapter, DatabaseAdapter, StorageAdapter, RealtimeAdapter
-    from .supabase_auth import SupabaseAuthAdapter
+    from .adapters import DatabaseAdapter, StorageAdapter, RealtimeAdapter
     from .supabase_db import SupabaseDatabaseAdapter
     from .supabase_storage import SupabaseStorageAdapter
     from .supabase_realtime import SupabaseRealtimeAdapter
@@ -25,8 +25,7 @@ try:
     )
     from .mock_config import get_service_config, ServiceMode
 except ImportError:
-    from infrastructure.adapters import AuthAdapter, DatabaseAdapter, StorageAdapter, RealtimeAdapter
-    from infrastructure.supabase_auth import SupabaseAuthAdapter
+    from infrastructure.adapters import DatabaseAdapter, StorageAdapter, RealtimeAdapter
     from infrastructure.supabase_db import SupabaseDatabaseAdapter
     from infrastructure.supabase_storage import SupabaseStorageAdapter
     from infrastructure.supabase_realtime import SupabaseRealtimeAdapter
@@ -56,17 +55,6 @@ class AdapterFactory:
             )
         
         self._config = get_service_config()
-    
-    def get_auth_adapter(self) -> AuthAdapter:
-        """Get authentication adapter (AuthKit + Bearer tokens via Supabase or mock)."""
-        if "auth" not in self._adapters:
-            if self._config.is_service_mock("authkit"):
-                self._adapters["auth"] = InMemoryAuthAdapter()
-            else:
-                # Live mode: use SupabaseAuthAdapter (which handles AuthKit + Bearer token validation)
-                self._adapters["auth"] = SupabaseAuthAdapter()
-        
-        return self._adapters["auth"]
     
     def get_database_adapter(self) -> DatabaseAdapter:
         """Get database adapter (Supabase or in-memory mock)."""
@@ -103,9 +91,11 @@ class AdapterFactory:
         return self._adapters["realtime"]
     
     def get_all_adapters(self) -> Dict[str, Any]:
-        """Get all adapters as a dictionary."""
+        """Get all adapters as a dictionary.
+        
+        Note: Auth is now handled by FastMCP's native AuthKitProvider.
+        """
         return {
-            "auth": self.get_auth_adapter(),
             "database": self.get_database_adapter(),
             "storage": self.get_storage_adapter(),
             "realtime": self.get_realtime_adapter()

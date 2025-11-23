@@ -30,23 +30,43 @@ class ToolBase:
         return self._adapters
     
     async def _validate_auth(self, auth_token: str) -> Dict[str, Any]:
-        """Validate authentication token and return user info.
+        """Validate authentication token and extract user claims.
 
-        Also sets user's JWT on database adapter for proper RLS context.
+        FastMCP's AuthKitProvider already verified the JWT signature.
+        We just extract claims and set up RLS context with Supabase.
         """
-        # No fallback - require valid authentication
+        # Require valid token
         if auth_token == "oauth-session" or not auth_token:
             raise ValueError("Authentication required: user_id not found in token claims")
 
         try:
-            adapters = self._get_adapters()
-            user_info = await adapters["auth"].validate_token(auth_token)
-
+            import jwt
+            
+            # Decode JWT (signature already verified by FastMCP)
+            claims = jwt.decode(auth_token, options={"verify_signature": False})
+            
+            # Extract user context from JWT claims
+            user_info = {
+                "user_id": claims.get("user_id") or claims.get("sub"),
+                "username": claims.get("email"),
+                "email": claims.get("email"),
+                "auth_type": "authkit_jwt",
+                "access_token": auth_token,  # Pass JWT to Supabase for RLS
+                "user_metadata": {
+                    "role": claims.get("role"),
+                    "org_id": claims.get("org_id"),
+                    "email_verified": claims.get("email_verified"),
+                }
+            }
+            
+            if not user_info["user_id"]:
+                raise ValueError("No user_id in token claims")
+            
             # ✅ Set user's access token on database adapter for RLS
-            # This ensures auth.uid() returns the correct user ID in database queries
-            if access_token := user_info.get("access_token"):
-                adapters["database"].set_access_token(access_token)
-
+            # This ensures auth.uid() returns correct user ID in Supabase queries
+            adapters = self._get_adapters()
+            adapters["database"].set_access_token(auth_token)
+            
             # Cache user context for this operation
             self._user_context = user_info
             return user_info
