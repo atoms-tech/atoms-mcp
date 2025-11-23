@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import pytest
+import pytest_asyncio
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -290,6 +291,100 @@ def force_all_mock_mode(monkeypatch):
         reset_factory()
     except ImportError:
         pass
+
+
+# ============================================================================
+# E2E AUTHENTICATION FIXTURES (from e2e/conftest.py)
+# ============================================================================
+
+@pytest_asyncio.fixture(scope="session")
+async def authkit_auth_token():
+    """Authenticate with WorkOS and get a real JWT token for E2E testing.
+
+    All environments (local, dev, prod) use real WorkOS authentication.
+    The same WorkOS keys are used for all environments (from .env).
+
+    Returns:
+        Valid WorkOS JWT token for authenticated API calls
+
+    Raises:
+        pytest.skip: If no token can be obtained (tests will be skipped)
+    """
+    import os
+    import logging
+    logger_local = logging.getLogger(__name__)
+
+    # Check for pre-obtained token first (fastest)
+    pre_obtained_token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
+    if pre_obtained_token:
+        logger_local.info("✅ Using pre-obtained token from environment")
+        return pre_obtained_token
+
+    # Use real WorkOS authentication for all environments
+    email = os.getenv("WORKOS_TEST_EMAIL")
+    password = os.getenv("WORKOS_TEST_PASSWORD")
+
+    if not email or not password:
+        logger_local.warning(
+            "⚠️  WORKOS_TEST_EMAIL and WORKOS_TEST_PASSWORD not set - "
+            "e2e tests will be skipped"
+        )
+        import pytest
+        pytest.skip("WorkOS credentials not configured for e2e tests")
+
+    # Use WorkOS User Management password grant
+    from tests.utils.workos_auth import authenticate_with_workos
+
+    logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
+    token = await authenticate_with_workos(email, password)
+
+    if token:
+        logger_local.info("✅ Successfully obtained real WorkOS JWT token")
+        # Cache it in environment for this session
+        os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
+        return token
+    else:
+        error_msg = (
+            f"❌ Failed to obtain WorkOS JWT token.\n"
+            f"Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set in .env"
+        )
+        logger_local.error(error_msg)
+        import pytest
+        pytest.skip(error_msg)
+
+
+@pytest_asyncio.fixture
+async def e2e_auth_token(authkit_auth_token):
+    """Generate authentication token for E2E tests.
+
+    REQUIRED: All tests must use real AuthKit access tokens - no static
+    or test tokens allowed.
+
+    Provides a valid AuthKit JWT bearer token that the MCP server will accept.
+    The token MUST be a real AuthKit JWT obtained via WorkOS User Management API.
+
+    Note: This fixture can make external service calls to AuthKit when
+    authenticating with real credentials. If no AuthKit token is available,
+    tests will be skipped.
+    """
+    import logging
+
+    logger_local = logging.getLogger(__name__)
+
+    # Use real AuthKit JWT from cloud authentication (REQUIRED)
+    # All tests MUST use real AuthKit access tokens
+    if authkit_auth_token is not None:
+        logger_local.info(f"✅ Using real AuthKit JWT for E2E authentication")
+        return authkit_auth_token
+
+    # No AuthKit token available - tests REQUIRE real tokens
+    error_msg = (
+        "❌ No AuthKit access token available. "
+        "Tests require real AuthKit JWTs - no static or test tokens allowed.\n"
+    )
+    logger_local.error(error_msg)
+    import pytest
+    pytest.skip(error_msg)
 
 
 
