@@ -850,7 +850,7 @@ def create_consolidated_server() -> FastMCP:
         format_type: str = "detailed",
         workspace_id: Optional[str] = None,
     ) -> dict:
-        """Manage relationships between entities.
+        """Manage relationships between entities with context auto-injection (Phase 3).
 
         Operations:
         - link: Create relationship between entities
@@ -866,27 +866,48 @@ def create_consolidated_server() -> FastMCP:
         - requirement_test: Test coverage
         - invitation: Organization invitations
 
+        Context Auto-Injection (Phase 3):
+        - workspace_id: Resolved from session context if not provided
+        - Relationships automatically filtered by workspace
+
         Examples:
+        - Set context: await context_tool("set_context", context_type="workspace", context_id="ws-1")
         - Add member: operation="link", relationship_type="member",
           source={"type": "organization", "id": "org_123"},
           target={"type": "user", "id": "user_456"},
           metadata={"role": "admin"}
         - List members: operation="list", relationship_type="member",
           source={"type": "project", "id": "proj_123"}
+          (workspace automatically filtered from context)
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
 
+            # Resolve context parameters if not explicitly provided (Phase 3)
+            from services.context_manager import get_context
+            context = get_context()
+            
             # Resolve workspace_id from session context if not provided
             if not workspace_id:
                 try:
-                    from services.context_manager import get_context
-                    context = get_context()
                     resolved_workspace = await context.resolve_workspace_id()
                     if resolved_workspace:
                         workspace_id = resolved_workspace
+                        logger.debug(f"Using workspace from session context: {workspace_id}")
                 except Exception as e:
                     logger.debug(f"Could not resolve workspace from context: {e}")
+            
+            # Resolve project_id from context and auto-inject if available (NEW - Phase 3)
+            project_id: Optional[str] = None
+            try:
+                project_id = context.get_project_id()
+                if project_id:
+                    logger.debug(f"Using project from session context: {project_id}")
+                    # Auto-inject project context into source/target if not already specified
+                    if source and "type" not in source:
+                        source["context_project_id"] = project_id
+            except Exception as e:
+                logger.debug(f"Could not resolve project from context: {e}")
 
             return await relationship_operation(  # type: ignore[no-any-return]
                 auth_token=auth_token,
@@ -919,7 +940,7 @@ def create_consolidated_server() -> FastMCP:
         format_type: str = "detailed",
         workspace_id: Optional[str] = None,
     ) -> dict:
-        """Execute complex multi-step workflows.
+        """Execute complex multi-step workflows with context auto-injection (Phase 3).
 
         Available workflows:
         - setup_project: Create project with initial structure
@@ -928,24 +949,44 @@ def create_consolidated_server() -> FastMCP:
         - bulk_status_update: Update status for multiple entities
         - organization_onboarding: Complete organization setup
 
+        Context Auto-Injection (Phase 3):
+        - workspace_id: Resolved from session context if not provided
+        - Workflows automatically scoped to workspace
+
         Examples:
-        - Setup project: workflow="setup_project", parameters={"name": "My Project", "organization_id": "org_123", "initial_documents": ["Requirements", "Design"]}
+        - Set context: await context_tool("set_context", context_type="workspace", context_id="ws-1")
+        - Setup project: workflow="setup_project", parameters={"name": "My Project", "organization_id": "org_123", "initial_documents": ["Requirements", "Design"]} (workspace auto-injected)
         - Import requirements: workflow="import_requirements", parameters={"document_id": "doc_123", "requirements": [{"name": "REQ-1", "description": "..."}]}
-        - Bulk update: workflow="bulk_status_update", parameters={"entity_type": "requirement", "entity_ids": ["req_1", "req_2"], "new_status": "approved"}
+        - Bulk update: workflow="bulk_status_update", parameters={"entity_type": "requirement", "entity_ids": ["req_1", "req_2"], "new_status": "approved"} (workspace auto-filtered)
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
 
+            # Resolve context parameters if not explicitly provided (Phase 3)
+            from services.context_manager import get_context
+            context = get_context()
+            
             # Resolve workspace_id from session context if not provided
             if not workspace_id:
                 try:
-                    from services.context_manager import get_context
-                    context = get_context()
                     resolved_workspace = await context.resolve_workspace_id()
                     if resolved_workspace:
                         workspace_id = resolved_workspace
+                        logger.debug(f"Using workspace from session context: {workspace_id}")
                 except Exception as e:
                     logger.debug(f"Could not resolve workspace from context: {e}")
+            
+            # Resolve project_id from context and auto-inject if available (NEW - Phase 3)
+            project_id: Optional[str] = None
+            try:
+                project_id = context.get_project_id()
+                if project_id:
+                    logger.debug(f"Using project from session context: {project_id}")
+                    # Auto-inject project context into parameters if not already specified
+                    if "project_id" not in parameters and project_id:
+                        parameters["project_id"] = project_id
+            except Exception as e:
+                logger.debug(f"Could not resolve project from context: {e}")
 
             return await workflow_execute(  # type: ignore[no-any-return]
                 auth_token=auth_token,
@@ -1123,16 +1164,33 @@ def create_consolidated_server() -> FastMCP:
             
             auth_token = await _apply_rate_limit_if_configured()
 
+            # Resolve context parameters if not explicitly provided (Phase 3)
+            from services.context_manager import get_context
+            context = get_context()
+            
             # Resolve workspace_id from session context if not provided
             if not workspace_id:
                 try:
-                    from services.context_manager import get_context
-                    context = get_context()
                     resolved_workspace = await context.resolve_workspace_id()
                     if resolved_workspace:
                         workspace_id = resolved_workspace
+                        logger.debug(f"Using workspace from session context: {workspace_id}")
                 except Exception as e:
                     logger.debug(f"Could not resolve workspace from context: {e}")
+            
+            # Resolve project_id from context and auto-inject (NEW - Phase 3)
+            project_id: Optional[str] = None
+            try:
+                project_id = context.get_project_id()
+                if project_id:
+                    logger.debug(f"Using project from session context: {project_id}")
+                    # Auto-inject project into conditions if not already specified
+                    if not final_conditions:
+                        final_conditions = {}
+                    if "project_id" not in final_conditions:
+                        final_conditions["project_id"] = project_id
+            except Exception as e:
+                logger.debug(f"Could not resolve project from context: {e}")
             
             # Handle aliases for test compatibility
             # Use entity_types if provided, otherwise use entities
