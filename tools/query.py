@@ -667,6 +667,7 @@ async def data_query(
     semantic_weight: Optional[float] = None,
     # Sort parameter
     sort: Optional[List[Dict[str, Any]]] = None,
+    workspace_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Query and analyze data across multiple entity types with RAG capabilities.
     

@@ -834,6 +834,7 @@ def create_consolidated_server() -> FastMCP:
         parameters: dict,
         transaction_mode: bool = True,
         format_type: str = "detailed",
+        workspace_id: Optional[str] = None,
     ) -> dict:
         """Execute complex multi-step workflows.
 
@@ -851,12 +852,25 @@ def create_consolidated_server() -> FastMCP:
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
+
+            # Resolve workspace_id from session context if not provided
+            if not workspace_id:
+                try:
+                    from services.context_manager import get_context
+                    context = get_context()
+                    resolved_workspace = await context.resolve_workspace_id()
+                    if resolved_workspace:
+                        workspace_id = resolved_workspace
+                except Exception as e:
+                    logger.debug(f"Could not resolve workspace from context: {e}")
+
             return await workflow_execute(  # type: ignore[no-any-return]
                 auth_token=auth_token,
                 workflow=workflow,
                 parameters=parameters,
                 transaction_mode=transaction_mode,
                 format_type=format_type,
+                workspace_id=workspace_id,
             )
         except Exception as e:
             return {"success": False, "error": str(e), "workflow": workflow}
@@ -959,6 +973,7 @@ def create_consolidated_server() -> FastMCP:
         search_terms: Optional[list] = None,  # Plural form for multiple terms
         operator: Optional[str] = None,  # AND, OR, NOT
         exclude_terms: Optional[list] = None,  # Terms to exclude
+        workspace_id: Optional[str] = None,
     ) -> dict:
         """Query and analyze data across multiple entity types with RAG capabilities.
 
@@ -989,6 +1004,17 @@ def create_consolidated_server() -> FastMCP:
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
+
+            # Resolve workspace_id from session context if not provided
+            if not workspace_id:
+                try:
+                    from services.context_manager import get_context
+                    context = get_context()
+                    resolved_workspace = await context.resolve_workspace_id()
+                    if resolved_workspace:
+                        workspace_id = resolved_workspace
+                except Exception as e:
+                    logger.debug(f"Could not resolve workspace from context: {e}")
             
             # Handle aliases for test compatibility
             # Use entity_types if provided, otherwise use entities
@@ -1055,6 +1081,7 @@ def create_consolidated_server() -> FastMCP:
                 # Pass hybrid search weights if provided
                 keyword_weight=keyword_weight,
                 semantic_weight=semantic_weight,
+                workspace_id=workspace_id,
             )
         except Exception as e:
             return {"success": False, "error": str(e), "query_type": query_type}
