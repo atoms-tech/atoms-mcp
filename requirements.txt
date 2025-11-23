@@ -1,8 +1,9 @@
 # Production Requirements for Vercel
 # Essential dependencies for MCP server with lightweight Vertex AI embeddings
 
-# Core MCP
-fastmcp>=2.12.2
+# Core MCP - 2.13.1 includes meta parameter support, improved OAuth, DebugTokenVerifier
+# Note: MCP SDK 1.21.1 is excluded due to #2422 integration test failures
+fastmcp>=2.13.1
 
 # Database
 supabase>=2.5.0
