@@ -16,7 +16,7 @@ import time
 from typing import Any, Optional
 from fastmcp.server.auth import AuthProvider, AccessToken
 from fastmcp.server.auth.providers.workos import AuthKitProvider
-from mcp.server.auth.middleware.bearer_auth import TokenVerifier, AuthInfo
+from mcp.server.auth.middleware.bearer_auth import TokenVerifier
 from starlette.requests import Request
 from starlette.routing import Route
 from starlette.responses import Response
@@ -27,29 +27,30 @@ logger = logging.getLogger(__name__)
 class WorkOSBearerTokenVerifier(TokenVerifier):
     """Verify WorkOS JWT tokens (from password grant) for HTTP Bearer auth.
     
-    Implements MCP's TokenVerifier interface for use with BearerAuthBackend.
+    Implements MCP's TokenVerifier protocol for use with BearerAuthBackend.
     This validates WorkOS User Management API tokens without requiring JWKS verification.
     
     Strategy:
     1. Decode JWT without signature verification
     2. Extract claims (sub, email, exp, iat, etc.)
     3. Check token expiry if exp claim present
-    4. Return AuthInfo with user scopes
+    4. Return AccessToken with user info
     
     This is suitable for internal clients (backend, frontend) where we trust
     the source of the JWT (we obtain tokens via password grant).
     """
     
-    async def verify_token(self, token: str) -> Optional[AuthInfo]:
+    async def verify_token(self, token: str) -> Optional[AccessToken]:
         """Verify WorkOS JWT token by decoding claims.
         
-        Implements MCP TokenVerifier interface for HTTP Bearer auth validation.
+        Implements MCP TokenVerifier protocol for HTTP Bearer auth validation.
+        Called by MCP's BearerAuthBackend at the HTTP transport layer.
         
         Args:
             token: JWT token string
             
         Returns:
-            AuthInfo with user info if valid, None if verification fails
+            AccessToken with user info if valid, None if verification fails
         """
         try:
             import jwt
@@ -59,31 +60,34 @@ class WorkOSBearerTokenVerifier(TokenVerifier):
             # We trust the issuer (WorkOS) since we obtained this token ourselves
             claims = jwt.decode(token, options={"verify_signature": False})
             
-            logger.debug(f"✅ WorkOS JWT verified for user: {claims.get('sub', 'unknown')}")
-            
-            # Check token expiry if exp claim is present
-            if "exp" in claims:
-                current_time = int(time.time())
-                if claims["exp"] < current_time:
-                    logger.warning(f"Token expired at {claims['exp']}, current time {current_time}")
-                    return None
-            
-            # Extract user identifier (WorkOS uses 'sub' claim)
             user_id = claims.get("sub") or claims.get("user_id") or claims.get("id")
             if not user_id:
                 logger.warning(f"No user identifier in token claims: {list(claims.keys())}")
                 return None
             
-            # Return AuthInfo with claims as scopes (MCP expects a list of strings)
-            # Use standard OAuth scopes if available
+            logger.debug(f"✅ WorkOS JWT verified for user: {user_id}")
+            
+            # Check token expiry if exp claim is present
+            expires_at = None
+            if "exp" in claims:
+                expires_at = claims["exp"]
+                current_time = int(time.time())
+                if expires_at < current_time:
+                    logger.warning(f"Token expired at {expires_at}, current time {current_time}")
+                    return None
+            
+            # Extract scopes from claims (use standard OAuth scopes if available)
             scopes = claims.get("scopes", [])
             if not scopes and "scope" in claims:
-                scopes = claims["scope"].split(" ")
+                scopes = claims["scope"].split(" ") if isinstance(claims["scope"], str) else claims["scope"]
             
-            return AuthInfo(
-                subject=user_id,
+            # Return AccessToken with required fields
+            # client_id defaults to user_id if not in claims
+            return AccessToken(
+                token=token,
+                client_id=claims.get("client_id", user_id),
                 scopes=scopes,
-                expires_at=claims.get("exp"),
+                expires_at=expires_at,
             )
         
         except Exception as e:

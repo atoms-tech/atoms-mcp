@@ -1,2 +1,13 @@
 
-✅ No warnings detected
+======================================================================
+⚠️  TEST WARNINGS & PERFORMANCE ISSUES
+======================================================================
+
+🐌 SLOW (1):
+  🔴 tests/e2e/test_resilience.py::TestErrorRecoveryScenarios::test_invalid_input_handling
+     → Very slow: 5.03s (threshold: 5.0s)
+
+----------------------------------------------------------------------
+Total Warnings: 1
+  🔴 High: 1  🟡 Medium: 0  🟢 Low: 0
+======================================================================
