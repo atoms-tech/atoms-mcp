@@ -38,28 +38,24 @@ class CompositeAuthProvider(AuthProvider):
     def __init__(
         self,
         authkit_domain: str,
-        client_id: str = "",
         base_url: str = "",
         required_scopes: list[str] | None = None,
+        token_verifier: Any = None,
         **kwargs: Any
     ):
         """Initialize composite auth provider.
         
         Args:
             authkit_domain: WorkOS AuthKit domain (e.g., https://your-app.authkit.app)
-            client_id: WorkOS client ID (deprecated in FastMCP 2.13.1, kept for backward compat)
             base_url: Server base URL for OAuth callbacks
             required_scopes: OAuth scopes to request (e.g., ['openid', 'profile', 'email'])
-            **kwargs: Additional args (token_verifier, etc.)
+            token_verifier: Optional custom token verifier (FastMCP 2.13.1+)
         """
         self.authkit_domain = authkit_domain
-        self.client_id = client_id  # Kept for backward compat, but not used by FastMCP 2.13.1
         self.base_url = base_url
         self.required_scopes = required_scopes or ["openid", "profile", "email"]
         
         # Initialize underlying OAuth provider
-        # FastMCP 2.13.1 AuthKitProvider only accepts: authkit_domain, base_url, required_scopes, token_verifier
-        # Note: client_id parameter was removed in 2.13.1
         init_kwargs = {
             "authkit_domain": authkit_domain,
         }
@@ -67,10 +63,8 @@ class CompositeAuthProvider(AuthProvider):
             init_kwargs["base_url"] = base_url
         if self.required_scopes:
             init_kwargs["required_scopes"] = self.required_scopes
-        
-        # Pass token_verifier if provided in kwargs
-        if "token_verifier" in kwargs:
-            init_kwargs["token_verifier"] = kwargs["token_verifier"]
+        if token_verifier:
+            init_kwargs["token_verifier"] = token_verifier
         
         self.oauth_provider = AuthKitProvider(**init_kwargs)
         

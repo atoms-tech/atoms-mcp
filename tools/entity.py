@@ -45,12 +45,6 @@ except ImportError:
     from entity_modules.utils import slugify
 
 
-# Legacy alias for backward compatibility during refactoring
-def _slugify(value: str) -> str:
-    """DEPRECATED: Use slugify() instead."""
-    return slugify(value)
-
-
 class EntityManager(ToolBase):
     """Manages CRUD operations for all entity types."""
 
@@ -124,12 +118,12 @@ class EntityManager(ToolBase):
 
         # Auto-generate slug for entities that need it
         if schema.get("auto_slug") and not result.get("slug") and result.get("name"):
-            result["slug"] = _slugify(result["name"])
+            result["slug"] = slugify(result["name"])
 
         # Auto-generate slug for organizations and documents if not provided
         if entity_type.lower() in ["organization", "document"]:
             if not result.get("slug") and result.get("name"):
-                result["slug"] = _slugify(result["name"])
+                result["slug"] = slugify(result["name"])
         
         return result
     
