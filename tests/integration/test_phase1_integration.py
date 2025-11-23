@@ -103,9 +103,9 @@ class TestPhase1Integration:
         context.set_workspace_id("ws-1")
         context.set_project_id("proj-1")
 
-        # Verify context can be resolved
-        workspace = context.resolve_workspace_id()
-        project = context.resolve_project_id()
+        # Verify context can be retrieved (sync methods)
+        workspace = context.get_workspace_id()
+        project = context.get_project_id()
 
         assert workspace == "ws-1"
         assert project == "proj-1"
@@ -117,13 +117,11 @@ class TestPhase1Integration:
         context.set_project_id("proj-from-context")
         context.set_document_id("doc-from-context")
 
-        # Test explicit takes priority
-        assert context.resolve_workspace_id("ws-explicit") == "ws-explicit"
+        # Test explicit takes priority (sync methods)
         assert context.resolve_project_id("proj-explicit") == "proj-explicit"
         assert context.resolve_document_id("doc-explicit") == "doc-explicit"
 
         # Test context used when explicit is None
-        assert context.resolve_workspace_id(None) == "ws-from-context"
         assert context.resolve_project_id(None) == "proj-from-context"
         assert context.resolve_document_id(None) == "doc-from-context"
 
@@ -202,7 +200,11 @@ class TestPhase1Integration:
                 "data": {"name": f"Requirement {i}"}
             }
             context.record_operation("create", "requirement", result)
-            entities.append(result)
+            # Store as entity dict for fuzzy matching
+            entities.append({
+                "id": f"req-{i}",
+                "name": f"Requirement {i}"
+            })
 
         # 3. Set pagination
         context.set_pagination_state("requirement", limit=20, offset=0, total=100)

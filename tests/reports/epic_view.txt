@@ -28,7 +28,7 @@
 ║──────────────────────────────────────────────────────────────────────────────║
 ║   ✅ User can create requirements                                             ║
 ║   ✅ User can pull requirements from system                                   ║
-║   ✅ User can search requirements (71 passing, 22 failing)                    ║
+║   ✅ User can search requirements                                             ║
 ║   ✅ User can trace links between requirements and t...                       ║
 ║                                                                              ║
 ║ 📦 Test Case Management (2/2) ✓✓✓                                             ║
@@ -36,14 +36,14 @@
 ║   ✅ User can create test cases                                               ║
 ║   ✅ User can view test results                                               ║
 ║                                                                              ║
-║ 📦 Workspace Navigation (1/6) ✓○○                                             ║
+║ 📦 Workspace Navigation (3/6) ✓○○                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ❌ User can view current workspace context (No matching tests found)        ║
-║   ❌ User can switch to organization workspace (No matching tests found)      ║
-║   ❌ User can switch to project workspace (No matching tests found)           ║
-║   ❌ User can switch to document workspace (No matching tests found)          ║
+║   ✅ User can view current workspace context                                  ║
+║   ❌ User can switch to organization workspace (1/1 failing)                  ║
+║   ❌ User can switch to project workspace (1/1 failing)                       ║
+║   ❌ User can switch to document workspace (1/1 failing)                      ║
 ║   ✅ User can list all available workspaces                                   ║
-║   ❌ User can get workspace defaults (No matching tests found)                ║
+║   ✅ User can get workspace defaults                                          ║
 ║                                                                              ║
 ║ 📦 Entity Relationships (4/4) ✓✓✓                                             ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -54,13 +54,13 @@
 ║                                                                              ║
 ║ 📦 Search & Discovery (7/7) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
-║   ✅ User can search across all entities (69 passing, 22 failing)             ║
-║   ✅ User can filter search results (7 passing, 1 failing)                    ║
+║   ✅ User can search across all entities                                      ║
+║   ✅ User can filter search results                                           ║
 ║   ✅ User can perform semantic search                                         ║
 ║   ✅ User can perform keyword search                                          ║
-║   ✅ User can perform hybrid search (5 passing, 1 failing)                    ║
+║   ✅ User can perform hybrid search                                           ║
 ║   ✅ User can get entity count aggregates                                     ║
-║   ✅ User can find similar entities (8 passing, 2 failing)                    ║
+║   ✅ User can find similar entities                                           ║
 ║                                                                              ║
 ║ 📦 Workflow Automation (5/5) ✓✓✓                                              ║
 ║──────────────────────────────────────────────────────────────────────────────║
@@ -83,5 +83,5 @@
 ║   ✅ User can log out securely                                                ║
 ║   ✅ User data is protected by row-level security                             ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Overall: 42/48 user stories complete (87%)                                   ║
+║ Overall: 44/48 user stories complete (91%)                                   ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

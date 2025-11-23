@@ -3,18 +3,18 @@
 ⚠️  TEST WARNINGS & PERFORMANCE ISSUES
 ======================================================================
 
-🐌 SLOW (13):
+🐌 SLOW (24):
   🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
-     → Slow: 1.12s (threshold: 1.0s)
+     → Slow: 1.10s (threshold: 1.0s)
   🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
-     → Slow: 1.14s (threshold: 1.0s)
-  🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestConcurrencyPerformance::test_memory_usage
-     → Slow: 1.87s (threshold: 1.0s)
-  🟡 tests/unit/infrastructure/test_mock_clients.py::TestHttpMcpClient::test_health_check_no_connection
-     → Slow: 1.16s (threshold: 1.0s)
-  🔴 tests/unit/infrastructure/test_redis_monitoring_week1.py::TestRedisMetricsWeek1::test_rate_limit_stats
-     → Very slow: 19.75s (threshold: 5.0s)
-  ... and 8 more
+     → Slow: 1.10s (threshold: 1.0s)
+  🟡 tests/unit/test_batch_comprehensive_phase21.py::TestBatchPhase21Part1::test_compliance_batch
+     → Slow: 1.50s (threshold: 1.0s)
+  🟡 tests/unit/test_batch_comprehensive_phase21_part2.py::TestBatchPhase21Part2::test_compliance_standards_batch
+     → Slow: 4.13s (threshold: 1.0s)
+  🟡 tests/unit/test_composition_engine_phase3.py::TestCompositionEnginePhase3::test_cache_expiration
+     → Slow: 1.10s (threshold: 1.0s)
+  ... and 19 more
 
 🔄 FLAKY (3):
   🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestOptimisticUpdate::test_optimistic_update_retry_on_conflict
@@ -25,6 +25,6 @@
      → Test passed after retry (potentially flaky)
 
 ----------------------------------------------------------------------
-Total Warnings: 16
-  🔴 High: 3  🟡 Medium: 13  🟢 Low: 0
+Total Warnings: 27
+  🔴 High: 4  🟡 Medium: 23  🟢 Low: 0
 ======================================================================
