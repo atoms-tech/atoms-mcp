@@ -89,6 +89,13 @@ class WorkOSBearerTokenVerifier(TokenVerifier):
             if not scopes and "scope" in claims:
                 scopes = claims["scope"].split(" ") if isinstance(claims["scope"], str) else claims["scope"]
             
+            # For WorkOS User Management tokens, add default OAuth scopes if not present
+            # These tokens don't include OAuth scopes, but we need them for FastMCP compatibility
+            if not scopes:
+                # Default to common OAuth scopes for internal token validation
+                scopes = ["openid", "profile", "email"]
+                logger.debug(f"No scopes in token, using defaults: {scopes}")
+            
             # Return AccessToken with required fields
             # client_id defaults to user_id if not in claims
             return AccessToken(
