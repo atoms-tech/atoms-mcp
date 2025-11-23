@@ -504,35 +504,56 @@ def create_consolidated_server() -> FastMCP:
     async def context_tool(
         operation: str,
         workspace_id: Optional[str] = None,
+        context_type: Optional[str] = None,
+        context_id: Optional[str] = None,
     ) -> dict:
-        """Manage session context (workspace, user, etc.).
+        """Manage session context (workspace, project, organization, entity_type, etc.).
 
         Operations:
-        - set_workspace: Set current workspace for this session
-        - get_workspace: Get current workspace from session context
-        - clear_workspace: Clear workspace context
+        - set_context: Set any context value (workspace, project, organization, entity_type, parent)
+        - set_workspace: Set current workspace (legacy, use set_context)
+        - get_context: Get all current context values
+        - get_workspace: Get current workspace (legacy, use get_context)
+        - clear_context: Clear all context
+        - clear_workspace: Clear workspace context (legacy)
         - get_session_state: Get full session state (debugging)
 
-        Once you set a workspace, all subsequent operations will use it
-        unless you explicitly provide a different workspace_id.
+        Context types (for set_context):
+        - workspace: Current workspace
+        - project: Current project
+        - organization: Current organization
+        - entity_type: Current entity type for simplified operations
+        - parent: Current parent entity for nested operations
 
         Examples:
-        - Set workspace: operation="set_workspace", workspace_id="workspace-123"
-        - Get current: operation="get_workspace"
-        - Clear: operation="clear_workspace"
+        - Set workspace: operation="set_context", context_type="workspace", context_id="ws-123"
+        - Set project: operation="set_context", context_type="project", context_id="proj-456"
+        - Get all context: operation="get_context"
+        - Clear all: operation="clear_context"
         """
         try:
             from tools.context import get_context_tool
             
             context_tool_instance = get_context_tool()
             
-            if operation == "set_workspace":
+            if operation == "set_context":
+                if not context_type or not context_id:
+                    return {"success": False, "error": "context_type and context_id required"}
+                return await context_tool_instance.set_context(context_type, context_id)
+            
+            elif operation == "set_workspace":
                 if not workspace_id:
-                    return {"success": False, "error": "workspace_id required for set_workspace"}
+                    return {"success": False, "error": "workspace_id required"}
                 return await context_tool_instance.set_workspace(workspace_id)
+            
+            elif operation == "get_context":
+                return await context_tool_instance.get_context_all()
             
             elif operation == "get_workspace":
                 return await context_tool_instance.get_workspace()
+            
+            elif operation == "clear_context":
+                return await context_tool_instance.clear_workspace()
             
             elif operation == "clear_workspace":
                 return await context_tool_instance.clear_workspace()

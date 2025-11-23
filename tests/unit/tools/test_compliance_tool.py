@@ -109,3 +109,141 @@ class TestComplianceVerificationTool:
         )
         assert result is not None
 
+
+# =====================================================
+# PHASE 12 ADDITIONAL COMPLIANCE TESTS
+# =====================================================
+
+class TestCompliancePhase12:
+    """Phase 12 additional compliance tests."""
+
+    @pytest.mark.asyncio
+    async def test_compliance_multiple_standards(self):
+        """Test compliance verification with multiple standards."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.verify_compliance(
+            requirement="Security requirement",
+            standards=["ISO 27001", "SOC 2", "GDPR"],
+            standard_clauses=["Clause 1", "Clause 2"]
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_batch_verification(self):
+        """Test batch compliance verification."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        requirements = [
+            "Requirement 1",
+            "Requirement 2",
+            "Requirement 3"
+        ]
+
+        result = await tool.batch_verify_compliance(
+            requirements=requirements,
+            standard="ISO 27001",
+            standard_clauses=["Clause 1"]
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_report_generation(self):
+        """Test compliance report generation."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.generate_compliance_report(
+            requirements=["Requirement 1"],
+            standard="ISO 27001",
+            format="pdf"
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_gap_analysis(self):
+        """Test compliance gap analysis."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.analyze_compliance_gaps(
+            requirements=["Requirement 1"],
+            standard="ISO 27001",
+            standard_clauses=["Clause 1"]
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_remediation_suggestions(self):
+        """Test compliance remediation suggestions."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.get_remediation_suggestions(
+            requirement="Non-compliant requirement",
+            standard="ISO 27001",
+            gap_analysis={"gap": "Missing security control"}
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_tracking(self):
+        """Test compliance tracking."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.track_compliance_status(
+            requirement_id="req-1",
+            standard="ISO 27001"
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_audit_trail(self):
+        """Test compliance audit trail."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.get_audit_trail(
+            requirement_id="req-1",
+            standard="ISO 27001"
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_metrics(self):
+        """Test compliance metrics."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.get_compliance_metrics(
+            standard="ISO 27001"
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_trend_analysis(self):
+        """Test compliance trend analysis."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.analyze_compliance_trends(
+            standard="ISO 27001",
+            time_period="last_quarter"
+        )
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_compliance_export(self):
+        """Test compliance export."""
+        from tools.compliance_verification import ComplianceVerificationTool
+        tool = ComplianceVerificationTool()
+
+        result = await tool.export_compliance_data(
+            standard="ISO 27001",
+            format="csv"
+        )
+        assert result is not None
+

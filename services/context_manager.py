@@ -12,10 +12,14 @@ from contextvars import ContextVar
 
 logger = logging.getLogger(__name__)
 
-# Context variables for current session/user/workspace
+# Context variables for current session/user/workspace/project/entity
 _session_id_var: ContextVar[Optional[str]] = ContextVar("session_id", default=None)
 _user_id_var: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 _workspace_id_var: ContextVar[Optional[str]] = ContextVar("workspace_id", default=None)
+_project_id_var: ContextVar[Optional[str]] = ContextVar("project_id", default=None)
+_organization_id_var: ContextVar[Optional[str]] = ContextVar("organization_id", default=None)
+_entity_type_var: ContextVar[Optional[str]] = ContextVar("entity_type", default=None)
+_parent_id_var: ContextVar[Optional[str]] = ContextVar("parent_id", default=None)
 
 
 class SessionContext:
@@ -81,6 +85,38 @@ class SessionContext:
         """
         return _workspace_id_var.get()
 
+    def set_project_id(self, project_id: str) -> None:
+        """Set current project ID in context."""
+        _project_id_var.set(project_id)
+
+    def get_project_id(self) -> Optional[str]:
+        """Get current project ID from context."""
+        return _project_id_var.get()
+
+    def set_organization_id(self, organization_id: str) -> None:
+        """Set current organization ID in context."""
+        _organization_id_var.set(organization_id)
+
+    def get_organization_id(self) -> Optional[str]:
+        """Get current organization ID from context."""
+        return _organization_id_var.get()
+
+    def set_entity_type(self, entity_type: str) -> None:
+        """Set current entity type in context."""
+        _entity_type_var.set(entity_type)
+
+    def get_entity_type(self) -> Optional[str]:
+        """Get current entity type from context."""
+        return _entity_type_var.get()
+
+    def set_parent_id(self, parent_id: str) -> None:
+        """Set current parent ID (for nested entities) in context."""
+        _parent_id_var.set(parent_id)
+
+    def get_parent_id(self) -> Optional[str]:
+        """Get current parent ID from context."""
+        return _parent_id_var.get()
+
     async def resolve_workspace_id(
         self,
         explicit_workspace_id: Optional[str] = None,
@@ -127,6 +163,37 @@ class SessionContext:
 
         return None
 
+    def resolve_project_id(self, explicit_project_id: Optional[str] = None) -> Optional[str]:
+        """Resolve project ID from explicit param or context.
+        
+        Args:
+            explicit_project_id: Explicit project_id if provided
+            
+        Returns:
+            Resolved project_id or None if not available
+        """
+        if explicit_project_id:
+            return explicit_project_id
+        return self.get_project_id()
+
+    def resolve_organization_id(self, explicit_org_id: Optional[str] = None) -> Optional[str]:
+        """Resolve organization ID from explicit param or context."""
+        if explicit_org_id:
+            return explicit_org_id
+        return self.get_organization_id()
+
+    def resolve_entity_type(self, explicit_type: Optional[str] = None) -> Optional[str]:
+        """Resolve entity type from explicit param or context."""
+        if explicit_type:
+            return explicit_type
+        return self.get_entity_type()
+
+    def resolve_parent_id(self, explicit_parent_id: Optional[str] = None) -> Optional[str]:
+        """Resolve parent ID from explicit param or context."""
+        if explicit_parent_id:
+            return explicit_parent_id
+        return self.get_parent_id()
+
     async def load_workspace_from_session(self) -> Optional[str]:
         """Load workspace context from session storage.
 
@@ -161,6 +228,10 @@ class SessionContext:
         _session_id_var.set(None)
         _user_id_var.set(None)
         _workspace_id_var.set(None)
+        _project_id_var.set(None)
+        _organization_id_var.set(None)
+        _entity_type_var.set(None)
+        _parent_id_var.set(None)
         logger.debug("Cleared session context")
 
 

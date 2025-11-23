@@ -26,6 +26,77 @@ class ContextTool:
         """Initialize context tool."""
         self.context = get_context()
 
+    async def set_context(self, context_type: str, context_id: str) -> Dict[str, Any]:
+        """Set a context value for this session.
+
+        Supported context types:
+        - workspace: Current workspace
+        - project: Current project  
+        - organization: Current organization
+        - entity_type: Current entity type (for simplified queries)
+        - parent: Current parent entity (for nested operations)
+
+        Args:
+            context_type: Type of context (workspace, project, organization, entity_type, parent)
+            context_id: ID or value to set as current
+
+        Returns:
+            Dict with success status and context info
+        """
+        try:
+            if not context_type or not context_id:
+                return {
+                    "success": False,
+                    "error": "context_type and context_id are required",
+                }
+
+            # Set in context
+            if context_type == "workspace":
+                self.context.set_workspace_id(context_id)
+            elif context_type == "project":
+                self.context.set_project_id(context_id)
+            elif context_type == "organization":
+                self.context.set_organization_id(context_id)
+            elif context_type == "entity_type":
+                self.context.set_entity_type(context_id)
+            elif context_type in ["parent", "parent_id"]:
+                self.context.set_parent_id(context_id)
+            else:
+                return {
+                    "success": False,
+                    "error": f"Unknown context_type: {context_type}",
+                }
+
+            # Persist to session if available
+            session_id = self.context.get_session_id()
+            if session_id and self.context.session_manager:
+                # Store all context in mcp_state
+                try:
+                    session = await self.context.session_manager.get_session(session_id)
+                    if session:
+                        mcp_state = session.get("mcp_state", {}) or {}
+                        mcp_state[f"current_{context_type}"] = context_id
+                        await self.context.session_manager.update_session(
+                            session_id, mcp_state=mcp_state
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to persist context to session: {e}")
+
+            logger.info(f"✅ Set {context_type} context: {context_id}")
+            return {
+                "success": True,
+                "message": f"{context_type.title()} context set to {context_id}",
+                "context_type": context_type,
+                "context_id": context_id,
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Failed to set context: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to set context: {str(e)}",
+            }
+
     async def set_workspace(self, workspace_id: str) -> Dict[str, Any]:
         """Set the current workspace for this session.
 
@@ -74,6 +145,28 @@ class ContextTool:
                 "error": f"Failed to set workspace: {str(e)}",
             }
 
+    async def get_context_all(self) -> Dict[str, Any]:
+        """Get all current context values.
+
+        Returns:
+            Dict with all context values (workspace, project, organization, entity_type, parent)
+        """
+        try:
+            return {
+                "success": True,
+                "workspace_id": self.context.get_workspace_id(),
+                "organization_id": self.context.get_organization_id(),
+                "project_id": self.context.get_project_id(),
+                "entity_type": self.context.get_entity_type(),
+                "parent_id": self.context.get_parent_id(),
+            }
+        except Exception as e:
+            logger.error(f"❌ Failed to get context: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to get context: {str(e)}",
+            }
+
     async def get_workspace(self) -> Dict[str, Any]:
         """Get the current workspace context for this session.
 
@@ -95,7 +188,7 @@ class ContextTool:
                 return {
                     "success": True,
                     "workspace_id": None,
-                    "message": "No workspace context set. Use set_workspace to set one.",
+                    "message": "No workspace context set. Use set_context to set one.",
                 }
 
         except Exception as e:
