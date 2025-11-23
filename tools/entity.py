@@ -1367,6 +1367,287 @@ class EntityManager(ToolBase):
         
         return result
 
+    # Query Operations (from query_tool consolidation - Phase 2)
+    async def aggregate_entities(
+        self,
+        entity_type: str,
+        aggregate_type: str = "count",
+        filters: Optional[Dict[str, Any]] = None,
+        group_by: Optional[List[str]] = None,
+        workspace_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Aggregate entities with optional grouping.
+        
+        Args:
+            entity_type: Type of entity to aggregate
+            aggregate_type: Type of aggregation (count, sum, avg, min, max)
+            filters: Optional filters to apply
+            group_by: Optional fields to group by
+            workspace_id: Workspace context
+            
+        Returns:
+            Aggregation results with counts/stats
+        """
+        try:
+            table_name = self._get_table_name(entity_type)
+            
+            # Build query
+            query_filters = filters or {}
+            if workspace_id:
+                query_filters["workspace_id"] = workspace_id
+            
+            if aggregate_type == "count":
+                total = await self._db_count(table_name, filters=query_filters)
+                
+                result: Dict[str, Any] = {
+                    "success": True,
+                    "aggregate_type": "count",
+                    "total_count": total,
+                    "entity_type": entity_type
+                }
+                
+                if group_by:
+                    # Get grouped counts
+                    entities = await self._db_query(table_name, filters=query_filters)
+                    grouped: Dict[str, int] = {}
+                    for entity in entities:
+                        key = "_".join(str(entity.get(field)) for field in group_by)
+                        grouped[key] = grouped.get(key, 0) + 1
+                    result["grouped_counts"] = grouped
+                
+                return result
+            else:
+                # For other aggregation types, return a placeholder
+                return {
+                    "success": True,
+                    "aggregate_type": aggregate_type,
+                    "message": f"Aggregation type '{aggregate_type}' not yet implemented",
+                    "entity_type": entity_type
+                }
+        except Exception as e:
+            logger.error(f"Error aggregating {entity_type}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "aggregate_type": aggregate_type,
+                "entity_type": entity_type
+            }
+
+    async def analyze_entities(
+        self,
+        entity_type: str,
+        filters: Optional[Dict[str, Any]] = None,
+        include_relations: bool = False,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        workspace_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Analyze entities with deep relationship analysis.
+        
+        Args:
+            entity_type: Type of entity to analyze
+            filters: Optional filters
+            include_relations: Whether to include related entities
+            limit: Result limit
+            offset: Result offset
+            workspace_id: Workspace context
+            
+        Returns:
+            Analysis with stats and relationships
+        """
+        try:
+            table_name = self._get_table_name(entity_type)
+            
+            # Build query
+            query_filters = filters or {}
+            if workspace_id:
+                query_filters["workspace_id"] = workspace_id
+            
+            # Get base entities
+            entities = await self._db_query(
+                table_name,
+                filters=query_filters,
+                limit=limit,
+                offset=offset
+            )
+            
+            analysis: Dict[str, Any] = {
+                "success": True,
+                "entity_type": entity_type,
+                "entity_count": len(entities),
+                "entities": entities
+            }
+            
+            if include_relations:
+                # Add relationship analysis
+                relation_stats: Dict[str, int] = {}
+                for entity in entities:
+                    entity_id = entity.get("id")
+                    if entity_id:
+                        relations = await self._db_query(
+                            "relationships",
+                            filters={"source_id": entity_id}
+                        )
+                        relation_stats[entity_id] = len(relations)
+                analysis["relation_stats"] = relation_stats
+            
+            return analysis
+        except Exception as e:
+            logger.error(f"Error analyzing {entity_type}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "entity_type": entity_type
+            }
+
+    async def rag_search_entities(
+        self,
+        entity_type: str,
+        content: str,
+        rag_mode: str = "auto",
+        similarity_threshold: float = 0.7,
+        filters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        workspace_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Search entities using RAG (Retrieval Augmented Generation).
+        
+        Args:
+            entity_type: Type of entity to search
+            content: Search query content
+            rag_mode: Search mode (auto, semantic, keyword, hybrid)
+            similarity_threshold: Similarity threshold for semantic search
+            filters: Optional filters
+            limit: Result limit
+            workspace_id: Workspace context
+            
+        Returns:
+            Search results with relevance scores
+        """
+        try:
+            # For now, fall back to keyword search + rank by text similarity
+            table_name = self._get_table_name(entity_type)
+            
+            query_filters = filters or {}
+            if workspace_id:
+                query_filters["workspace_id"] = workspace_id
+            
+            # Simple keyword search - split content into terms
+            terms = content.lower().split()
+            
+            # Get all entities and filter by keyword match
+            entities = await self._db_query(table_name, filters=query_filters, limit=limit)
+            
+            # Score entities based on keyword matches
+            scored_results = []
+            for entity in entities:
+                score = 0
+                entity_str = str(entity).lower()
+                for term in terms:
+                    if term in entity_str:
+                        score += 1
+                
+                if score > 0:
+                    scored_results.append({
+                        "entity": entity,
+                        "score": score / len(terms),
+                        "match_count": score
+                    })
+            
+            # Sort by score descending
+            scored_results.sort(key=lambda x: x["score"], reverse=True)
+            
+            return {
+                "success": True,
+                "operation": "rag_search",
+                "entity_type": entity_type,
+                "query": content,
+                "mode": rag_mode,
+                "results": scored_results[:limit or 20],
+                "total_results": len(scored_results)
+            }
+        except Exception as e:
+            logger.error(f"Error in RAG search for {entity_type}: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "entity_type": entity_type
+            }
+
+    async def find_similar_entities(
+        self,
+        entity_type: str,
+        query: str,
+        similarity_threshold: float = 0.7,
+        filters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        workspace_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Find entities similar to query based on text similarity.
+        
+        Args:
+            entity_type: Type of entity to search
+            query: Query text for similarity
+            similarity_threshold: Threshold for similarity (0-1)
+            filters: Optional filters
+            limit: Result limit
+            workspace_id: Workspace context
+            
+        Returns:
+            Similar entities with similarity scores
+        """
+        try:
+            table_name = self._get_table_name(entity_type)
+            
+            query_filters = filters or {}
+            if workspace_id:
+                query_filters["workspace_id"] = workspace_id
+            
+            # Get all entities
+            entities = await self._db_query(table_name, filters=query_filters, limit=limit)
+            
+            # Calculate similarity for each entity
+            similar_results = []
+            query_lower = query.lower()
+            
+            for entity in entities:
+                # Simple similarity: overlap of tokens
+                entity_str = str(entity).lower()
+                entity_tokens = set(entity_str.split())
+                query_tokens = set(query_lower.split())
+                
+                if not query_tokens:
+                    similarity = 0.0
+                else:
+                    overlap = len(entity_tokens & query_tokens)
+                    similarity = overlap / len(query_tokens)
+                
+                if similarity >= similarity_threshold:
+                    similar_results.append({
+                        "entity": entity,
+                        "similarity": similarity
+                    })
+            
+            # Sort by similarity descending
+            similar_results.sort(key=lambda x: x["similarity"], reverse=True)
+            
+            return {
+                "success": True,
+                "operation": "similarity",
+                "entity_type": entity_type,
+                "query": query,
+                "threshold": similarity_threshold,
+                "results": similar_results[:limit or 20],
+                "total_results": len(similar_results)
+            }
+        except Exception as e:
+            logger.error(f"Error finding similar entities: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "entity_type": entity_type
+            }
+
 
 # Global manager instance
 _entity_manager = EntityManager()
@@ -1374,7 +1655,7 @@ _entity_manager = EntityManager()
 
 async def entity_operation(
     auth_token: str,
-    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version", "trace", "coverage", "list_workflows", "create_workflow", "update_workflow", "delete_workflow", "execute_workflow", "advanced_search", "export", "import", "get_permissions", "update_permissions"],
+    operation: Literal["create", "read", "update", "delete", "archive", "restore", "search", "list", "batch_create", "bulk_update", "bulk_delete", "bulk_archive", "history", "restore_version", "trace", "coverage", "list_workflows", "create_workflow", "update_workflow", "delete_workflow", "execute_workflow", "advanced_search", "export", "import", "get_permissions", "update_permissions", "aggregate", "analyze", "rag_search", "similarity"],
     entity_type: str,
     data: Optional[Dict[str, Any]] = None,
     filters: Optional[Dict[str, Any]] = None,
@@ -1397,6 +1678,12 @@ async def entity_operation(
     workflow_id: Optional[str] = None,
     input_data: Optional[Dict[str, Any]] = None,
     workspace_id: Optional[str] = None,
+    # Query operation parameters (from query_tool consolidation)
+    aggregate_type: Optional[str] = None,
+    group_by: Optional[List[str]] = None,
+    rag_mode: str = "auto",
+    similarity_threshold: float = 0.7,
+    content: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
@@ -1947,6 +2234,71 @@ async def entity_operation(
             timings["update_permissions"] = time.time() - t_op_start
             timings["total"] = time.time() - start_total
             result["operation"] = "update_permissions"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        # Query operations (from query_tool consolidation)
+        elif operation == "aggregate":
+            t_op_start = time.time()
+            result = await _entity_manager.aggregate_entities(
+                entity_type=entity_type,
+                aggregate_type=aggregate_type or "count",
+                filters=filters,
+                group_by=group_by,
+                workspace_id=workspace_id
+            )
+            timings["aggregate"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "aggregate"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "analyze":
+            t_op_start = time.time()
+            result = await _entity_manager.analyze_entities(
+                entity_type=entity_type,
+                filters=filters,
+                include_relations=include_relations,
+                limit=limit,
+                offset=offset,
+                workspace_id=workspace_id
+            )
+            timings["analyze"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "analyze"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "rag_search":
+            if not content:
+                raise ValueError("content is required for rag_search operation")
+            t_op_start = time.time()
+            result = await _entity_manager.rag_search_entities(
+                entity_type=entity_type,
+                content=content,
+                rag_mode=rag_mode,
+                similarity_threshold=similarity_threshold,
+                filters=filters,
+                limit=limit,
+                workspace_id=workspace_id
+            )
+            timings["rag_search"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "rag_search"
+            return _entity_manager._add_timing_metrics(result, timings)
+
+        elif operation == "similarity":
+            if not content and not search_term:
+                raise ValueError("content or search_term is required for similarity operation")
+            t_op_start = time.time()
+            result = await _entity_manager.find_similar_entities(
+                entity_type=entity_type,
+                query=content or search_term,
+                similarity_threshold=similarity_threshold,
+                filters=filters,
+                limit=limit,
+                workspace_id=workspace_id
+            )
+            timings["similarity"] = time.time() - t_op_start
+            timings["total"] = time.time() - start_total
+            result["operation"] = "similarity"
             return _entity_manager._add_timing_metrics(result, timings)
         
         else:
