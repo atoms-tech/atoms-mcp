@@ -297,13 +297,18 @@ def force_all_mock_mode(monkeypatch):
 # E2E AUTHENTICATION FIXTURES (from e2e/conftest.py)
 # ============================================================================
 
-@pytest_asyncio.fixture(scope="function")
+@pytest_asyncio.fixture(scope="session")
 async def authkit_auth_token():
-    """Authenticate with WorkOS and get a fresh JWT token for each E2E test.
+    """Get a valid WorkOS JWT token for E2E tests with auto-refresh.
 
-    CRITICAL: Using function scope instead of session scope to prevent token expiry.
-    WorkOS JWT tokens have a limited lifetime (~1 hour), so obtaining a fresh token
-    for each test ensures all tests have valid authentication.
+    CRITICAL: Using session scope with smart token refresh to prevent token expiry.
+    The token manager automatically refreshes tokens when they're about to expire,
+    ensuring all tests in the session have valid authentication.
+
+    Strategy:
+    1. Check for pre-obtained token (fastest)
+    2. Use smart token manager (caches + auto-refreshes)
+    3. Authenticate fresh if needed
 
     All environments (local, dev, prod) use real WorkOS authentication.
     The same WorkOS keys are used for all environments (from .env).
@@ -321,10 +326,12 @@ async def authkit_auth_token():
     # Check for pre-obtained token first (fastest)
     pre_obtained_token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
     if pre_obtained_token:
-        logger_local.debug("✅ Using pre-obtained token from environment")
+        logger_local.info("✅ Using pre-obtained token from environment")
         return pre_obtained_token
 
-    # Use real WorkOS authentication for all environments
+    # Use smart token manager for auto-refresh
+    from tests.utils.token_manager import get_fresh_token
+
     email = os.getenv("WORKOS_TEST_EMAIL")
     password = os.getenv("WORKOS_TEST_PASSWORD")
 
@@ -336,14 +343,11 @@ async def authkit_auth_token():
         import pytest
         pytest.skip("WorkOS credentials not configured for e2e tests")
 
-    # Use WorkOS User Management password grant
-    from tests.utils.workos_auth import authenticate_with_workos
-
-    logger_local.debug(f"🔐 Authenticating with WorkOS as {email}")
-    token = await authenticate_with_workos(email, password)
+    logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
+    token = await get_fresh_token(email, password)
 
     if token:
-        logger_local.debug("✅ Successfully obtained real WorkOS JWT token (function scope)")
+        logger_local.info("✅ Successfully obtained real WorkOS JWT token (session scope with auto-refresh)")
         return token
     else:
         error_msg = (

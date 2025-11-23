@@ -71,7 +71,7 @@ async def end_to_end_client(e2e_auth_token):
         env_name = deployment_url
 
     print(f"✅ Target environment: {env_name}")
-    print("   Using real WorkOS authentication (fresh token per test)")
+    print("   Using real WorkOS authentication (session scope with auto-refresh)")
 
     # Create httpx client with authentication headers
     headers = {
