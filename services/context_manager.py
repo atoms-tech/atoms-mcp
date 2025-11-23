@@ -26,8 +26,12 @@ class SessionContext:
     """Thread-safe context manager for session state."""
 
     def __init__(self):
-        """Initialize context manager."""
+        """Initialize context manager with operation memory (Phase 4)."""
         self.session_manager = None
+        # In-memory operation history (cleared on session end)
+        self._operation_history: list[Dict[str, Any]] = []
+        self._last_created_entities: Dict[str, Any] = {}  # entity_type -> {id, data}
+        self._pagination_state: Dict[str, Any] = {}  # entity_type -> {limit, offset, total}
 
     def set_session_manager(self, session_manager: Any) -> None:
         """Set the session manager instance (for loading/saving context).
@@ -223,8 +227,113 @@ class SessionContext:
             logger.warning(f"Failed to load workspace from session: {e}")
             return None
 
+    # Phase 4: Operation Memory & Smart Defaults
+    def record_operation(self, operation: str, entity_type: str, result: Dict[str, Any]) -> None:
+        """Record an operation in history for potential undo/redo.
+
+        Args:
+            operation: Operation type (create, update, delete, etc.)
+            entity_type: Type of entity
+            result: Operation result with entity_id and data
+        """
+        try:
+            import datetime
+            record = {
+                "operation": operation,
+                "entity_type": entity_type,
+                "entity_id": result.get("entity_id"),
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+                "success": result.get("success", True)
+            }
+            self._operation_history.append(record)
+            
+            # Keep only last 50 operations in memory
+            if len(self._operation_history) > 50:
+                self._operation_history = self._operation_history[-50:]
+            
+            # If successful create, record as last created (for auto-parent)
+            if operation == "create" and result.get("success"):
+                self._last_created_entities[entity_type] = {
+                    "id": result.get("entity_id"),
+                    "data": result.get("data", {}),
+                    "timestamp": record["timestamp"]
+                }
+        except Exception as e:
+            logger.debug(f"Failed to record operation: {e}")
+
+    def get_last_created_entity(self, entity_type: str) -> Optional[Dict[str, Any]]:
+        """Get the last created entity of a given type (Phase 4: Smart Defaults).
+
+        Useful for auto-parent in nested operations.
+
+        Args:
+            entity_type: Type of entity to get
+
+        Returns:
+            Last created entity info {id, data, timestamp} or None
+        """
+        return self._last_created_entities.get(entity_type)
+
+    def set_pagination_state(self, entity_type: str, limit: int, offset: int, total: int) -> None:
+        """Track pagination state for convenience in subsequent calls (Phase 4).
+
+        Args:
+            entity_type: Type of entity being paginated
+            limit: Page size
+            offset: Current offset
+            total: Total results
+        """
+        try:
+            self._pagination_state[entity_type] = {
+                "limit": limit,
+                "offset": offset,
+                "total": total,
+                "has_next": (offset + limit) < total,
+                "has_previous": offset > 0,
+                "current_page": (offset // limit) + 1 if limit > 0 else 1,
+                "total_pages": (total + limit - 1) // limit if limit > 0 else 1
+            }
+        except Exception as e:
+            logger.debug(f"Failed to record pagination state: {e}")
+
+    def get_pagination_state(self, entity_type: str) -> Optional[Dict[str, Any]]:
+        """Get tracked pagination state for an entity type (Phase 4).
+
+        Args:
+            entity_type: Type of entity
+
+        Returns:
+            Pagination state {limit, offset, total, has_next, has_previous, ...} or None
+        """
+        return self._pagination_state.get(entity_type)
+
+    def get_next_page_offset(self, entity_type: str) -> Optional[int]:
+        """Get offset for next page based on tracked pagination state (Phase 4).
+
+        Args:
+            entity_type: Type of entity
+
+        Returns:
+            Offset for next page, or None if no next page or no tracked state
+        """
+        state = self.get_pagination_state(entity_type)
+        if state and state.get("has_next"):
+            return state.get("offset", 0) + state.get("limit", 20)
+        return None
+
+    def get_operation_history(self, limit: int = 20) -> list[Dict[str, Any]]:
+        """Get recent operation history (Phase 4: Smart Defaults).
+
+        Args:
+            limit: Maximum number of operations to return
+
+        Returns:
+            List of recent operations
+        """
+        return self._operation_history[-limit:] if limit > 0 else self._operation_history
+
     def clear(self) -> None:
-        """Clear all context variables."""
+        """Clear all context variables and operation memory (Phase 4)."""
         _session_id_var.set(None)
         _user_id_var.set(None)
         _workspace_id_var.set(None)
@@ -232,6 +341,10 @@ class SessionContext:
         _organization_id_var.set(None)
         _entity_type_var.set(None)
         _parent_id_var.set(None)
+        # Clear operation memory on session end
+        self._operation_history.clear()
+        self._last_created_entities.clear()
+        self._pagination_state.clear()
         logger.debug("Cleared session context")
 
 
