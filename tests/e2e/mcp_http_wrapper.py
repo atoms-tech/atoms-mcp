@@ -50,6 +50,42 @@ class AuthenticatedMcpClient:
         self.http_client = http_client
         self.auth_token = auth_token
     
+    def _parse_mcp_response(self, response_text: str) -> Dict[str, Any] | None:
+        """Parse MCP HTTP response in SSE or plain JSON-RPC format.
+        
+        FastMCP returns responses as Server-Sent Events (SSE), where the JSON-RPC
+        message is wrapped in SSE event format:
+            event: message
+            data: {"jsonrpc":"2.0",...}
+        
+        This method extracts and parses the JSON-RPC message from either format.
+        
+        Args:
+            response_text: Raw response body from HTTP request
+        
+        Returns:
+            Parsed JSON-RPC message dict, or None if parsing fails
+        """
+        if not response_text or response_text.strip() == "":
+            return None
+        
+        import json
+        
+        # Try SSE format first
+        for line in response_text.split('\n'):
+            line = line.strip()
+            if line.startswith('data: '):
+                try:
+                    return json.loads(line[6:])  # Skip 'data: ' prefix
+                except json.JSONDecodeError:
+                    continue
+        
+        # Fall back to plain JSON-RPC
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            return None
+    
     async def call_tool(
         self,
         tool_name: str,
@@ -145,6 +181,7 @@ class AuthenticatedMcpClient:
                 headers={
                     "Authorization": f"Bearer {self.auth_token}",
                     "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
                 }
             )
             
@@ -153,8 +190,13 @@ class AuthenticatedMcpClient:
             # Raise for HTTP errors (401, 403, 500, etc.)
             response.raise_for_status()
             
-            # Parse JSON-RPC response
-            result = response.json()
+            # Parse response - could be SSE or plain JSON-RPC
+            result = self._parse_mcp_response(response.text)
+            if not result:
+                return {
+                    "success": False,
+                    "error": "Failed to parse MCP server response"
+                }
             
             # Handle JSON-RPC error responses
             if "error" in result:
@@ -223,6 +265,7 @@ class AuthenticatedMcpClient:
                 headers={
                     "Authorization": f"Bearer {self.auth_token}",
                     "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
                 }
             )
             
