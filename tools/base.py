@@ -40,24 +40,17 @@ class ToolBase:
             raise ValueError("Authentication required: user_id not found in token claims")
 
         try:
-            import jwt
+            # Use shared JWT helper utilities
+            try:
+                from ..utils.jwt_helpers import decode_jwt_claims, extract_user_info
+            except ImportError:
+                from utils.jwt_helpers import decode_jwt_claims, extract_user_info
             
             # Decode JWT (signature already verified by FastMCP)
-            claims = jwt.decode(auth_token, options={"verify_signature": False})
+            claims = decode_jwt_claims(auth_token, verify_signature=False)
             
-            # Extract user context from JWT claims
-            user_info = {
-                "user_id": claims.get("user_id") or claims.get("sub"),
-                "username": claims.get("email"),
-                "email": claims.get("email"),
-                "auth_type": "authkit_jwt",
-                "access_token": auth_token,  # Pass JWT to Supabase for RLS
-                "user_metadata": {
-                    "role": claims.get("role"),
-                    "org_id": claims.get("org_id"),
-                    "email_verified": claims.get("email_verified"),
-                }
-            }
+            # Extract user context from JWT claims using shared utility
+            user_info = extract_user_info(claims, auth_token)
             
             if not user_info["user_id"]:
                 raise ValueError("No user_id in token claims")

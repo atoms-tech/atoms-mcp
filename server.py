@@ -1,4 +1,62 @@
-"""New atoms_fastmcp server with consolidated, agent-optimized tools."""
+"""Atoms MCP Server: FastMCP-based Model Context Protocol server.
+
+This module implements the Atoms MCP Server, a FastMCP-based server that provides
+AI agents (Claude, Cursor, custom agents) with access to the Atoms knowledge
+management platform through 5 consolidated, agent-optimized tools.
+
+Server Architecture:
+    The server follows the FastMCP canonical contract with:
+    - Single consolidated FastMCP instance (no parallel servers)
+    - 5 consolidated tools (not per-operation tools)
+    - Stateless HTTP ASGI export for Vercel/serverless deployment
+    - Hybrid auth provider (OAuth PKCE + Bearer tokens)
+    - Markdown response serialization for token efficiency
+
+Tools Provided:
+    1. workspace_operation: Manage workspace context and organization
+    2. entity_operation: CRUD operations on entities (documents, requirements, tasks)
+    3. relationship_operation: Create and manage relationships between entities
+    4. workflow_execute: Execute multi-step workflows with transaction support
+    5. data_query: Search and query entities with semantic search support
+
+Key Components:
+    - FastMCP server instance with tool discovery and invocation
+    - Markdown serializer for efficient response formatting
+    - Auth middleware for token validation and session management
+    - Error handling and logging for debugging
+    - Vercel deployment support with path configuration
+
+Dependencies:
+    - fastmcp: FastMCP framework for MCP protocol
+    - tools: Consolidated tool implementations
+    - infrastructure: Database, auth, cache adapters
+    - auth: Session and token management
+
+Example:
+    Create and run the server:
+
+    >>> from server import create_consolidated_server
+    >>> mcp = create_consolidated_server()
+    >>> # Server is now ready to accept MCP protocol requests
+
+    Or use the ASGI app for Vercel:
+
+    >>> from app import app
+    >>> # Deploy app to Vercel
+
+Note:
+    - This is the canonical MCP server for Atoms
+    - All tools are consolidated (not per-operation)
+    - Responses are serialized as Markdown for efficiency
+    - Supports both local and serverless deployment
+    - Thread-safe but not process-safe
+
+See Also:
+    - app.py: ASGI application for Vercel deployment
+    - tools/: Tool implementations
+    - infrastructure/: Adapter implementations
+    - auth/: Authentication and session management
+"""
 
 from __future__ import annotations
 

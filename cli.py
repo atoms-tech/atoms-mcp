@@ -28,9 +28,12 @@ Commands (like npm scripts):
   atoms docs         - Generate/view documentation
   atoms logs         - Tail server logs
   atoms db:regen-types - Regenerate Supabase type definitions
+  atoms debug:token  - Get JWT token from WorkOS credentials (outputs to stdout)
+  atoms debug:test-connection - Test MCP server connection (initialize + list tools)
 """
 
 import sys
+import os
 import typer
 import subprocess
 from typing import Optional
@@ -1045,6 +1048,113 @@ def db_regen_types(
         if use_pydantic:
             print("💡 Tip: Try --method simple if supabase-pydantic is causing issues")
         sys.exit(result.returncode)
+
+
+# ============================================================================
+# Debug & Testing Commands
+# ============================================================================
+
+@app.command("debug:token")
+def debug_token(
+    email: Optional[str] = typer.Option(None, "--email", help="User email (or set ATOMS_TEST_EMAIL)"),
+    password: Optional[str] = typer.Option(None, "--password", help="User password (or set ATOMS_TEST_PASSWORD)"),
+) -> None:
+    """Get JWT token from WorkOS credentials and output to stdout.
+    
+    This command authenticates with WorkOS User Management using email/password
+    and outputs the JWT access token to stdout (for use in scripts/pipes).
+    
+    Environment variables:
+        - WORKOS_API_KEY (required)
+        - WORKOS_CLIENT_ID (required)
+        - ATOMS_TEST_EMAIL (optional, defaults to kooshapari@kooshapari.com)
+        - ATOMS_TEST_PASSWORD (optional, defaults to ASD3on54_Pax90)
+    
+    Examples:
+        atoms debug:token                                    # Use default credentials
+        TOKEN=$(atoms debug:token)                          # Capture token
+        atoms debug:token --email user@example.com          # Custom email
+        curl -H "Authorization: Bearer $(atoms debug:token)" ...
+    
+    Exit codes:
+        0: Success (token printed to stdout)
+        1: Error (error message printed to stderr)
+    """
+    import asyncio
+    from scripts.get_jwt_token import get_jwt_token
+    
+    # Set credentials if provided
+    if email:
+        os.environ["ATOMS_TEST_EMAIL"] = email
+    if password:
+        os.environ["ATOMS_TEST_PASSWORD"] = password
+    
+    # Get token
+    token = asyncio.run(get_jwt_token())
+    if token:
+        print(token, end='')
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
+
+@app.command("debug:test-connection")
+def debug_test_connection(
+    url: Optional[str] = typer.Option(None, "--url", help="MCP server URL (or set MCP_BASE_URL)"),
+    token: Optional[str] = typer.Option(None, "--token", help="Bearer token (or set ATOMS_TEST_AUTH_TOKEN)"),
+    auto_token: bool = typer.Option(False, "--auto-token", help="Automatically fetch token from WorkOS"),
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Show detailed request/response information"),
+) -> None:
+    """Test MCP server connection (initialize + list tools).
+    
+    This command tests the MCP server by:
+    1. Initializing the connection
+    2. Listing available tools
+    
+    Environment variables:
+        - MCP_BASE_URL (optional, defaults to http://localhost:8000/api/mcp)
+        - ATOMS_TEST_AUTH_TOKEN (optional, token can be passed via --token)
+        - WORKOS_API_KEY, WORKOS_CLIENT_ID (optional, for auto-fetching token)
+    
+    Examples:
+        atoms debug:test-connection --auto-token              # Auto-fetch token and test
+        atoms debug:test-connection --token YOUR_TOKEN       # Use explicit token
+        atoms debug:test-connection --url http://localhost:8000/api/mcp --auto-token
+        atoms debug:test-connection -v                       # Verbose output
+        TOKEN=$(atoms debug:token) && atoms debug:test-connection --token "$TOKEN"
+    
+    Exit codes:
+        0: Success (both initialize and list tools succeeded)
+        1: Error (connection or authentication failed)
+    """
+    import asyncio
+    from scripts.test_mcp_connection import test_mcp_connection, get_token_auto
+    
+    # Get URL
+    mcp_url = url or os.getenv("MCP_BASE_URL", "http://localhost:8000/api/mcp")
+    
+    # Get token
+    auth_token = token or os.getenv("ATOMS_TEST_AUTH_TOKEN")
+    
+    if auto_token and not auth_token:
+        print("🔄 Auto-fetching token from WorkOS...", file=sys.stderr)
+        auth_token = asyncio.run(get_token_auto())
+        if not auth_token:
+            print("❌ Failed to auto-fetch token", file=sys.stderr)
+            sys.exit(1)
+    
+    if not auth_token:
+        print("❌ No token provided. Use --token, set ATOMS_TEST_AUTH_TOKEN, or use --auto-token", file=sys.stderr)
+        sys.exit(1)
+    
+    # Test connection
+    success = asyncio.run(test_mcp_connection(
+        url=mcp_url,
+        token=auth_token,
+        verbose=verbose
+    ))
+    
+    sys.exit(0 if success else 1)
 
 
 # ============================================================================

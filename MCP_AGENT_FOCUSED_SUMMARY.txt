@@ -1,0 +1,431 @@
+================================================================================
+  ATOMS MCP DOCUMENTATION - AGENT-FOCUSED APPROACH
+  Status: ✅ REVISED PLAN | Date: 2025-11-23
+================================================================================
+
+🎯 CORE INSIGHT
+================================================================================
+
+MCP IS NOT AN API - IT'S A UI FOR AGENTS
+
+Traditional API documentation focuses on:
+  ❌ Parameters and types
+  ❌ Function signatures
+  ❌ Return values
+  ❌ Error codes
+
+Agent-focused MCP documentation focuses on:
+  ✅ Agent workflows
+  ✅ Agent reasoning
+  ✅ Multi-turn conversations
+  ✅ Real-world demonstrations
+  ✅ Terminal recordings
+  ✅ Error recovery
+
+================================================================================
+📚 DOCUMENTATION STRUCTURE (REVISED)
+================================================================================
+
+SECTION 1: AGENT DEMONSTRATIONS (40%)
+  Goal: Show what agents can do with Atoms MCP
+  
+  01_what_agents_can_do.md
+  02_creating_entities.md (with vhs)
+  03_searching_and_linking.md (with vhs)
+  04_complex_workflows.md (with vhs)
+  05_error_handling.md (with vhs)
+  06_real_world_examples.md (with vhs)
+
+SECTION 2: GETTING STARTED (20%)
+  Goal: Help developers connect agents to Atoms MCP
+  
+  01_quick_start.md
+  02_connect_claude.md
+  03_connect_cursor.md
+  04_custom_agent.md
+  05_first_interaction.md
+
+SECTION 3: TOOL REFERENCE (20%)
+  Goal: Explain tools from agent perspective
+  
+  01_workspace_operation.md
+  02_entity_operation.md
+  03_relationship_operation.md
+  04_workflow_execute.md
+  05_data_query.md
+
+SECTION 4: ADVANCED PATTERNS (15%)
+  Goal: Complex workflows and optimization
+  
+  01_multi_step_workflows.md
+  02_error_recovery.md
+  03_performance_optimization.md
+  04_custom_strategies.md
+
+SECTION 5: DEVELOPER SETUP (5%)
+  Goal: For MCP server developers
+  
+  01_local_development.md
+  02_extending_tools.md
+  03_custom_tools.md
+
+================================================================================
+🎬 DEMONSTRATION TYPES
+================================================================================
+
+TYPE 1: VHS TERMINAL RECORDINGS
+  What: Record terminal interactions as GIFs
+  Tool: vhs (charmbracelet)
+  Output: Shareable GIFs, embeddable in docs
+  Duration: ~30 seconds each
+  Count: 17 total
+
+TYPE 2: CODE EXAMPLES WITH REPL OUTPUT
+  What: Show code + actual output
+  Format: Markdown with code blocks
+  Count: 50+ examples
+  
+  Example:
+    >>> from atoms_mcp import AtomsMCP
+    >>> client = AtomsMCP()
+    >>> result = await client.call_tool(...)
+    >>> print(result)
+    {"success": true, "data": {...}}
+
+TYPE 3: MULTI-TURN CONVERSATIONS
+  What: Show agent reasoning and multi-step workflows
+  Format: Conversation transcript
+  Count: 17 examples
+  
+  Example:
+    User: "Create 3 documents"
+    Agent: [creates 3 entities]
+    Agent: "Created 3 documents"
+    
+    User: "Tag them as 'draft'"
+    Agent: [updates all 3]
+    Agent: "Tagged all as 'draft'"
+
+TYPE 4: AGENT REASONING TRACES
+  What: Show how agents think
+  Format: Structured reasoning steps
+  Count: 17 examples
+  
+  Example:
+    Agent: "User wants to create entities"
+    Agent: "I'll use entity_operation tool"
+    Agent: "Parameters: operation='create'"
+    Agent: [calls tool]
+    Agent: "Success\! Created entity ent_123"
+
+TYPE 5: CURSOR/CLAUDE AGENT RECORDINGS
+  What: Live agent interaction with Atoms MCP
+  Tool: asciinema, ffmpeg, obs
+  Output: Playable videos, shareable links
+  Count: 5-10 recordings
+
+================================================================================
+🛠️ TOOLS FOR CREATING DEMONSTRATIONS
+================================================================================
+
+VHS (Terminal Recording)
+  Install: brew install charmbracelet/tap/vhs
+  Usage: vhs < demo.tape
+  Output: demo.gif
+  
+  Example:
+    Output: create_entity.gif
+    Set FontSize 16
+    Set Width 1200
+    Set Height 600
+    
+    Type "python3"
+    Enter
+    Sleep 500ms
+    
+    Type "from atoms_mcp import AtomsMCP"
+    Enter
+    Sleep 500ms
+    
+    Type "client = AtomsMCP()"
+    Enter
+    Sleep 500ms
+    
+    Type "result = await client.call_tool(...)"
+    Enter
+    Sleep 1s
+    
+    Type "print(result)"
+    Enter
+
+ASCIINEMA (Terminal Recording)
+  Install: brew install asciinema
+  Record: asciinema rec demo.cast
+  Play: asciinema play demo.cast
+  Share: asciinema upload demo.cast
+
+CURSOR AGENT RECORDING
+  Setup: Connect Cursor to Atoms MCP
+  Enable: Agent mode
+  Record: Terminal output
+  Tools: asciinema, ffmpeg, obs
+
+CLAUDE AGENT RECORDING
+  Setup: Connect Claude to Atoms MCP
+  Record: Conversation + tool calls
+  Tools: asciinema, ffmpeg, obs
+
+================================================================================
+📊 CONTENT BREAKDOWN
+================================================================================
+
+SECTION 1: AGENT DEMONSTRATIONS
+  Documents: 6
+  VHS Recordings: 6
+  Code Examples: 12
+  Reasoning Traces: 6
+  
+SECTION 2: GETTING STARTED
+  Documents: 5
+  VHS Recordings: 2
+  Code Examples: 10
+  Reasoning Traces: 2
+  
+SECTION 3: TOOL REFERENCE
+  Documents: 5
+  VHS Recordings: 5
+  Code Examples: 15
+  Reasoning Traces: 5
+  
+SECTION 4: ADVANCED PATTERNS
+  Documents: 4
+  VHS Recordings: 4
+  Code Examples: 8
+  Reasoning Traces: 4
+  
+SECTION 5: DEVELOPER SETUP
+  Documents: 3
+  VHS Recordings: 0
+  Code Examples: 5
+  Reasoning Traces: 0
+
+TOTAL:
+  Documents: 23
+  VHS Recordings: 17
+  Code Examples: 50+
+  Reasoning Traces: 17
+
+================================================================================
+⏱️ IMPLEMENTATION TIMELINE
+================================================================================
+
+WEEK 1: SETUP & PLANNING
+  - Set up MkDocs + Material
+  - Create directory structure
+  - Plan demonstrations
+  - Write vhs scripts
+
+WEEK 2: CREATE DEMONSTRATIONS
+  - Record 17 vhs demos
+  - Create 50+ code examples
+  - Capture 17 reasoning traces
+  - Test all recordings
+
+WEEK 3: WRITE DOCUMENTATION
+  - Write agent demonstrations section
+  - Write getting started section
+  - Embed all recordings
+  - Add code examples
+
+WEEK 4: COMPLETE REFERENCE
+  - Write tool reference
+  - Write advanced patterns
+  - Write developer setup
+  - Cross-link everything
+
+WEEK 5: POLISH & LAUNCH
+  - Review all content
+  - Test all links
+  - Optimize images
+  - Deploy to Vercel
+
+TOTAL: 5 weeks
+
+================================================================================
+🎯 KEY DIFFERENCES FROM TRADITIONAL API DOCS
+================================================================================
+
+ASPECT                  TRADITIONAL API         AGENT-FOCUSED MCP
+────────────────────────────────────────────────────────────────────────────
+Focus                   Parameters, types       Agent workflows, reasoning
+Examples                Code snippets           Terminal recordings
+Demonstrations          None                    vhs, asciinema, recordings
+Reasoning               Not shown               Agent thinking traces
+Interaction             Single calls            Multi-turn conversations
+Use Cases               Generic                 Real-world agent scenarios
+Learning Style          Read docs               Watch demonstrations
+Engagement              Low                     High
+Maintenance             High (docs drift)       Low (recordings are truth)
+
+================================================================================
+💡 WHY THIS APPROACH
+================================================================================
+
+1. SHOWS REAL USAGE
+   ✅ Agents actually using Atoms MCP
+   ✅ Real workflows, not hypothetical
+   ✅ Real error handling
+
+2. DEMONSTRATES REASONING
+   ✅ How agents think
+   ✅ How agents choose tools
+   ✅ How agents handle errors
+
+3. MULTI-TURN CONTEXT
+   ✅ Real conversations
+   ✅ Multi-step workflows
+   ✅ Agent memory and context
+
+4. VISUAL LEARNING
+   ✅ Terminal recordings
+   ✅ Easier to understand
+   ✅ More engaging
+
+5. PRACTICAL EXAMPLES
+   ✅ Real-world workflows
+   ✅ Copy-paste ready code
+   ✅ Actual tool responses
+
+6. ERROR HANDLING
+   ✅ How agents recover
+   ✅ What errors look like
+   ✅ How to handle them
+
+7. PERFORMANCE INSIGHTS
+   ✅ Actual execution times
+   ✅ Real performance characteristics
+   ✅ Optimization opportunities
+
+8. ENGAGEMENT
+   ✅ More interesting than API docs
+   ✅ Better learning outcomes
+   ✅ Higher user satisfaction
+
+================================================================================
+📁 FILE ORGANIZATION
+================================================================================
+
+docs/
+├── assets/
+│   ├── demos/
+│   │   ├── create_entity.gif
+│   │   ├── search_entity.gif
+│   │   ├── create_relationship.gif
+│   │   ├── workflow_execution.gif
+│   │   └── error_handling.gif
+│   └── scripts/
+│       ├── demo_create.tape
+│       ├── demo_search.tape
+│       ├── demo_relationship.tape
+│       ├── demo_workflow.tape
+│       └── demo_error.tape
+│
+├── 01-agent-demonstrations/
+│   ├── 01_what_agents_can_do.md
+│   ├── 02_creating_entities.md
+│   ├── 03_searching_and_linking.md
+│   ├── 04_complex_workflows.md
+│   ├── 05_error_handling.md
+│   └── 06_real_world_examples.md
+│
+├── 02-getting-started/
+│   ├── 01_quick_start.md
+│   ├── 02_connect_claude.md
+│   ├── 03_connect_cursor.md
+│   ├── 04_custom_agent.md
+│   └── 05_first_interaction.md
+│
+├── 03-tool-reference/
+│   ├── 01_workspace_operation.md
+│   ├── 02_entity_operation.md
+│   ├── 03_relationship_operation.md
+│   ├── 04_workflow_execute.md
+│   └── 05_data_query.md
+│
+├── 04-advanced-patterns/
+│   ├── 01_multi_step_workflows.md
+│   ├── 02_error_recovery.md
+│   ├── 03_performance_optimization.md
+│   └── 04_custom_strategies.md
+│
+└── 05-developer-setup/
+    ├── 01_local_development.md
+    ├── 02_extending_tools.md
+    └── 03_custom_tools.md
+
+================================================================================
+✨ KEY TAKEAWAY
+================================================================================
+
+MCP DOCUMENTATION SHOULD SHOW AGENTS IN ACTION
+
+Focus on:
+  ✅ What agents can accomplish
+  ✅ How agents reason
+  ✅ Real multi-turn conversations
+  ✅ Terminal recordings
+  ✅ Error handling
+  ✅ Real-world workflows
+
+This is fundamentally different from traditional API documentation.
+
+It's about demonstrating agent capabilities, not documenting API parameters.
+
+================================================================================
+📚 DOCUMENTS CREATED
+================================================================================
+
+MCP_AGENT_FOCUSED_DOCS.md
+  └─ Complete agent-focused documentation plan
+  └─ Demonstration types and examples
+  └─ Content structure
+
+CREATING_AGENT_DEMONSTRATIONS.md
+  └─ Tools for creating demonstrations
+  └─ VHS, asciinema, agent recordings
+  └─ Best practices and examples
+
+MCP_DOCS_REVISED_PLAN.md
+  └─ Complete revised documentation plan
+  └─ Implementation timeline
+  └─ File organization
+
+================================================================================
+🚀 NEXT STEPS
+================================================================================
+
+1. Review MCP_AGENT_FOCUSED_DOCS.md
+2. Review CREATING_AGENT_DEMONSTRATIONS.md
+3. Review MCP_DOCS_REVISED_PLAN.md
+4. Understand the agent-focused approach
+5. Set up MkDocs + Material
+6. Create vhs scripts
+7. Record demonstrations
+8. Write documentation
+
+================================================================================
+✨ READY TO BUILD?
+================================================================================
+
+This approach gives you:
+  ✅ Agent-focused documentation
+  ✅ Real demonstrations
+  ✅ Terminal recordings
+  ✅ Code examples with output
+  ✅ Agent reasoning traces
+  ✅ Multi-turn conversations
+  ✅ Real-world workflows
+
+Let's build world-class MCP documentation\! 🚀
+
+================================================================================

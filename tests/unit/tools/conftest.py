@@ -238,6 +238,13 @@ import os
 
 # Set test mode to skip actual auth/permission checks
 os.environ["ATOMS_TEST_MODE"] = "true"
+# Set Supabase to mock mode for unit tests
+os.environ["ATOMS_SUPABASE_MODE"] = "mock"
+os.environ["ATOMS_SERVICE_MODE"] = "mock"
+# Set dummy Supabase env vars to prevent get_supabase() from raising errors
+# These are only used if code paths bypass the factory and call get_supabase() directly
+os.environ.setdefault("NEXT_PUBLIC_SUPABASE_URL", "https://mock.supabase.co")
+os.environ.setdefault("NEXT_PUBLIC_SUPABASE_ANON_KEY", "mock-anon-key-for-testing")
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_auth_for_unit_tests():
@@ -269,9 +276,37 @@ def mock_auth_for_unit_tests():
     # Patch the _validate_auth method
     ToolBase._validate_auth = mock_validate_auth
     
-    yield
+    # Patch get_supabase() to return a mock client in test mode
+    # This prevents errors when code paths bypass the factory and call get_supabase() directly
+    def mock_get_supabase(access_token=None):
+        """Mock Supabase client for unit tests."""
+        mock_client = MagicMock()
+        # Configure mock client to return empty results by default
+        mock_client.table.return_value.select.return_value.execute.return_value.data = []
+        mock_client.table.return_value.insert.return_value.execute.return_value.data = {}
+        mock_client.table.return_value.update.return_value.execute.return_value.data = {}
+        mock_client.table.return_value.delete.return_value.execute.return_value.data = {}
+        return mock_client
     
-    # Cleanup is not needed as it's module-scoped
+    # Patch get_supabase in both possible import locations
+    # Use start() and stop() to keep patches active for the entire test session
+    patches = [
+        patch('supabase_client.get_supabase', side_effect=mock_get_supabase),
+        patch('infrastructure.supabase_db.get_supabase', side_effect=mock_get_supabase),
+        patch('infrastructure.supabase_storage.get_supabase', side_effect=mock_get_supabase),
+        patch('infrastructure.supabase_realtime.get_supabase', side_effect=mock_get_supabase),
+    ]
+    
+    # Start all patches
+    for p in patches:
+        p.start()
+    
+    try:
+        yield
+    finally:
+        # Stop all patches
+        for p in patches:
+            p.stop()
 
 @pytest.fixture
 def fast_mcp_server():

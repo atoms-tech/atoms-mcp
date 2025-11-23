@@ -61,28 +61,39 @@ class WorkOSBearerTokenVerifier(TokenVerifier):
             AccessToken with user info if valid, None if verification fails
         """
         try:
-            import jwt
+            # Use shared JWT helper utilities
+            try:
+                from ...utils.jwt_helpers import decode_jwt_claims, extract_user_id, is_token_expired
+            except ImportError:
+                try:
+                    from utils.jwt_helpers import decode_jwt_claims, extract_user_id, is_token_expired
+                except ImportError:
+                    import sys
+                    import os
+                    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+                    from utils.jwt_helpers import decode_jwt_claims, extract_user_id, is_token_expired
             
             # Decode without signature verification
             # JWT structure: header.payload.signature
             # We trust the issuer (WorkOS) since we obtained this token ourselves
-            claims = jwt.decode(token, options={"verify_signature": False})
+            claims = decode_jwt_claims(token, verify_signature=False)
             
-            user_id = claims.get("sub") or claims.get("user_id") or claims.get("id")
+            # Use shared utility to extract user_id
+            user_id = extract_user_id(claims)
             if not user_id:
                 logger.warning(f"No user identifier in token claims: {list(claims.keys())}")
                 return None
             
             logger.debug(f"✅ WorkOS JWT verified for user: {user_id}")
             
-            # Check token expiry if exp claim is present
-            expires_at = None
-            if "exp" in claims:
-                expires_at = claims["exp"]
+            # Check token expiry using shared utility
+            if is_token_expired(claims):
+                expires_at = claims.get("exp")
                 current_time = int(time.time())
-                if expires_at < current_time:
-                    logger.warning(f"Token expired at {expires_at}, current time {current_time}")
-                    return None
+                logger.warning(f"Token expired at {expires_at}, current time {current_time}")
+                return None
+            
+            expires_at = claims.get("exp")
             
             # Extract scopes from claims (use standard OAuth scopes if available)
             scopes = claims.get("scopes", [])

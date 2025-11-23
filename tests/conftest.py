@@ -231,3 +231,42 @@ def test_relationship() -> Dict[str, Any]:
         "metadata": {"priority": "high"}
     }
 
+
+@pytest.fixture
+def e2e_auth_token():
+    """Get authenticated token for e2e/live service tests.
+
+    Uses WorkOS User Management API (password grant) to authenticate.
+    This is the standard, reliable way to get JWT tokens for testing.
+    """
+    import logging
+    import asyncio
+
+    logger = logging.getLogger(__name__)
+
+    # Use WorkOS User Management (password grant) - always available
+    from tests.utils.workos_auth import authenticate_with_workos
+
+    email = os.getenv("ATOMS_TEST_EMAIL", "kooshapari@kooshapari.com")
+    password = os.getenv("ATOMS_TEST_PASSWORD", "ASD3on54_Pax90")
+
+    logger.info(f"🔐 Attempting WorkOS authentication for {email}...")
+
+    try:
+        token = asyncio.run(authenticate_with_workos(email, password))
+        if token:
+            logger.info(f"✅ Got WorkOS token for {email}")
+            return token
+    except Exception as e:
+        logger.warning(f"⚠️  WorkOS authentication failed: {e}")
+
+    # Fallback: try environment variable
+    if os.getenv("ATOMS_TEST_AUTH_TOKEN"):
+        logger.info("✅ Using ATOMS_TEST_AUTH_TOKEN from environment")
+        return os.getenv("ATOMS_TEST_AUTH_TOKEN")
+
+    # No token available - return None (tests will skip)
+    logger.warning("⚠️  No authentication token available for e2e/live tests")
+    logger.warning("   Set ATOMS_TEST_EMAIL, ATOMS_TEST_PASSWORD, or ATOMS_TEST_AUTH_TOKEN")
+    return None
+

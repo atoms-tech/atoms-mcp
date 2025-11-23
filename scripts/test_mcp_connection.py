@@ -48,10 +48,16 @@ async def get_token_auto() -> Optional[str]:
     """Automatically fetch JWT token from WorkOS."""
     try:
         # Import the get_jwt_token function
-        script_dir = Path(__file__).parent
-        sys.path.insert(0, str(script_dir.parent))
+        # Try direct import first (if running as module)
+        try:
+            from scripts.get_jwt_token import get_jwt_token
+        except ImportError:
+            # Fallback: add parent directory to path
+            script_dir = Path(__file__).parent
+            if str(script_dir.parent) not in sys.path:
+                sys.path.insert(0, str(script_dir.parent))
+            from scripts.get_jwt_token import get_jwt_token
         
-        from scripts.get_jwt_token import get_jwt_token
         return await get_jwt_token()
     except Exception as e:
         print(f"⚠️  Failed to auto-fetch token: {e}", file=sys.stderr)

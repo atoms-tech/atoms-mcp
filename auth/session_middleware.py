@@ -53,23 +53,24 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         if jwt_token:
             # Decode JWT to get user info (AuthKit already validated it)
-            import jwt as pyjwt
             try:
-                decoded = pyjwt.decode(jwt_token, options={"verify_signature": False})
+                from utils.jwt_helpers import decode_jwt_claims, extract_user_id
+            except ImportError:
+                # Fallback for different import contexts
+                import sys
+                import os
+                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from utils.jwt_helpers import decode_jwt_claims, extract_user_id
+            
+            try:
+                decoded = decode_jwt_claims(jwt_token, verify_signature=False)
                 logger.info(f"🔧 Decoded JWT claims: {list(decoded.keys())}")
                 print(f"🔧 Decoded JWT claims: {list(decoded.keys())}")  # Force print to stdout
                 logger.info(f"   Token first 20 chars: {jwt_token[:20]}...")
                 print(f"   Token first 20 chars: {jwt_token[:20]}...")  # Force print
 
-                # Try multiple claim names for user_id
-                # AuthKit JWTs may use different claim names
-                user_id = (
-                    decoded.get('sub') or           # Standard JWT claim
-                    decoded.get('user_id') or       # Custom claim
-                    decoded.get('id') or            # Alternative
-                    decoded.get('user', {}).get('id') or  # Nested user object
-                    decoded.get('uid')              # Supabase uses 'uid' in some contexts
-                )
+                # Use shared utility to extract user_id (tries multiple claim names)
+                user_id = extract_user_id(decoded)
 
                 # If still no user_id, log what we have and use role claim as fallback
                 if not user_id:
