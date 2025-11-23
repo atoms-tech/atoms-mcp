@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import Any, Dict
 
 try:
-    from .mock_adapters import HttpMcpClient
+    from .mocks import HttpMcpClient
     from .mock_config import get_service_config, ServiceMode
 except ImportError:
-    from infrastructure.mock_adapters import HttpMcpClient
+    from infrastructure.mocks import HttpMcpClient
     from infrastructure.mock_config import get_service_config, ServiceMode
 
 

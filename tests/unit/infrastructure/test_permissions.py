@@ -499,7 +499,7 @@ class TestPermissionPerformance:
 import pytest
 from infrastructure.permission_manager import PermissionManager
 from infrastructure.advanced_features_adapter import AdvancedFeaturesAdapter
-from infrastructure.mock_adapters import InMemoryDatabaseAdapter
+from infrastructure.mocks import InMemoryDatabaseAdapter
 
 
 class TestPermissionLevels:

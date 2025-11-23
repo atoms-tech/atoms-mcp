@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 try:
-    from infrastructure.mock_adapters import (
+    from infrastructure.mocks import (
         InMemoryDatabaseAdapter, InMemoryAuthAdapter,
         InMemoryStorageAdapter, InMemoryRealtimeAdapter
     )

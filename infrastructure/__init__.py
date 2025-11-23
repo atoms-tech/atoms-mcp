@@ -73,6 +73,13 @@ try:
         RealtimeAdapter
     )
     from .factory import get_adapters
+    from .mocks import (
+        InMemoryDatabaseAdapter,
+        InMemoryStorageAdapter,
+        InMemoryAuthAdapter,
+        InMemoryRealtimeAdapter,
+        HttpMcpClient,
+    )
 except ImportError:
     from infrastructure.adapters import (
         AuthAdapter,
@@ -81,11 +88,23 @@ except ImportError:
         RealtimeAdapter
     )
     from infrastructure.factory import get_adapters
+    from infrastructure.mocks import (
+        InMemoryDatabaseAdapter,
+        InMemoryStorageAdapter,
+        InMemoryAuthAdapter,
+        InMemoryRealtimeAdapter,
+        HttpMcpClient,
+    )
 
 __all__ = [
     "AuthAdapter",
-    "DatabaseAdapter", 
+    "DatabaseAdapter",
     "StorageAdapter",
     "RealtimeAdapter",
-    "get_adapters"
+    "get_adapters",
+    "InMemoryDatabaseAdapter",
+    "InMemoryStorageAdapter",
+    "InMemoryAuthAdapter",
+    "InMemoryRealtimeAdapter",
+    "HttpMcpClient",
 ]

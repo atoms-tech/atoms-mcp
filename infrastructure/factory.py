@@ -18,7 +18,7 @@ try:
     from .supabase_db import SupabaseDatabaseAdapter
     from .supabase_storage import SupabaseStorageAdapter
     from .supabase_realtime import SupabaseRealtimeAdapter
-    from .mock_adapters import (
+    from .mocks import (
         InMemoryDatabaseAdapter, InMemoryAuthAdapter, 
         InMemoryStorageAdapter, InMemoryRealtimeAdapter,
         HttpMcpClient
@@ -29,9 +29,10 @@ except ImportError:
     from infrastructure.supabase_db import SupabaseDatabaseAdapter
     from infrastructure.supabase_storage import SupabaseStorageAdapter
     from infrastructure.supabase_realtime import SupabaseRealtimeAdapter
-    from infrastructure.mock_adapters import (
+    from infrastructure.mocks import (
         InMemoryDatabaseAdapter, InMemoryAuthAdapter,
-        InMemoryStorageAdapter, InMemoryRealtimeAdapter
+        InMemoryStorageAdapter, InMemoryRealtimeAdapter,
+        HttpMcpClient
     )
     from infrastructure.mock_config import get_service_config
 

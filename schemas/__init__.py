@@ -40,6 +40,17 @@ from .validators import (  # noqa: F401
     is_uuid_format,
 )
 
+# Import helpers (including get_entity_schema)
+from .helpers import (  # noqa: F401
+    get_model_for_entity,
+    validate_entity_data as validate_entity_data_helper,
+    get_model_fields,
+    get_required_fields,
+    get_optional_fields,
+    partial_validate,
+    get_entity_schema,
+)
+
 __all__ = [
     "EntityInput",
     "OrganizationInput",
@@ -52,6 +63,13 @@ __all__ = [
     "validate_required_fields",
     "validate_entity_data",
     "is_uuid_format",
+    "get_model_for_entity",
+    "validate_entity_data_helper",
+    "get_model_fields",
+    "get_required_fields",
+    "get_optional_fields",
+    "partial_validate",
+    "get_entity_schema",
 ]
 
 if _has_generated:

@@ -33,15 +33,15 @@ try:
 except ImportError:
     _HAS_SCHEMAS = False
 
-# Import from extracted modules
+# Import from schemas (consolidated)
+from schemas import get_entity_schema
+from schemas.validators import validate_required_fields, is_uuid_format, validate_entity_data
+
+# Import from extracted modules (utils only)
 try:
-    from .entity_modules.schemas import get_entity_schema
-    from .entity_modules.validators import validate_required_fields, is_uuid_format, validate_entity_data
     from .entity_modules.utils import slugify
 except ImportError:
     # Fallback for tests/other imports
-    from entity_modules.schemas import get_entity_schema
-    from entity_modules.validators import validate_required_fields, is_uuid_format, validate_entity_data
     from entity_modules.utils import slugify
 
 

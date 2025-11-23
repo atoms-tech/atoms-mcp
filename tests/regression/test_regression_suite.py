@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from infrastructure.mock_adapters import InMemoryDatabaseAdapter
+from infrastructure.mocks import InMemoryDatabaseAdapter
 
 pytestmark = pytest.mark.regression
 

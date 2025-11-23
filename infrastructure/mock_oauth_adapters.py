@@ -23,7 +23,7 @@ import json
 import time
 import base64
 from typing import Any, Dict, Optional
-from infrastructure.mock_adapters import InMemoryAuthAdapter
+from infrastructure.mocks import InMemoryAuthAdapter
 
 
 class MockOAuthAuthAdapter(InMemoryAuthAdapter):
