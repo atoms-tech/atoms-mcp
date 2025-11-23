@@ -21,6 +21,9 @@ import pytest
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
+# Import consolidated EntityFactory from data_generators
+from .data_generators import EntityFactory
+
 
 @dataclass
 class TestContext:
@@ -39,70 +42,11 @@ class TestContext:
         return entity_id
 
 
-class EntityFactory:
-    """Factory for generating test entities with consistent structure."""
+# Import consolidated EntityFactory from data_generators
+from .data_generators import EntityFactory
 
-    @staticmethod
-    def organization(name: Optional[str] = None, **overrides) -> Dict[str, Any]:
-        """Create organization test data."""
-        data = {
-            "name": name or f"Org-{uuid.uuid4().hex[:8]}",
-            "type": "team",
-        }
-        data.update(overrides)
-        return data
-
-    @staticmethod
-    def project(org_id: Optional[str] = None, name: Optional[str] = None, **overrides) -> Dict[str, Any]:
-        """Create project test data."""
-        data = {
-            "name": name or f"Project-{uuid.uuid4().hex[:8]}",
-            "organization_id": org_id or str(uuid.uuid4()),
-        }
-        data.update(overrides)
-        return data
-
-    @staticmethod
-    def document(project_id: Optional[str] = None, name: Optional[str] = None, **overrides) -> Dict[str, Any]:
-        """Create document test data."""
-        data = {
-            "name": name or f"Doc-{uuid.uuid4().hex[:8]}",
-            "content": "Test document content",
-            "project_id": project_id or str(uuid.uuid4()),
-        }
-        data.update(overrides)
-        return data
-
-    @staticmethod
-    def requirement(name: Optional[str] = None, **overrides) -> Dict[str, Any]:
-        """Create requirement test data."""
-        data = {
-            "name": name or f"REQ-{uuid.uuid4().hex[:4].upper()}",
-            "priority": "high",
-            "description": "Test requirement",
-        }
-        data.update(overrides)
-        return data
-
-    @staticmethod
-    def test_case(title: Optional[str] = None, **overrides) -> Dict[str, Any]:
-        """Create test case data."""
-        data = {
-            "title": title or f"Test-{uuid.uuid4().hex[:8]}",
-            "description": "Test case description",
-        }
-        data.update(overrides)
-        return data
-
-    @staticmethod
-    def property(name: Optional[str] = None, **overrides) -> Dict[str, Any]:
-        """Create property test data."""
-        data = {
-            "name": name or f"Prop-{uuid.uuid4().hex[:8]}",
-            "value": "test-value",
-        }
-        data.update(overrides)
-        return data
+# Backward compatibility: EntityFactory is now imported from data_generators
+# This consolidates DataGenerator and EntityFactory into a single class
 
 
 class AssertionHelpers:

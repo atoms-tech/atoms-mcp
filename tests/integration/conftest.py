@@ -269,13 +269,40 @@ async def integration_client():
 @pytest_asyncio.fixture
 async def mcp_client(mcp_client_http):
     """Canonical client fixture alias for integration suites.
-    
+
     Legacy tests reference ``mcp_client`` (shared with unit/e2e tiers). To keep
     those tests working without duplicating logic we simply alias the HTTP
     integration client here.
     """
 
     yield mcp_client_http
+
+
+@pytest_asyncio.fixture
+async def live_mcp_client(integration_auth_token):
+    """Provide httpx AsyncClient for live service testing.
+
+    This fixture provides a raw httpx client for making direct HTTP requests
+    to the live MCP service. Used by parametrized tests that run against both
+    mock and live services.
+    """
+    import os
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not integration_auth_token:
+        logger.warning("⏭️  Skipping live service tests - no authentication token available")
+        pytest.skip("No authentication token available for live service tests")
+
+    base_url = os.getenv("MCP_INTEGRATION_BASE_URL", "http://127.0.0.1:8000/api/mcp")
+
+    async with httpx.AsyncClient(
+        base_url=base_url,
+        headers={"Authorization": f"Bearer {integration_auth_token}"},
+        timeout=30.0
+    ) as client:
+        yield client
 
 
 @pytest.fixture

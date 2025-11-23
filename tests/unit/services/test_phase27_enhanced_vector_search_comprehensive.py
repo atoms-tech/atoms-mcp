@@ -34,8 +34,10 @@ class TestEnhancedVectorSearchService:
         """Create EnhancedVectorSearchService instance."""
         from services.enhanced_vector_search import EnhancedVectorSearchService
         
-        with patch('services.enhanced_vector_search.VectorSearchService', return_value=mock_vector_search):
+        # Patch VectorSearchService where it's imported (in vector_search module)
+        with patch('services.vector_search.VectorSearchService', return_value=mock_vector_search):
             service = EnhancedVectorSearchService(mock_supabase, mock_embedding_service)
+            # Override the vector_search instance with our mock
             service.vector_search = mock_vector_search
             return service
 

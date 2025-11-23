@@ -1686,7 +1686,152 @@ async def entity_operation(
     similarity_threshold: float = 0.7,
     content: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Unified CRUD operations with performance timing."""
+    """Perform CRUD operations on entities with comprehensive functionality.
+
+    This is the primary MCP tool for entity management in Atoms. It provides
+    unified CRUD operations, search, versioning, workflows, and analytics.
+
+    CRUD Operations:
+        - 'create': Create new entity
+        - 'read': Read entity by ID
+        - 'update': Update entity properties
+        - 'delete': Delete entity (hard or soft)
+        - 'archive': Archive entity (soft delete)
+        - 'restore': Restore archived entity
+
+    Search & Query Operations:
+        - 'search': Search entities by filters and search term
+        - 'list': List entities with pagination and sorting
+        - 'advanced_search': Advanced search with complex filters
+        - 'aggregate': Aggregate entities (count, sum, avg, etc.)
+        - 'analyze': Analyze entities with statistics
+        - 'rag_search': RAG-based semantic search
+        - 'similarity': Find similar entities
+
+    Batch Operations:
+        - 'batch_create': Create multiple entities
+        - 'bulk_update': Update multiple entities
+        - 'bulk_delete': Delete multiple entities
+        - 'bulk_archive': Archive multiple entities
+
+    Versioning & History:
+        - 'history': Get entity change history
+        - 'restore_version': Restore to previous version
+        - 'trace': Trace entity lineage
+        - 'coverage': Get entity coverage metrics
+
+    Workflow Operations:
+        - 'list_workflows': List available workflows
+        - 'create_workflow': Create new workflow
+        - 'update_workflow': Update workflow
+        - 'delete_workflow': Delete workflow
+        - 'execute_workflow': Execute workflow
+
+    Permission Operations:
+        - 'get_permissions': Get entity permissions
+        - 'update_permissions': Update entity permissions
+
+    Import/Export:
+        - 'export': Export entities to file
+        - 'import': Import entities from file
+
+    Args:
+        auth_token (str): Authentication token for the request
+        operation (str): Operation to perform (see above)
+        entity_type (str): Type of entity (document, requirement, task, etc.)
+        data (Optional[Dict]): Entity data for create/update operations
+        filters (Optional[Dict]): Filters for search/list operations
+        entity_id (Optional[str]): Entity ID for read/update/delete
+        include_relations (bool): Include related entities in response
+        batch (Optional[List]): Batch of entities for batch operations
+        search_term (Optional[str]): Search term for search operations
+        parent_type (Optional[str]): Parent entity type for hierarchical queries
+        parent_id (Optional[str]): Parent entity ID for hierarchical queries
+        limit (Optional[int]): Maximum results to return (default: 100)
+        offset (Optional[int]): Pagination offset (default: 0)
+        order_by (Optional[str]): Sort order (e.g., "name ASC", "-created_at")
+        soft_delete (bool): Use soft delete instead of hard delete (default: True)
+        format_type (str): Response format (detailed, summary, minimal)
+        pagination (Optional[Dict]): Pagination parameters
+        filter_list (Optional[List]): List of filters
+        sort_list (Optional[List]): List of sort specifications
+        entity_ids (Optional[List]): List of entity IDs for bulk operations
+        version (Optional[int]): Version number for restore_version
+        workflow_id (Optional[str]): Workflow ID for workflow operations
+        input_data (Optional[Dict]): Input data for workflow execution
+        workspace_id (Optional[str]): Workspace ID for scoped queries
+        document_id (Optional[str]): Document ID for extended context
+        aggregate_type (Optional[str]): Aggregation type (count, sum, avg, min, max)
+        group_by (Optional[List]): Fields to group by for aggregation
+        rag_mode (str): RAG mode (auto, strict, lenient)
+        similarity_threshold (float): Similarity threshold (0.0-1.0)
+        content (Optional[str]): Content for RAG search
+
+    Returns:
+        Dict[str, Any]: Response with structure:
+        {
+            'success': bool,           # Whether operation succeeded
+            'operation': str,          # Operation performed
+            'entity_type': str,        # Entity type
+            'data': dict or list,      # Operation result data
+            'error': str,              # Error message if failed
+            'metadata': dict,          # Additional metadata
+            'timings': dict            # Performance timings
+        }
+
+    Raises:
+        ValueError: If operation is invalid or required parameters missing
+        AuthenticationError: If authentication fails
+        PermissionError: If user lacks permission
+        NotFoundError: If entity not found
+
+    Agent Reasoning:
+        Agents use this tool to:
+        1. Create entities for storing information
+        2. Read entities to retrieve information
+        3. Update entities to modify information
+        4. Delete entities to remove information
+        5. Search entities to discover information
+        6. Manage entity versions and history
+        7. Execute workflows on entities
+        8. Analyze entity data
+
+    Example:
+        Create entity:
+
+        >>> result = await entity_operation(
+        ...     auth_token='token_123',
+        ...     operation='create',
+        ...     entity_type='document',
+        ...     data={'title': 'My Document', 'content': '...'}
+        ... )
+        >>> print(result)
+        {'success': True, 'data': {'id': 'ent_123', 'title': 'My Document'}}
+
+        Search entities:
+
+        >>> result = await entity_operation(
+        ...     auth_token='token_123',
+        ...     operation='search',
+        ...     entity_type='document',
+        ...     search_term='authentication',
+        ...     limit=10
+        ... )
+        >>> print(result)
+        {'success': True, 'data': [...], 'total': 42}
+
+    Note:
+        - All operations are async and must be awaited
+        - Authentication is required for all operations
+        - Responses include performance timing metrics
+        - Soft delete is default (use soft_delete=False for hard delete)
+        - Pagination defaults to limit=100, offset=0
+
+    See Also:
+        - relationship_operation: For managing relationships
+        - workflow_execute: For executing workflows
+        - data_query: For advanced querying
+    """
     import time
     timings = {}
     start_total = time.time()

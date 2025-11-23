@@ -11,6 +11,7 @@ All authentication fixtures are in tests/conftest.py (root)
 import os
 import pytest
 import pytest_asyncio
+import httpx
 
 # Import all fixtures from submodules to make them available to tests
 from tests.e2e.fixtures.client import mcp_client, end_to_end_client
@@ -60,10 +61,37 @@ async def e2e_auth_token():
     pytest.skip("No authentication token available for e2e tests")
 
 
+@pytest_asyncio.fixture
+async def live_mcp_client(e2e_auth_token):
+    """Provide httpx AsyncClient for live service testing.
+
+    This fixture provides a raw httpx client for making direct HTTP requests
+    to the live MCP service. Used by parametrized tests that run against both
+    mock and live services.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not e2e_auth_token:
+        logger.warning("⏭️  Skipping live service tests - no authentication token available")
+        pytest.skip("No authentication token available for live service tests")
+
+    base_url = os.getenv("MCP_INTEGRATION_BASE_URL", "http://127.0.0.1:8000/api/mcp")
+
+    async with httpx.AsyncClient(
+        base_url=base_url,
+        headers={"Authorization": f"Bearer {e2e_auth_token}"},
+        timeout=30.0
+    ) as client:
+        yield client
+
+
 __all__ = [
     "mcp_client",
     "end_to_end_client",
     "e2e_auth_token",
+    "live_mcp_client",
     "workflow_scenarios",
     "test_data_setup",
     "test_data_with_relationships",

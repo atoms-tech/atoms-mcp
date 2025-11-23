@@ -1,7 +1,60 @@
-"""ASGI application for Vercel deployment.
+"""ASGI Application for Atoms MCP Server - Vercel Deployment.
 
-This creates a proper ASGI app export that Vercel can import.
-Following FastMCP documentation: https://docs.fastmcp.com/deployment/self-hosted
+This module provides the ASGI application export for deploying the Atoms MCP
+Server to Vercel or other serverless platforms. It follows the FastMCP canonical
+contract for stateless HTTP deployment.
+
+Architecture:
+    The ASGI app provides:
+    - HTTP endpoint for MCP protocol requests
+    - Root endpoint with service information
+    - Health check endpoint
+    - Error handling and recovery
+    - Graceful degradation if server creation fails
+
+Deployment:
+    For Vercel deployment:
+    1. Export the 'app' variable (ASGI application)
+    2. Vercel automatically detects and deploys it
+    3. HTTP requests are routed to the MCP server
+    4. Responses are serialized as Markdown
+
+Environment:
+    - Handles both local and Vercel serverless environments
+    - Configures Python path for module imports
+    - Supports /var/task path for Vercel Lambda runtime
+    - Graceful error handling if server creation fails
+
+Error Handling:
+    If server creation fails:
+    - Creates minimal error MCP instance
+    - Returns error information in responses
+    - Logs detailed error information
+    - Allows debugging without full deployment failure
+
+Example:
+    Deploy to Vercel:
+
+    >>> # Vercel automatically imports 'app' from this module
+    >>> # HTTP requests are routed to the MCP server
+    >>> # Responses are returned as JSON or Markdown
+
+    Local testing:
+
+    >>> from app import app
+    >>> import uvicorn
+    >>> uvicorn.run(app, host="0.0.0.0", port=8000)
+
+Note:
+    - This is the canonical ASGI export for Vercel
+    - Follows FastMCP deployment best practices
+    - Includes error recovery and graceful degradation
+    - Supports both HTTP and WebSocket protocols
+
+See Also:
+    - server.py: FastMCP server implementation
+    - https://docs.fastmcp.com/deployment/self-hosted
+    - https://vercel.com/docs/functions/serverless-functions
 """
 
 from __future__ import annotations
