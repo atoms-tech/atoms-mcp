@@ -3,30 +3,28 @@
 ⚠️  TEST WARNINGS & PERFORMANCE ISSUES
 ======================================================================
 
-🐌 SLOW (10):
+🐌 SLOW (13):
   🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
-     → Slow: 1.10s (threshold: 1.0s)
+     → Slow: 1.12s (threshold: 1.0s)
   🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
-     → Slow: 1.10s (threshold: 1.0s)
-  🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_verify_compliance
-     → Slow: 1.35s (threshold: 1.0s)
-  🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_with_auth
-     → Slow: 3.94s (threshold: 1.0s)
-  🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_multiple_standards
-     → Slow: 4.07s (threshold: 1.0s)
-  ... and 5 more
+     → Slow: 1.14s (threshold: 1.0s)
+  🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestConcurrencyPerformance::test_memory_usage
+     → Slow: 1.87s (threshold: 1.0s)
+  🟡 tests/unit/infrastructure/test_mock_clients.py::TestHttpMcpClient::test_health_check_no_connection
+     → Slow: 1.16s (threshold: 1.0s)
+  🔴 tests/unit/infrastructure/test_redis_monitoring_week1.py::TestRedisMetricsWeek1::test_rate_limit_stats
+     → Very slow: 19.75s (threshold: 5.0s)
+  ... and 8 more
 
-🔄 FLAKY (4):
+🔄 FLAKY (3):
   🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestOptimisticUpdate::test_optimistic_update_retry_on_conflict
      → Test passed after retry (potentially flaky)
   🟡 tests/unit/tools/test_advanced_features.py::TestErrorRecovery::test_operation_retry_with_backoff[unit]
      → Test passed after retry (potentially flaky)
   🟡 tests/e2e/test_resilience.py::TestErrorRecoveryResilience::test_database_connection_retry
      → Test passed after retry (potentially flaky)
-  🟡 tests/e2e/test_workflow_automation.py::TestWorkflowExecution::test_workflow_with_retry
-     → Test passed after retry (potentially flaky)
 
 ----------------------------------------------------------------------
-Total Warnings: 14
-  🔴 High: 2  🟡 Medium: 12  🟢 Low: 0
+Total Warnings: 16
+  🔴 High: 3  🟡 Medium: 13  🟢 Low: 0
 ======================================================================

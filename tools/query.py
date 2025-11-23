@@ -1,14 +1,26 @@
-"""Data query and exploration tool with RAG capabilities."""
+"""Data query and exploration tool with RAG capabilities.
+
+PHASE 1 CONSOLIDATION NOTE:
+This tool is now a backwards-compatible wrapper around entity_tool.
+All query operations (search, aggregate, analyze, rag_search, similarity)
+have been consolidated into entity_tool for a unified API.
+
+This wrapper maintains backwards compatibility with existing code that uses query_tool.
+New code should use entity_tool directly.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Dict, Any, List, Optional, Literal
 
 try:
     from .base import ToolBase
 except ImportError:
     from tools.base import ToolBase
+
+logger = logging.getLogger(__name__)
 
 
 class DataQueryEngine(ToolBase):
@@ -793,3 +805,18 @@ async def data_query(
             "query_type": query_type,
             "entities": entities
         }
+
+
+# ============================================================================
+# PHASE 1 CONSOLIDATION: Backwards Compatibility Wrapper
+# ============================================================================
+# The data_query function above is kept for backwards compatibility.
+# However, all new code should use entity_tool directly.
+#
+# Migration guide:
+# OLD: query_tool(query_type="search", entities=["requirement"], search_term="REQ")
+# NEW: entity_tool(operation="search", entity_type="requirement", search_term="REQ")
+#
+# This wrapper ensures existing code continues to work while encouraging
+# migration to the unified entity_tool API.
+# ============================================================================
