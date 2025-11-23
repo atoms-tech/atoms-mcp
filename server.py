@@ -695,32 +695,62 @@ def create_consolidated_server() -> FastMCP:
         - Auto-selects best match (70%+ similarity)
         - Returns suggestions if ambiguous
 
-        Context Auto-Injection:
+        Context Auto-Injection (Phase 3 - NEW):
         - workspace_id: Resolved from session context if not provided
-        - project_id: Resolved from session context if not provided
+        - project_id: Resolved from session context and auto-injected into filters
         - entity_type: Can be resolved from context for simplified ops
+        - All operations auto-filtered by workspace/project context
+
+        Smart Context Resolution (3-level priority):
+        1. Explicit parameter (highest priority)
+        2. Request-scoped context variable (Python contextvars)
+        3. Session storage in Supabase (persists across requests)
 
         Examples:
+        - Set context: await context_tool("set_context", context_type="workspace", context_id="ws-1")
+        - Set project: await context_tool("set_context", context_type="project", context_id="proj-1")
         - Read by name: entity_type="project", entity_id="Vehicle" (auto-resolves to UUID)
-        - Create: entity_type="project", data={"name": "My Project"} (operation inferred)
-        - Search: entity_type="requirement", search_term="security" (filters by context workspace/project)
-        - Aggregate: entity_type="project", operation="aggregate", aggregate_type="count"
-        - RAG Search: entity_type="document", operation="rag_search", content="Find security policies"
+        - Create: entity_type="project", data={"name": "My Project"} (workspace auto-injected)
+        - Search: entity_type="requirement", search_term="security" (workspace + project auto-filtered)
+        - Aggregate: entity_type="project", operation="aggregate" (project auto-filtered)
+        - RAG Search: entity_type="document", operation="rag_search", content="..." (workspace auto-filtered)
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
 
+            # Resolve context parameters if not explicitly provided (Phase 3)
+            from services.context_manager import get_context
+            context = get_context()
+            
             # Resolve workspace_id from session context if not provided
             if not workspace_id:
                 try:
-                    from services.context_manager import get_context
-                    context = get_context()
                     resolved_workspace = await context.resolve_workspace_id()
                     if resolved_workspace:
                         workspace_id = resolved_workspace
                         logger.debug(f"Using workspace from session context: {workspace_id}")
                 except Exception as e:
                     logger.debug(f"Could not resolve workspace from context: {e}")
+            
+            # Resolve project_id from session context if not provided (NEW - Phase 3)
+            project_id: Optional[str] = None
+            try:
+                project_id = context.get_project_id()
+                if project_id:
+                    logger.debug(f"Using project from session context: {project_id}")
+            except Exception as e:
+                logger.debug(f"Could not resolve project from context: {e}")
+            
+            # Resolve entity_type from context if not provided (NEW - Phase 3)
+            # This allows simplified calls when entity_type is set in context
+            if not entity_type:
+                try:
+                    resolved_entity_type = context.get_entity_type()
+                    if resolved_entity_type:
+                        entity_type = resolved_entity_type
+                        logger.debug(f"Using entity_type from session context: {entity_type}")
+                except Exception as e:
+                    logger.debug(f"Could not resolve entity_type from context: {e}")
 
             # Backward-compatible parameter consolidation
             # Map query operation aliases to canonical names
@@ -768,6 +798,12 @@ def create_consolidated_server() -> FastMCP:
             # Normalize batch_create op name to create with batch populated
             if operation == "batch_create":
                 operation = "create"
+
+            # Inject project_id context into filters if available (Phase 3)
+            if project_id:
+                filters = filters or {}
+                if "project_id" not in filters:
+                    filters["project_id"] = project_id
 
             return await entity_operation(  # type: ignore[no-any-return]
                 auth_token=auth_token,
