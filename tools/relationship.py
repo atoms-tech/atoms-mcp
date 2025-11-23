@@ -367,7 +367,8 @@ async def relationship_operation(
     soft_delete: bool = True,
     limit: Optional[int] = 100,
     offset: Optional[int] = 0,
-    format_type: str = "detailed"
+    format_type: str = "detailed",
+    workspace_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Manage relationships between entities.
     
@@ -389,6 +390,13 @@ async def relationship_operation(
     try:
         # Validate authentication
         await _relationship_manager._validate_auth(auth_token)
+        
+        # Inject workspace_id into metadata/source_context if provided
+        if workspace_id:
+            if metadata is None:
+                metadata = {}
+            if isinstance(metadata, dict) and "workspace_id" not in metadata:
+                metadata["workspace_id"] = workspace_id
         
         if operation == "link":
             if not target:

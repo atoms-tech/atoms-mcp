@@ -765,6 +765,7 @@ def create_consolidated_server() -> FastMCP:
         limit: Optional[int] = 100,
         offset: Optional[int] = 0,
         format_type: str = "detailed",
+        workspace_id: Optional[str] = None,
     ) -> dict:
         """Manage relationships between entities.
 
@@ -792,6 +793,18 @@ def create_consolidated_server() -> FastMCP:
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
+
+            # Resolve workspace_id from session context if not provided
+            if not workspace_id:
+                try:
+                    from services.context_manager import get_context
+                    context = get_context()
+                    resolved_workspace = await context.resolve_workspace_id()
+                    if resolved_workspace:
+                        workspace_id = resolved_workspace
+                except Exception as e:
+                    logger.debug(f"Could not resolve workspace from context: {e}")
+
             return await relationship_operation(  # type: ignore[no-any-return]
                 auth_token=auth_token,
                 operation=operation,
@@ -805,6 +818,7 @@ def create_consolidated_server() -> FastMCP:
                 limit=limit,
                 offset=offset,
                 format_type=format_type,
+                workspace_id=workspace_id,
             )
         except Exception as e:
             return {
