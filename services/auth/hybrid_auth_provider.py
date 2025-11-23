@@ -4,6 +4,8 @@ This provider enables the same MCP server to handle:
 1. OAuth (AuthKit) for public clients - full OAuth flow
 2. Bearer tokens for internal services (atomsAgent) - static token
 3. AuthKit JWTs for frontend token forwarding - validates AuthKit JWT from frontend/backend
+
+With comprehensive logging for debugging token verification flows.
 """
 
 from __future__ import annotations
@@ -12,6 +14,8 @@ import os
 import json
 import base64
 import logging
+import time
+import uuid
 from typing import Optional, Dict, Any
 from fastmcp.server.auth import AuthProvider
 from fastmcp.server.auth.providers.workos import AuthKitProvider
@@ -88,16 +92,23 @@ class HybridAuthProvider(AuthProvider):
         Returns:
             Claims dict if valid, None otherwise
         """
+        req_id = uuid.uuid4().hex[:8]
+        start_time = time.time()
+        
         if not self.authkit_jwt_verifier:
+            logger.debug(f"🔐[{req_id}] No AuthKit JWT verifier configured")
             return None
 
+        logger.debug(f"🔐[{req_id}] _verify_authkit_jwt() - attempting JWKS verification...")
+        
         try:
             # Use the JWT verifier if available
             result = await self.authkit_jwt_verifier.verify_token(token)
-            logger.debug("✅ AuthKit OAuth token verified with JWT verifier")
+            elapsed = time.time() - start_time
+            logger.info(f"✅[{req_id}] AuthKit OAuth token verified with JWT verifier ({elapsed:.2f}ms)")
             return result
         except Exception as e:
-            logger.debug(f"AuthKit JWT verification failed: {e}")
+            logger.debug(f"🔐[{req_id}] AuthKit JWT verifier failed: {type(e).__name__}: {str(e)[:100]}")
 
             # Fallback to manual verification if verifier fails
             if not self.authkit_jwks_uri or not self.authkit_client_id:
@@ -207,25 +218,39 @@ class HybridAuthProvider(AuthProvider):
         Returns:
             Claims dict if valid, None otherwise
         """
+        req_id = uuid.uuid4().hex[:8]
+        start_time = time.time()
+        
+        logger.debug(f"🔐[{req_id}] _verify_workos_user_management_jwt() - checking WorkOS token...")
+        
         try:
             import jwt
             from jwt import PyJWKClient
             
             # Quick format check - must be a JWT (3 parts separated by dots)
+            logger.debug(f"🔐[{req_id}] Step 1: Checking JWT format...")
             if not token or not isinstance(token, str) or len(token.split(".")) != 3:
+                logger.debug(f"❌[{req_id}] Invalid JWT format")
                 return None
+            logger.debug(f"✅[{req_id}] Valid JWT format (3 parts)")
             
             # Decode without verification first to check issuer
+            logger.debug(f"🔐[{req_id}] Step 2: Decoding token to check issuer...")
             try:
                 unverified = jwt.decode(token, options={"verify_signature": False})
             except Exception as e:
-                logger.debug(f"Failed to decode token (not a valid JWT): {e}")
+                logger.debug(f"❌[{req_id}] Failed to decode token (not a valid JWT): {e}")
                 return None
             
             issuer = unverified.get("iss", "")
+            subject = unverified.get("sub", "unknown")
+            
+            logger.debug(f"🔐[{req_id}] Token issuer: {issuer}")
+            logger.debug(f"🔐[{req_id}] Token subject (sub): {subject}")
             
             # Check if this is a WorkOS User Management token
             # Accept both user_management and api.workos.com issuers
+            logger.debug(f"🔐[{req_id}] Step 3: Checking if issuer is WorkOS User Management...")
             is_workos_token = (
                 issuer.startswith("https://api.workos.com/user_management/") or
                 issuer.startswith("https://api.workos.com/") or
@@ -234,10 +259,10 @@ class HybridAuthProvider(AuthProvider):
             )
             
             if not is_workos_token:
-                logger.debug(f"Token issuer '{issuer}' is not a WorkOS User Management token")
+                logger.debug(f"❌[{req_id}] Token issuer '{issuer}' is not a WorkOS User Management token")
                 return None
             
-            logger.info(f"✅ Detected WorkOS User Management token with issuer: {issuer}")
+            logger.info(f"✅[{req_id}] Detected WorkOS User Management token with issuer: {issuer}")
             
             # WorkOS User Management tokens use the same JWKS as AuthKit
             # For testing, we accept these tokens even if JWKS verification fails
@@ -297,11 +322,13 @@ class HybridAuthProvider(AuthProvider):
                 decoded = jwt.decode(token, options={"verify_signature": False})
             
             # Validate that we have required claims
+            logger.debug(f"🔐[{req_id}] Step 5: Validating required claims...")
             if not decoded or not decoded.get("sub"):
-                logger.warning("WorkOS User Management token missing 'sub' claim")
+                logger.warning(f"❌[{req_id}] WorkOS User Management token missing 'sub' claim")
                 return None
             
-            logger.info(f"✅ WorkOS User Management JWT verified: sub={decoded.get('sub')}, email={decoded.get('email')}")
+            elapsed = time.time() - start_time
+            logger.info(f"✅[{req_id}] WorkOS User Management JWT verified ({elapsed:.2f}ms): sub={decoded.get('sub')}, email={decoded.get('email')}")
 
             # Return dict with claims (FastMCP expects dict from verify_token)
             return {
@@ -327,55 +354,137 @@ class HybridAuthProvider(AuthProvider):
         This method is called by FastMCP's middleware when a Bearer token is present.
         It delegates to the same logic as authenticate() but takes a token string directly.
         
+        With comprehensive logging for debugging token verification flows.
+        
         Args:
             token: Bearer token string
             
         Returns:
             Authentication context dict or None
         """
-        # Force print to stdout to ensure we see this even if logging is misconfigured
-        print(f"🔐🔐🔐 HYBRID AUTH: verify_token() called with token (length: {len(token)})")
-        logger.info(f"🔐 verify_token() called with token (length: {len(token)})")
+        # Generate unique ID for this verification request for tracing
+        req_id = uuid.uuid4().hex[:8]
+        start_time = time.time()
         
-        # Quick decode to check issuer (for debugging)
+        # Always print to stdout for visibility
+        print(f"🔐[{req_id}] HYBRID AUTH verify_token() START - token length: {len(token)}")
+        logger.info(f"🔐[{req_id}] ════════════════════════════════════════════════════════")
+        logger.info(f"🔐[{req_id}] TOKEN VERIFICATION STARTED")
+        logger.info(f"🔐[{req_id}] Token length: {len(token)} bytes")
+        logger.info(f"🔐[{req_id}] Token preview: {token[:50]}...{token[-20:] if len(token) > 70 else ''}")
+        
+        # Step 1: Check token format
+        logger.info(f"🔐[{req_id}] Step 1: Checking JWT format...")
         try:
             import jwt
+            parts = token.split(".")
+            if len(parts) != 3:
+                logger.warning(f"❌[{req_id}] Invalid JWT: expected 3 parts, got {len(parts)}")
+                logger.warning(f"❌[{req_id}] Token verification FAILED")
+                return None
+            logger.info(f"✅[{req_id}] Valid JWT structure (3 parts)")
+        except Exception as e:
+            logger.warning(f"❌[{req_id}] Format check failed: {e}")
+            return None
+        
+        # Step 2: Decode without verification to inspect claims
+        logger.info(f"🔐[{req_id}] Step 2: Decoding JWT claims (without signature verification)...")
+        try:
             unverified = jwt.decode(token, options={"verify_signature": False})
             issuer = unverified.get("iss", "")
-            logger.info(f"Token issuer: {issuer}, sub: {unverified.get('sub', 'N/A')}")
+            subject = unverified.get("sub", "N/A")
+            email = unverified.get("email", "N/A")
+            aud = unverified.get("aud", "N/A")
+            
+            logger.info(f"🔐[{req_id}] JWT Claims:")
+            logger.info(f"  ├─ issuer (iss): {issuer}")
+            logger.info(f"  ├─ subject (sub): {subject}")
+            logger.info(f"  ├─ email: {email}")
+            logger.info(f"  ├─ audience (aud): {aud}")
+            
+            # Check expiry
+            exp = unverified.get("exp")
+            if exp:
+                now = time.time()
+                remaining = exp - now
+                if remaining > 0:
+                    logger.info(f"  ├─ expires at (exp): {exp} ✅ Valid for {int(remaining)}s")
+                else:
+                    logger.warning(f"  ├─ expires at (exp): {exp} ❌ EXPIRED {int(-remaining)}s ago")
+                    logger.warning(f"❌[{req_id}] Token verification FAILED - expired")
+                    return None
+            else:
+                logger.info(f"  ├─ expires at (exp): not set")
+            
+            iat = unverified.get("iat")
+            if iat:
+                logger.info(f"  └─ issued at (iat): {iat}")
+            
         except Exception as e:
-            logger.debug(f"Could not decode token for debugging: {e}")
+            logger.warning(f"❌[{req_id}] Failed to decode token claims: {e}")
+            return None
         
-        # Try internal token first (for system services)
+        # Step 3: Try internal token first (for system services)
+        logger.info(f"🔐[{req_id}] Step 3: Checking internal bearer token...")
         if self.internal_token_verifier:
             try:
                 result = await self.internal_token_verifier.verify_token(token)
-                logger.info("✅ Authenticated via internal bearer token (verify_token)")
+                elapsed = time.time() - start_time
+                logger.info(f"✅[{req_id}] Internal bearer token VERIFIED ({elapsed:.2f}ms)")
+                logger.info(f"✅[{req_id}] Token verification SUCCESS - auth method: internal_bearer")
+                logger.info(f"🔐[{req_id}] ════════════════════════════════════════════════════════")
                 return result
             except Exception as e:
-                logger.debug(f"Internal token verification failed: {e}")
-
-        # Try WorkOS User Management JWT FIRST (from authenticate_with_password)
-        logger.debug("Trying WorkOS User Management JWT verification (verify_token)...")
+                logger.debug(f"🔐[{req_id}] Internal token verification failed (expected): {type(e).__name__}")
+        else:
+            logger.debug(f"🔐[{req_id}] No internal token verifier configured")
+        
+        # Step 4: Try WorkOS User Management JWT (from authenticate_with_password)
+        logger.info(f"🔐[{req_id}] Step 4: Checking WorkOS User Management JWT...")
         workos_um_result = await self._verify_workos_user_management_jwt(token)
         if workos_um_result:
-            logger.info(f"✅ Authenticated via WorkOS User Management JWT (verify_token): {workos_um_result.get('sub')}")
+            elapsed = time.time() - start_time
+            sub = workos_um_result.get('sub', 'unknown')
+            logger.info(f"✅[{req_id}] WorkOS User Management JWT VERIFIED ({elapsed:.2f}ms)")
+            logger.info(f"✅[{req_id}] User ID: {sub}")
+            logger.info(f"✅[{req_id}] Token verification SUCCESS - auth method: workos_user_management")
+            logger.info(f"🔐[{req_id}] ════════════════════════════════════════════════════════")
             return workos_um_result
         else:
-            logger.debug("WorkOS User Management JWT verification returned None")
+            logger.debug(f"🔐[{req_id}] WorkOS User Management JWT verification returned None")
         
-        # Try AuthKit JWT (from frontend/backend OAuth flow)
+        # Step 5: Try AuthKit JWT (from frontend/backend OAuth flow)
+        logger.info(f"🔐[{req_id}] Step 5: Checking AuthKit JWT...")
         if self.authkit_jwks_uri and self.authkit_client_id:
-            logger.debug("Trying AuthKit JWT verification (verify_token)...")
             authkit_result = await self._verify_authkit_jwt(token)
             if authkit_result:
-                logger.info(f"✅ Authenticated via AuthKit JWT (verify_token): {authkit_result.get('sub')}")
+                elapsed = time.time() - start_time
+                sub = authkit_result.get('sub', 'unknown')
+                logger.info(f"✅[{req_id}] AuthKit JWT VERIFIED ({elapsed:.2f}ms)")
+                logger.info(f"✅[{req_id}] User ID: {sub}")
+                logger.info(f"✅[{req_id}] Token verification SUCCESS - auth method: authkit_oauth")
+                logger.info(f"🔐[{req_id}] ════════════════════════════════════════════════════════")
                 return authkit_result
             else:
-                logger.debug("AuthKit JWT verification returned None")
-
+                logger.debug(f"🔐[{req_id}] AuthKit JWT verification returned None")
+        else:
+            logger.debug(f"🔐[{req_id}] JWKS URI or client ID not configured, skipping AuthKit")
+        
         # All verification methods failed
-        logger.warning(f"❌ verify_token() - ALL verification methods failed for token: {token[:50]}...")
+        elapsed = time.time() - start_time
+        logger.warning(f"❌[{req_id}] ════════════════════════════════════════════════════════")
+        logger.warning(f"❌[{req_id}] Token verification FAILED - NO VALID AUTH METHOD")
+        logger.warning(f"❌[{req_id}] Issuer: {issuer}")
+        logger.warning(f"❌[{req_id}] Attempted methods:")
+        if self.internal_token_verifier:
+            logger.warning(f"  ├─ ❌ Internal bearer token")
+        logger.warning(f"  ├─ ❌ WorkOS User Management JWT")
+        if self.authkit_jwks_uri:
+            logger.warning(f"  └─ ❌ AuthKit OAuth JWT")
+        else:
+            logger.warning(f"  └─ ⊘ AuthKit OAuth JWT (not configured)")
+        logger.warning(f"❌[{req_id}] Verification took {elapsed:.2f}ms")
+        logger.warning(f"❌[{req_id}] ════════════════════════════════════════════════════════")
         return None
     
     async def authenticate(self, request) -> Optional[Dict[str, Any]]:
@@ -395,20 +504,34 @@ class HybridAuthProvider(AuthProvider):
         Returns:
             Authentication context dict or None
         """
+        req_id = uuid.uuid4().hex[:8]
+        start_time = time.time()
+        
         # Check for Bearer token
         auth_header = request.headers.get("Authorization", "")
+        print(f"🔐[{req_id}] HYBRID AUTH authenticate() - checking Authorization header")
 
         if auth_header.startswith("Bearer "):
             token = auth_header.replace("Bearer ", "").strip()
             # Force print to stdout to ensure we see this even if logging is misconfigured
-            print(f"🔐🔐🔐 HYBRID AUTH: authenticate() called with Bearer token (length: {len(token)})")
-            logger.info(f"🔐 authenticate() called with Bearer token (length: {len(token)})")
+            print(f"🔐[{req_id}] HYBRID AUTH: Bearer token detected (length: {len(token)})")
+            logger.info(f"🔐[{req_id}] authenticate() - Bearer token found, length: {len(token)}")
+            logger.info(f"🔐[{req_id}] Delegating to verify_token() for verification")
             # Delegate to verify_token for consistent logic
             return await self.verify_token(token)
 
         # No bearer token, fall back to OAuth
-        logger.debug("No bearer token, using OAuth flow")
-        return await self.oauth_provider.authenticate(request)
+        logger.info(f"🔐[{req_id}] No Bearer token found in Authorization header")
+        logger.info(f"🔐[{req_id}] Falling back to OAuth flow...")
+        print(f"🔐[{req_id}] HYBRID AUTH: No Bearer token, using OAuth flow")
+        result = await self.oauth_provider.authenticate(request)
+        elapsed = time.time() - start_time
+        if result:
+            user_id = result.get('sub') or result.get('id', 'unknown')
+            logger.info(f"✅[{req_id}] OAuth flow SUCCESS - User: {user_id} ({elapsed:.2f}ms)")
+        else:
+            logger.debug(f"🔐[{req_id}] OAuth flow returned no result ({elapsed:.2f}ms)")
+        return result
     
     async def get_authorization_url(self, request) -> str:
         """Get OAuth authorization URL (delegates to OAuth provider)."""

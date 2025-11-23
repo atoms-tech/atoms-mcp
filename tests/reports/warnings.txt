@@ -9,11 +9,11 @@
   🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
      → Slow: 1.10s (threshold: 1.0s)
   🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_verify_compliance
-     → Slow: 1.54s (threshold: 1.0s)
+     → Slow: 3.65s (threshold: 1.0s)
   🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_with_auth
-     → Slow: 3.84s (threshold: 1.0s)
+     → Slow: 4.73s (threshold: 1.0s)
   🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_multiple_standards
-     → Slow: 3.91s (threshold: 1.0s)
+     → Slow: 4.54s (threshold: 1.0s)
   ... and 4 more
 
 🔄 FLAKY (4):
