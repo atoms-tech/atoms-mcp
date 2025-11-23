@@ -312,15 +312,28 @@ def create_consolidated_server() -> FastMCP:
     # - Vercel Preview: https://mcpdev.atoms.tech
     # - Vercel Production: https://mcp.atoms.tech
 
-    # Use FastMCP's native AuthKitProvider (consolidated, simplified)
-    # WorkOS + Supabase: AuthKit JWTs work directly with Supabase RLS
-    from fastmcp.server.auth.providers.workos import AuthKitProvider
+    # Composite auth provider: Bearer tokens (internal) + OAuth (external)
+    # Single server, two auth methods using same AuthKit JWT format
+    try:
+        from .infrastructure.auth_composite import CompositeAuthProvider
+    except ImportError:
+        from infrastructure.auth_composite import CompositeAuthProvider  # type: ignore[no-redef]
     
     authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "").strip()
     authkit_client_id = os.getenv("WORKOS_CLIENT_ID", "").strip()
+    base_url = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL", "http://localhost:8000").strip()
     
-    logger.info(f"🔐 AuthKit provider with domain: {authkit_domain}")
-    auth_provider = AuthKitProvider(authkit_domain=authkit_domain, client_id=authkit_client_id)
+    logger.info(
+        f"🔐 Composite Auth Provider initialized:\n"
+        f"  - Internal clients (Bearer): frontend, backend, atoms agent\n"
+        f"  - External clients (OAuth): IDEs, integrations\n"
+        f"  - Domain: {authkit_domain}"
+    )
+    auth_provider = CompositeAuthProvider(
+        authkit_domain=authkit_domain,
+        client_id=authkit_client_id,
+        base_url=base_url
+    )
 
     # Initialize distributed rate limiter (Upstash Redis with in-memory fallback)
     try:
