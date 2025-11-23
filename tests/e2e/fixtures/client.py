@@ -3,6 +3,7 @@
 import os
 import httpx
 import pytest_asyncio
+from typing import Optional
 
 
 @pytest_asyncio.fixture(params=["integration", "e2e"])
@@ -33,6 +34,7 @@ async def end_to_end_client(e2e_auth_token):
     - Production configuration
     - Full middleware stack
     - Actual database connectivity
+    - Automatic token refresh on 401 errors
     
     The client's call_tool method makes real HTTP calls.
     
@@ -69,7 +71,7 @@ async def end_to_end_client(e2e_auth_token):
         env_name = deployment_url
 
     print(f"✅ Target environment: {env_name}")
-    print("   Using real WorkOS authentication (same keys for all environments)")
+    print("   Using real WorkOS authentication (fresh token per test)")
 
     # Create httpx client with authentication headers
     headers = {

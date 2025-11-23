@@ -297,9 +297,13 @@ def force_all_mock_mode(monkeypatch):
 # E2E AUTHENTICATION FIXTURES (from e2e/conftest.py)
 # ============================================================================
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def authkit_auth_token():
-    """Authenticate with WorkOS and get a real JWT token for E2E testing.
+    """Authenticate with WorkOS and get a fresh JWT token for each E2E test.
+
+    CRITICAL: Using function scope instead of session scope to prevent token expiry.
+    WorkOS JWT tokens have a limited lifetime (~1 hour), so obtaining a fresh token
+    for each test ensures all tests have valid authentication.
 
     All environments (local, dev, prod) use real WorkOS authentication.
     The same WorkOS keys are used for all environments (from .env).
@@ -317,7 +321,7 @@ async def authkit_auth_token():
     # Check for pre-obtained token first (fastest)
     pre_obtained_token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
     if pre_obtained_token:
-        logger_local.info("✅ Using pre-obtained token from environment")
+        logger_local.debug("✅ Using pre-obtained token from environment")
         return pre_obtained_token
 
     # Use real WorkOS authentication for all environments
@@ -335,13 +339,11 @@ async def authkit_auth_token():
     # Use WorkOS User Management password grant
     from tests.utils.workos_auth import authenticate_with_workos
 
-    logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
+    logger_local.debug(f"🔐 Authenticating with WorkOS as {email}")
     token = await authenticate_with_workos(email, password)
 
     if token:
-        logger_local.info("✅ Successfully obtained real WorkOS JWT token")
-        # Cache it in environment for this session
-        os.environ["ATOMS_TEST_AUTH_TOKEN"] = token
+        logger_local.debug("✅ Successfully obtained real WorkOS JWT token (function scope)")
         return token
     else:
         error_msg = (

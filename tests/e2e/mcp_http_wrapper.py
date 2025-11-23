@@ -93,6 +93,10 @@ class AuthenticatedMcpClient:
         
         # Send authenticated request
         try:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"📤 Calling tool: {tool_name} at {self.base_url} with token (first 20 chars: {self.auth_token[:20]}...)")
+            
             response = await self.http_client.post(
                 f"{self.base_url}",
                 json=payload,
@@ -101,6 +105,8 @@ class AuthenticatedMcpClient:
                     "Content-Type": "application/json",
                 }
             )
+            
+            logger.debug(f"📥 Response status: {response.status_code}")
             
             # Raise for HTTP errors (401, 403, 500, etc.)
             response.raise_for_status()

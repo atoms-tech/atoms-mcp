@@ -1,10 +1,11 @@
 """Composite auth provider supporting both OAuth and Bearer tokens.
 
 Implements fallback logic:
-1. Try OAuth flow (for external clients, IDEs)
-2. Fall back to Bearer token validation (for internal clients)
+1. Try Bearer token validation (for internal clients using password grant)
+2. Fall back to OAuth flow (for external clients, IDEs)
 
 Both use the same AuthKit JWT format.
+Uses FastMCP's WorkOSTokenVerifier for proper token validation via JWKS.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 from fastmcp.server.auth import AuthProvider, AccessToken
-from fastmcp.server.auth.providers.workos import AuthKitProvider
+from fastmcp.server.auth.providers.workos import AuthKitProvider, WorkOSTokenVerifier
 from starlette.requests import Request
 from starlette.routing import Route
 from starlette.responses import Response
@@ -55,6 +56,10 @@ class CompositeAuthProvider(AuthProvider):
         self.base_url = base_url
         self.required_scopes = required_scopes or ["openid", "profile", "email"]
         
+        # Create WorkOS token verifier for Bearer token validation
+        # This verifies tokens using WorkOS JWKS endpoint
+        self.token_verifier = WorkOSTokenVerifier()
+        
         # Initialize underlying OAuth provider
         init_kwargs = {
             "authkit_domain": authkit_domain,
@@ -63,20 +68,25 @@ class CompositeAuthProvider(AuthProvider):
             init_kwargs["base_url"] = base_url
         if self.required_scopes:
             init_kwargs["required_scopes"] = self.required_scopes
-        if token_verifier:
-            init_kwargs["token_verifier"] = token_verifier
+        # Use our WorkOS token verifier for proper JWT validation
+        init_kwargs["token_verifier"] = self.token_verifier
         
         self.oauth_provider = AuthKitProvider(**init_kwargs)
         
         logger.info(
             f"🔐 CompositeAuthProvider initialized:\n"
             f"  - OAuth (external clients): {authkit_domain}\n"
-            f"  - Bearer (internal clients): Extracts JWT claims\n"
+            f"  - Bearer (internal clients): WorkOS JWKS validation\n"
             f"  - Both use same AuthKit JWT format"
         )
     
     async def authenticate(self, request: Request) -> AccessToken:
         """Authenticate request using Bearer token or OAuth.
+        
+        Flow:
+        1. Try Bearer token first (internal clients using password grant)
+           - Uses WorkOS JWKS endpoint for JWT validation
+        2. Fall back to OAuth flow (external clients, IDEs)
         
         Args:
             request: The incoming request
@@ -94,10 +104,16 @@ class CompositeAuthProvider(AuthProvider):
             logger.debug(f"🔐 Bearer token found (length: {len(token)})")
             
             try:
-                # Validate via OAuth provider's token verifier
-                access_token = await self.oauth_provider.authenticate(request)
-                logger.info(f"✅ Bearer token valid for user: {access_token.claims.get('email')}")
-                return access_token
+                # Verify token using WorkOS JWKS endpoint
+                # This validates signature and expiry using WorkOS public keys
+                access_token = self.token_verifier.verify_token(token)
+                
+                if access_token:
+                    logger.info(f"✅ Bearer token validated via WorkOS JWKS for user: {access_token.claims.get('email')}")
+                    return access_token
+                else:
+                    logger.warning("Bearer token verification returned None")
+                    # Fall through to OAuth
             except Exception as e:
                 logger.warning(f"Bearer token validation failed: {e}")
                 # Fall through to OAuth

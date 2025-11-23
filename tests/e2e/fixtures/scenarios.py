@@ -23,7 +23,8 @@ async def workflow_scenarios(end_to_end_client):
         })
 
         if not org_result.get("success"):
-            raise Exception("Failed to create organization in E2E scenario")
+            error_msg = org_result.get("error", "Unknown error")
+            raise Exception(f"Failed to create organization in E2E scenario: {error_msg}")
 
         org_id = org_result["data"]["id"]
 
