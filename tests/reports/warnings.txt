@@ -1,2 +1,30 @@
 
-✅ No warnings detected
+======================================================================
+⚠️  TEST WARNINGS & PERFORMANCE ISSUES
+======================================================================
+
+🐌 SLOW (34):
+  🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
+     → Slow: 1.10s (threshold: 1.0s)
+  🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
+     → Slow: 1.10s (threshold: 1.0s)
+  🟡 tests/unit/test_batch_comprehensive_phase21.py::TestBatchPhase21Part1::test_compliance_batch
+     → Slow: 1.80s (threshold: 1.0s)
+  🟡 tests/unit/test_batch_comprehensive_phase21_part2.py::TestBatchPhase21Part2::test_compliance_standards_batch
+     → Slow: 4.28s (threshold: 1.0s)
+  🟡 tests/unit/test_batch_phase22_massive.py::TestMassiveBatchPhase22::test_compliance_comprehensive
+     → Slow: 4.84s (threshold: 1.0s)
+  ... and 29 more
+
+🔄 FLAKY (3):
+  🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestOptimisticUpdate::test_optimistic_update_retry_on_conflict
+     → Test passed after retry (potentially flaky)
+  🟡 tests/unit/tools/test_advanced_features.py::TestErrorRecovery::test_operation_retry_with_backoff[unit]
+     → Test passed after retry (potentially flaky)
+  🟡 tests/e2e/test_resilience.py::TestErrorRecoveryResilience::test_database_connection_retry
+     → Test passed after retry (potentially flaky)
+
+----------------------------------------------------------------------
+Total Warnings: 37
+  🔴 High: 4  🟡 Medium: 33  🟢 Low: 0
+======================================================================
