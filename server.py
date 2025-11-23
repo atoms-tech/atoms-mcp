@@ -805,7 +805,7 @@ def create_consolidated_server() -> FastMCP:
                 if "project_id" not in filters:
                     filters["project_id"] = project_id
 
-            return await entity_operation(  # type: ignore[no-any-return]
+            result = await entity_operation(  # type: ignore[no-any-return]
                 auth_token=auth_token,
                 operation=operation,
                 entity_type=entity_type,
@@ -827,6 +827,25 @@ def create_consolidated_server() -> FastMCP:
                 sort_list=sort_list,
                 workspace_id=workspace_id,
             )
+            
+            # Phase 4: Record operation in context for smart defaults
+            try:
+                context.record_operation(operation, entity_type, result)
+                
+                # Track pagination state if available
+                if operation in ("list", "search") and result.get("pagination"):
+                    pagination_info = result["pagination"]
+                    context.set_pagination_state(
+                        entity_type,
+                        limit=pagination_info.get("limit", 20),
+                        offset=pagination_info.get("offset", 0),
+                        total=pagination_info.get("total", 0)
+                    )
+                logger.debug(f"Recorded {operation} operation for {entity_type}")
+            except Exception as e:
+                logger.debug(f"Could not record operation: {e}")
+            
+            return result
         except Exception as e:
             return {
                 "success": False,
