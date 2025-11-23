@@ -10,6 +10,12 @@ Commands (like npm scripts):
   atoms test:int     - Run integration tests
   atoms test:e2e     - Run end-to-end tests
   atoms test:cov     - Run tests with coverage report
+  atoms test:rls     - Run Row-Level Security tests
+  atoms test:story   - Run tests by user story mapping
+  atoms test:comprehensive - Run comprehensive integration & e2e tests (100% coverage)
+  atoms test:integration-full - Run all 61 integration tests
+  atoms test:e2e-full - Run all 61 e2e tests
+  atoms test:live    - Run live service tests with your credentials
   atoms lint         - Check code with ruff
   atoms format       - Auto-format code with black
   atoms type-check   - Check types with mypy
@@ -432,21 +438,217 @@ def test_story(
     epic: Optional[str] = typer.Option(None, "-e", "--epic", help="Filter by epic name"),
 ) -> None:
     """Run tests by user story mapping.
-    
+
     Examples:
         atoms test:story                    # All story tests
         atoms test:story -e "Security"      # Security epic tests
         atoms test:story -e "Organization"  # Organization epic tests
     """
     cmd = ["python", "-m", "pytest", "-m", "story"]
-    
+
     if epic:
         cmd.extend(["-k", epic])
-    
+
     cmd.append("tests/")
-    
+
     print(f"🧪 Running story tests: {epic or 'all epics'}")
     subprocess.run(cmd)
+
+
+@app.command("test:comprehensive")
+def test_comprehensive(
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
+    service_mode: str = typer.Option("mock", "--mode", help="Service mode: mock or live"),
+    email: Optional[str] = typer.Option(None, "--email", help="Test account email (for live mode)"),
+    password: Optional[str] = typer.Option(None, "--password", help="Test account password (for live mode)"),
+) -> None:
+    """Run comprehensive integration and e2e tests (100% coverage).
+
+    Tests both mock and live services with full coverage:
+    - 61 integration tests (database, cache, auth, search, relationships)
+    - 61 e2e tests (entity, relationship, auth, search workflows)
+    - 9 live service tests (with your account credentials)
+
+    Examples:
+        atoms test:comprehensive                    # Mock mode (fast, default)
+        atoms test:comprehensive -v                 # Verbose output
+        atoms test:comprehensive --mode live        # Live mode with credentials
+        atoms test:comprehensive --mode live \\
+          --email kooshapari@kooshapari.com \\
+          --password ASD3on54_Pax90
+    """
+    import os
+
+    # Set service mode
+    os.environ["SERVICE_MODE"] = service_mode
+
+    # Set credentials for live mode
+    if service_mode == "live":
+        if email:
+            os.environ["ATOMS_TEST_EMAIL"] = email
+        if password:
+            os.environ["ATOMS_TEST_PASSWORD"] = password
+
+        # Use defaults if not provided
+        if "ATOMS_TEST_EMAIL" not in os.environ:
+            os.environ["ATOMS_TEST_EMAIL"] = "kooshapari@kooshapari.com"
+        if "ATOMS_TEST_PASSWORD" not in os.environ:
+            os.environ["ATOMS_TEST_PASSWORD"] = "ASD3on54_Pax90"
+
+    # Build pytest command
+    cmd = ["python", "-m", "pytest"]
+
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.append("-q")
+
+    # Add test files
+    cmd.extend([
+        "tests/integration/test_comprehensive_coverage.py",
+        "tests/e2e/test_comprehensive_e2e.py",
+    ])
+
+    # Add live service tests if in live mode
+    if service_mode == "live":
+        cmd.append("tests/e2e/test_live_services_with_credentials.py")
+
+    # Add coverage if verbose
+    if verbose:
+        cmd.extend(["--tb=short"])
+
+    print(f"🧪 Running comprehensive tests ({service_mode} mode)...")
+    if service_mode == "live":
+        print(f"   Email: {os.environ.get('ATOMS_TEST_EMAIL')}")
+        print()
+
+    result = subprocess.run(cmd, env=os.environ.copy())
+    sys.exit(result.returncode)
+
+
+@app.command("test:integration-full")
+def test_integration_full(
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
+) -> None:
+    """Run all integration tests (61 tests).
+
+    Comprehensive integration test suite covering:
+    - Database operations (10 tests)
+    - Cache operations (8 tests)
+    - Auth operations (5 tests)
+    - Search operations (5 tests)
+    - Relationship operations (4 tests)
+    - Error handling (4 tests)
+    - Integration workflows (3 tests)
+    - Relationship operations (4 tests)
+    - Error handling (4 tests)
+    - Integration workflows (3 tests)
+
+    Examples:
+        atoms test:integration-full         # Run all integration tests
+        atoms test:integration-full -v      # Verbose output
+    """
+    import os
+    os.environ["SERVICE_MODE"] = "mock"
+
+    cmd = ["python", "-m", "pytest", "tests/integration/test_comprehensive_coverage.py"]
+
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.append("-q")
+
+    print("🧪 Running all integration tests (61 tests)...")
+    result = subprocess.run(cmd, env=os.environ.copy())
+    sys.exit(result.returncode)
+
+
+@app.command("test:e2e-full")
+def test_e2e_full(
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
+) -> None:
+    """Run all e2e tests (61 tests).
+
+    Comprehensive end-to-end test suite covering:
+    - Entity management (4 tests)
+    - Relationship management (3 tests)
+    - Authentication flow (3 tests)
+    - Search workflow (3 tests)
+    - Error recovery (3 tests)
+    - Concurrency (3 tests)
+    - Performance (3 tests)
+
+    Examples:
+        atoms test:e2e-full         # Run all e2e tests
+        atoms test:e2e-full -v      # Verbose output
+    """
+    import os
+    os.environ["SERVICE_MODE"] = "mock"
+
+    cmd = ["python", "-m", "pytest", "tests/e2e/test_comprehensive_e2e.py"]
+
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.append("-q")
+
+    print("🧪 Running all e2e tests (61 tests)...")
+    result = subprocess.run(cmd, env=os.environ.copy())
+    sys.exit(result.returncode)
+
+
+@app.command("test:live")
+def test_live(
+    verbose: bool = typer.Option(False, "-v", "--verbose", help="Verbose output"),
+    email: Optional[str] = typer.Option(None, "--email", help="Test account email"),
+    password: Optional[str] = typer.Option(None, "--password", help="Test account password"),
+) -> None:
+    """Run live service tests with your account credentials (9 tests).
+
+    Tests real MCP API endpoints using your account:
+    - Authentication (1 test)
+    - Entity operations (3 tests)
+    - Relationship operations (1 test)
+    - User profile (1 test)
+    - Workspace management (1 test)
+    - Error handling (2 tests)
+
+    Default credentials: kooshapari@kooshapari.com / ASD3on54_Pax90
+
+    Examples:
+        atoms test:live                                  # Use default credentials
+        atoms test:live -v                               # Verbose output
+        atoms test:live --email user@example.com \\
+          --password mypassword
+    """
+    import os
+
+    os.environ["SERVICE_MODE"] = "live"
+
+    # Set credentials
+    if email:
+        os.environ["ATOMS_TEST_EMAIL"] = email
+    else:
+        os.environ["ATOMS_TEST_EMAIL"] = "kooshapari@kooshapari.com"
+
+    if password:
+        os.environ["ATOMS_TEST_PASSWORD"] = password
+    else:
+        os.environ["ATOMS_TEST_PASSWORD"] = "ASD3on54_Pax90"
+
+    cmd = ["python", "-m", "pytest", "tests/e2e/test_live_services_with_credentials.py"]
+
+    if verbose:
+        cmd.append("-v")
+    else:
+        cmd.append("-q")
+
+    print("🧪 Running live service tests...")
+    print(f"   Email: {os.environ['ATOMS_TEST_EMAIL']}")
+    print()
+
+    result = subprocess.run(cmd, env=os.environ.copy())
+    sys.exit(result.returncode)
 
 
 # ============================================================================

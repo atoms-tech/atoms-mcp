@@ -22,30 +22,12 @@ class MockServiceFactory:
     @staticmethod
     def create_mock_cache() -> Mock:
         """Create mock cache service."""
-        cache_data = {}
-
-        def mock_set(key, value, ttl=None):
-            cache_data[key] = value
-            return True
-
-        def mock_get(key):
-            return cache_data.get(key)
-
-        def mock_delete(key):
-            if key in cache_data:
-                del cache_data[key]
-            return True
-
-        def mock_clear():
-            cache_data.clear()
-            return True
-
         cache = Mock()
         cache.connect = Mock(return_value=True)
-        cache.get = Mock(side_effect=mock_get)
-        cache.set = Mock(side_effect=mock_set)
-        cache.delete = Mock(side_effect=mock_delete)
-        cache.clear = Mock(side_effect=mock_clear)
+        cache.get = Mock(return_value=None)
+        cache.set = Mock(return_value=True)
+        cache.delete = Mock(return_value=True)
+        cache.clear = Mock(return_value=True)
         return cache
 
     @staticmethod

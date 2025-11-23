@@ -60,14 +60,40 @@ class TestProductionHardeningPhase5:
         validation = hardening.validate_reliability()
 
         assert len(validation["metrics"]) > 0
-        assert all(m["score"] > 0 for m in validation["metrics"])
+        assert all(m["score"] == 100.0 for m in validation["metrics"])
+
+    def test_reliability_all_metrics_100_percent(self, hardening):
+        """Test all reliability metrics are 100%."""
+        validation = hardening.validate_reliability()
+
+        expected_metrics = [
+            "error_handling",
+            "retry_logic",
+            "timeout_handling",
+            "circuit_breaker",
+            "graceful_degradation",
+            "health_check_monitoring",
+            "dependency_resilience",
+            "data_consistency",
+            "observability"
+        ]
+
+        metric_names = [m["name"] for m in validation["metrics"]]
+
+        for expected in expected_metrics:
+            assert expected in metric_names
+
+        for metric in validation["metrics"]:
+            assert metric["score"] == 100.0
+            assert "details" in metric
+            assert len(metric["details"]) > 0
 
     def test_reliability_overall_score(self, hardening):
         """Test reliability overall score."""
         validation = hardening.validate_reliability()
 
-        assert validation["overall_score"] > 80.0
-        assert validation["overall_score"] <= 100.0
+        assert validation["overall_score"] == 100.0
+        assert all(m["score"] == 100.0 for m in validation["metrics"])
 
     # ========== Health Check Tests ==========
 
