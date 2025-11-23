@@ -223,6 +223,85 @@ class SessionManager:
             logger.error(f"Failed to extend session {session_id}: {e}")
             return False
 
+    async def set_workspace_context(
+        self,
+        session_id: str,
+        workspace_id: str,
+    ) -> bool:
+        """Set the current workspace context for a session.
+
+        This allows agents/clients to set workspace context once and have it
+        automatically applied to all subsequent operations that need it.
+
+        Args:
+            session_id: Session identifier
+            workspace_id: Workspace ID to set as current
+
+        Returns:
+            True if updated successfully, False otherwise
+        """
+        try:
+            session = await self.get_session(session_id)
+            if not session:
+                logger.warning(f"Session {session_id} not found")
+                return False
+
+            # Update mcp_state with current_workspace_id
+            mcp_state = session.get("mcp_state", {}) or {}
+            mcp_state["current_workspace_id"] = workspace_id
+
+            return await self.update_session(session_id, mcp_state=mcp_state)
+
+        except Exception as e:
+            logger.error(f"Failed to set workspace context: {e}")
+            return False
+
+    async def get_workspace_context(self, session_id: str) -> Optional[str]:
+        """Get the current workspace context for a session.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            Current workspace_id or None if not set
+        """
+        try:
+            session = await self.get_session(session_id)
+            if not session:
+                return None
+
+            mcp_state = session.get("mcp_state", {}) or {}
+            return mcp_state.get("current_workspace_id")
+
+        except Exception as e:
+            logger.error(f"Failed to get workspace context: {e}")
+            return None
+
+    async def clear_workspace_context(self, session_id: str) -> bool:
+        """Clear the workspace context for a session.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            True if updated successfully, False otherwise
+        """
+        try:
+            session = await self.get_session(session_id)
+            if not session:
+                logger.warning(f"Session {session_id} not found")
+                return False
+
+            # Remove current_workspace_id from mcp_state
+            mcp_state = session.get("mcp_state", {}) or {}
+            mcp_state.pop("current_workspace_id", None)
+
+            return await self.update_session(session_id, mcp_state=mcp_state)
+
+        except Exception as e:
+            logger.error(f"Failed to clear workspace context: {e}")
+            return False
+
 
 def create_session_manager(access_token: Optional[str] = None) -> SessionManager:
     """Factory function to create a SessionManager with Supabase client.

@@ -469,3 +469,136 @@ class TestAdvancedFeaturesAdapter:
                 user_id="user-1",
                 permission_level="view"
             )
+
+    # =====================================================
+    # PHASE 9 ADDITIONAL TESTS
+    # =====================================================
+
+    @pytest.mark.asyncio
+    async def test_index_entity_updates_existing(self, adapter, mock_db):
+        """Test indexing updates existing entity index."""
+        mock_db.get_single = AsyncMock(return_value={"id": "idx-1"})
+        mock_db.update = AsyncMock(return_value={"id": "idx-1", "updated": True})
+
+        result = await adapter.index_entity(
+            entity_type="requirement",
+            entity_id="ent-1",
+            workspace_id="ws-1",
+            title="Updated Title",
+            content="Updated content"
+        )
+
+        assert result is not None
+        mock_db.get_single.assert_called_once()
+        mock_db.update.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_search_entities_empty_results(self, adapter, mock_db):
+        """Test search with empty results."""
+        mock_db.query = AsyncMock(return_value=[])
+
+        result = await adapter.advanced_search(
+            workspace_id="ws-1",
+            entity_type="requirement",
+            search_term="nonexistent"
+        )
+
+        assert result is not None
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_search_entities_multiple_results(self, adapter, mock_db):
+        """Test search with multiple results."""
+        mock_db.query = AsyncMock(return_value=[
+            {"id": "ent-1", "title": "Result 1"},
+            {"id": "ent-2", "title": "Result 2"},
+            {"id": "ent-3", "title": "Result 3"}
+        ])
+
+        result = await adapter.advanced_search(
+            workspace_id="ws-1",
+            entity_type="requirement",
+            search_term="test"
+        )
+
+        assert result is not None
+        assert len(result) == 3
+
+    @pytest.mark.asyncio
+    async def test_export_entities_csv_format(self, adapter, mock_db):
+        """Test exporting entities in CSV format."""
+        mock_db.query = AsyncMock(return_value=[
+            {"id": "ent-1", "name": "Entity 1"},
+            {"id": "ent-2", "name": "Entity 2"}
+        ])
+
+        result = await adapter.export_entities(
+            workspace_id="ws-1",
+            entity_type="requirement",
+            format="csv"
+        )
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_export_entities_xml_format(self, adapter, mock_db):
+        """Test exporting entities in XML format."""
+        mock_db.query = AsyncMock(return_value=[
+            {"id": "ent-1", "name": "Entity 1"}
+        ])
+
+        result = await adapter.export_entities(
+            workspace_id="ws-1",
+            entity_type="requirement",
+            format="xml"
+        )
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_import_entities_csv_format(self, adapter, mock_db):
+        """Test importing entities from CSV format."""
+        mock_db.insert = AsyncMock(return_value={"id": "ent-1"})
+
+        result = await adapter.import_entities(
+            workspace_id="ws-1",
+            entity_type="requirement",
+            data=[{"name": "Imported 1"}, {"name": "Imported 2"}],
+            format="csv"
+        )
+
+        assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_revoke_permission_success(self, adapter, mock_db):
+        """Test revoking permission successfully."""
+        mock_db.delete = AsyncMock(return_value=True)
+
+        result = await adapter.revoke_permission(
+            entity_type="requirement",
+            entity_id="ent-1",
+            workspace_id="ws-1",
+            user_id="user-1",
+            permission_level="view"
+        )
+
+        assert result is not None
+        mock_db.delete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_permissions_multiple_users(self, adapter, mock_db):
+        """Test getting permissions for multiple users."""
+        mock_db.query = AsyncMock(return_value=[
+            {"user_id": "user-1", "permission_level": "view"},
+            {"user_id": "user-2", "permission_level": "edit"},
+            {"user_id": "user-3", "permission_level": "admin"}
+        ])
+
+        result = await adapter.get_permissions(
+            entity_type="requirement",
+            entity_id="ent-1",
+            workspace_id="ws-1"
+        )
+
+        assert result is not None
+        assert len(result) == 3

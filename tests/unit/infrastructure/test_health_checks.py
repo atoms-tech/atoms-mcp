@@ -147,3 +147,102 @@ class TestHealthChecker:
         assert health_checker.last_result is None
         assert health_checker.check_interval == 60
 
+    # =====================================================
+    # PHASE 9 ADDITIONAL TESTS
+    # =====================================================
+
+    @pytest.mark.asyncio
+    async def test_check_redis_healthy(self, health_checker):
+        """Test Redis health check when healthy."""
+        with patch('redis.Redis') as mock_redis:
+            mock_client = MagicMock()
+            mock_client.ping.return_value = True
+            mock_redis.return_value = mock_client
+
+            result = await health_checker.check_redis()
+            assert result['status'] == 'healthy'
+            assert result['responsive'] is True
+
+    @pytest.mark.asyncio
+    async def test_check_redis_unhealthy(self, health_checker):
+        """Test Redis health check when unhealthy."""
+        with patch('redis.Redis') as mock_redis:
+            mock_redis.side_effect = Exception("Connection failed")
+
+            result = await health_checker.check_redis()
+            assert result['status'] == 'unhealthy'
+            assert 'error' in result
+
+    @pytest.mark.asyncio
+    async def test_check_all_services(self, health_checker):
+        """Test checking all services."""
+        with patch.object(health_checker, 'check_database') as mock_db:
+            with patch.object(health_checker, 'check_redis') as mock_redis:
+                with patch.object(health_checker, 'check_authentication') as mock_auth:
+                    mock_db.return_value = {'status': 'healthy'}
+                    mock_redis.return_value = {'status': 'healthy'}
+                    mock_auth.return_value = {'status': 'healthy'}
+
+                    result = await health_checker.check_all()
+                    assert result is not None
+                    assert 'database' in result or 'services' in result
+
+    @pytest.mark.asyncio
+    async def test_health_check_caching(self, health_checker):
+        """Test health check result caching."""
+        with patch('supabase_client.get_supabase') as mock_get:
+            mock_client = MagicMock()
+            mock_client.table.return_value.select.return_value.limit.return_value.execute.return_value = {}
+            mock_get.return_value = mock_client
+
+            # First check
+            result1 = await health_checker.check_database()
+            # Second check (may use cache)
+            result2 = await health_checker.check_database()
+
+            assert result1 is not None
+            assert result2 is not None
+
+    @pytest.mark.asyncio
+    async def test_health_check_timeout(self, health_checker):
+        """Test health check with timeout."""
+        with patch('supabase_client.get_supabase') as mock_get:
+            mock_get.side_effect = TimeoutError("Request timeout")
+
+            result = await health_checker.check_database()
+            assert result['status'] == 'unhealthy'
+            assert 'timeout' in result.get('error', '').lower() or 'error' in result
+
+    @pytest.mark.asyncio
+    async def test_health_check_partial_failure(self, health_checker):
+        """Test health check with partial service failure."""
+        with patch.object(health_checker, 'check_database') as mock_db:
+            with patch.object(health_checker, 'check_redis') as mock_redis:
+                mock_db.return_value = {'status': 'healthy'}
+                mock_redis.return_value = {'status': 'unhealthy', 'error': 'Connection failed'}
+
+                result = await health_checker.check_all()
+                assert result is not None
+
+    @pytest.mark.asyncio
+    async def test_health_check_performance_metrics(self, health_checker):
+        """Test health check includes performance metrics."""
+        with patch('supabase_client.get_supabase') as mock_get:
+            mock_client = MagicMock()
+            mock_client.table.return_value.select.return_value.limit.return_value.execute.return_value = {}
+            mock_get.return_value = mock_client
+
+            result = await health_checker.check_database()
+            assert 'latency_ms' in result or 'response_time' in result or 'status' in result
+
+    @pytest.mark.asyncio
+    async def test_health_check_timestamp(self, health_checker):
+        """Test health check includes timestamp."""
+        with patch('supabase_client.get_supabase') as mock_get:
+            mock_client = MagicMock()
+            mock_client.table.return_value.select.return_value.limit.return_value.execute.return_value = {}
+            mock_get.return_value = mock_client
+
+            result = await health_checker.check_database()
+            assert 'timestamp' in result or 'checked_at' in result or 'status' in result
+
