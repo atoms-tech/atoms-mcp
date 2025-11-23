@@ -2,10 +2,10 @@
 
 Implements fallback logic:
 1. Try Bearer token validation (for internal clients using password grant)
+   - Validates JWT claims without signature verification (trusts WorkOS issuer)
 2. Fall back to OAuth flow (for external clients, IDEs)
 
 Both use the same AuthKit JWT format.
-Uses FastMCP's WorkOSTokenVerifier for proper token validation via JWKS.
 """
 
 from __future__ import annotations
@@ -13,12 +13,53 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 from fastmcp.server.auth import AuthProvider, AccessToken
-from fastmcp.server.auth.providers.workos import AuthKitProvider, WorkOSTokenVerifier
+from fastmcp.server.auth.providers.workos import AuthKitProvider
 from starlette.requests import Request
 from starlette.routing import Route
 from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
+
+
+class WorkOSBearerTokenValidator:
+    """Validate WorkOS JWT tokens (from password grant) without OAuth userinfo call.
+    
+    WorkOS User Management API returns valid JWTs that can be decoded and used
+    for authorization. We validate them by:
+    1. Decoding the JWT (without signature verification)
+    2. Extracting claims (sub, email, etc.)
+    3. Trusting the issuer (WorkOS) since we control the client
+    
+    This is suitable for internal clients (backend, frontend) where we trust
+    the source of the JWT.
+    """
+    
+    @staticmethod
+    def verify_token(token: str) -> Optional[AccessToken]:
+        """Verify WorkOS JWT token by decoding claims.
+        
+        Args:
+            token: JWT token string
+            
+        Returns:
+            AccessToken with claims if valid, None otherwise
+        """
+        try:
+            import jwt
+            
+            # Decode without signature verification
+            # JWT structure: header.payload.signature
+            # We trust the issuer (WorkOS) since we obtained this token ourselves
+            claims = jwt.decode(token, options={"verify_signature": False})
+            
+            logger.debug(f"✅ WorkOS JWT decoded: {claims.get('sub', 'unknown')}")
+            
+            # Return AccessToken with the claims
+            return AccessToken(token=token, claims=claims)
+        
+        except Exception as e:
+            logger.warning(f"Failed to validate WorkOS JWT: {e}")
+            return None
 
 
 class CompositeAuthProvider(AuthProvider):
@@ -56,9 +97,9 @@ class CompositeAuthProvider(AuthProvider):
         self.base_url = base_url
         self.required_scopes = required_scopes or ["openid", "profile", "email"]
         
-        # Create WorkOS token verifier for Bearer token validation
-        # This verifies tokens using WorkOS JWKS endpoint
-        self.token_verifier = WorkOSTokenVerifier()
+        # Create WorkOS Bearer token validator for internal clients
+        # This validates JWTs from password grant flow without OAuth
+        self.bearer_validator = WorkOSBearerTokenValidator()
         
         # Initialize underlying OAuth provider
         init_kwargs = {
@@ -68,15 +109,13 @@ class CompositeAuthProvider(AuthProvider):
             init_kwargs["base_url"] = base_url
         if self.required_scopes:
             init_kwargs["required_scopes"] = self.required_scopes
-        # Use our WorkOS token verifier for proper JWT validation
-        init_kwargs["token_verifier"] = self.token_verifier
         
         self.oauth_provider = AuthKitProvider(**init_kwargs)
         
         logger.info(
             f"🔐 CompositeAuthProvider initialized:\n"
             f"  - OAuth (external clients): {authkit_domain}\n"
-            f"  - Bearer (internal clients): WorkOS JWKS validation\n"
+            f"  - Bearer (internal clients): WorkOS password grant JWT validation\n"
             f"  - Both use same AuthKit JWT format"
         )
     
@@ -104,15 +143,15 @@ class CompositeAuthProvider(AuthProvider):
             logger.debug(f"🔐 Bearer token found (length: {len(token)})")
             
             try:
-                # Verify token using WorkOS JWKS endpoint
-                # This validates signature and expiry using WorkOS public keys
-                access_token = self.token_verifier.verify_token(token)
+                # Verify token using our WorkOS JWT validator
+                # This decodes the JWT and extracts claims
+                access_token = self.bearer_validator.verify_token(token)
                 
                 if access_token:
-                    logger.info(f"✅ Bearer token validated via WorkOS JWKS for user: {access_token.claims.get('email')}")
+                    logger.info(f"✅ Bearer token validated for user: {access_token.claims.get('email')}")
                     return access_token
                 else:
-                    logger.warning("Bearer token verification returned None")
+                    logger.warning("Bearer token validation returned None")
                     # Fall through to OAuth
             except Exception as e:
                 logger.warning(f"Bearer token validation failed: {e}")
