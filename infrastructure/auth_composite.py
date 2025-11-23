@@ -6,14 +6,17 @@ Implements fallback logic:
 2. Fall back to OAuth flow (for external clients, IDEs)
 
 Both use the same AuthKit JWT format.
+Uses custom token verifier for Bearer token validation at HTTP layer.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Optional
 from fastmcp.server.auth import AuthProvider, AccessToken
 from fastmcp.server.auth.providers.workos import AuthKitProvider
+from mcp.server.auth.middleware.bearer_auth import TokenVerifier, AuthInfo
 from starlette.requests import Request
 from starlette.routing import Route
 from starlette.responses import Response
@@ -21,28 +24,32 @@ from starlette.responses import Response
 logger = logging.getLogger(__name__)
 
 
-class WorkOSBearerTokenValidator:
-    """Validate WorkOS JWT tokens (from password grant) without OAuth userinfo call.
+class WorkOSBearerTokenVerifier(TokenVerifier):
+    """Verify WorkOS JWT tokens (from password grant) for HTTP Bearer auth.
     
-    WorkOS User Management API returns valid JWTs that can be decoded and used
-    for authorization. We validate them by:
-    1. Decoding the JWT (without signature verification)
-    2. Extracting claims (sub, email, etc.)
-    3. Trusting the issuer (WorkOS) since we control the client
+    Implements MCP's TokenVerifier interface for use with BearerAuthBackend.
+    This validates WorkOS User Management API tokens without requiring JWKS verification.
+    
+    Strategy:
+    1. Decode JWT without signature verification
+    2. Extract claims (sub, email, exp, iat, etc.)
+    3. Check token expiry if exp claim present
+    4. Return AuthInfo with user scopes
     
     This is suitable for internal clients (backend, frontend) where we trust
-    the source of the JWT.
+    the source of the JWT (we obtain tokens via password grant).
     """
     
-    @staticmethod
-    def verify_token(token: str) -> Optional[AccessToken]:
+    async def verify_token(self, token: str) -> Optional[AuthInfo]:
         """Verify WorkOS JWT token by decoding claims.
+        
+        Implements MCP TokenVerifier interface for HTTP Bearer auth validation.
         
         Args:
             token: JWT token string
             
         Returns:
-            AccessToken with claims if valid, None otherwise
+            AuthInfo with user info if valid, None if verification fails
         """
         try:
             import jwt
@@ -52,13 +59,35 @@ class WorkOSBearerTokenValidator:
             # We trust the issuer (WorkOS) since we obtained this token ourselves
             claims = jwt.decode(token, options={"verify_signature": False})
             
-            logger.debug(f"✅ WorkOS JWT decoded: {claims.get('sub', 'unknown')}")
+            logger.debug(f"✅ WorkOS JWT verified for user: {claims.get('sub', 'unknown')}")
             
-            # Return AccessToken with the claims
-            return AccessToken(token=token, claims=claims)
+            # Check token expiry if exp claim is present
+            if "exp" in claims:
+                current_time = int(time.time())
+                if claims["exp"] < current_time:
+                    logger.warning(f"Token expired at {claims['exp']}, current time {current_time}")
+                    return None
+            
+            # Extract user identifier (WorkOS uses 'sub' claim)
+            user_id = claims.get("sub") or claims.get("user_id") or claims.get("id")
+            if not user_id:
+                logger.warning(f"No user identifier in token claims: {list(claims.keys())}")
+                return None
+            
+            # Return AuthInfo with claims as scopes (MCP expects a list of strings)
+            # Use standard OAuth scopes if available
+            scopes = claims.get("scopes", [])
+            if not scopes and "scope" in claims:
+                scopes = claims["scope"].split(" ")
+            
+            return AuthInfo(
+                subject=user_id,
+                scopes=scopes,
+                expires_at=claims.get("exp"),
+            )
         
         except Exception as e:
-            logger.warning(f"Failed to validate WorkOS JWT: {e}")
+            logger.warning(f"Failed to verify WorkOS JWT: {e}")
             return None
 
 
@@ -97,11 +126,13 @@ class CompositeAuthProvider(AuthProvider):
         self.base_url = base_url
         self.required_scopes = required_scopes or ["openid", "profile", "email"]
         
-        # Create WorkOS Bearer token validator for internal clients
-        # This validates JWTs from password grant flow without OAuth
-        self.bearer_validator = WorkOSBearerTokenValidator()
+        # Create WorkOS Bearer token verifier for HTTP transport layer (MCP's BearerAuthBackend)
+        # This verifier is used by MCP's HTTP transport to validate Bearer tokens
+        # before the authenticate() method is called
+        self.bearer_token_verifier = WorkOSBearerTokenVerifier()
         
-        # Initialize underlying OAuth provider
+        # Initialize underlying OAuth provider WITH the token verifier
+        # This ensures both HTTP transport and OAuth use the same token validation
         init_kwargs = {
             "authkit_domain": authkit_domain,
         }
@@ -110,12 +141,17 @@ class CompositeAuthProvider(AuthProvider):
         if self.required_scopes:
             init_kwargs["required_scopes"] = self.required_scopes
         
+        # CRITICAL: Pass our token verifier to AuthKitProvider
+        # This is used by MCP's BearerAuthBackend at the HTTP transport level
+        init_kwargs["token_verifier"] = self.bearer_token_verifier
+        
         self.oauth_provider = AuthKitProvider(**init_kwargs)
         
         logger.info(
             f"🔐 CompositeAuthProvider initialized:\n"
             f"  - OAuth (external clients): {authkit_domain}\n"
-            f"  - Bearer (internal clients): WorkOS password grant JWT validation\n"
+            f"  - Bearer (internal clients): WorkOS JWT verification via token_verifier\n"
+            f"  - HTTP transport: Validated by MCP's BearerAuthBackend\n"
             f"  - Both use same AuthKit JWT format"
         )
     
@@ -143,18 +179,18 @@ class CompositeAuthProvider(AuthProvider):
             logger.debug(f"🔐 Bearer token found (length: {len(token)})")
             
             try:
-                # Verify token using our WorkOS JWT validator
-                # This decodes the JWT and extracts claims
-                access_token = self.bearer_validator.verify_token(token)
+                # Decode JWT to get claims for authenticate() method
+                # (Note: HTTP layer validation happens via token_verifier in BearerAuthBackend)
+                import jwt
+                claims = jwt.decode(token, options={"verify_signature": False})
                 
-                if access_token:
-                    logger.info(f"✅ Bearer token validated for user: {access_token.claims.get('email')}")
-                    return access_token
-                else:
-                    logger.warning("Bearer token validation returned None")
-                    # Fall through to OAuth
+                # Create AccessToken with the claims
+                access_token = AccessToken(token=token, claims=claims)
+                logger.info(f"✅ Bearer token decoded for user: {claims.get('email')}")
+                return access_token
+                
             except Exception as e:
-                logger.warning(f"Bearer token validation failed: {e}")
+                logger.warning(f"Bearer token decode failed: {e}")
                 # Fall through to OAuth
         
         # 2. Fall back to OAuth flow (external clients)
