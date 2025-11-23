@@ -29,7 +29,11 @@ def create_test_jwt(
     """
     if scopes is None:
         # Default scopes that MCP server expects
+        # CRITICAL: Must include 'openid' - server validates this scope
         scopes = [
+            "openid",  # REQUIRED by server auth middleware
+            "profile",
+            "email",
             "entity:read",
             "entity:write",
             "relationship:read",
@@ -72,8 +76,11 @@ def create_admin_jwt(
     Returns:
         Admin JWT token
     """
-    # Admin has all scopes
+    # Admin has all scopes (must include openid for server validation)
     all_scopes = [
+        "openid",  # REQUIRED
+        "profile",
+        "email",
         "entity:read",
         "entity:write",
         "entity:delete",
