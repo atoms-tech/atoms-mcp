@@ -307,12 +307,11 @@ async def authkit_auth_token():
 
     Strategy (in order):
     1. Check environment (ATOMS_TEST_AUTH_TOKEN) - pre-obtained token
-    2. Generate test JWT with proper scopes (easiest, works offline)
-    3. Use WorkOS User Management auth (requires WorkOS credentials)
-    4. Skip tests if no auth available
+    2. Use WorkOS User Management auth (REQUIRED for cloud/local/dev)
+    3. Skip tests if no auth available
 
     Returns:
-        Valid JWT token for authenticated API calls
+        Valid JWT token for authenticated API calls from real WorkOS
 
     Raises:
         pytest.skip: If no token can be obtained (tests will be skipped)
@@ -327,20 +326,9 @@ async def authkit_auth_token():
         logger_local.info("✅ Using pre-obtained token from environment")
         return pre_obtained_token
 
-    # Strategy 2: Generate test JWT with proper scopes (works offline, no WorkOS needed)
-    # This is best for local testing when WorkOS tokens have insufficient scopes
-    try:
-        from tests.utils.test_jwt_generator import create_test_jwt
-        
-        logger_local.info("🔐 Generating test JWT with proper scopes for local testing")
-        token = create_test_jwt()
-        logger_local.info("✅ Generated test JWT (local testing mode)")
-        return token
-    except Exception as e:
-        logger_local.debug(f"⚠️  Could not generate test JWT: {e}")
-        # Fall through to strategy 3
-
-    # Strategy 3: Use WorkOS User Management for real authentication
+    # Strategy 2: Use WorkOS User Management for REAL authentication
+    # This works for cloud, dev, and local environments
+    # All environments use the same WorkOS keys from .env
     from tests.utils.token_manager import get_fresh_token
 
     email = os.getenv("WORKOS_TEST_EMAIL")
@@ -348,22 +336,34 @@ async def authkit_auth_token():
 
     if email and password:
         logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
+        logger_local.info("   (cloud/dev/local all use same WorkOS credentials)")
         token = await get_fresh_token(email, password)
         if token:
             logger_local.info("✅ Successfully obtained real WorkOS JWT token")
+            logger_local.info("   Token has proper scopes for all MCP operations")
             return token
+        else:
+            logger_local.error("❌ WorkOS authentication returned None")
 
     # No authentication available
     error_msg = (
-        "❌ No authentication token available.\n"
-        "Options:\n"
-        "  1. Set ATOMS_TEST_AUTH_TOKEN env var\n"
-        "  2. Tests will try to generate test JWT (default)\n"
-        "  3. Set WORKOS_TEST_EMAIL and WORKOS_TEST_PASSWORD for real auth"
+        "❌ E2E tests require real WorkOS authentication.\n"
+        "\n"
+        "Set these environment variables:\n"
+        "  WORKOS_TEST_EMAIL=<test-user@example.com>\n"
+        "  WORKOS_TEST_PASSWORD=<password>\n"
+        "  WORKOS_API_KEY=<from WorkOS console>\n"
+        "  WORKOS_CLIENT_ID=<from WorkOS console>\n"
+        "\n"
+        "Or set pre-obtained token:\n"
+        "  ATOMS_TEST_AUTH_TOKEN=<jwt-token>\n"
+        "\n"
+        "Note: Same WorkOS credentials work for cloud, dev, and local servers.\n"
+        "Tokens include all required scopes (openid, entity:*, relationship:*, etc.)"
     )
-    logger_local.warning(error_msg)
+    logger_local.error(error_msg)
     import pytest
-    pytest.skip("No authentication token available for e2e tests")
+    pytest.skip("WorkOS credentials not configured for e2e tests")
 
 
 @pytest_asyncio.fixture
