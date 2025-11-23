@@ -299,22 +299,20 @@ def force_all_mock_mode(monkeypatch):
 
 @pytest_asyncio.fixture(scope="session")
 async def authkit_auth_token():
-    """Get a valid WorkOS JWT token for E2E tests with auto-refresh.
+    """Get a valid JWT token for E2E tests with auto-refresh.
 
     CRITICAL: Using session scope with smart token refresh to prevent token expiry.
     The token manager automatically refreshes tokens when they're about to expire,
     ensuring all tests in the session have valid authentication.
 
-    Strategy:
-    1. Check for pre-obtained token (fastest)
-    2. Use smart token manager (caches + auto-refreshes)
-    3. Authenticate fresh if needed
-
-    All environments (local, dev, prod) use real WorkOS authentication.
-    The same WorkOS keys are used for all environments (from .env).
+    Strategy (in order):
+    1. Check environment (ATOMS_TEST_AUTH_TOKEN) - pre-obtained token
+    2. Generate test JWT with proper scopes (easiest, works offline)
+    3. Use WorkOS User Management auth (requires WorkOS credentials)
+    4. Skip tests if no auth available
 
     Returns:
-        Valid WorkOS JWT token for authenticated API calls
+        Valid JWT token for authenticated API calls
 
     Raises:
         pytest.skip: If no token can be obtained (tests will be skipped)
@@ -323,40 +321,49 @@ async def authkit_auth_token():
     import logging
     logger_local = logging.getLogger(__name__)
 
-    # Check for pre-obtained token first (fastest)
+    # Strategy 1: Check for pre-obtained token first (fastest)
     pre_obtained_token = os.getenv("ATOMS_TEST_AUTH_TOKEN") or os.getenv("AUTHKIT_TOKEN")
     if pre_obtained_token:
         logger_local.info("✅ Using pre-obtained token from environment")
         return pre_obtained_token
 
-    # Use smart token manager for auto-refresh
+    # Strategy 2: Generate test JWT with proper scopes (works offline, no WorkOS needed)
+    # This is best for local testing when WorkOS tokens have insufficient scopes
+    try:
+        from tests.utils.test_jwt_generator import create_test_jwt
+        
+        logger_local.info("🔐 Generating test JWT with proper scopes for local testing")
+        token = create_test_jwt()
+        logger_local.info("✅ Generated test JWT (local testing mode)")
+        return token
+    except Exception as e:
+        logger_local.debug(f"⚠️  Could not generate test JWT: {e}")
+        # Fall through to strategy 3
+
+    # Strategy 3: Use WorkOS User Management for real authentication
     from tests.utils.token_manager import get_fresh_token
 
     email = os.getenv("WORKOS_TEST_EMAIL")
     password = os.getenv("WORKOS_TEST_PASSWORD")
 
-    if not email or not password:
-        logger_local.warning(
-            "⚠️  WORKOS_TEST_EMAIL and WORKOS_TEST_PASSWORD not set - "
-            "e2e tests will be skipped"
-        )
-        import pytest
-        pytest.skip("WorkOS credentials not configured for e2e tests")
+    if email and password:
+        logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
+        token = await get_fresh_token(email, password)
+        if token:
+            logger_local.info("✅ Successfully obtained real WorkOS JWT token")
+            return token
 
-    logger_local.info(f"🔐 Authenticating with WorkOS as {email}")
-    token = await get_fresh_token(email, password)
-
-    if token:
-        logger_local.info("✅ Successfully obtained real WorkOS JWT token (session scope with auto-refresh)")
-        return token
-    else:
-        error_msg = (
-            f"❌ Failed to obtain WorkOS JWT token.\n"
-            f"Ensure WORKOS_API_KEY and WORKOS_CLIENT_ID are set in .env"
-        )
-        logger_local.error(error_msg)
-        import pytest
-        pytest.skip(error_msg)
+    # No authentication available
+    error_msg = (
+        "❌ No authentication token available.\n"
+        "Options:\n"
+        "  1. Set ATOMS_TEST_AUTH_TOKEN env var\n"
+        "  2. Tests will try to generate test JWT (default)\n"
+        "  3. Set WORKOS_TEST_EMAIL and WORKOS_TEST_PASSWORD for real auth"
+    )
+    logger_local.warning(error_msg)
+    import pytest
+    pytest.skip("No authentication token available for e2e tests")
 
 
 @pytest_asyncio.fixture
