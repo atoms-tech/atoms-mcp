@@ -35,137 +35,24 @@ if not os.getenv("ATOMS_TEST_PASSWORD"):
     os.environ["ATOMS_TEST_PASSWORD"] = "ASD3on54_Pax90"
 
 
-@pytest_asyncio.fixture(params=["unit", "integration", "e2e"])
+@pytest_asyncio.fixture(params=["integration", "e2e"])
 async def mcp_client(request, end_to_end_client):
-    """Parametrized MCP client for testing across three variants.
+    """Parametrized MCP client for testing across integration/e2e variants.
     
-    This fixture runs each test 3 times:
-    - unit: In-memory client (mocks all services) - FAST
+    This fixture runs each test 2 times:
     - integration: HTTP client to localhost:8000 (real local services)
     - e2e: HTTP client to mcpdev.atoms.tech (real deployment)
+    
+    NOTE: Unit tests should NOT use this fixture. Use dedicated unit test fixtures
+    with mocks instead. This fixture is ONLY for integration and e2e tests that
+    require actual HTTP connections to a running server.
     
     Each test receives the appropriate client variant automatically.
     """
     variant = request.param
     
-    if variant == "unit":
-        # Mock client for unit tests
-        from unittest.mock import AsyncMock, MagicMock
-        
-        class MockMcpClient:
-            """In-memory mock MCP client for unit tests."""
-            
-            async def entity_tool(self, entity_type, operation=None, data=None, 
-                                 entity_id=None, batch=None, filters=None, 
-                                 search_term=None, parent_type=None, parent_id=None,
-                                 limit=None, offset=None, order_by=None, 
-                                 soft_delete=True, format_type="detailed",
-                                 include_relations=False, **kwargs):
-                """Mock entity_tool - returns success for valid operations."""
-                # Simple mock responses for basic operations
-                if operation == "create":
-                    return {
-                        "success": True,
-                        "data": {
-                            "id": str(uuid.uuid4()),
-                            "entity_type": entity_type,
-                            **data,
-                            "created_at": time.time(),
-                            "created_by": "test-user"
-                        }
-                    }
-                elif operation == "read":
-                    return {
-                        "success": True,
-                        "data": {
-                            "id": entity_id or str(uuid.uuid4()),
-                            "entity_type": entity_type,
-                            "created_at": time.time()
-                        }
-                    }
-                elif operation == "update":
-                    return {
-                        "success": True,
-                        "data": {
-                            "id": entity_id,
-                            "entity_type": entity_type,
-                            **data,
-                            "updated_at": time.time()
-                        }
-                    }
-                elif operation == "delete":
-                    return {
-                        "success": True,
-                        "data": {
-                            "id": entity_id,
-                            "deleted_at": time.time()
-                        }
-                    }
-                elif operation == "list":
-                    return {
-                        "success": True,
-                        "data": [
-                            {"id": str(uuid.uuid4()), "name": f"Item {i}"}
-                            for i in range(min(limit or 10, 10))
-                        ],
-                        "count": limit or 10
-                    }
-                else:
-                    return {
-                        "success": True,
-                        "data": {}
-                    }
-            
-            async def workspace_tool(self, operation=None, context_type=None, 
-                                    entity_id=None, **kwargs):
-                """Mock workspace_tool."""
-                return {
-                    "success": True,
-                    "data": {
-                        "context_type": context_type,
-                        "entity_id": entity_id,
-                        "defaults": {}
-                    }
-                }
-            
-            async def relationship_tool(self, operation=None, relationship_type=None,
-                                       source=None, target=None, **kwargs):
-                """Mock relationship_tool."""
-                return {
-                    "success": True,
-                    "data": {
-                        "id": str(uuid.uuid4()),
-                        "relationship_type": relationship_type
-                    }
-                }
-            
-            async def data_query(self, operation=None, search_term=None, **kwargs):
-                """Mock data_query."""
-                return {
-                    "success": True,
-                    "data": []
-                }
-            
-            async def workflow_execute(self, workflow_name=None, **kwargs):
-                """Mock workflow_execute."""
-                return {
-                    "success": True,
-                    "data": {"workflow": workflow_name}
-                }
-        
-        return MockMcpClient()
-    
-    elif variant == "integration":
-        # HTTP client to local server
-        # For now, use the e2e client but would normally point to localhost:8000
-        # This is a simplified approach; full integration would start local server
-        return end_to_end_client
-    
-    elif variant == "e2e":
-        # Real HTTP client to mcpdev.atoms.tech
-        return end_to_end_client
-    
-    # Fallback
+    # Both variants use the real HTTP client
+    # The difference is determined by environment variables (MCP_E2E_BASE_URL)
     return end_to_end_client
 
 
@@ -328,92 +215,68 @@ async def end_to_end_client(e2e_auth_token):
             assert result.success
     """
     import os
-    from unittest.mock import AsyncMock
-    
-    # Only use the mock harness when explicitly requested via environment variable
-    use_mock = os.getenv("USE_MOCK_HARNESS", "false").lower() == "true"
-    print(f"🧪 end_to_end_client fixture: use_mock={use_mock}")
+    import httpx
 
-    if use_mock:
-        # Use mock client for testing
-        from tests.e2e.mock_client import MockMcpClient
-        from unittest.mock import AsyncMock
-        
-        client = MockMcpClient()
-        # Wrap call_tool to allow mocking via side_effect
-        original_call_tool = client.call_tool
-        mock_call_tool = AsyncMock(side_effect=original_call_tool)
-        client.call_tool = mock_call_tool
-        
-        yield client
+    # Always use real HTTP client - no mocking for e2e tests
+    # Get deployment URL from environment variable set by TestEnvManager (atoms CLI)
+    # This respects the --env flag from atoms CLI:
+    # - atoms test:e2e --env local → http://localhost:8000/api/mcp (real JWT, same WorkOS keys)
+    # - atoms test:e2e --env dev → https://mcpdev.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
+    # - atoms test:e2e --env prod → https://mcp.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
+    #
+    # ALL environments use real WorkOS authentication with the same keys from .env
+
+    deployment_url = os.getenv("MCP_E2E_BASE_URL")
+    if not deployment_url:
+        # Fallback to dev if not set by TestEnvManager
+        deployment_url = "https://mcpdev.atoms.tech/api/mcp"
+        print("⚠️  MCP_E2E_BASE_URL not set, using dev: mcpdev.atoms.tech")
+
+    # Disable test mode for all environments - use real WorkOS authentication
+    # Local server uses the same WorkOS keys as prod (from .env)
+    if "ATOMS_TEST_MODE" in os.environ:
+        del os.environ["ATOMS_TEST_MODE"]
+
+    # Determine environment name for logging
+    if "localhost" in deployment_url or "127.0.0.1" in deployment_url:
+        env_name = "Local (localhost:8000)"
+    elif "mcpdev" in deployment_url:
+        env_name = "Development (mcpdev.atoms.tech)"
+    elif "mcp.atoms.tech" in deployment_url:
+        env_name = "Production (mcp.atoms.tech)"
     else:
-        # Use real HTTP client
-        import httpx
+        env_name = deployment_url
 
-        # Get deployment URL from environment variable set by TestEnvManager (atoms CLI)
-        # This respects the --env flag from atoms CLI:
-        # - atoms test:e2e --env local → http://localhost:8000/api/mcp (real JWT, same WorkOS keys)
-        # - atoms test:e2e --env dev → https://mcpdev.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
-        # - atoms test:e2e --env prod → https://mcp.atoms.tech/api/mcp (real JWT, prod WorkOS keys)
-        #
-        # ALL environments use real WorkOS authentication with the same keys from .env
+    print(f"✅ Target environment: {env_name}")
+    print("   Using real WorkOS authentication (same keys for all environments)")
 
-        deployment_url = os.getenv("MCP_E2E_BASE_URL")
-        if not deployment_url:
-            # Fallback to dev if not set by TestEnvManager
-            deployment_url = "https://mcpdev.atoms.tech/api/mcp"
-            print("⚠️  MCP_E2E_BASE_URL not set, using dev: mcpdev.atoms.tech")
+    # Create httpx client with authentication headers
+    headers = {
+        "Authorization": f"Bearer {e2e_auth_token}",
+        "Content-Type": "application/json",
+    }
 
-        # Disable test mode for all environments - use real WorkOS authentication
-        # Local server uses the same WorkOS keys as prod (from .env)
-        if "ATOMS_TEST_MODE" in os.environ:
-            del os.environ["ATOMS_TEST_MODE"]
+    # Create httpx AsyncClient with auth headers (keep alive for test duration)
+    http_client = httpx.AsyncClient(
+        base_url=deployment_url.rsplit('/api/mcp', 1)[0] if '/api/mcp' in deployment_url else deployment_url,
+        headers=headers,
+        timeout=30.0
+    )
 
-        # Determine environment name for logging
-        if "localhost" in deployment_url or "127.0.0.1" in deployment_url:
-            env_name = "Local (localhost:8000)"
-        elif "mcpdev" in deployment_url:
-            env_name = "Development (mcpdev.atoms.tech)"
-        elif "mcp.atoms.tech" in deployment_url:
-            env_name = "Production (mcp.atoms.tech)"
-        else:
-            env_name = deployment_url
+    try:
+        # Create MCP client wrapper that uses authenticated httpx client
+        from tests.e2e.mcp_http_wrapper import AuthenticatedMcpClient
 
-        print(f"✅ Target environment: {env_name}")
-        print("   Using real WorkOS authentication (same keys for all environments)")
-
-        # Create httpx client with authentication headers
-        headers = {
-            "Authorization": f"Bearer {e2e_auth_token}",
-            "Content-Type": "application/json",
-        }
-
-        # Create httpx AsyncClient with auth headers (keep alive for test duration)
-        http_client = httpx.AsyncClient(
-            base_url=deployment_url.rsplit('/api/mcp', 1)[0] if '/api/mcp' in deployment_url else deployment_url,
-            headers=headers,
-            timeout=30.0
+        mcp_client = AuthenticatedMcpClient(
+            base_url=deployment_url,
+            http_client=http_client,
+            auth_token=e2e_auth_token
         )
 
-        try:
-            # Create MCP client wrapper that uses authenticated httpx client
-            from tests.e2e.mcp_http_wrapper import AuthenticatedMcpClient
-
-            mcp_client = AuthenticatedMcpClient(
-                base_url=deployment_url,
-                http_client=http_client,
-                auth_token=e2e_auth_token
-            )
-
-            # Wrap call_tool to allow mocking via side_effect
-            original_call_tool = mcp_client.call_tool
-            mock_call_tool = AsyncMock(side_effect=original_call_tool)
-            mcp_client.call_tool = mock_call_tool
-
-            yield mcp_client
-        finally:
-            # Close the httpx client after test completes
-            await http_client.aclose()
+        yield mcp_client
+    finally:
+        # Close the httpx client after test completes
+        await http_client.aclose()
 
 
 @pytest_asyncio.fixture
