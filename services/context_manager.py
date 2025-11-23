@@ -20,6 +20,7 @@ _project_id_var: ContextVar[Optional[str]] = ContextVar("project_id", default=No
 _organization_id_var: ContextVar[Optional[str]] = ContextVar("organization_id", default=None)
 _entity_type_var: ContextVar[Optional[str]] = ContextVar("entity_type", default=None)
 _parent_id_var: ContextVar[Optional[str]] = ContextVar("parent_id", default=None)
+_document_id_var: ContextVar[Optional[str]] = ContextVar("document_id", default=None)  # Phase 1: Extended context
 
 
 class SessionContext:
@@ -121,6 +122,14 @@ class SessionContext:
         """Get current parent ID from context."""
         return _parent_id_var.get()
 
+    def set_document_id(self, document_id: str) -> None:
+        """Set current document ID in context. (Phase 1: Extended context)"""
+        _document_id_var.set(document_id)
+
+    def get_document_id(self) -> Optional[str]:
+        """Get current document ID from context. (Phase 1: Extended context)"""
+        return _document_id_var.get()
+
     async def resolve_workspace_id(
         self,
         explicit_workspace_id: Optional[str] = None,
@@ -197,6 +206,12 @@ class SessionContext:
         if explicit_parent_id:
             return explicit_parent_id
         return self.get_parent_id()
+
+    def resolve_document_id(self, explicit_document_id: Optional[str] = None) -> Optional[str]:
+        """Resolve document ID from explicit param or context. (Phase 1: Extended context)"""
+        if explicit_document_id:
+            return explicit_document_id
+        return self.get_document_id()
 
     async def load_workspace_from_session(self) -> Optional[str]:
         """Load workspace context from session storage.
@@ -341,6 +356,7 @@ class SessionContext:
         _organization_id_var.set(None)
         _entity_type_var.set(None)
         _parent_id_var.set(None)
+        _document_id_var.set(None)  # Phase 1: Extended context
         # Clear operation memory on session end
         self._operation_history.clear()
         self._last_created_entities.clear()

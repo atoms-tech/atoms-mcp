@@ -3,18 +3,18 @@
 ⚠️  TEST WARNINGS & PERFORMANCE ISSUES
 ======================================================================
 
-🐌 SLOW (25):
+🐌 SLOW (24):
   🟡 tests/unit/infrastructure/test_adapters.py::TestRateLimiter::test_acquire_replenishes_over_time
      → Slow: 1.10s (threshold: 1.0s)
   🟡 tests/unit/infrastructure/test_adapters.py::TestSlidingWindowRateLimiter::test_window_expiration_resets_limit
      → Slow: 1.10s (threshold: 1.0s)
   🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_verify_compliance
-     → Slow: 1.80s (threshold: 1.0s)
+     → Slow: 1.34s (threshold: 1.0s)
   🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_with_auth
-     → Slow: 4.13s (threshold: 1.0s)
+     → Slow: 4.04s (threshold: 1.0s)
   🟡 tests/unit/tools/test_compliance_tool.py::TestComplianceVerificationTool::test_compliance_tool_multiple_standards
-     → Slow: 4.10s (threshold: 1.0s)
-  ... and 20 more
+     → Slow: 4.07s (threshold: 1.0s)
+  ... and 19 more
 
 🔄 FLAKY (3):
   🟡 tests/unit/infrastructure/test_concurrency_manager.py::TestOptimisticUpdate::test_optimistic_update_retry_on_conflict
@@ -25,6 +25,6 @@
      → Test passed after retry (potentially flaky)
 
 ----------------------------------------------------------------------
-Total Warnings: 28
-  🔴 High: 4  🟡 Medium: 24  🟢 Low: 0
+Total Warnings: 27
+  🔴 High: 5  🟡 Medium: 22  🟢 Low: 0
 ======================================================================

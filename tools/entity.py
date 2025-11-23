@@ -1678,6 +1678,7 @@ async def entity_operation(
     workflow_id: Optional[str] = None,
     input_data: Optional[Dict[str, Any]] = None,
     workspace_id: Optional[str] = None,
+    document_id: Optional[str] = None,  # Phase 1: Extended context
     # Query operation parameters (from query_tool consolidation)
     aggregate_type: Optional[str] = None,
     group_by: Optional[List[str]] = None,
@@ -1752,8 +1753,20 @@ async def entity_operation(
                     data["workspace_id"] = workspace_id
                 if batch and isinstance(batch, list):
                     batch = [
-                        {**item, "workspace_id": workspace_id} 
-                        if isinstance(item, dict) and "workspace_id" not in item 
+                        {**item, "workspace_id": workspace_id}
+                        if isinstance(item, dict) and "workspace_id" not in item
+                        else item
+                        for item in batch
+                    ]
+
+            # Inject document_id into data/batch if provided (Phase 1: Extended context)
+            if document_id:
+                if data and isinstance(data, dict) and "document_id" not in data:
+                    data["document_id"] = document_id
+                if batch and isinstance(batch, list):
+                    batch = [
+                        {**item, "document_id": document_id}
+                        if isinstance(item, dict) and "document_id" not in item
                         else item
                         for item in batch
                     ]

@@ -31,13 +31,14 @@ class ContextTool:
 
         Supported context types:
         - workspace: Current workspace
-        - project: Current project  
+        - project: Current project
         - organization: Current organization
         - entity_type: Current entity type (for simplified queries)
         - parent: Current parent entity (for nested operations)
+        - document: Current document (Phase 1: Extended context)
 
         Args:
-            context_type: Type of context (workspace, project, organization, entity_type, parent)
+            context_type: Type of context (workspace, project, organization, entity_type, parent, document)
             context_id: ID or value to set as current
 
         Returns:
@@ -61,6 +62,8 @@ class ContextTool:
                 self.context.set_entity_type(context_id)
             elif context_type in ["parent", "parent_id"]:
                 self.context.set_parent_id(context_id)
+            elif context_type in ["document", "document_id"]:
+                self.context.set_document_id(context_id)
             else:
                 return {
                     "success": False,
@@ -149,7 +152,7 @@ class ContextTool:
         """Get all current context values.
 
         Returns:
-            Dict with all context values (workspace, project, organization, entity_type, parent)
+            Dict with all context values (workspace, project, organization, entity_type, parent, document)
         """
         try:
             return {
@@ -159,6 +162,7 @@ class ContextTool:
                 "project_id": self.context.get_project_id(),
                 "entity_type": self.context.get_entity_type(),
                 "parent_id": self.context.get_parent_id(),
+                "document_id": self.context.get_document_id(),  # Phase 1: Extended context
             }
         except Exception as e:
             logger.error(f"❌ Failed to get context: {e}")
