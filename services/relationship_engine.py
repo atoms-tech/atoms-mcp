@@ -50,12 +50,12 @@ class RelationshipEngine:
         relationship_type: Optional[str] = None
     ) -> Dict[str, Any]:
         """Traverse relationships from entity.
-        
+
         Args:
             entity_id: Starting entity ID
             depth: Maximum traversal depth
             relationship_type: Filter by relationship type
-            
+
         Returns:
             Traversal result dict
         """
@@ -72,7 +72,7 @@ class RelationshipEngine:
         while queue:
             current_id, current_depth = queue.popleft()
 
-            if current_id in visited or current_depth >= depth:
+            if current_id in visited:
                 continue
 
             visited.add(current_id)
@@ -81,21 +81,23 @@ class RelationshipEngine:
                 "depth": current_depth
             }
 
-            # Get relationships
-            for rel in self.relationships.get(current_id, []):
-                if relationship_type and rel["type"] != relationship_type:
-                    continue
+            # Only traverse further if within depth limit
+            if current_depth < depth:
+                # Get relationships
+                for rel in self.relationships.get(current_id, []):
+                    if relationship_type and rel["type"] != relationship_type:
+                        continue
 
-                target_id = rel["target"]
-                result["edges"].append({
-                    "source": current_id,
-                    "target": target_id,
-                    "type": rel["type"],
-                    "metadata": rel["metadata"]
-                })
+                    target_id = rel["target"]
+                    result["edges"].append({
+                        "source": current_id,
+                        "target": target_id,
+                        "type": rel["type"],
+                        "metadata": rel["metadata"]
+                    })
 
-                if target_id not in visited:
-                    queue.append((target_id, current_depth + 1))
+                    if target_id not in visited:
+                        queue.append((target_id, current_depth + 1))
 
         return result
 

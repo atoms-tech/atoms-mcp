@@ -114,8 +114,9 @@ class TestRelationshipEnginePhase4:
         impact = engine.analyze_impact("req-2")
 
         assert impact["entity_id"] == "req-2"
-        assert impact["impact_level"] == "low"
-        assert impact["risk_score"] == 0.0
+        # req-1 depends on req-2, so req-2 has 1 dependent
+        assert impact["impact_level"] == "medium"
+        assert impact["risk_score"] > 0.0
 
     def test_analyze_impact_with_dependents(self, engine):
         """Test impact analysis with dependents."""
