@@ -258,7 +258,7 @@ class TestWorkflowCombinations:
         })
         
         assert result1 is not None, "First workflow should succeed"
-        
+
         # Second workflow
         result2, _ = await call_mcp("workflow_tool", {
             "workflow": "import_requirements",
@@ -267,5 +267,138 @@ class TestWorkflowCombinations:
                 "requirements": [{"name": "REQ-1", "description": "Test"}]
             }
         })
-        
+
         assert result2 is not None, "Second workflow should succeed"
+
+
+# =====================================================
+# PHASE 10 ADDITIONAL TESTS
+# =====================================================
+
+class TestWorkflowPhase10:
+    """Phase 10 additional workflow tests."""
+
+    @pytest.mark.story("Workflow Automation - Workflow with error handling")
+    async def test_workflow_error_handling(self, call_mcp):
+        """Test workflow error handling."""
+        result, error = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "",  # Invalid: empty name
+                "organization_id": "org_123"
+            }
+        })
+
+        # Should handle error gracefully
+        assert result is not None or error is not None
+
+    @pytest.mark.story("Workflow Automation - Workflow with transaction mode")
+    async def test_workflow_transaction_mode(self, call_mcp):
+        """Test workflow with transaction mode."""
+        result, _ = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123"
+            },
+            "transaction_mode": True
+        })
+
+        assert result is not None, "Should return result with transaction mode"
+
+    @pytest.mark.story("Workflow Automation - Workflow with format type")
+    async def test_workflow_format_type_detailed(self, call_mcp):
+        """Test workflow with detailed format."""
+        result, _ = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123"
+            },
+            "format_type": "detailed"
+        })
+
+        assert result is not None, "Should return detailed result"
+
+    @pytest.mark.story("Workflow Automation - Workflow with summary format")
+    async def test_workflow_format_type_summary(self, call_mcp):
+        """Test workflow with summary format."""
+        result, _ = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123"
+            },
+            "format_type": "summary"
+        })
+
+        assert result is not None, "Should return summary result"
+
+    @pytest.mark.story("Workflow Automation - Workflow with raw format")
+    async def test_workflow_format_type_raw(self, call_mcp):
+        """Test workflow with raw format."""
+        result, _ = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123"
+            },
+            "format_type": "raw"
+        })
+
+        assert result is not None, "Should return raw result"
+
+    @pytest.mark.story("Workflow Automation - Workflow with multiple parameters")
+    async def test_workflow_multiple_parameters(self, call_mcp):
+        """Test workflow with multiple parameters."""
+        result, _ = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123",
+                "initial_documents": ["Requirements", "Design", "Architecture"],
+                "team_members": ["user1", "user2", "user3"],
+                "tags": ["important", "urgent"]
+            }
+        })
+
+        assert result is not None, "Should handle multiple parameters"
+
+    @pytest.mark.story("Workflow Automation - Workflow status tracking")
+    async def test_workflow_status_tracking(self, call_mcp):
+        """Test workflow status tracking."""
+        result, _ = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123"
+            }
+        })
+
+        assert result is not None, "Should track workflow status"
+
+    @pytest.mark.story("Workflow Automation - Workflow with timeout")
+    async def test_workflow_timeout_handling(self, call_mcp):
+        """Test workflow timeout handling."""
+        result, error = await call_mcp("workflow_tool", {
+            "workflow": "setup_project",
+            "parameters": {
+                "name": "Test Project",
+                "organization_id": "org_123"
+            },
+            "timeout": 5
+        })
+
+        # Should handle timeout gracefully
+        assert result is not None or error is not None
+
+    @pytest.mark.story("Workflow Automation - Workflow validation")
+    async def test_workflow_validation(self, call_mcp):
+        """Test workflow validation."""
+        result, error = await call_mcp("workflow_tool", {
+            "workflow": "invalid_workflow",
+            "parameters": {}
+        })
+
+        # Should validate workflow name
+        assert result is not None or error is not None

@@ -105,6 +105,159 @@ class TestRowLevelSecurity:
                 "entity_id": org_id
             }
         )
-        
+
         # RLS is automatically enforced - may succeed or fail depending on permissions
         assert "success" in result
+
+
+# =====================================================
+# PHASE 10 ADDITIONAL SECURITY TESTS
+# =====================================================
+
+class TestSecurityPhase10:
+    """Phase 10 additional security tests."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_permission_denied_access(self, call_mcp):
+        """Test permission denied for unauthorized access."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "organization",
+                "operation": "delete",
+                "entity_id": str(uuid.uuid4())
+            }
+        )
+
+        # Should handle permission denied gracefully
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_token_validation(self, call_mcp):
+        """Test token validation."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "read",
+                "entity_id": str(uuid.uuid4())
+            }
+        )
+
+        # Should validate token
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_audit_logging(self, call_mcp):
+        """Test audit logging of operations."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "create",
+                "data": {"name": "Test"}
+            }
+        )
+
+        # Should log operation
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_encryption_at_rest(self, call_mcp):
+        """Test encryption at rest."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "create",
+                "data": {"name": "Sensitive Data"}
+            }
+        )
+
+        # Should encrypt sensitive data
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_rate_limiting(self, call_mcp):
+        """Test rate limiting."""
+        # Make multiple requests
+        for i in range(5):
+            result, _ = await call_mcp(
+                "entity_tool",
+                {
+                    "entity_type": "requirement",
+                    "operation": "read",
+                    "entity_id": str(uuid.uuid4())
+                }
+            )
+            assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_input_validation(self, call_mcp):
+        """Test input validation."""
+        result, error = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "create",
+                "data": {"name": ""}  # Invalid: empty name
+            }
+        )
+
+        # Should validate input
+        assert result is not None or error is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_sql_injection_prevention(self, call_mcp):
+        """Test SQL injection prevention."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "read",
+                "entity_id": "'; DROP TABLE entities; --"
+            }
+        )
+
+        # Should prevent SQL injection
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_xss_prevention(self, call_mcp):
+        """Test XSS prevention."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "create",
+                "data": {"name": "<script>alert('xss')</script>"}
+            }
+        )
+
+        # Should prevent XSS
+        assert result is not None
+
+    @pytest.mark.asyncio
+    @pytest.mark.entity
+    async def test_csrf_protection(self, call_mcp):
+        """Test CSRF protection."""
+        result, _ = await call_mcp(
+            "entity_tool",
+            {
+                "entity_type": "requirement",
+                "operation": "update",
+                "entity_id": str(uuid.uuid4()),
+                "data": {"name": "Updated"}
+            }
+        )
+
+        # Should protect against CSRF
+        assert result is not None

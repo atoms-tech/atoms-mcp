@@ -500,6 +500,53 @@ def create_consolidated_server() -> FastMCP:
         logger.warning(f"Caching middleware setup error: {e}")
 
     # Register consolidated tools
+    @mcp.tool(tags={"context", "session"})
+    async def context_tool(
+        operation: str,
+        workspace_id: Optional[str] = None,
+    ) -> dict:
+        """Manage session context (workspace, user, etc.).
+
+        Operations:
+        - set_workspace: Set current workspace for this session
+        - get_workspace: Get current workspace from session context
+        - clear_workspace: Clear workspace context
+        - get_session_state: Get full session state (debugging)
+
+        Once you set a workspace, all subsequent operations will use it
+        unless you explicitly provide a different workspace_id.
+
+        Examples:
+        - Set workspace: operation="set_workspace", workspace_id="workspace-123"
+        - Get current: operation="get_workspace"
+        - Clear: operation="clear_workspace"
+        """
+        try:
+            from tools.context import get_context_tool
+            
+            context_tool_instance = get_context_tool()
+            
+            if operation == "set_workspace":
+                if not workspace_id:
+                    return {"success": False, "error": "workspace_id required for set_workspace"}
+                return await context_tool_instance.set_workspace(workspace_id)
+            
+            elif operation == "get_workspace":
+                return await context_tool_instance.get_workspace()
+            
+            elif operation == "clear_workspace":
+                return await context_tool_instance.clear_workspace()
+            
+            elif operation == "get_session_state":
+                return await context_tool_instance.get_session_state()
+            
+            else:
+                return {"success": False, "error": f"Unknown operation: {operation}"}
+        
+        except Exception as e:
+            logger.error(f"❌ Context tool error: {e}")
+            return {"success": False, "error": str(e), "operation": operation}
+
     @mcp.tool(tags={"workspace", "context"})
     async def workspace_tool(
         operation: str,
@@ -593,6 +640,7 @@ def create_consolidated_server() -> FastMCP:
         filter_list: Optional[list] = None,
         sort_list: Optional[list] = None,
         include_archived: bool = False,
+        workspace_id: Optional[str] = None,
     ) -> dict:
         """Unified CRUD operations with smart parameter inference and fuzzy matching.
 
@@ -618,6 +666,18 @@ def create_consolidated_server() -> FastMCP:
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
+
+            # Resolve workspace_id from session context if not provided
+            if not workspace_id:
+                try:
+                    from services.context_manager import get_context
+                    context = get_context()
+                    resolved_workspace = await context.resolve_workspace_id()
+                    if resolved_workspace:
+                        workspace_id = resolved_workspace
+                        logger.debug(f"Using workspace from session context: {workspace_id}")
+                except Exception as e:
+                    logger.debug(f"Could not resolve workspace from context: {e}")
 
             # Backwards-compatible param aliases used by tests/older clients
             # Map `entities` -> `batch` for batch_create
@@ -682,6 +742,7 @@ def create_consolidated_server() -> FastMCP:
                 pagination=pagination,
                 filter_list=filter_list,
                 sort_list=sort_list,
+                workspace_id=workspace_id,
             )
         except Exception as e:
             return {

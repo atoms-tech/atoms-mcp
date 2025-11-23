@@ -1395,7 +1395,8 @@ async def entity_operation(
     entity_ids: Optional[List[str]] = None,
     version: Optional[int] = None,
     workflow_id: Optional[str] = None,
-    input_data: Optional[Dict[str, Any]] = None
+    input_data: Optional[Dict[str, Any]] = None,
+    workspace_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Unified CRUD operations with performance timing."""
     import time
@@ -1457,6 +1458,18 @@ async def entity_operation(
                 operation = "batch_create"
             if not data and not batch:
                 raise ValueError("data or batch is required for create operation")
+
+            # Inject workspace_id into data/batch if provided (and not already present)
+            if workspace_id:
+                if data and isinstance(data, dict) and "workspace_id" not in data:
+                    data["workspace_id"] = workspace_id
+                if batch and isinstance(batch, list):
+                    batch = [
+                        {**item, "workspace_id": workspace_id} 
+                        if isinstance(item, dict) and "workspace_id" not in item 
+                        else item
+                        for item in batch
+                    ]
 
             t_op_start = time.time()
             if batch:
