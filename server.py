@@ -640,7 +640,7 @@ def create_consolidated_server() -> FastMCP:
         except Exception as e:
             return {"success": False, "error": str(e), "operation": operation}
 
-    @mcp.tool(tags={"entity", "crud"})
+    @mcp.tool(tags={"entity", "crud", "search", "analysis"})
     async def entity_tool(
         entity_type: str,
         operation: Optional[str] = None,  # Now optional - can be inferred
@@ -662,16 +662,32 @@ def create_consolidated_server() -> FastMCP:
         sort_list: Optional[list] = None,
         include_archived: bool = False,
         workspace_id: Optional[str] = None,
+        # NEW: Query operation parameters (from query_tool)
+        aggregate_type: Optional[str] = None,
+        group_by: Optional[list] = None,
+        rag_mode: str = "auto",
+        similarity_threshold: float = 0.7,
+        content: Optional[str] = None,
+        entities: Optional[list] = None,  # Alias for entity_type (backward compat)
+        conditions: Optional[dict] = None,  # Alias for filters (backward compat)
     ) -> dict:
-        """Unified CRUD operations with smart parameter inference and fuzzy matching.
+        """Unified CRUD and query operations with smart inference and context.
 
         Operations (optional - auto-inferred from parameters):
+        
+        **CRUD Operations:**
         - create: Inferred when only `data` provided
         - read: Inferred when only `entity_id` provided
         - update: Inferred when both `entity_id` and `data` provided
         - delete: Must be explicit or inferred from soft_delete=True
+        - list: Inferred when `parent_type`/`parent_id` provided
         - search: Inferred when `search_term` provided
-        - list: Inferred when `parent_type`/`parent_id` provided or no other params
+        
+        **Query Operations (NEW - from query_tool):**
+        - aggregate: Summary stats and counts (use aggregate_type, group_by)
+        - analyze: Deep analysis with relationships
+        - rag_search: AI-powered semantic search (use content, rag_mode)
+        - similarity: Find similar content
 
         Entity ID Fuzzy Matching:
         - Accept entity names instead of UUIDs: entity_id="Vehicle Project"
@@ -679,11 +695,17 @@ def create_consolidated_server() -> FastMCP:
         - Auto-selects best match (70%+ similarity)
         - Returns suggestions if ambiguous
 
+        Context Auto-Injection:
+        - workspace_id: Resolved from session context if not provided
+        - project_id: Resolved from session context if not provided
+        - entity_type: Can be resolved from context for simplified ops
+
         Examples:
         - Read by name: entity_type="project", entity_id="Vehicle" (auto-resolves to UUID)
         - Create: entity_type="project", data={"name": "My Project"} (operation inferred)
-        - Update: entity_type="document", entity_id="MCP Test", data={"description": "..."} (both inferred + resolved)
-        - List: entity_type="document", parent_type="project", parent_id="Vehicle Project" (fuzzy parent resolution)
+        - Search: entity_type="requirement", search_term="security" (filters by context workspace/project)
+        - Aggregate: entity_type="project", operation="aggregate", aggregate_type="count"
+        - RAG Search: entity_type="document", operation="rag_search", content="Find security policies"
         """
         try:
             auth_token = await _apply_rate_limit_if_configured()
@@ -700,12 +722,16 @@ def create_consolidated_server() -> FastMCP:
                 except Exception as e:
                     logger.debug(f"Could not resolve workspace from context: {e}")
 
-            # Backwards-compatible param aliases used by tests/older clients
-            # Map `entities` -> `batch` for batch_create
-            if batch is None:
-                # Some FastMCP clients might pass extra kwargs; guard via attributes on filters/data
-                # No-op here; alias handled by tool signature only
-                pass
+            # Backward-compatible parameter consolidation
+            # Map query operation aliases to canonical names
+            if entities is not None and not isinstance(data, list):
+                # `entities` from query_tool maps to entity_type
+                # (unless it's a list in data for batch operations)
+                entity_type = entities[0] if isinstance(entities, list) and len(entities) == 1 else entity_type
+            
+            # Map `conditions` -> `filters` (from query_tool compat)
+            if conditions is not None and filters is None:
+                filters = conditions
 
             # FastMCP validates signature strictly; emulate alias support via operation inference
             # If operation is batch_create and data-like list is provided via invalid name, accept it
