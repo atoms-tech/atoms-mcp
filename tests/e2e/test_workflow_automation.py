@@ -23,9 +23,12 @@ pytestmark = [pytest.mark.e2e, pytest.mark.asyncio, pytest.mark.full_workflow]
 
 @pytest_asyncio.fixture
 async def deployment_harness(end_to_end_client):
-    """Fixture for deployment harness."""
+    """Fixture for deployment harness.
+    
+    NOTE: No mocking of call_tool - tests use real HTTP client.
+    The harness provides helper methods for test setup/teardown only.
+    """
     harness = E2EDeploymentHarness()
-    end_to_end_client.call_tool.side_effect = harness.call_tool
     return harness
 
 
