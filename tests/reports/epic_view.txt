@@ -8,7 +8,7 @@
 ║   ✅ User can view organization details                                       ║
 ║   ✅ User can update organization settings                                    ║
 ║   ✅ User can delete an organization                                          ║
-║   ✅ User can list all organizations                                          ║
+║   ✅ User can list all organizations (122 passing, 1 failing)                 ║
 ║                                                                              ║
 ║ 📦 Project Management (5/5) ✓✓✓                                               ║
 ║──────────────────────────────────────────────────────────────────────────────║
