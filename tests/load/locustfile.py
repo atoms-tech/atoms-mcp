@@ -20,32 +20,21 @@ class AtomsUser(HttpUser):
     @task(5)
     def list_tools(self):
         """List available tools."""
-        self.client.post(
-            "/mcp/v1/tools/list",
-            json={},
-            headers={"Content-Type": "application/json"}
-        )
+        self.client.post("/mcp/v1/tools/list", json={}, headers={"Content-Type": "application/json"})
 
     @task(3)
     def call_tool(self):
         """Call a tool."""
         self.client.post(
             "/mcp/v1/tools/call",
-            json={
-                "name": "get_requirements",
-                "arguments": {}
-            },
-            headers={"Content-Type": "application/json"}
+            json={"name": "get_requirements", "arguments": {}},
+            headers={"Content-Type": "application/json"},
         )
 
     @task(1)
     def list_resources(self):
         """List resources."""
-        self.client.post(
-            "/mcp/v1/resources/list",
-            json={},
-            headers={"Content-Type": "application/json"}
-        )
+        self.client.post("/mcp/v1/resources/list", json={}, headers={"Content-Type": "application/json"})
 
     def on_start(self):
         """Called when a simulated user starts."""
@@ -65,4 +54,3 @@ class AdminUser(HttpUser):
     def admin_health_check(self):
         """Admin health check."""
         self.client.get("/health")
-

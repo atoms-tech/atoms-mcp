@@ -14,14 +14,16 @@ load_dotenv(".env.local", override=True)
 # Add tests to path
 sys.path.append("tests")
 
-from tests.auth_helper import automate_oauth_login_with_retry, get_last_flow_result  # noqa: E402
+from tests.auth_helper import automate_oauth_login_with_retry, get_last_flow_result
 
 
 async def test_oauth():
     """Test OAuth flow and get session token."""
 
     # Construct OAuth URL
-    authkit_domain = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "https://decent-hymn-17-staging.authkit.app")
+    authkit_domain = os.getenv(
+        "FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_AUTHKIT_DOMAIN", "https://decent-hymn-17-staging.authkit.app"
+    )
     client_id = os.getenv("WORKOS_CLIENT_ID")
     base_url = os.getenv("FASTMCP_SERVER_AUTH_AUTHKITPROVIDER_BASE_URL", "https://mcp.atoms.tech")
 
@@ -30,12 +32,13 @@ async def test_oauth():
         return False
 
     import urllib.parse
+
     redirect_uri = f"{base_url}/auth/callback"
     params = {
         "client_id": client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": "openid profile email"
+        "scope": "openid profile email",
     }
     oauth_url = f"{authkit_domain}/oauth/authorize?" + urllib.parse.urlencode(params)
 
@@ -44,11 +47,7 @@ async def test_oauth():
     print(f"Client ID: {client_id}")
 
     try:
-        success = await automate_oauth_login_with_retry(
-            oauth_url=oauth_url,
-            provider="authkit",
-            max_retries=2
-        )
+        success = await automate_oauth_login_with_retry(oauth_url=oauth_url, provider="authkit", max_retries=2)
 
         if success:
             flow_result = get_last_flow_result()

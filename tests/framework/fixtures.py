@@ -92,31 +92,30 @@ async def create_simulated_mcp_client() -> Any:
                 self.entities[entity_id] = arguments
                 return {"success": True, "id": entity_id, "data": arguments}
 
-            elif operation == "read":
+            if operation == "read":
                 read_entity_id: Any = arguments.get("id")
                 if read_entity_id and isinstance(read_entity_id, str) and read_entity_id in self.entities:
                     return {"success": True, "data": self.entities[read_entity_id]}
                 return {"success": False, "error": "not_found"}
 
-            elif operation == "update":
+            if operation == "update":
                 update_entity_id: Any = arguments.get("id")
                 if update_entity_id and isinstance(update_entity_id, str) and update_entity_id in self.entities:
                     self.entities[update_entity_id].update(arguments.get("data", {}))
                     return {"success": True, "id": update_entity_id, "data": self.entities[update_entity_id]}
                 return {"success": False, "error": "not_found"}
 
-            elif operation == "delete":
+            if operation == "delete":
                 delete_entity_id: Any = arguments.get("id")
                 if delete_entity_id and isinstance(delete_entity_id, str) and delete_entity_id in self.entities:
                     del self.entities[delete_entity_id]
                     return {"success": True}
                 return {"success": False, "error": "not_found"}
 
-            elif operation == "list":
+            if operation == "list":
                 return {"success": True, "items": list(self.entities.values())}
 
-            else:
-                return {"success": True, "result": arguments}
+            return {"success": True, "result": arguments}
 
         async def list_tools(self) -> dict:
             return {
@@ -191,6 +190,7 @@ async def conditional_http_client(atoms_mode_config: TestModeConfig) -> AsyncIte
 
         async for client in authenticated_client():
             return client
+        return None
 
     async def cold_impl():
         mock_client = AsyncMock()
@@ -260,7 +260,7 @@ async def conditional_database(atoms_mode_config: TestModeConfig) -> AsyncIterat
                     def __init__(self, data_list):
                         self.data_list = data_list
 
-                    def select(self, *args, **kwargs):
+                    def select(self, *_args, **_kwargs):
                         class SelectAPI:
                             def __init__(self, data_list):
                                 self.data_list = data_list
@@ -298,11 +298,10 @@ async def conditional_database(atoms_mode_config: TestModeConfig) -> AsyncIterat
 
         return SimulatedDatabase()
 
-    db = await ConditionalFixture.create_async(
+    return await ConditionalFixture.create_async(
         atoms_mode_config, hot_impl=hot_impl, cold_impl=cold_impl, dry_impl=dry_impl
     )
 
-    yield db
 
 
 @pytest.fixture
@@ -317,8 +316,7 @@ async def conditional_auth_manager(atoms_mode_config: TestModeConfig) -> AsyncIt
     async def hot_impl():
         from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
-        broker = UnifiedCredentialBroker(mcp_endpoint="http://localhost:8000/api/mcp", provider="authkit")
-        return broker
+        return UnifiedCredentialBroker(mcp_endpoint="http://localhost:8000/api/mcp", provider="authkit")
 
     async def cold_impl():
         mock_auth = AsyncMock()
@@ -338,10 +336,10 @@ async def conditional_auth_manager(atoms_mode_config: TestModeConfig) -> AsyncIt
                 self.token = "sim_token_12345"
                 self.expires_at = 9999999999
 
-            async def authenticate(self, *args, **kwargs):
+            async def authenticate(self, *_args, **_kwargs):
                 return {"token": self.token, "expires_at": self.expires_at}
 
-            async def refresh_token(self, *args, **kwargs):
+            async def refresh_token(self, *_args, **_kwargs):
                 return {"token": self.token}
 
             async def logout(self):
@@ -349,11 +347,10 @@ async def conditional_auth_manager(atoms_mode_config: TestModeConfig) -> AsyncIt
 
         return SimulatedAuthManager()
 
-    auth_mgr = await ConditionalFixture.create_async(
+    return await ConditionalFixture.create_async(
         atoms_mode_config, hot_impl=hot_impl, cold_impl=cold_impl, dry_impl=dry_impl
     )
 
-    yield auth_mgr
 
 
 @pytest.fixture
@@ -368,11 +365,10 @@ def conditional_temp_directory(atoms_mode_config: TestModeConfig) -> Generator[s
         with tempfile.TemporaryDirectory() as tmpdir:
             return tmpdir
 
-    tmpdir = ConditionalFixture.create(
+    return ConditionalFixture.create(
         atoms_mode_config, hot_impl=impl, cold_impl=impl, dry_impl=impl
     )
 
-    yield tmpdir
 
 
 @pytest.fixture(scope="session")
@@ -399,13 +395,13 @@ def conditional_event_loop(atoms_mode_config: TestModeConfig) -> Generator[async
 
 
 __all__ = [
-    "conditional_mcp_client",
-    "conditional_http_client",
-    "conditional_database",
     "conditional_auth_manager",
-    "conditional_temp_directory",
+    "conditional_database",
     "conditional_event_loop",
-    "create_real_mcp_client",
+    "conditional_http_client",
+    "conditional_mcp_client",
+    "conditional_temp_directory",
     "create_mock_mcp_client",
+    "create_real_mcp_client",
     "create_simulated_mcp_client",
 ]

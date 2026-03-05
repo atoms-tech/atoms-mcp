@@ -9,7 +9,7 @@ from enum import Enum
 
 class EntityStatus(str, Enum):
     """Entity status enumeration."""
-    
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     ARCHIVED = "archived"
@@ -22,7 +22,7 @@ class EntityStatus(str, Enum):
 
 class RAGMode(str, Enum):
     """RAG (Retrieval-Augmented Generation) mode enumeration."""
-    
+
     DISABLED = "disabled"
     ENABLED = "enabled"
     AUTO = "auto"
@@ -31,7 +31,7 @@ class RAGMode(str, Enum):
 
 class RequirementPriority(str, Enum):
     """Requirement priority enumeration."""
-    
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -41,7 +41,7 @@ class RequirementPriority(str, Enum):
 
 class TestStatus(str, Enum):
     """Test status enumeration."""
-    
+
     DRAFT = "draft"
     READY = "ready"
     RUNNING = "running"

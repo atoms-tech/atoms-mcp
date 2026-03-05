@@ -4,7 +4,7 @@
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 # Set up environment
@@ -38,7 +38,7 @@ async def test_workspace_tool() -> dict[str, Any]:
     try:
         result = await workspace_operation(
             auth_token=AUTH_TOKEN,
-            operation="list",
+            operation="list_workspaces",
         )
         results["list"] = {"status": "✅", "data": result}
         print(f"   ✅ Success: {json.dumps(result, indent=2)[:200]}...")
@@ -107,7 +107,7 @@ async def test_entity_tool() -> dict[str, Any]:
             operation="create",
             entity_type="project",
             data={
-                "name": f"Test Project {datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "name": f"Test Project {datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                 "description": "Automated test project",
             },
         )
@@ -304,7 +304,7 @@ async def test_workflow_tool() -> dict[str, Any]:
             auth_token=AUTH_TOKEN,
             workflow="setup_project",
             parameters={
-                "name": f"Workflow Test {datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "name": f"Workflow Test {datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}",
                 "description": "Test workflow project",
             },
         )
@@ -343,7 +343,7 @@ async def main():
             print(f"  {status} {op_name}")
 
     # Save results to file
-    output_file = f"atoms_tools_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    output_file = f"atoms_tools_test_results_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     with open(output_file, "w") as f:
         json.dump(all_results, f, indent=2, default=str)
 

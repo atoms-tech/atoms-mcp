@@ -85,9 +85,7 @@ def project_b_id():
 
 
 @pytest.mark.asyncio
-async def test_owner_can_read_own_organization(
-    mock_db_adapter, owner_user_id, org_a_id
-):
+async def test_owner_can_read_own_organization(mock_db_adapter, owner_user_id, org_a_id):
     """
     Given a user who owns an organization
     When they try to read it
@@ -114,9 +112,7 @@ async def test_owner_can_read_own_organization(
 
 
 @pytest.mark.asyncio
-async def test_owner_can_update_own_organization(
-    mock_db_adapter, owner_user_id, org_a_id
-):
+async def test_owner_can_update_own_organization(mock_db_adapter, owner_user_id, org_a_id):
     """
     Given a user who owns an organization
     When they try to update it
@@ -136,19 +132,14 @@ async def test_owner_can_update_own_organization(
     }
 
     # When: Owner updates organization
-    can_update = await policy.can_update(
-        {"id": org_a_id},
-        {"name": "Updated Name"}
-    )
+    can_update = await policy.can_update({"id": org_a_id}, {"name": "Updated Name"})
 
     # Then: Access granted
     assert can_update is True, "Owner should update their organization"
 
 
 @pytest.mark.asyncio
-async def test_owner_can_delete_own_organization(
-    mock_db_adapter, owner_user_id, org_a_id
-):
+async def test_owner_can_delete_own_organization(mock_db_adapter, owner_user_id, org_a_id):
     """
     Given a user who owns an organization
     When they try to delete it
@@ -180,9 +171,7 @@ async def test_owner_can_delete_own_organization(
 
 
 @pytest.mark.asyncio
-async def test_workspace_member_can_access_workspace_data(
-    mock_db_adapter, member_user_id, project_a_id
-):
+async def test_workspace_member_can_access_workspace_data(mock_db_adapter, member_user_id, project_a_id):
     """
     Given a user who is a member of a workspace/project
     When they try to access workspace data
@@ -206,9 +195,7 @@ async def test_workspace_member_can_access_workspace_data(
 
 
 @pytest.mark.asyncio
-async def test_workspace_member_can_read_workspace_documents(
-    mock_db_adapter, member_user_id, project_a_id
-):
+async def test_workspace_member_can_read_workspace_documents(mock_db_adapter, member_user_id, project_a_id):
     """
     Given a workspace member
     When they try to access documents in the workspace
@@ -228,19 +215,19 @@ async def test_workspace_member_can_read_workspace_documents(
     }
 
     # When: Member reads document
-    can_read = await policy.can_select({
-        "id": "doc-001",
-        "project_id": project_a_id,
-    })
+    can_read = await policy.can_select(
+        {
+            "id": "doc-001",
+            "project_id": project_a_id,
+        }
+    )
 
     # Then: Access granted
     assert can_read is True, "Workspace member should read documents"
 
 
 @pytest.mark.asyncio
-async def test_workspace_editor_can_create_documents(
-    mock_db_adapter, member_user_id, project_a_id
-):
+async def test_workspace_editor_can_create_documents(mock_db_adapter, member_user_id, project_a_id):
     """
     Given a workspace member with editor role
     When they try to create a document
@@ -260,19 +247,19 @@ async def test_workspace_editor_can_create_documents(
     }
 
     # When: Editor creates document
-    can_create = await policy.can_insert({
-        "project_id": project_a_id,
-        "name": "New Document",
-    })
+    can_create = await policy.can_insert(
+        {
+            "project_id": project_a_id,
+            "name": "New Document",
+        }
+    )
 
     # Then: Access granted
     assert can_create is True, "Editor should create documents"
 
 
 @pytest.mark.asyncio
-async def test_workspace_viewer_cannot_create_documents(
-    mock_db_adapter, member_user_id, project_a_id
-):
+async def test_workspace_viewer_cannot_create_documents(mock_db_adapter, member_user_id, project_a_id):
     """
     Given a workspace member with viewer role
     When they try to create a document
@@ -292,10 +279,12 @@ async def test_workspace_viewer_cannot_create_documents(
     }
 
     # When: Viewer tries to create document
-    can_create = await policy.can_insert({
-        "project_id": project_a_id,
-        "name": "New Document",
-    })
+    can_create = await policy.can_insert(
+        {
+            "project_id": project_a_id,
+            "name": "New Document",
+        }
+    )
 
     # Then: Access denied
     assert can_create is False, "Viewer should not create documents"
@@ -307,9 +296,7 @@ async def test_workspace_viewer_cannot_create_documents(
 
 
 @pytest.mark.asyncio
-async def test_org_member_can_access_org_data(
-    mock_db_adapter, member_user_id, org_a_id
-):
+async def test_org_member_can_access_org_data(mock_db_adapter, member_user_id, org_a_id):
     """
     Given a user who is a member of an organization
     When they try to access organization data
@@ -336,9 +323,7 @@ async def test_org_member_can_access_org_data(
 
 
 @pytest.mark.asyncio
-async def test_org_member_can_create_projects_in_org(
-    mock_db_adapter, member_user_id, org_a_id
-):
+async def test_org_member_can_create_projects_in_org(mock_db_adapter, member_user_id, org_a_id):
     """
     Given an organization member
     When they try to create a project in the organization
@@ -357,19 +342,19 @@ async def test_org_member_can_create_projects_in_org(
     }
 
     # When: Member creates project
-    can_create = await policy.can_insert({
-        "organization_id": org_a_id,
-        "name": "New Project",
-    })
+    can_create = await policy.can_insert(
+        {
+            "organization_id": org_a_id,
+            "name": "New Project",
+        }
+    )
 
     # Then: Access granted
     assert can_create is True, "Org member should create projects"
 
 
 @pytest.mark.asyncio
-async def test_org_member_can_access_private_org_projects(
-    mock_db_adapter, member_user_id, org_a_id, project_a_id
-):
+async def test_org_member_can_access_private_org_projects(mock_db_adapter, member_user_id, org_a_id, project_a_id):
     """
     Given an org member accessing a private project in their org
     When they are not a direct project member
@@ -377,6 +362,7 @@ async def test_org_member_can_access_private_org_projects(
 
     Tests org-level access grants project access.
     """
+
     # Setup complex scenario:
     # 1. User is NOT direct project member
     # 2. User IS org member
@@ -406,11 +392,7 @@ async def test_org_member_can_access_private_org_projects(
     mock_db_adapter.get_single.side_effect = mock_get_single
 
     # When: Org member accesses private project
-    can_access = await user_can_access_project(
-        project_a_id,
-        member_user_id,
-        mock_db_adapter
-    )
+    can_access = await user_can_access_project(project_a_id, member_user_id, mock_db_adapter)
 
     # Then: Access granted via org membership
     assert can_access is True, "Org member should access private org projects"
@@ -422,9 +404,7 @@ async def test_org_member_can_access_private_org_projects(
 
 
 @pytest.mark.asyncio
-async def test_cross_org_access_is_denied(
-    mock_db_adapter, member_user_id, org_a_id, org_b_id
-):
+async def test_cross_org_access_is_denied(mock_db_adapter, member_user_id, org_a_id, org_b_id):
     """
     Given a user who is a member of Organization A
     When they try to access Organization B
@@ -456,9 +436,7 @@ async def test_cross_org_access_is_denied(
 
 
 @pytest.mark.asyncio
-async def test_cross_org_project_access_is_denied(
-    mock_db_adapter, member_user_id, org_a_id, org_b_id, project_b_id
-):
+async def test_cross_org_project_access_is_denied(mock_db_adapter, member_user_id, org_a_id, org_b_id, project_b_id):
     """
     Given a user in Organization A
     When they try to access a project in Organization B
@@ -466,6 +444,7 @@ async def test_cross_org_project_access_is_denied(
 
     Tests cross-org project isolation.
     """
+
     # Setup: User is member of org A, trying to access project in org B
     def mock_get_single(table, filters):
         # Not a project member
@@ -489,11 +468,7 @@ async def test_cross_org_project_access_is_denied(
     mock_db_adapter.get_single.side_effect = mock_get_single
 
     # When: Try to access project in org B
-    can_access = await user_can_access_project(
-        project_b_id,
-        member_user_id,
-        mock_db_adapter
-    )
+    can_access = await user_can_access_project(project_b_id, member_user_id, mock_db_adapter)
 
     # Then: Access denied
     assert can_access is False, "Should not access cross-org projects"
@@ -505,9 +480,7 @@ async def test_cross_org_project_access_is_denied(
 
 
 @pytest.mark.asyncio
-async def test_cross_workspace_access_is_denied(
-    mock_db_adapter, member_user_id, project_a_id, project_b_id
-):
+async def test_cross_workspace_access_is_denied(mock_db_adapter, member_user_id, project_a_id, project_b_id):
     """
     Given a user who is a member of Workspace A
     When they try to access Workspace B
@@ -551,9 +524,7 @@ async def test_cross_workspace_access_is_denied(
 
 
 @pytest.mark.asyncio
-async def test_public_project_allows_cross_workspace_access(
-    mock_db_adapter, external_user_id, project_a_id
-):
+async def test_public_project_allows_cross_workspace_access(mock_db_adapter, external_user_id, project_a_id):
     """
     Given a public project
     When any authenticated user tries to access it
@@ -561,6 +532,7 @@ async def test_public_project_allows_cross_workspace_access(
 
     Tests public visibility overrides workspace isolation.
     """
+
     # Setup: User is NOT project member, NOT org member, but project is PUBLIC
     def mock_get_single(table, filters):
         # Not a project member
@@ -579,11 +551,7 @@ async def test_public_project_allows_cross_workspace_access(
     mock_db_adapter.get_single.side_effect = mock_get_single
 
     # When: External user accesses public project
-    can_access = await user_can_access_project(
-        project_a_id,
-        external_user_id,
-        mock_db_adapter
-    )
+    can_access = await user_can_access_project(project_a_id, external_user_id, mock_db_adapter)
 
     # Then: Access granted due to public visibility
     assert can_access is True, "Public projects should be accessible to all"

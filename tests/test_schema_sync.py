@@ -37,7 +37,12 @@ class TestSchemaSync:
                     "columns": [
                         {"column_name": "id", "data_type": "uuid", "is_nullable": "NO"},
                         {"column_name": "name", "data_type": "text", "is_nullable": "NO"},
-                        {"column_name": "type", "data_type": "USER-DEFINED", "is_nullable": "NO", "udt_name": "organization_type"},
+                        {
+                            "column_name": "type",
+                            "data_type": "USER-DEFINED",
+                            "is_nullable": "NO",
+                            "udt_name": "organization_type",
+                        },
                         {"column_name": "new_field", "data_type": "text", "is_nullable": "YES"},
                     ]
                 },
@@ -46,12 +51,12 @@ class TestSchemaSync:
                         {"column_name": "id", "data_type": "uuid", "is_nullable": "NO"},
                         {"column_name": "value", "data_type": "text", "is_nullable": "YES"},
                     ]
-                }
+                },
             },
             "enums": {
                 "organization_type": ["personal", "team", "enterprise", "nonprofit"],
                 "new_enum": ["value1", "value2"],
-            }
+            },
         }
 
     @pytest.fixture
@@ -69,7 +74,7 @@ class TestSchemaSync:
             },
             "enums": {
                 "organization_type": ["personal", "team", "enterprise"],
-            }
+            },
         }
 
     def test_convert_class_to_enum_name(self, sync):
@@ -189,10 +194,13 @@ class TestSchemaSync:
         assert "count: Optional[int]" in code
 
         # Validate Python syntax (with necessary imports)
-        full_code = """
+        full_code = (
+            """
 from typing import TypedDict, Optional
 
-""" + code
+"""
+            + code
+        )
         compile(full_code, "<string>", "exec")
 
     def test_calculate_schema_hash(self, sync):
@@ -225,9 +233,7 @@ from typing import TypedDict, Optional
                     ]
                 }
             },
-            "enums": {
-                "status": ["active", "inactive"]
-            }
+            "enums": {"status": ["active", "inactive"]},
         }
 
         sync.db_schema = identical_schema
@@ -239,9 +245,7 @@ from typing import TypedDict, Optional
                     ]
                 }
             },
-            "enums": {
-                "status": ["active", "inactive"]
-            }
+            "enums": {"status": ["active", "inactive"]},
         }
 
         differences = sync.compare_schemas()

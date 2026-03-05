@@ -35,12 +35,16 @@ async def authenticated_credentials(auth_session_broker: AuthSessionBroker) -> A
 
 
 @pytest.fixture(scope="session")
-async def authenticated_client(request):
+async def authenticated_client(request, atoms_mode_config):
     """Session-scoped authenticated FastHTTPClient.
 
     Uses credentials from auth plugin (if available) or performs OAuth.
     The auth plugin handles OAuth before test collection, so this typically
     just retrieves cached credentials.
+
+    Mode-aware:
+    - HOT: Real server endpoint for integration testing
+    - COLD/DRY: Mock endpoint for unit testing
 
     Usage:
         async def test_entity_tool(authenticated_client):
@@ -55,7 +59,11 @@ async def authenticated_client(request):
     from pheno.testing.mcp_qa.adapters.fast_http_client import FastHTTPClient
     from pheno.testing.mcp_qa.oauth.credential_broker import UnifiedCredentialBroker
 
-    mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
+    # Use different endpoints based on test mode
+    if atoms_mode_config.mode.value == "hot":
+        mcp_endpoint = os.getenv("MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp")
+    else:
+        mcp_endpoint = os.getenv("MCP_ENDPOINT", "http://atomcp:8000/api/mcp")
 
     # Try to get cached credentials from auth plugin
     if hasattr(request.session.config, "_mcp_credentials"):
@@ -70,7 +78,7 @@ async def authenticated_client(request):
     client = None
     try:
         # Get authenticated client (uses cache if plugin provided credentials)
-        mcp_client, credentials = await broker.get_authenticated_client()
+        _mcp_client, credentials = await broker.get_authenticated_client()
 
         # Extract the access token
         access_token = credentials.access_token
@@ -81,7 +89,7 @@ async def authenticated_client(request):
         async def reauthenticate():
             """Re-authenticate and return fresh access token when current token expires."""
             logger.info("🔄 Re-authenticating due to token expiration...")
-            mcp_client, new_creds = await broker.get_authenticated_client()
+            _mcp_client, new_creds = await broker.get_authenticated_client()
             logger.info(f"✅ Re-authentication successful - new token valid until {new_creds.expires_at}")
             return new_creds.access_token
 
@@ -90,7 +98,7 @@ async def authenticated_client(request):
             mcp_endpoint=mcp_endpoint,
             access_token=access_token,
             debug=True,  # Enable network-level logging
-            reauthenticate_callback=reauthenticate  # Auto re-auth on 401
+            reauthenticate_callback=reauthenticate,  # Auto re-auth on 401
         )
 
         yield client
@@ -124,27 +132,21 @@ async def google_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerato
 
 
 @pytest.fixture
-async def fresh_authenticated_client(auth_session_broker: AuthSessionBroker) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
+async def fresh_authenticated_client(
+    auth_session_broker: AuthSessionBroker,
+) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """Function-scoped client with fresh credentials.
 
     Use this when you need to test auth refresh or credential expiry.
     """
-    credentials = await auth_session_broker.get_authenticated_credentials(
-        provider="authkit",
-        force_refresh=True
-    )
-    client = AuthenticatedHTTPClient(credentials)
-    return client
+    credentials = await auth_session_broker.get_authenticated_credentials(provider="authkit", force_refresh=True)
+    return AuthenticatedHTTPClient(credentials)
 
 
 @pytest.fixture
 def mock_auth_credentials() -> AuthCredentials:
     """Mock credentials for unit testing (no real OAuth)."""
-    return AuthCredentials(
-        access_token="mock_token_for_unit_tests",
-        provider="mock",
-        base_url="http://localhost:8000"
-    )
+    return AuthCredentials(access_token="mock_token_for_unit_tests", provider="mock", base_url="http://localhost:8000")
 
 
 @pytest.fixture
@@ -167,5 +169,4 @@ def worker_auth_credentials(authenticated_credentials: AuthCredentials) -> AuthC
 @pytest.fixture
 async def isolated_client(worker_auth_credentials: AuthCredentials) -> AsyncGenerator[AuthenticatedHTTPClient, None]:
     """Worker-isolated client for parallel test execution."""
-    client = AuthenticatedHTTPClient(worker_auth_credentials)
-    return client
+    return AuthenticatedHTTPClient(worker_auth_credentials)

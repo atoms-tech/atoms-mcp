@@ -10,8 +10,8 @@ All tests support both HOT (real database) and COLD (mocked) modes.
 """
 
 __all__ = [
+    "test_idempotency",
     "test_migration_runner",
     "test_rollback",
     "test_versioning",
-    "test_idempotency",
 ]

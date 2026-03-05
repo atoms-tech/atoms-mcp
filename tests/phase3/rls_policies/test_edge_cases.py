@@ -68,9 +68,7 @@ def test_project_id():
 
 
 @pytest.mark.asyncio
-async def test_null_organization_id_denies_access(
-    mock_db_adapter, test_user_id
-):
+async def test_null_organization_id_denies_access(mock_db_adapter, test_user_id):
     """
     Given a record with null/missing organization_id
     When checking access policies
@@ -94,9 +92,7 @@ async def test_null_organization_id_denies_access(
 
 
 @pytest.mark.asyncio
-async def test_null_project_id_in_document_denies_access(
-    mock_db_adapter, test_user_id
-):
+async def test_null_project_id_in_document_denies_access(mock_db_adapter, test_user_id):
     """
     Given a document with null/missing project_id
     When checking access policies
@@ -107,19 +103,19 @@ async def test_null_project_id_in_document_denies_access(
     policy = DocumentPolicy(test_user_id, mock_db_adapter)
 
     # When: Check access to document with null project_id
-    can_read = await policy.can_select({
-        "id": "doc-001",
-        "project_id": None,
-    })
+    can_read = await policy.can_select(
+        {
+            "id": "doc-001",
+            "project_id": None,
+        }
+    )
 
     # Then: Access denied
     assert can_read is False, "Null project_id should deny access"
 
 
 @pytest.mark.asyncio
-async def test_missing_owner_in_organization_prevents_deletion(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_missing_owner_in_organization_prevents_deletion(mock_db_adapter, test_user_id, test_org_id):
     """
     Given an organization with no owner record
     When a user tries to delete it
@@ -145,9 +141,7 @@ async def test_missing_owner_in_organization_prevents_deletion(
 
 
 @pytest.mark.asyncio
-async def test_deleted_user_cannot_access_organization(
-    mock_db_adapter, deleted_user_id, test_org_id
-):
+async def test_deleted_user_cannot_access_organization(mock_db_adapter, deleted_user_id, test_org_id):
     """
     Given a user marked as deleted (is_deleted=True)
     When they try to access an organization
@@ -174,9 +168,7 @@ async def test_deleted_user_cannot_access_organization(
 
 
 @pytest.mark.asyncio
-async def test_deleted_member_record_denies_project_access(
-    mock_db_adapter, test_user_id, test_project_id
-):
+async def test_deleted_member_record_denies_project_access(mock_db_adapter, test_user_id, test_project_id):
     """
     Given a deleted project membership record
     When the user tries to access the project
@@ -208,9 +200,7 @@ async def test_deleted_member_record_denies_project_access(
 
 
 @pytest.mark.asyncio
-async def test_suspended_user_role_prevents_admin_actions(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_suspended_user_role_prevents_admin_actions(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a user with suspended status/role
     When they try to perform admin actions
@@ -232,11 +222,13 @@ async def test_suspended_user_role_prevents_admin_actions(
     }
 
     # When: Try to add new member (admin action)
-    can_add_member = await policy.can_insert({
-        "organization_id": test_org_id,
-        "user_id": "user-new-999",
-        "role": UserRoleType.MEMBER.value,
-    })
+    can_add_member = await policy.can_insert(
+        {
+            "organization_id": test_org_id,
+            "user_id": "user-new-999",
+            "role": UserRoleType.MEMBER.value,
+        }
+    )
 
     # Then: Access denied
     assert can_add_member is False, "Non-admin should not add members"
@@ -248,9 +240,7 @@ async def test_suspended_user_role_prevents_admin_actions(
 
 
 @pytest.mark.asyncio
-async def test_member_cannot_escalate_to_admin_role(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_member_cannot_escalate_to_admin_role(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a regular member
     When they try to update their own role to admin
@@ -277,7 +267,7 @@ async def test_member_cannot_escalate_to_admin_role(
             "user_id": test_user_id,
             "role": UserRoleType.MEMBER.value,
         },
-        {"role": UserRoleType.ADMIN.value}  # Trying to escalate
+        {"role": UserRoleType.ADMIN.value},  # Trying to escalate
     )
 
     # Then: Access denied (is_organization_owner_or_admin returns False)
@@ -285,9 +275,7 @@ async def test_member_cannot_escalate_to_admin_role(
 
 
 @pytest.mark.asyncio
-async def test_editor_cannot_grant_admin_role_to_others(
-    mock_db_adapter, test_user_id, test_project_id
-):
+async def test_editor_cannot_grant_admin_role_to_others(mock_db_adapter, test_user_id, test_project_id):
     """
     Given a project editor
     When they try to add a new admin member
@@ -307,20 +295,20 @@ async def test_editor_cannot_grant_admin_role_to_others(
     }
 
     # When: Try to add admin member
-    can_add_admin = await policy.can_insert({
-        "project_id": test_project_id,
-        "user_id": "user-new-999",
-        "role": ProjectRole.ADMIN.value,
-    })
+    can_add_admin = await policy.can_insert(
+        {
+            "project_id": test_project_id,
+            "user_id": "user-new-999",
+            "role": ProjectRole.ADMIN.value,
+        }
+    )
 
     # Then: Access denied
     assert can_add_admin is False, "Editor should not add admins"
 
 
 @pytest.mark.asyncio
-async def test_profile_update_restricted_to_own_profile(
-    mock_db_adapter, test_user_id
-):
+async def test_profile_update_restricted_to_own_profile(mock_db_adapter, test_user_id):
     """
     Given any user
     When they try to update another user's profile
@@ -333,7 +321,7 @@ async def test_profile_update_restricted_to_own_profile(
     # When: Try to update another user's profile
     can_update_other = await policy.can_update(
         {"id": "user-other-999"},  # Different user
-        {"full_name": "Hacked Name"}
+        {"full_name": "Hacked Name"},
     )
 
     # Then: Access denied
@@ -342,7 +330,7 @@ async def test_profile_update_restricted_to_own_profile(
     # When: Update own profile
     can_update_own = await policy.can_update(
         {"id": test_user_id},  # Own profile
-        {"full_name": "Updated Name"}
+        {"full_name": "Updated Name"},
     )
 
     # Then: Access granted

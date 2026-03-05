@@ -25,12 +25,12 @@ class ToolClient:
             "entity_operation": "entity_tool",
             "relationship_operation": "relationship_tool",
             "workflow_execute": "workflow_tool",
-            "data_query": "query_tool"
+            "data_query": "query_tool",
         }
         self.tool_name = tool_name_mapping.get(operation_name, operation_name)
         self.operation_name = operation_name
 
-    async def call(self, operation: str, arguments: dict[str, Any] = None, **kwargs) -> dict[str, Any]:
+    async def call(self, operation: str, arguments: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]:
         """Call the tool with operation and parameters.
 
         Uses the same parameter structure as working tests:
@@ -39,9 +39,7 @@ class ToolClient:
         - Auth handled via Authorization Bearer header
         """
         # Construct parameters as in working tests
-        tool_params = {
-            "operation": operation
-        }
+        tool_params = {"operation": operation}
 
         # Add any provided arguments directly (not nested)
         if arguments:
@@ -116,6 +114,7 @@ def tool_client_factory(authenticated_client: AuthenticatedHTTPClient) -> Callab
             client = tool_client_factory("my_custom_tool")
             result = await client.call("some_operation")
     """
+
     def create_tool_client(tool_name: str) -> ToolClient:
         return ToolClient(authenticated_client, tool_name)
 
@@ -141,7 +140,7 @@ class BatchToolClient:
 
     def __init__(self, http_client: AuthenticatedHTTPClient):
         self.http_client = http_client
-        self._tool_clients = {}
+        self._tool_clients: dict[str, ToolClient] = {}
 
     def get_tool_client(self, tool_name: str) -> ToolClient:
         """Get or create a tool client."""
@@ -191,10 +190,7 @@ async def tool_schemas(authenticated_client: AuthenticatedHTTPClient) -> dict[st
     try:
         result = await authenticated_client.list_tools()
         if "result" in result and "tools" in result["result"]:
-            return {
-                tool["name"]: tool.get("inputSchema", {})
-                for tool in result["result"]["tools"]
-            }
+            return {tool["name"]: tool.get("inputSchema", {}) for tool in result["result"]["tools"]}
         return {}
     except Exception:
         return {}
@@ -206,15 +202,15 @@ class PerformanceToolClient:
 
     def __init__(self, tool_client: ToolClient):
         self.tool_client = tool_client
-        self.call_times = []
+        self.call_times: list[float] = []
 
-    async def call(self, operation: str, params: dict[str, Any] = None, **kwargs) -> dict[str, Any]:
+    async def call(self, operation: str, params: dict[str, Any] | None = None, **kwargs) -> dict[str, Any]:
         """Call tool with timing measurement."""
         import time
+
         start_time = time.time()
         try:
-            result = await self.tool_client.call(operation, params, **kwargs)
-            return result
+            return await self.tool_client.call(operation, params, **kwargs)
         finally:
             end_time = time.time()
             self.call_times.append(end_time - start_time)

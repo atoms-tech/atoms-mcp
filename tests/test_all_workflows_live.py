@@ -18,7 +18,7 @@ import os
 import sys
 import time
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -32,6 +32,7 @@ TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 
+
 class WorkflowTestRunner:
     """Comprehensive workflow testing with real MCP calls."""
 
@@ -44,10 +45,10 @@ class WorkflowTestRunner:
         }
         self.results = {
             "test_run_id": str(uuid.uuid4()),
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "workflows_tested": [],
             "summary": {},
-            "detailed_results": {}
+            "detailed_results": {},
         }
         self.created_entities: dict[str, list[str]] = {
             "organizations": [],
@@ -74,49 +75,44 @@ class WorkflowTestRunner:
                     return {
                         "success": False,
                         "error": f"HTTP {response.status_code}: {response.text}",
-                        "tool": tool_name
+                        "tool": tool_name,
                     }
 
                 body = response.json()
                 if "result" in body:
                     return body["result"]
 
-                return {
-                    "success": False,
-                    "error": body.get("error", "Unknown error"),
-                    "tool": tool_name
-                }
+                return {"success": False, "error": body.get("error", "Unknown error"), "tool": tool_name}
             except Exception as e:
-                return {
-                    "success": False,
-                    "error": str(e),
-                    "tool": tool_name
-                }
+                return {"success": False, "error": str(e), "tool": tool_name}
 
     async def test_organization_onboarding(self) -> dict[str, Any]:
         """Test 1: Organization Onboarding Workflow"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEST 1: organization_onboarding")
-        print("="*80)
+        print("=" * 80)
 
         start_time = time.time()
         test_result: dict[str, Any] = {
             "workflow": "organization_onboarding",
             "scenarios": [],
             "entities_created": [],
-            "relationships_created": []
+            "relationships_created": [],
         }
 
         # Scenario 1: Basic onboarding
         print("\n[Scenario 1] Basic organization onboarding...")
-        result1 = await self.call_tool("workflow_tool", {
-            "workflow": "organization_onboarding",
-            "parameters": {
-                "name": f"Test Org {uuid.uuid4().hex[:8]}",
-                "description": "Organization for workflow testing"
+        result1 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "organization_onboarding",
+                "parameters": {
+                    "name": f"Test Org {uuid.uuid4().hex[:8]}",
+                    "description": "Organization for workflow testing",
+                },
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result1, indent=2)}")
 
@@ -124,7 +120,7 @@ class WorkflowTestRunner:
             "name": "basic_onboarding",
             "success": result1.get("success", False),
             "result": result1,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario1)
 
@@ -135,15 +131,18 @@ class WorkflowTestRunner:
 
         # Scenario 2: Onboarding with starter project
         print("\n[Scenario 2] Onboarding with starter project...")
-        result2 = await self.call_tool("workflow_tool", {
-            "workflow": "organization_onboarding",
-            "parameters": {
-                "name": f"Full Setup Org {uuid.uuid4().hex[:8]}",
-                "description": "Organization with starter project",
-                "create_starter_project": True
+        result2 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "organization_onboarding",
+                "parameters": {
+                    "name": f"Full Setup Org {uuid.uuid4().hex[:8]}",
+                    "description": "Organization with starter project",
+                    "create_starter_project": True,
+                },
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result2, indent=2)}")
 
@@ -151,17 +150,15 @@ class WorkflowTestRunner:
             "name": "onboarding_with_project",
             "success": result2.get("success", False),
             "result": result2,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario2)
 
         # Scenario 3: Error handling - missing required params
         print("\n[Scenario 3] Error handling - missing name...")
-        result3 = await self.call_tool("workflow_tool", {
-            "workflow": "organization_onboarding",
-            "parameters": {},
-            "transaction_mode": True
-        })
+        result3 = await self.call_tool(
+            "workflow_tool", {"workflow": "organization_onboarding", "parameters": {}, "transaction_mode": True}
+        )
 
         print(f"Result: {json.dumps(result3, indent=2)}")
 
@@ -170,7 +167,7 @@ class WorkflowTestRunner:
             "success": not result3.get("success", True),  # Should fail
             "result": result3,
             "transaction_mode": True,
-            "expected_error": True
+            "expected_error": True,
         }
         test_result["scenarios"].append(scenario3)
 
@@ -182,30 +179,33 @@ class WorkflowTestRunner:
 
     async def test_setup_project(self) -> dict[str, Any]:
         """Test 2: Setup Project Workflow"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEST 2: setup_project")
-        print("="*80)
+        print("=" * 80)
 
         start_time = time.time()
         test_result: dict[str, Any] = {
             "workflow": "setup_project",
             "scenarios": [],
             "entities_created": [],
-            "relationships_created": []
+            "relationships_created": [],
         }
 
         # Need an organization first
         if not self.created_entities["organizations"]:
             print("\n[Prerequisite] Creating organization...")
-            org_result = await self.call_tool("entity_tool", {
-                "entity_type": "organization",
-                "operation": "create",
-                "data": {
-                    "name": f"Project Test Org {uuid.uuid4().hex[:8]}",
-                    "slug": f"proj-test-{uuid.uuid4().hex[:8]}",
-                    "type": "team"
-                }
-            })
+            org_result = await self.call_tool(
+                "entity_tool",
+                {
+                    "entity_type": "organization",
+                    "operation": "create",
+                    "data": {
+                        "name": f"Project Test Org {uuid.uuid4().hex[:8]}",
+                        "slug": f"proj-test-{uuid.uuid4().hex[:8]}",
+                        "type": "team",
+                    },
+                },
+            )
 
             if org_result.get("success") and org_result.get("data", {}).get("id"):
                 org_id = org_result["data"]["id"]
@@ -220,15 +220,18 @@ class WorkflowTestRunner:
 
         # Scenario 1: Basic project setup
         print("\n[Scenario 1] Basic project setup...")
-        result1 = await self.call_tool("workflow_tool", {
-            "workflow": "setup_project",
-            "parameters": {
-                "name": f"Test Project {uuid.uuid4().hex[:8]}",
-                "organization_id": org_id,
-                "description": "Basic test project"
+        result1 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "setup_project",
+                "parameters": {
+                    "name": f"Test Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": org_id,
+                    "description": "Basic test project",
+                },
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result1, indent=2)}")
 
@@ -236,7 +239,7 @@ class WorkflowTestRunner:
             "name": "basic_setup",
             "success": result1.get("success", False),
             "result": result1,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario1)
 
@@ -247,15 +250,18 @@ class WorkflowTestRunner:
 
         # Scenario 2: Project with initial documents
         print("\n[Scenario 2] Project with initial documents...")
-        result2 = await self.call_tool("workflow_tool", {
-            "workflow": "setup_project",
-            "parameters": {
-                "name": f"Doc Project {uuid.uuid4().hex[:8]}",
-                "organization_id": org_id,
-                "initial_documents": ["Requirements", "Design", "Test Plan"]
+        result2 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "setup_project",
+                "parameters": {
+                    "name": f"Doc Project {uuid.uuid4().hex[:8]}",
+                    "organization_id": org_id,
+                    "initial_documents": ["Requirements", "Design", "Test Plan"],
+                },
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result2, indent=2)}")
 
@@ -263,7 +269,7 @@ class WorkflowTestRunner:
             "name": "with_initial_documents",
             "success": result2.get("success", False),
             "result": result2,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario2)
 
@@ -273,13 +279,10 @@ class WorkflowTestRunner:
 
         # Scenario 3: Error handling - missing org_id
         print("\n[Scenario 3] Error handling - missing organization_id...")
-        result3 = await self.call_tool("workflow_tool", {
-            "workflow": "setup_project",
-            "parameters": {
-                "name": "Incomplete Project"
-            },
-            "transaction_mode": True
-        })
+        result3 = await self.call_tool(
+            "workflow_tool",
+            {"workflow": "setup_project", "parameters": {"name": "Incomplete Project"}, "transaction_mode": True},
+        )
 
         print(f"Result: {json.dumps(result3, indent=2)}")
 
@@ -288,7 +291,7 @@ class WorkflowTestRunner:
             "success": not result3.get("success", True),  # Should fail
             "result": result3,
             "transaction_mode": True,
-            "expected_error": True
+            "expected_error": True,
         }
         test_result["scenarios"].append(scenario3)
 
@@ -300,16 +303,16 @@ class WorkflowTestRunner:
 
     async def test_import_requirements(self) -> dict[str, Any]:
         """Test 3: Import Requirements Workflow"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEST 3: import_requirements")
-        print("="*80)
+        print("=" * 80)
 
         start_time = time.time()
         test_result: dict[str, Any] = {
             "workflow": "import_requirements",
             "scenarios": [],
             "entities_created": [],
-            "relationships_created": []
+            "relationships_created": [],
         }
 
         # Need a document first
@@ -322,15 +325,18 @@ class WorkflowTestRunner:
         project_id = self.created_entities["projects"][0]
 
         print(f"\n[Prerequisite] Creating document in project {project_id}...")
-        doc_result = await self.call_tool("entity_tool", {
-            "entity_type": "document",
-            "operation": "create",
-            "data": {
-                "name": f"Requirements Doc {uuid.uuid4().hex[:8]}",
-                "project_id": project_id,
-                "description": "Document for testing requirements import"
-            }
-        })
+        doc_result = await self.call_tool(
+            "entity_tool",
+            {
+                "entity_type": "document",
+                "operation": "create",
+                "data": {
+                    "name": f"Requirements Doc {uuid.uuid4().hex[:8]}",
+                    "project_id": project_id,
+                    "description": "Document for testing requirements import",
+                },
+            },
+        )
 
         if not doc_result.get("success") or not doc_result.get("data", {}).get("id"):
             print(f"✗ Failed to create document: {doc_result.get('error')}")
@@ -343,19 +349,22 @@ class WorkflowTestRunner:
 
         # Scenario 1: Import multiple requirements
         print("\n[Scenario 1] Import multiple requirements...")
-        result1 = await self.call_tool("workflow_tool", {
-            "workflow": "import_requirements",
-            "parameters": {
-                "document_id": doc_id,
-                "requirements": [
-                    {"name": "REQ-001", "description": "User authentication", "priority": "high"},
-                    {"name": "REQ-002", "description": "Data validation", "priority": "medium"},
-                    {"name": "REQ-003", "description": "Error handling", "priority": "high"},
-                    {"name": "REQ-004", "description": "Logging", "priority": "low"}
-                ]
+        result1 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "import_requirements",
+                "parameters": {
+                    "document_id": doc_id,
+                    "requirements": [
+                        {"name": "REQ-001", "description": "User authentication", "priority": "high"},
+                        {"name": "REQ-002", "description": "Data validation", "priority": "medium"},
+                        {"name": "REQ-003", "description": "Error handling", "priority": "high"},
+                        {"name": "REQ-004", "description": "Logging", "priority": "low"},
+                    ],
+                },
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result1, indent=2)}")
 
@@ -363,19 +372,20 @@ class WorkflowTestRunner:
             "name": "import_multiple_requirements",
             "success": result1.get("success", False),
             "result": result1,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario1)
 
         # Scenario 2: Error handling - missing document_id
         print("\n[Scenario 2] Error handling - missing document_id...")
-        result2 = await self.call_tool("workflow_tool", {
-            "workflow": "import_requirements",
-            "parameters": {
-                "requirements": [{"name": "REQ-X", "description": "Test"}]
+        result2 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "import_requirements",
+                "parameters": {"requirements": [{"name": "REQ-X", "description": "Test"}]},
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result2, indent=2)}")
 
@@ -384,7 +394,7 @@ class WorkflowTestRunner:
             "success": not result2.get("success", True),  # Should fail
             "result": result2,
             "transaction_mode": True,
-            "expected_error": True
+            "expected_error": True,
         }
         test_result["scenarios"].append(scenario2)
 
@@ -396,16 +406,16 @@ class WorkflowTestRunner:
 
     async def test_setup_test_matrix(self) -> dict[str, Any]:
         """Test 4: Setup Test Matrix Workflow"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEST 4: setup_test_matrix")
-        print("="*80)
+        print("=" * 80)
 
         start_time = time.time()
         test_result: dict[str, Any] = {
             "workflow": "setup_test_matrix",
             "scenarios": [],
             "entities_created": [],
-            "relationships_created": []
+            "relationships_created": [],
         }
 
         if not self.created_entities["projects"]:
@@ -418,14 +428,14 @@ class WorkflowTestRunner:
 
         # Scenario 1: Basic test matrix setup
         print(f"\n[Scenario 1] Basic test matrix setup for project {project_id}...")
-        result1 = await self.call_tool("workflow_tool", {
-            "workflow": "setup_test_matrix",
-            "parameters": {
-                "project_id": project_id,
-                "matrix_name": f"Test Matrix {uuid.uuid4().hex[:8]}"
+        result1 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "setup_test_matrix",
+                "parameters": {"project_id": project_id, "matrix_name": f"Test Matrix {uuid.uuid4().hex[:8]}"},
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result1, indent=2)}")
 
@@ -433,17 +443,15 @@ class WorkflowTestRunner:
             "name": "basic_test_matrix",
             "success": result1.get("success", False),
             "result": result1,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario1)
 
         # Scenario 2: Error handling - missing project_id
         print("\n[Scenario 2] Error handling - missing project_id...")
-        result2 = await self.call_tool("workflow_tool", {
-            "workflow": "setup_test_matrix",
-            "parameters": {},
-            "transaction_mode": True
-        })
+        result2 = await self.call_tool(
+            "workflow_tool", {"workflow": "setup_test_matrix", "parameters": {}, "transaction_mode": True}
+        )
 
         print(f"Result: {json.dumps(result2, indent=2)}")
 
@@ -452,7 +460,7 @@ class WorkflowTestRunner:
             "success": not result2.get("success", True),  # Should fail
             "result": result2,
             "transaction_mode": True,
-            "expected_error": True
+            "expected_error": True,
         }
         test_result["scenarios"].append(scenario2)
 
@@ -464,16 +472,16 @@ class WorkflowTestRunner:
 
     async def test_bulk_status_update(self) -> dict[str, Any]:
         """Test 5: Bulk Status Update Workflow"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TEST 5: bulk_status_update")
-        print("="*80)
+        print("=" * 80)
 
         start_time = time.time()
         test_result: dict[str, Any] = {
             "workflow": "bulk_status_update",
             "scenarios": [],
             "entities_created": [],
-            "relationships_created": []
+            "relationships_created": [],
         }
 
         if not self.created_entities["documents"]:
@@ -486,35 +494,34 @@ class WorkflowTestRunner:
         doc_id = self.created_entities["documents"][0]
 
         print(f"\n[Prerequisite] Getting requirements from document {doc_id}...")
-        req_query = await self.call_tool("entity_tool", {
-            "entity_type": "requirement",
-            "operation": "list",
-            "parent_type": "document",
-            "parent_id": doc_id
-        })
+        req_query = await self.call_tool(
+            "entity_tool",
+            {"entity_type": "requirement", "operation": "list", "parent_type": "document", "parent_id": doc_id},
+        )
 
         if not req_query.get("success") or not req_query.get("data"):
             print("✗ No requirements found, creating some...")
             # Create some requirements
             for i in range(3):
-                await self.call_tool("entity_tool", {
-                    "entity_type": "requirement",
-                    "operation": "create",
-                    "data": {
-                        "name": f"REQ-BULK-{i:03d}",
-                        "description": f"Requirement for bulk update {i}",
-                        "document_id": doc_id,
-                        "status": "draft"
-                    }
-                })
+                await self.call_tool(
+                    "entity_tool",
+                    {
+                        "entity_type": "requirement",
+                        "operation": "create",
+                        "data": {
+                            "name": f"REQ-BULK-{i:03d}",
+                            "description": f"Requirement for bulk update {i}",
+                            "document_id": doc_id,
+                            "status": "draft",
+                        },
+                    },
+                )
 
             # Re-query
-            req_query = await self.call_tool("entity_tool", {
-                "entity_type": "requirement",
-                "operation": "list",
-                "parent_type": "document",
-                "parent_id": doc_id
-            })
+            req_query = await self.call_tool(
+                "entity_tool",
+                {"entity_type": "requirement", "operation": "list", "parent_type": "document", "parent_id": doc_id},
+            )
 
         if not req_query.get("success") or not req_query.get("data"):
             print("✗ Still no requirements available")
@@ -526,15 +533,14 @@ class WorkflowTestRunner:
 
         # Scenario 1: Bulk status update
         print(f"\n[Scenario 1] Bulk update {len(requirement_ids)} requirements to 'approved'...")
-        result1 = await self.call_tool("workflow_tool", {
-            "workflow": "bulk_status_update",
-            "parameters": {
-                "entity_type": "requirement",
-                "entity_ids": requirement_ids,
-                "new_status": "approved"
+        result1 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "bulk_status_update",
+                "parameters": {"entity_type": "requirement", "entity_ids": requirement_ids, "new_status": "approved"},
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result1, indent=2)}")
 
@@ -542,20 +548,20 @@ class WorkflowTestRunner:
             "name": "bulk_update_requirements",
             "success": result1.get("success", False),
             "result": result1,
-            "transaction_mode": True
+            "transaction_mode": True,
         }
         test_result["scenarios"].append(scenario1)
 
         # Scenario 2: Error handling - missing params
         print("\n[Scenario 2] Error handling - missing new_status...")
-        result2 = await self.call_tool("workflow_tool", {
-            "workflow": "bulk_status_update",
-            "parameters": {
-                "entity_type": "requirement",
-                "entity_ids": requirement_ids
+        result2 = await self.call_tool(
+            "workflow_tool",
+            {
+                "workflow": "bulk_status_update",
+                "parameters": {"entity_type": "requirement", "entity_ids": requirement_ids},
+                "transaction_mode": True,
             },
-            "transaction_mode": True
-        })
+        )
 
         print(f"Result: {json.dumps(result2, indent=2)}")
 
@@ -564,7 +570,7 @@ class WorkflowTestRunner:
             "success": not result2.get("success", True),  # Should fail
             "result": result2,
             "transaction_mode": True,
-            "expected_error": True
+            "expected_error": True,
         }
         test_result["scenarios"].append(scenario2)
 
@@ -576,9 +582,9 @@ class WorkflowTestRunner:
 
     async def run_all_tests(self) -> dict[str, Any]:
         """Run all workflow tests and generate comprehensive report."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("COMPREHENSIVE WORKFLOW TESTING - ALL WORKFLOWS")
-        print("="*80)
+        print("=" * 80)
 
         overall_start = time.time()
 
@@ -616,12 +622,13 @@ class WorkflowTestRunner:
             "total_scenarios": total_scenarios,
             "passed_scenarios": passed_scenarios,
             "failed_scenarios": total_scenarios - passed_scenarios,
-            "pass_rate": f"{(passed_scenarios/total_scenarios*100):.1f}%" if total_scenarios > 0 else "N/A",
+            "pass_rate": f"{(passed_scenarios / total_scenarios * 100):.1f}%" if total_scenarios > 0 else "N/A",
             "total_duration_seconds": time.time() - overall_start,
-            "entities_created": self.created_entities
+            "entities_created": self.created_entities,
         }
 
         return self.results
+
 
 async def main():
     """Main test execution."""
@@ -637,11 +644,9 @@ async def main():
     print("\n[Auth] Authenticating with Supabase...")
     try:
         from supabase import create_client
+
         client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        auth_response = client.auth.sign_in_with_password({
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        })
+        auth_response = client.auth.sign_in_with_password({"email": TEST_EMAIL, "password": TEST_PASSWORD})
 
         if not auth_response.session or not auth_response.session.access_token:
             print("✗ No session obtained")
@@ -658,9 +663,9 @@ async def main():
     results = await runner.run_all_tests()
 
     # Print summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST SUMMARY")
-    print("="*80)
+    print("=" * 80)
     print(json.dumps(results["summary"], indent=2))
 
     # Save full report
@@ -674,6 +679,7 @@ async def main():
     if results["summary"]["failed_scenarios"] > 0:
         sys.exit(1)
     sys.exit(0)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

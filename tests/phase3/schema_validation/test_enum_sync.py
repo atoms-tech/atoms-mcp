@@ -49,7 +49,7 @@ class TestEnumSync:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -78,10 +78,7 @@ class TestEnumSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_all_enums_have_pydantic_classes(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_enums: dict[str, Any],
-        store_result
+        self, schema_sync: SchemaSync, pydantic_enums: dict[str, Any], store_result
     ) -> None:
         """Test that all Supabase enums have corresponding Pydantic classes.
 
@@ -101,10 +98,18 @@ class TestEnumSync:
 
             # Filter out system enums (from auth schema)
             system_enums = {
-                "key_status", "key_type", "aal_level", "code_challenge_method",
-                "factor_status", "factor_type", "one_time_token_type",
-                "request_status", "equality_op", "action", "buckettype",
-                "oauth_registration_type"
+                "key_status",
+                "key_type",
+                "aal_level",
+                "code_challenge_method",
+                "factor_status",
+                "factor_type",
+                "one_time_token_type",
+                "request_status",
+                "equality_op",
+                "action",
+                "buckettype",
+                "oauth_registration_type",
             }
             db_enums = db_enums - system_enums
 
@@ -126,16 +131,20 @@ class TestEnumSync:
             for enum_name in list(pydantic_enum_names)[:10]:
                 logger.info(f"  - {enum_name}")
 
-            store_result("test_all_enums_have_pydantic_classes", True, {
-                "db_enum_count": len(db_enums),
-                "pydantic_enum_count": len(pydantic_enums),
-                "missing_pydantic_count": len(missing_pydantic),
-                "extra_pydantic_count": len(extra_pydantic),
-                "missing_pydantic": list(missing_pydantic),
-                "extra_pydantic": list(extra_pydantic),
-                "sample_db_enums": list(db_enums)[:10],
-                "sample_pydantic_enums": list(pydantic_enum_names)[:10]
-            })
+            store_result(
+                "test_all_enums_have_pydantic_classes",
+                True,
+                {
+                    "db_enum_count": len(db_enums),
+                    "pydantic_enum_count": len(pydantic_enums),
+                    "missing_pydantic_count": len(missing_pydantic),
+                    "extra_pydantic_count": len(extra_pydantic),
+                    "missing_pydantic": list(missing_pydantic),
+                    "extra_pydantic": list(extra_pydantic),
+                    "sample_db_enums": list(db_enums)[:10],
+                    "sample_pydantic_enums": list(pydantic_enum_names)[:10],
+                },
+            )
 
             # Assertions
             assert len(db_enums) >= 20, f"Expected at least 20 enums, found {len(db_enums)}"
@@ -153,10 +162,7 @@ class TestEnumSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_enum_values_match(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_enums: dict[str, Any],
-        store_result
+        self, schema_sync: SchemaSync, pydantic_enums: dict[str, Any], store_result
     ) -> None:
         """Test that enum values match between database and Pydantic.
 
@@ -185,13 +191,15 @@ class TestEnumSync:
                     extra_in_pydantic = pydantic_values - db_values
 
                     if missing_in_pydantic or extra_in_pydantic:
-                        mismatches.append({
-                            "enum": enum_name,
-                            "missing_in_pydantic": list(missing_in_pydantic),
-                            "extra_in_pydantic": list(extra_in_pydantic),
-                            "db_values": list(db_values),
-                            "pydantic_values": list(pydantic_values)
-                        })
+                        mismatches.append(
+                            {
+                                "enum": enum_name,
+                                "missing_in_pydantic": list(missing_in_pydantic),
+                                "extra_in_pydantic": list(extra_in_pydantic),
+                                "db_values": list(db_values),
+                                "pydantic_values": list(pydantic_values),
+                            }
+                        )
                     else:
                         perfect_matches.append(enum_name)
 
@@ -202,9 +210,9 @@ class TestEnumSync:
                 logger.warning("Enum value mismatches found:")
                 for mismatch in mismatches[:5]:  # Log first 5
                     logger.warning(f"  {mismatch['enum']}:")
-                    if mismatch['missing_in_pydantic']:
+                    if mismatch["missing_in_pydantic"]:
                         logger.warning(f"    Missing: {mismatch['missing_in_pydantic']}")
-                    if mismatch['extra_in_pydantic']:
+                    if mismatch["extra_in_pydantic"]:
                         logger.warning(f"    Extra: {mismatch['extra_in_pydantic']}")
 
             # Check some specific enums for detailed validation
@@ -218,7 +226,7 @@ class TestEnumSync:
                     "has_personal": "personal" in org_values,
                     "has_team": "team" in org_values,
                     "has_enterprise": "enterprise" in org_values,
-                    "all_values": list(org_values)
+                    "all_values": list(org_values),
                 }
 
             # Check project_status enum
@@ -228,16 +236,20 @@ class TestEnumSync:
                 specific_checks["project_status"] = {
                     "has_active": "active" in status_values,
                     "has_archived": "archived" in status_values,
-                    "all_values": list(status_values)
+                    "all_values": list(status_values),
                 }
 
-            store_result("test_enum_values_match", True, {
-                "perfect_matches_count": len(perfect_matches),
-                "mismatches_count": len(mismatches),
-                "perfect_matches": perfect_matches,
-                "mismatches": mismatches[:10],  # Store first 10
-                "specific_checks": specific_checks
-            })
+            store_result(
+                "test_enum_values_match",
+                True,
+                {
+                    "perfect_matches_count": len(perfect_matches),
+                    "mismatches_count": len(mismatches),
+                    "perfect_matches": perfect_matches,
+                    "mismatches": mismatches[:10],  # Store first 10
+                    "specific_checks": specific_checks,
+                },
+            )
 
             # Allow some mismatches but warn about them
             if len(mismatches) > 5:
@@ -252,12 +264,7 @@ class TestEnumSync:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_enum_serialization(
-        self,
-        pydantic_enums: dict[str, Any],
-        test_results,
-        store_result
-    ) -> None:
+    async def test_enum_serialization(self, pydantic_enums: dict[str, Any], test_results, store_result) -> None:
         """Test enum serialization and usage in Pydantic models.
 
         Given: Pydantic enum classes
@@ -280,7 +287,7 @@ class TestEnumSync:
                 ("organization_type", "personal"),
                 ("project_status", "active"),
                 ("user_role_type", "member"),
-                ("billing_plan", "free")
+                ("billing_plan", "free"),
             ]
 
             for enum_name, test_value in test_enums:
@@ -300,7 +307,7 @@ class TestEnumSync:
                 try:
                     if str_to_enum_works:
                         serialized = enum_obj.value
-                        enum_to_str_works = (serialized == test_value)
+                        enum_to_str_works = serialized == test_value
                     else:
                         enum_to_str_works = False
                 except Exception:
@@ -310,20 +317,23 @@ class TestEnumSync:
                 try:
                     if str_to_enum_works:
                         import json
+
                         json_str = json.dumps(enum_obj.value)
-                        json_works = (test_value in json_str)
+                        json_works = test_value in json_str
                     else:
                         json_works = False
                 except Exception:
                     json_works = False
 
-                serialization_tests.append({
-                    "enum": enum_name,
-                    "value": test_value,
-                    "str_to_enum": str_to_enum_works,
-                    "enum_to_str": enum_to_str_works,
-                    "json_serialization": json_works
-                })
+                serialization_tests.append(
+                    {
+                        "enum": enum_name,
+                        "value": test_value,
+                        "str_to_enum": str_to_enum_works,
+                        "enum_to_str": enum_to_str_works,
+                        "json_serialization": json_works,
+                    }
+                )
 
             # Test enum in actual model
             model_integration_test = False
@@ -335,19 +345,20 @@ class TestEnumSync:
                     OrganizationBaseSchema,
                     PublicOrganizationTypeEnum,
                 )
+
                 org_data = {
                     "id": uuid.uuid4(),
                     "name": "Test Org",
                     "field_type": PublicOrganizationTypeEnum.PERSONAL,
                     "owner_id": uuid.uuid4(),
-                    "version": 1
+                    "version": 1,
                 }
 
                 org = OrganizationBaseSchema(**org_data)  # type: ignore
-                model_integration_test = (org.field_type == PublicOrganizationTypeEnum.PERSONAL)
+                model_integration_test = org.field_type == PublicOrganizationTypeEnum.PERSONAL
 
             except Exception as e:
-                logger.error(f"Model integration test failed: {e}")
+                logger.exception(f"Model integration test failed: {e}")
 
             # Generate comprehensive summary
             all_results = test_results.get_all_results()
@@ -359,9 +370,10 @@ class TestEnumSync:
                 "model_integration": model_integration_test,
                 "total_enums_validated": len(pydantic_enums),
                 "serialization_success_rate": sum(
-                    1 for t in serialization_tests
-                    if t["str_to_enum"] and t["enum_to_str"]
-                ) / max(len(serialization_tests), 1) * 100
+                    1 for t in serialization_tests if t["str_to_enum"] and t["enum_to_str"]
+                )
+                / max(len(serialization_tests), 1)
+                * 100,
             }
 
             logger.info("=== Enum Synchronization Summary ===")
@@ -377,11 +389,13 @@ class TestEnumSync:
 
             store_result("test_enum_serialization", True, summary)
 
-            assert summary["serialization_success_rate"] > 50, \
+            assert summary["serialization_success_rate"] > 50, (
                 f"Serialization success rate too low: {summary['serialization_success_rate']:.1f}%"
+            )
 
-            assert summary["passed_tests"] >= summary["total_enum_tests"] * 0.66, \
+            assert summary["passed_tests"] >= summary["total_enum_tests"] * 0.66, (
                 f"Less than 66% tests passed: {summary['passed_tests']}/{summary['total_enum_tests']}"
+            )
 
         except Exception as e:
             logger.error(f"Test failed with error: {e}", exc_info=True)

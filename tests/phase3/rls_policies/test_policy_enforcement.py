@@ -60,9 +60,7 @@ def test_project_id():
 
 
 @pytest.mark.asyncio
-async def test_organization_select_policy_enforces_membership(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_organization_select_policy_enforces_membership(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a user who is a member of an organization
     When the SELECT policy is evaluated
@@ -94,14 +92,12 @@ async def test_organization_select_policy_enforces_membership(
             "organization_id": test_org_id,
             "user_id": test_user_id,
             "is_deleted": False,
-        }
+        },
     )
 
 
 @pytest.mark.asyncio
-async def test_organization_select_policy_denies_non_member(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_organization_select_policy_denies_non_member(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a user who is NOT a member of an organization
     When the SELECT policy is evaluated
@@ -122,9 +118,7 @@ async def test_organization_select_policy_denies_non_member(
 
 
 @pytest.mark.asyncio
-async def test_project_select_policy_uses_current_user_id_variable(
-    mock_db_adapter, test_user_id, test_project_id
-):
+async def test_project_select_policy_uses_current_user_id_variable(mock_db_adapter, test_user_id, test_project_id):
     """
     Given a project with specific members
     When the SELECT policy is evaluated
@@ -151,9 +145,7 @@ async def test_project_select_policy_uses_current_user_id_variable(
 
 
 @pytest.mark.asyncio
-async def test_project_policy_filters_by_org_id_variable(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_project_policy_filters_by_org_id_variable(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a user creating a project in an organization
     When the INSERT policy is evaluated
@@ -172,10 +164,12 @@ async def test_project_policy_filters_by_org_id_variable(
     }
 
     # When: Check INSERT permission with org_id
-    can_create = await policy.can_insert({
-        "organization_id": test_org_id,
-        "name": "New Project",
-    })
+    can_create = await policy.can_insert(
+        {
+            "organization_id": test_org_id,
+            "name": "New Project",
+        }
+    )
 
     # Then: Access granted based on org membership
     assert can_create is True, "Policy should validate org_id correctly"
@@ -187,14 +181,12 @@ async def test_project_policy_filters_by_org_id_variable(
             "organization_id": test_org_id,
             "user_id": test_user_id,
             "is_deleted": False,
-        }
+        },
     )
 
 
 @pytest.mark.asyncio
-async def test_document_policy_enforces_row_level_filtering(
-    mock_db_adapter, test_user_id, test_project_id
-):
+async def test_document_policy_enforces_row_level_filtering(mock_db_adapter, test_user_id, test_project_id):
     """
     Given multiple documents in different projects
     When SELECT policies are evaluated
@@ -218,28 +210,30 @@ async def test_document_policy_enforces_row_level_filtering(
     mock_db_adapter.get_single.side_effect = mock_get_single
 
     # When: Check access to document in accessible project
-    can_read_allowed = await policy.can_select({
-        "id": "doc-001",
-        "project_id": test_project_id,
-    })
+    can_read_allowed = await policy.can_select(
+        {
+            "id": "doc-001",
+            "project_id": test_project_id,
+        }
+    )
 
     # Then: Access granted
     assert can_read_allowed is True, "Should access document in accessible project"
 
     # When: Check access to document in inaccessible project
-    can_read_denied = await policy.can_select({
-        "id": "doc-002",
-        "project_id": "project-999-unauthorized",
-    })
+    can_read_denied = await policy.can_select(
+        {
+            "id": "doc-002",
+            "project_id": "project-999-unauthorized",
+        }
+    )
 
     # Then: Access denied
     assert can_read_denied is False, "Should not access document in inaccessible project"
 
 
 @pytest.mark.asyncio
-async def test_policy_validator_routes_to_correct_table_policy(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_policy_validator_routes_to_correct_table_policy(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a PolicyValidator instance
     When checking permissions for different tables
@@ -258,28 +252,20 @@ async def test_policy_validator_routes_to_correct_table_policy(
     }
 
     # When: Check SELECT on organizations table
-    can_read_org = await validator.can_select(
-        Tables.ORGANIZATIONS,
-        {"id": test_org_id}
-    )
+    can_read_org = await validator.can_select(Tables.ORGANIZATIONS, {"id": test_org_id})
 
     # Then: Routes to OrganizationPolicy
     assert can_read_org is True, "Should route to OrganizationPolicy"
 
     # When: Check on unsupported table
-    can_read_unknown = await validator.can_select(
-        "unknown_table",
-        {"id": "test-001"}
-    )
+    can_read_unknown = await validator.can_select("unknown_table", {"id": "test-001"})
 
     # Then: Denies by default
     assert can_read_unknown is False, "Should deny access to unknown tables"
 
 
 @pytest.mark.asyncio
-async def test_profile_policy_allows_all_authenticated_users_to_read(
-    mock_db_adapter, test_user_id
-):
+async def test_profile_policy_allows_all_authenticated_users_to_read(mock_db_adapter, test_user_id):
     """
     Given any authenticated user
     When reading any profile
@@ -303,9 +289,7 @@ async def test_profile_policy_allows_all_authenticated_users_to_read(
 
 
 @pytest.mark.asyncio
-async def test_project_update_policy_enforces_admin_role(
-    mock_db_adapter, test_user_id, test_project_id
-):
+async def test_project_update_policy_enforces_admin_role(mock_db_adapter, test_user_id, test_project_id):
     """
     Given users with different project roles
     When UPDATE policy is evaluated
@@ -324,10 +308,7 @@ async def test_project_update_policy_enforces_admin_role(
         "is_deleted": False,
     }
 
-    can_update_owner = await policy.can_update(
-        {"id": test_project_id},
-        {"name": "Updated Name"}
-    )
+    can_update_owner = await policy.can_update({"id": test_project_id}, {"name": "Updated Name"})
     assert can_update_owner is True, "Owner should update project"
 
     # Test: Admin can update
@@ -339,10 +320,7 @@ async def test_project_update_policy_enforces_admin_role(
         "is_deleted": False,
     }
 
-    can_update_admin = await policy.can_update(
-        {"id": test_project_id},
-        {"name": "Updated Name"}
-    )
+    can_update_admin = await policy.can_update({"id": test_project_id}, {"name": "Updated Name"})
     assert can_update_admin is True, "Admin should update project"
 
     # Test: Editor cannot update
@@ -354,17 +332,12 @@ async def test_project_update_policy_enforces_admin_role(
         "is_deleted": False,
     }
 
-    can_update_editor = await policy.can_update(
-        {"id": test_project_id},
-        {"name": "Updated Name"}
-    )
+    can_update_editor = await policy.can_update({"id": test_project_id}, {"name": "Updated Name"})
     assert can_update_editor is False, "Editor should not update project"
 
 
 @pytest.mark.asyncio
-async def test_organization_delete_policy_restricts_to_owner_only(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_organization_delete_policy_restricts_to_owner_only(mock_db_adapter, test_user_id, test_org_id):
     """
     Given users with different organization roles
     When DELETE policy is evaluated
@@ -400,9 +373,7 @@ async def test_organization_delete_policy_restricts_to_owner_only(
 
 
 @pytest.mark.asyncio
-async def test_validate_methods_raise_permission_denied_error(
-    mock_db_adapter, test_user_id, test_org_id
-):
+async def test_validate_methods_raise_permission_denied_error(mock_db_adapter, test_user_id, test_org_id):
     """
     Given a policy check that fails
     When using validate_* methods

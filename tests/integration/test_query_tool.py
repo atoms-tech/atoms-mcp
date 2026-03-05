@@ -24,7 +24,7 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 # Add parent directory to path for imports
@@ -40,11 +40,11 @@ class TestReport:
 
     def __init__(self):
         self.tests: list[dict[str, Any]] = []
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(UTC)
 
-    def add_test(self, operation: str, params: dict[str, Any],
-                 success: bool, response: dict[str, Any],
-                 error: str | None = None):
+    def add_test(
+        self, operation: str, params: dict[str, Any], success: bool, response: dict[str, Any], error: str | None = None
+    ):
         """Add a test result to the report."""
         result_count = 0
         if success and "data" in response:
@@ -58,26 +58,26 @@ class TestReport:
                         result_count = len(data["results"])
                     elif isinstance(data["results"], dict):
                         result_count = sum(
-                            len(v.get("results", []) if isinstance(v, dict) else [])
-                            for v in data["results"].values()
+                            len(v.get("results", []) if isinstance(v, dict) else []) for v in data["results"].values()
                         )
                 elif "results_by_entity" in data:
                     result_count = sum(
-                        v.get("count", 0) if isinstance(v, dict) else 0
-                        for v in data["results_by_entity"].values()
+                        v.get("count", 0) if isinstance(v, dict) else 0 for v in data["results_by_entity"].values()
                     )
                 else:
                     result_count = 1
 
-        self.tests.append({
-            "operation": operation,
-            "parameters": params,
-            "success": success,
-            "result_count": result_count,
-            "response_structure": self._get_structure(response),
-            "error": error,
-            "timestamp": datetime.now().isoformat()
-        })
+        self.tests.append(
+            {
+                "operation": operation,
+                "parameters": params,
+                "success": success,
+                "result_count": result_count,
+                "response_structure": self._get_structure(response),
+                "error": error,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
     def _get_structure(self, obj: Any, max_depth: int = 3, current_depth: int = 0) -> Any:
         """Get the structure of a response object."""
@@ -85,8 +85,9 @@ class TestReport:
             return type(obj).__name__
 
         if isinstance(obj, dict):
-            return {k: self._get_structure(v, max_depth, current_depth + 1)
-                    for k, v in list(obj.items())[:10]}  # Limit to first 10 keys
+            return {
+                k: self._get_structure(v, max_depth, current_depth + 1) for k, v in list(obj.items())[:10]
+            }  # Limit to first 10 keys
         if isinstance(obj, list):
             if len(obj) > 0:
                 return [self._get_structure(obj[0], max_depth, current_depth + 1)]
@@ -99,7 +100,7 @@ class TestReport:
         print("ATOMS MCP QUERY_TOOL COMPREHENSIVE TEST REPORT")
         print("=" * 80)
         print(f"Test Start Time: {self.start_time.isoformat()}")
-        print(f"Test End Time: {datetime.now().isoformat()}")
+        print(f"Test End Time: {datetime.now(UTC).isoformat()}")
         print(f"Total Tests: {len(self.tests)}")
         print(f"Passed: {sum(1 for t in self.tests if t['success'])}")
         print(f"Failed: {sum(1 for t in self.tests if not t['success'])}")
@@ -113,7 +114,7 @@ class TestReport:
 
             print("\nParameters:")
             for key, value in test["parameters"].items():
-                if isinstance(value, (dict, list)):
+                if isinstance(value, dict | list):
                     print(f"  - {key}: {json.dumps(value, indent=4)}")
                 else:
                     print(f"  - {key}: {value}")
@@ -139,7 +140,7 @@ class QueryToolTester:
             "projects": [],
             "documents": [],
             "requirements": [],
-            "tests": []
+            "tests": [],
         }
         # Mock auth token for testing
         self.auth_token = self._get_auth_token()
@@ -167,11 +168,11 @@ class QueryToolTester:
                 operation="create",
                 entity_type="organization",
                 data={
-                    "name": f"Test Org {datetime.now().timestamp()}",
-                    "slug": f"test-org-{int(datetime.now().timestamp())}",
+                    "name": f"Test Org {datetime.now(UTC).timestamp()}",
+                    "slug": f"test-org-{int(datetime.now(UTC).timestamp())}",
                     "description": "Test organization for query testing",
-                    "type": "team"
-                }
+                    "type": "team",
+                },
             )
 
             if org_result.get("success") and org_result.get("data"):
@@ -185,29 +186,26 @@ class QueryToolTester:
                         "name": "Alpha Project",
                         "description": "First test project for filtering",
                         "status": "active",
-                        "priority": "high"
+                        "priority": "high",
                     },
                     {
                         "name": "Beta Project",
                         "description": "Second test project with different status",
                         "status": "archived",
-                        "priority": "medium"
+                        "priority": "medium",
                     },
                     {
                         "name": "Gamma Project",
                         "description": "Third test project for pagination",
                         "status": "active",
-                        "priority": "low"
-                    }
+                        "priority": "low",
+                    },
                 ]
 
                 for config in project_configs:
                     config["organization_id"] = org_id
                     project_result = await entity_operation(
-                        auth_token=self.auth_token,
-                        operation="create",
-                        entity_type="project",
-                        data=config
+                        auth_token=self.auth_token, operation="create", entity_type="project", data=config
                     )
 
                     if project_result.get("success") and project_result.get("data"):
@@ -223,8 +221,8 @@ class QueryToolTester:
                             data={
                                 "name": f"{config['name']} Requirements",
                                 "project_id": project_id,
-                                "content": f"Requirements document for {config['name']}"
-                            }
+                                "content": f"Requirements document for {config['name']}",
+                            },
                         )
 
                         if doc_result.get("success") and doc_result.get("data"):
@@ -241,29 +239,19 @@ class QueryToolTester:
                     operation="setup_test_data",
                     params={"org_count": 1, "project_count": 3, "doc_count": 3},
                     success=True,
-                    response={"data": self.test_data_ids}
+                    response={"data": self.test_data_ids},
                 )
             else:
                 error = org_result.get("error", "Unknown error creating organization")
                 print(f"✗ Failed to create test organization: {error}")
                 self.report.add_test(
-                    operation="setup_test_data",
-                    params={},
-                    success=False,
-                    response=org_result,
-                    error=error
+                    operation="setup_test_data", params={}, success=False, response=org_result, error=error
                 )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error setting up test data: {error}")
-            self.report.add_test(
-                operation="setup_test_data",
-                params={},
-                success=False,
-                response={},
-                error=error
-            )
+            self.report.add_test(operation="setup_test_data", params={}, success=False, response={}, error=error)
 
     async def test_basic_query(self):
         """Test 2: Execute a basic query to retrieve all entities."""
@@ -271,17 +259,10 @@ class QueryToolTester:
         print("STEP 2: Basic Query - Retrieve All Entities")
         print("=" * 80)
 
-        params = {
-            "query_type": "search",
-            "entities": ["organization", "project", "document"],
-            "search_term": "test"
-        }
+        params = {"query_type": "search", "entities": ["organization", "project", "document"], "search_term": "test"}
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **params
-            )
+            result = await data_query(auth_token=self.auth_token, **params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
@@ -300,18 +281,14 @@ class QueryToolTester:
                 params=params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
             self.report.add_test(
-                operation="basic_query_all_entities",
-                params=params,
-                success=False,
-                response={},
-                error=error
+                operation="basic_query_all_entities", params=params, success=False, response={}, error=error
             )
 
     async def test_filter_by_type(self):
@@ -320,44 +297,32 @@ class QueryToolTester:
         print("STEP 3: Filter by Entity Type")
         print("=" * 80)
 
-        params = {
-            "query_type": "search",
-            "entities": ["project"],
-            "search_term": "Project"
-        }
+        params = {"query_type": "search", "entities": ["project"], "search_term": "Project"}
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **params
-            )
+            result = await data_query(auth_token=self.auth_token, **params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results_by_entity" in result:
-                    for entity_type, entity_data in result["results_by_entity"].items():
-                        count = entity_data.get("count", 0)
-                        print(f"  - {entity_type}: {count} results")
+            if success and "results_by_entity" in result:
+                for entity_type, entity_data in result["results_by_entity"].items():
+                    count = entity_data.get("count", 0)
+                    print(f"  - {entity_type}: {count} results")
 
             self.report.add_test(
                 operation="filter_by_entity_type",
                 params=params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
             self.report.add_test(
-                operation="filter_by_entity_type",
-                params=params,
-                success=False,
-                response={},
-                error=error
+                operation="filter_by_entity_type", params=params, success=False, response={}, error=error
             )
 
     async def test_filter_by_properties(self):
@@ -370,41 +335,33 @@ class QueryToolTester:
             "query_type": "search",
             "entities": ["project"],
             "conditions": {"status": "active"},
-            "search_term": ""
+            "search_term": "",
         }
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **params
-            )
+            result = await data_query(auth_token=self.auth_token, **params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results_by_entity" in result:
-                    for entity_type, entity_data in result["results_by_entity"].items():
-                        count = entity_data.get("count", 0)
-                        print(f"  - {entity_type} (status=active): {count} results")
+            if success and "results_by_entity" in result:
+                for entity_type, entity_data in result["results_by_entity"].items():
+                    count = entity_data.get("count", 0)
+                    print(f"  - {entity_type} (status=active): {count} results")
 
             self.report.add_test(
                 operation="filter_by_properties",
                 params=params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
             self.report.add_test(
-                operation="filter_by_properties",
-                params=params,
-                success=False,
-                response={},
-                error=error
+                operation="filter_by_properties", params=params, success=False, response={}, error=error
             )
 
     async def test_rag_search(self):
@@ -420,14 +377,11 @@ class QueryToolTester:
             "search_term": "requirements and testing",
             "rag_mode": "semantic",
             "similarity_threshold": 0.7,
-            "limit": 5
+            "limit": 5,
         }
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **semantic_params
-            )
+            result = await data_query(auth_token=self.auth_token, **semantic_params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Semantic Search Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
@@ -445,18 +399,14 @@ class QueryToolTester:
                 params=semantic_params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Semantic Search Error: {error}")
             self.report.add_test(
-                operation="rag_search_semantic",
-                params=semantic_params,
-                success=False,
-                response={},
-                error=error
+                operation="rag_search_semantic", params=semantic_params, success=False, response={}, error=error
             )
 
         # Test keyword search
@@ -465,14 +415,11 @@ class QueryToolTester:
             "entities": ["project"],
             "search_term": "Alpha",
             "rag_mode": "keyword",
-            "limit": 5
+            "limit": 5,
         }
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **keyword_params
-            )
+            result = await data_query(auth_token=self.auth_token, **keyword_params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Keyword Search Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
@@ -486,18 +433,14 @@ class QueryToolTester:
                 params=keyword_params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Keyword Search Error: {error}")
             self.report.add_test(
-                operation="rag_search_keyword",
-                params=keyword_params,
-                success=False,
-                response={},
-                error=error
+                operation="rag_search_keyword", params=keyword_params, success=False, response={}, error=error
             )
 
         # Test hybrid search
@@ -507,14 +450,11 @@ class QueryToolTester:
             "search_term": "test project requirements",
             "rag_mode": "hybrid",
             "similarity_threshold": 0.6,
-            "limit": 10
+            "limit": 10,
         }
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **hybrid_params
-            )
+            result = await data_query(auth_token=self.auth_token, **hybrid_params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Hybrid Search Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
@@ -528,18 +468,14 @@ class QueryToolTester:
                 params=hybrid_params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Hybrid Search Error: {error}")
             self.report.add_test(
-                operation="rag_search_hybrid",
-                params=hybrid_params,
-                success=False,
-                response={},
-                error=error
+                operation="rag_search_hybrid", params=hybrid_params, success=False, response={}, error=error
             )
 
     async def test_pagination(self):
@@ -549,45 +485,32 @@ class QueryToolTester:
         print("=" * 80)
 
         # Test with limit
-        limit_params = {
-            "query_type": "search",
-            "entities": ["project"],
-            "search_term": "",
-            "limit": 2
-        }
+        limit_params = {"query_type": "search", "entities": ["project"], "search_term": "", "limit": 2}
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **limit_params
-            )
+            result = await data_query(auth_token=self.auth_token, **limit_params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Limit Test Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results_by_entity" in result:
-                    for entity_type, entity_data in result["results_by_entity"].items():
-                        count = entity_data.get("count", 0)
-                        print(f"  - {entity_type}: {count} results (limit=2)")
+            if success and "results_by_entity" in result:
+                for entity_type, entity_data in result["results_by_entity"].items():
+                    count = entity_data.get("count", 0)
+                    print(f"  - {entity_type}: {count} results (limit=2)")
 
             self.report.add_test(
                 operation="pagination_with_limit",
                 params=limit_params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
             self.report.add_test(
-                operation="pagination_with_limit",
-                params=limit_params,
-                success=False,
-                response={},
-                error=error
+                operation="pagination_with_limit", params=limit_params, success=False, response={}, error=error
             )
 
     async def test_sorting(self):
@@ -598,47 +521,29 @@ class QueryToolTester:
 
         # Note: The current query tool doesn't expose direct sorting parameters
         # but uses order_by internally in search queries
-        params = {
-            "query_type": "aggregate",
-            "entities": ["project", "organization"],
-            "conditions": {}
-        }
+        params = {"query_type": "aggregate", "entities": ["project", "organization"], "conditions": {}}
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **params
-            )
+            result = await data_query(auth_token=self.auth_token, **params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Aggregate Query Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "results" in result:
-                    for entity_type, stats in result["results"].items():
-                        print(f"  - {entity_type}:")
-                        for key, value in stats.items():
-                            if key != "error":
-                                print(f"    - {key}: {value}")
+            if success and "results" in result:
+                for entity_type, stats in result["results"].items():
+                    print(f"  - {entity_type}:")
+                    for key, value in stats.items():
+                        if key != "error":
+                            print(f"    - {key}: {value}")
 
             self.report.add_test(
-                operation="aggregate_query",
-                params=params,
-                success=success,
-                response=result,
-                error=result.get("error")
+                operation="aggregate_query", params=params, success=success, response=result, error=result.get("error")
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
-            self.report.add_test(
-                operation="aggregate_query",
-                params=params,
-                success=False,
-                response={},
-                error=error
-            )
+            self.report.add_test(operation="aggregate_query", params=params, success=False, response={}, error=error)
 
     async def test_relationship_query(self):
         """Test relationship analysis."""
@@ -646,45 +551,31 @@ class QueryToolTester:
         print("STEP 8: Relationship Query")
         print("=" * 80)
 
-        params = {
-            "query_type": "relationships",
-            "entities": ["organization", "project"],
-            "conditions": {}
-        }
+        params = {"query_type": "relationships", "entities": ["organization", "project"], "conditions": {}}
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **params
-            )
+            result = await data_query(auth_token=self.auth_token, **params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Relationship Query Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "relationships" in result:
-                    for rel_table, rel_data in result["relationships"].items():
-                        count = rel_data.get("total_count", 0)
-                        print(f"  - {rel_table}: {count} relationships")
+            if success and "relationships" in result:
+                for rel_table, rel_data in result["relationships"].items():
+                    count = rel_data.get("total_count", 0)
+                    print(f"  - {rel_table}: {count} relationships")
 
             self.report.add_test(
                 operation="relationship_query",
                 params=params,
                 success=success,
                 response=result,
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
-            self.report.add_test(
-                operation="relationship_query",
-                params=params,
-                success=False,
-                response={},
-                error=error
-            )
+            self.report.add_test(operation="relationship_query", params=params, success=False, response={}, error=error)
 
     async def test_analyze_query(self):
         """Test deep analysis query."""
@@ -692,47 +583,29 @@ class QueryToolTester:
         print("STEP 9: Deep Analysis Query")
         print("=" * 80)
 
-        params = {
-            "query_type": "analyze",
-            "entities": ["organization", "project"],
-            "conditions": {}
-        }
+        params = {"query_type": "analyze", "entities": ["organization", "project"], "conditions": {}}
 
         try:
-            result = await data_query(
-                auth_token=self.auth_token,
-                **params
-            )
+            result = await data_query(auth_token=self.auth_token, **params)
 
             success = result.get("success", True) and "error" not in result
             print(f"Analysis Query Status: {'✓ SUCCESS' if success else '✗ FAILED'}")
 
-            if success:
-                if "analysis" in result:
-                    for entity_type, analysis in result["analysis"].items():
-                        print(f"  - {entity_type}:")
-                        for key, value in analysis.items():
-                            if key != "error":
-                                print(f"    - {key}: {value}")
+            if success and "analysis" in result:
+                for entity_type, analysis in result["analysis"].items():
+                    print(f"  - {entity_type}:")
+                    for key, value in analysis.items():
+                        if key != "error":
+                            print(f"    - {key}: {value}")
 
             self.report.add_test(
-                operation="analyze_query",
-                params=params,
-                success=success,
-                response=result,
-                error=result.get("error")
+                operation="analyze_query", params=params, success=success, response=result, error=result.get("error")
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error: {error}")
-            self.report.add_test(
-                operation="analyze_query",
-                params=params,
-                success=False,
-                response={},
-                error=error
-            )
+            self.report.add_test(operation="analyze_query", params=params, success=False, response={}, error=error)
 
     async def cleanup_test_data(self):
         """Test 8: Clean up test data."""
@@ -740,21 +613,14 @@ class QueryToolTester:
         print("STEP 10: Cleanup Test Data")
         print("=" * 80)
 
-        cleanup_results = {
-            "documents": 0,
-            "projects": 0,
-            "organizations": 0
-        }
+        cleanup_results = {"documents": 0, "projects": 0, "organizations": 0}
 
         try:
             # Clean up in reverse order (documents -> projects -> organizations)
             for doc_id in self.test_data_ids["documents"]:
                 try:
                     result = await entity_operation(
-                        auth_token=self.auth_token,
-                        operation="delete",
-                        entity_type="document",
-                        entity_id=doc_id
+                        auth_token=self.auth_token, operation="delete", entity_type="document", entity_id=doc_id
                     )
                     if result.get("success"):
                         cleanup_results["documents"] += 1
@@ -765,10 +631,7 @@ class QueryToolTester:
             for project_id in self.test_data_ids["projects"]:
                 try:
                     result = await entity_operation(
-                        auth_token=self.auth_token,
-                        operation="delete",
-                        entity_type="project",
-                        entity_id=project_id
+                        auth_token=self.auth_token, operation="delete", entity_type="project", entity_id=project_id
                     )
                     if result.get("success"):
                         cleanup_results["projects"] += 1
@@ -779,10 +642,7 @@ class QueryToolTester:
             for org_id in self.test_data_ids["organizations"]:
                 try:
                     result = await entity_operation(
-                        auth_token=self.auth_token,
-                        operation="delete",
-                        entity_type="organization",
-                        entity_id=org_id
+                        auth_token=self.auth_token, operation="delete", entity_type="organization", entity_id=org_id
                     )
                     if result.get("success"):
                         cleanup_results["organizations"] += 1
@@ -796,22 +656,13 @@ class QueryToolTester:
             print(f"  - Organizations deleted: {cleanup_results['organizations']}")
 
             self.report.add_test(
-                operation="cleanup_test_data",
-                params=cleanup_results,
-                success=True,
-                response={"data": cleanup_results}
+                operation="cleanup_test_data", params=cleanup_results, success=True, response={"data": cleanup_results}
             )
 
         except Exception as e:
             error = str(e)
             print(f"✗ Error during cleanup: {error}")
-            self.report.add_test(
-                operation="cleanup_test_data",
-                params={},
-                success=False,
-                response={},
-                error=error
-            )
+            self.report.add_test(operation="cleanup_test_data", params={}, success=False, response={}, error=error)
 
     async def run_all_tests(self):
         """Run all test operations."""

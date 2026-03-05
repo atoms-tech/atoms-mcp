@@ -13,4 +13,3 @@ def benchmark_config():
         "warmup_rounds": 10,
         "iterations": 1000,
     }
-

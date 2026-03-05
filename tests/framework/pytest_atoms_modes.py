@@ -85,14 +85,13 @@ def pytest_collection_modifyitems(session: Any, config: Any, items: list[Any]) -
         if marker_count > 1:
             if strict_mode:
                 raise ValueError(f"Test {item.name} has conflicting mode markers")
-            else:
-                logger.warning(f"Test {item.name} has multiple mode markers, using first one")
+            logger.warning(f"Test {item.name} has multiple mode markers, using first one")
 
         # Filter based on mode
         if mode == TestMode.ALL:
             # Run all tests regardless of markers
             continue
-        elif mode == TestMode.HOT:
+        if mode == TestMode.HOT:
             # HOT mode: run tests marked as hot, or unmarked tests (default to hot)
             if has_cold or has_dry:
                 items_to_remove.append(item)
@@ -106,9 +105,8 @@ def pytest_collection_modifyitems(session: Any, config: Any, items: list[Any]) -
                 items_to_remove.append(item)
 
         # Validate mode configuration
-        if validate_mode:
-            if not TestModeValidator.validate_mode_config(mode_config):
-                logger.warning(f"Test mode configuration validation failed for {item.name}")
+        if validate_mode and not TestModeValidator.validate_mode_config(mode_config):
+            logger.warning(f"Test mode configuration validation failed for {item.name}")
 
     # Remove filtered items
     for item in items_to_remove:
@@ -161,17 +159,16 @@ def pytest_generate_tests(metafunc: Any) -> None:
     """Generate test variants based on mode markers."""
     # This hook can be used to parametrize tests based on mode
     # Currently just used for validation
-    pass
 
 
 __all__ = [
-    "pytest_addoption",
-    "pytest_configure",
-    "pytest_sessionstart",
-    "pytest_collection_modifyitems",
-    "pytest_runtest_makereport",
-    "pytest_runtest_setup",
-    "pytest_generate_tests",
     "atoms_mode_config",
     "atoms_test_mode",
+    "pytest_addoption",
+    "pytest_collection_modifyitems",
+    "pytest_configure",
+    "pytest_generate_tests",
+    "pytest_runtest_makereport",
+    "pytest_runtest_setup",
+    "pytest_sessionstart",
 ]

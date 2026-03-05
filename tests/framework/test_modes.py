@@ -143,7 +143,7 @@ class TestModeDetector:
 class ConditionalFixture:
     """Factory for creating conditional fixtures based on test mode."""
 
-    def __init__(self, mode_config: TestModeConfig):
+    def __init__(self, mode_config: TestModeConfig) -> None:
         self.mode_config = mode_config
 
     @staticmethod
@@ -170,13 +170,12 @@ class ConditionalFixture:
         """
         if mode_config.mode == TestMode.HOT:
             return hot_impl(*args, **kwargs)
-        elif mode_config.mode == TestMode.COLD:
+        if mode_config.mode == TestMode.COLD:
             return cold_impl(*args, **kwargs)
-        elif mode_config.mode == TestMode.DRY:
+        if mode_config.mode == TestMode.DRY:
             return dry_impl(*args, **kwargs)
-        else:
-            # Default to COLD
-            return cold_impl(*args, **kwargs)
+        # Default to COLD
+        return cold_impl(*args, **kwargs)
 
     @staticmethod
     async def create_async(
@@ -202,13 +201,12 @@ class ConditionalFixture:
         """
         if mode_config.mode == TestMode.HOT:
             return await hot_impl(*args, **kwargs)
-        elif mode_config.mode == TestMode.COLD:
+        if mode_config.mode == TestMode.COLD:
             return await cold_impl(*args, **kwargs)
-        elif mode_config.mode == TestMode.DRY:
+        if mode_config.mode == TestMode.DRY:
             return await dry_impl(*args, **kwargs)
-        else:
-            # Default to COLD
-            return await cold_impl(*args, **kwargs)
+        # Default to COLD
+        return await cold_impl(*args, **kwargs)
 
 
 class TestModeValidator:
@@ -258,7 +256,7 @@ class TestModeValidator:
 class TestModeManager:
     """Manages test mode state during test execution."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.current_mode: TestMode | None = None
         self.current_config: TestModeConfig | None = None
         self.mode_history: list[tuple[TestMode, TestModeConfig]] = []
@@ -317,14 +315,14 @@ def get_test_mode_config() -> TestModeConfig | None:
 
 
 __all__ = [
+    "ConditionalFixture",
     "TestMode",
     "TestModeConfig",
     "TestModeDetector",
-    "ConditionalFixture",
-    "TestModeValidator",
     "TestModeManager",
+    "TestModeValidator",
     "get_mode_manager",
-    "set_test_mode",
     "get_test_mode",
     "get_test_mode_config",
+    "set_test_mode",
 ]

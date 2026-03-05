@@ -1,161 +1,44 @@
-# ============================================================================
 # Python
-# ============================================================================
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
 *.so
 .Python
+
+# Build
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
-*.manifest
-*.spec
-pip-log.txt
-pip-delete-this-directory.txt
 
-# ============================================================================
-# Virtual Environments
-# ============================================================================
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.python-version
-
-# ============================================================================
-# Testing & Coverage
-# ============================================================================
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.hypothesis/
-.pytest_cache/
-cover/
-htmlcov/
-.ruff_cache/
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# ============================================================================
-# Environment Files
-# ============================================================================
+# Environment files
 .env
 .env.local
-.env*.local
-.env.bak
-.env.production
-.env.development
-.env.test
-.env.render
-.env.vercel.preview
-.env.vercel.production
-.env.vertex
-.emv
+.env.*.local
 
-# ============================================================================
-# IDEs & Editors
-# ============================================================================
+# YAML Configuration Secrets - NEVER COMMIT THESE!
+secrets.yml
+secrets.*.yml
+secrets.yaml
+secrets.*.yaml
+.secrets.yml
+.secrets.*.yml
+.secrets.yaml
+.secrets.*.yaml
+
+# IDE
 .vscode/
 .idea/
-*.sublime-*
-.cursor/
 *.swp
 *.swo
-*~
-.#*
+
+# OS
 .DS_Store
 Thumbs.db
 
-# ============================================================================
-# Project Specific
-# ============================================================================
-archive/
-pheno_vendor/
-schemas/generated/
-lib-sdks/
-
-# Google Cloud credentials
-atoms-mcp-sa-key.json
-*-sa-key.json
-service-account*.json
-*.pem
-
-# Database files
-*.db
-*.sqlite
-*.sqlite3
-*.sql
-
-# Logs
-*.log
-logs/
-
-# Temporary files
-*.tmp
-*.temp
-*.cache
-
-# Reports & Metrics
-/reports/
-/memory/
-/.claude
-/.kwatch
-/.history
-
-# Next.js (if any)
-/node_modules
-/.pnp
-.pnp.json
-/public
-/.next/
-/out/
-*.tsbuildinfo
-next-env.d.ts
-bun.lock
-
-# Vercel
-.vercel
-
-# Documentation backups (keep only primary docs)
-*_BACKUP.md
-*_OLD.md
-AUTHKIT_SEPARATION.md
-COMPLETE_SETUP_SUMMARY.md
-CONFIGURATION_SUMMARY.md
-DEPLOYMENT_COMPLETE.md
-KINFRA_COMPLETE.md
-KINFRA_CONFIGURATION.md
-KINFRA_SETUP_COMPLETE.md
-KINFRA_WRAPPER_COMPLETE.md
-
-# Other
-.kiro
-.cursorrules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Cache
+.cache/
+.pytest_cache/
+.ruff_cache/
+atoms.secrets.yaml
+config/atoms.secrets.yaml

@@ -30,6 +30,7 @@ TEST_PASSWORD = os.getenv("ATOMS_TEST_PASSWORD", "118118")
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.error_handling]
 
+
 @pytest.fixture(scope="module")
 def mcp_client(check_server_running, shared_authkit_session):
     """Return MCP client helper."""
@@ -73,29 +74,31 @@ def mcp_client(check_server_running, shared_authkit_session):
 
     return call_tool
 
+
 # ============================================================================
 # Authentication and Authorization Errors
 # ============================================================================
+
 
 class TestAuthenticationErrors:
     """Test authentication and authorization error handling."""
 
     @pytest.mark.asyncio
-    async def test_missing_auth_token(self, check_server_running):
+    async def test_missing_auth_token(self, _check_server_running):
         """Test request without authentication token."""
         base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
         payload = {
             "jsonrpc": "2.0",
             "id": str(uuid.uuid4()),
             "method": "tools/workspace_tool",
-            "params": {"operation": "get_context"}
+            "params": {"operation": "get_context"},
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 base_url,
                 json=payload,
-                headers={"Content-Type": "application/json"}  # No Authorization header
+                headers={"Content-Type": "application/json"},  # No Authorization header
             )
 
             # Should fail with 401 or return error in result
@@ -108,24 +111,21 @@ class TestAuthenticationErrors:
                 assert "authorization" in result.get("error", "").lower() or "auth" in result.get("error", "").lower()
 
     @pytest.mark.asyncio
-    async def test_invalid_auth_token(self, check_server_running):
+    async def test_invalid_auth_token(self, _check_server_running):
         """Test request with invalid authentication token."""
         base_url = f"{MCP_BASE_URL.rstrip('/')}{MCP_PATH}"
         payload = {
             "jsonrpc": "2.0",
             "id": str(uuid.uuid4()),
             "method": "tools/workspace_tool",
-            "params": {"operation": "get_context"}
+            "params": {"operation": "get_context"},
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 base_url,
                 json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer invalid_token_12345"
-                }
+                headers={"Content-Type": "application/json", "Authorization": "Bearer invalid_token_12345"},
             )
 
             # Should fail with 401 or return error
@@ -134,9 +134,11 @@ class TestAuthenticationErrors:
                 result = body.get("result", {})
                 assert result.get("success") is False, "Should fail with invalid token"
 
+
 # ============================================================================
 # Input Validation Errors
 # ============================================================================
+
 
 class TestInputValidation:
     """Test input validation and parameter errors."""
@@ -150,9 +152,9 @@ class TestInputValidation:
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {}  # Missing name and slug
+                "data": {},  # Missing name and slug
             },
-            expect_error=True
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail with missing required fields"
@@ -163,12 +165,8 @@ class TestInputValidation:
         """Test operation with invalid entity type."""
         result = await mcp_client(
             "entity_tool",
-            {
-                "operation": "create",
-                "entity_type": "invalid_type_xyz",
-                "data": {"name": "Test"}
-            },
-            expect_error=True
+            {"operation": "create", "entity_type": "invalid_type_xyz", "data": {"name": "Test"}},
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail with invalid entity type"
@@ -178,12 +176,8 @@ class TestInputValidation:
         """Test with invalid operation name."""
         result = await mcp_client(
             "entity_tool",
-            {
-                "operation": "invalid_operation",
-                "entity_type": "organization",
-                "data": {"name": "Test"}
-            },
-            expect_error=True
+            {"operation": "invalid_operation", "entity_type": "organization", "data": {"name": "Test"}},
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail with invalid operation"
@@ -199,10 +193,10 @@ class TestInputValidation:
                 "entity_type": "organization",
                 "data": {
                     "name": "",  # Empty string
-                    "slug": "test-slug"
-                }
+                    "slug": "test-slug",
+                },
             },
-            expect_error=True
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail with empty required field"
@@ -211,22 +205,24 @@ class TestInputValidation:
     async def test_malformed_data_types(self, mcp_client):
         """Test with incorrect data types."""
         # String where ID expected
-        _result = await mcp_client(  # noqa: F841
+        _result = await mcp_client(
             "entity_tool",
             {
                 "operation": "read",
                 "entity_type": "organization",
-                "entity_id": 12345  # Should be string
+                "entity_id": 12345,  # Should be string
             },
-            expect_error=True
+            expect_error=True,
         )
 
         # Should either fail or handle gracefully
         # Some systems auto-convert, others reject
 
+
 # ============================================================================
 # Resource Not Found Errors
 # ============================================================================
+
 
 class TestResourceNotFound:
     """Test resource not found error handling."""
@@ -237,13 +233,7 @@ class TestResourceNotFound:
         fake_id = f"fake-id-{uuid.uuid4()}"
 
         result = await mcp_client(
-            "entity_tool",
-            {
-                "operation": "read",
-                "entity_type": "organization",
-                "entity_id": fake_id
-            },
-            expect_error=True
+            "entity_tool", {"operation": "read", "entity_type": "organization", "entity_id": fake_id}, expect_error=True
         )
 
         assert result.get("success") is False, "Should fail for non-existent entity"
@@ -260,9 +250,9 @@ class TestResourceNotFound:
                 "operation": "update",
                 "entity_type": "organization",
                 "entity_id": fake_id,
-                "data": {"name": "Updated Name"}
+                "data": {"name": "Updated Name"},
             },
-            expect_error=True
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail updating non-existent entity"
@@ -274,12 +264,8 @@ class TestResourceNotFound:
 
         result = await mcp_client(
             "entity_tool",
-            {
-                "operation": "delete",
-                "entity_type": "organization",
-                "entity_id": fake_id
-            },
-            expect_error=True
+            {"operation": "delete", "entity_type": "organization", "entity_id": fake_id},
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail deleting non-existent entity"
@@ -291,19 +277,17 @@ class TestResourceNotFound:
 
         result = await mcp_client(
             "workspace_tool",
-            {
-                "operation": "set_context",
-                "context_type": "organization",
-                "entity_id": fake_id
-            },
-            expect_error=True
+            {"operation": "set_context", "context_type": "organization", "entity_id": fake_id},
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail setting context to non-existent entity"
 
+
 # ============================================================================
 # Relationship and Constraint Errors
 # ============================================================================
+
 
 class TestRelationshipErrors:
     """Test relationship and constraint error handling."""
@@ -320,10 +304,10 @@ class TestRelationshipErrors:
                 "entity_type": "project",
                 "data": {
                     "name": "Test Project",
-                    "organization_id": fake_org_id  # Invalid FK
-                }
+                    "organization_id": fake_org_id,  # Invalid FK
+                },
             },
-            expect_error=True
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail with invalid foreign key"
@@ -337,17 +321,15 @@ class TestRelationshipErrors:
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": "Duplicate Rel Test Org",
-                    "slug": f"dup-rel-{uuid.uuid4().hex[:8]}"
-                }
-            }
+                "data": {"name": "Duplicate Rel Test Org", "slug": f"dup-rel-{uuid.uuid4().hex[:8]}"},
+            },
         )
 
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]  # noqa: F841
+        org_id = org_result["data"]["id"]
+        return None
 
         # The workflow already adds creator as admin, so trying to add again might fail
         # This tests duplicate prevention
@@ -362,17 +344,19 @@ class TestRelationshipErrors:
                 "operation": "link",
                 "relationship_type": "member",
                 "source": {"type": "invalid_type", "id": "some-id"},
-                "target": {"type": "user", "id": "user-id"}
+                "target": {"type": "user", "id": "user-id"},
             },
-            expect_error=True
+            expect_error=True,
         )
 
         # Should fail with invalid relationship config
         assert result.get("success") is False
 
+
 # ============================================================================
 # Workflow and Transaction Errors
 # ============================================================================
+
 
 class TestWorkflowErrors:
     """Test workflow and transaction error handling."""
@@ -387,9 +371,9 @@ class TestWorkflowErrors:
                 "parameters": {
                     "name": "Test Project"
                     # Missing organization_id
-                }
+                },
             },
-            expect_error=True
+            expect_error=True,
         )
 
         assert result.get("success") is False, "Should fail with missing workflow parameters"
@@ -398,12 +382,7 @@ class TestWorkflowErrors:
     async def test_invalid_workflow_name(self, mcp_client):
         """Test with invalid workflow name."""
         result = await mcp_client(
-            "workflow_tool",
-            {
-                "workflow": "invalid_workflow_xyz",
-                "parameters": {}
-            },
-            expect_error=True
+            "workflow_tool", {"workflow": "invalid_workflow_xyz", "parameters": {}}, expect_error=True
         )
 
         assert result.get("success") is False, "Should fail with invalid workflow name"
@@ -417,17 +396,14 @@ class TestWorkflowErrors:
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": "Workflow Failure Test",
-                    "slug": f"wf-fail-{uuid.uuid4().hex[:8]}"
-                }
-            }
+                "data": {"name": "Workflow Failure Test", "slug": f"wf-fail-{uuid.uuid4().hex[:8]}"},
+            },
         )
 
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]  # noqa: F841
+        org_id = org_result["data"]["id"]
 
         # Try workflow with some invalid data in initial_documents
         result = await mcp_client(
@@ -437,10 +413,10 @@ class TestWorkflowErrors:
                 "parameters": {
                     "name": "Test Project",
                     "organization_id": org_id,
-                    "initial_documents": ["Valid Doc", None, "", 123]  # Some invalid items
-                }
+                    "initial_documents": ["Valid Doc", None, "", 123],  # Some invalid items
+                },
             },
-            expect_error=False  # Workflow should handle errors gracefully
+            expect_error=False,  # Workflow should handle errors gracefully
         )
 
         # Workflow should report partial success or handle errors
@@ -448,12 +424,15 @@ class TestWorkflowErrors:
         if result.get("data", {}).get("steps"):
             steps = result["data"]["steps"]
             # Some steps may have failed
-            _failed_steps = [s for s in steps if s.get("status") == "failed"]  # noqa: F841
-            # Workflow should have error information
+            _failed_steps = [s for s in steps if s.get("status") == "failed"]
+        return None
+        # Workflow should have error information
+
 
 # ============================================================================
 # Query and Search Errors
 # ============================================================================
+
 
 class TestQueryErrors:
     """Test query and search error handling."""
@@ -461,14 +440,10 @@ class TestQueryErrors:
     @pytest.mark.asyncio
     async def test_query_invalid_entity_types(self, mcp_client):
         """Test query with invalid entity types."""
-        _result = await mcp_client(  # noqa: F841
+        _result = await mcp_client(
             "query_tool",
-            {
-                "query_type": "search",
-                "entities": ["invalid_entity_type"],
-                "search_term": "test"
-            },
-            expect_error=True
+            {"query_type": "search", "entities": ["invalid_entity_type"], "search_term": "test"},
+            expect_error=True,
         )
 
         # Should handle invalid entity types gracefully
@@ -476,14 +451,14 @@ class TestQueryErrors:
     @pytest.mark.asyncio
     async def test_query_with_invalid_conditions(self, mcp_client):
         """Test query with malformed conditions."""
-        _result = await mcp_client(  # noqa: F841
+        _result = await mcp_client(
             "query_tool",
             {
                 "query_type": "aggregate",
                 "entities": ["organization"],
-                "conditions": "invalid_conditions"  # Should be dict
+                "conditions": "invalid_conditions",  # Should be dict
             },
-            expect_error=True
+            expect_error=True,
         )
 
         # Should validate conditions format
@@ -491,22 +466,24 @@ class TestQueryErrors:
     @pytest.mark.asyncio
     async def test_rag_search_without_embeddings(self, mcp_client):
         """Test RAG search when embeddings might not be available."""
-        _result = await mcp_client(  # noqa: F841
+        _result = await mcp_client(
             "query_tool",
             {
                 "query_type": "rag_search",
                 "entities": ["requirement"],
                 "search_term": "test search",
-                "rag_mode": "semantic"
+                "rag_mode": "semantic",
             },
-            expect_error=False  # Should fallback gracefully
+            expect_error=False,  # Should fallback gracefully
         )
 
         # Should either work or fallback to keyword search
 
+
 # ============================================================================
 # Edge Cases and Boundary Conditions
 # ============================================================================
+
 
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
@@ -516,17 +493,14 @@ class TestEdgeCases:
         """Test with very long string inputs."""
         long_string = "A" * 10000  # 10k characters
 
-        _result = await mcp_client(  # noqa: F841
+        _result = await mcp_client(
             "entity_tool",
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": long_string,
-                    "slug": f"long-{uuid.uuid4().hex[:8]}"
-                }
+                "data": {"name": long_string, "slug": f"long-{uuid.uuid4().hex[:8]}"},
             },
-            expect_error=False
+            expect_error=False,
         )
 
         # Should either truncate, reject, or accept based on database limits
@@ -541,12 +515,9 @@ class TestEdgeCases:
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": special_chars,
-                    "slug": f"special-{uuid.uuid4().hex[:8]}"
-                }
+                "data": {"name": special_chars, "slug": f"special-{uuid.uuid4().hex[:8]}"},
             },
-            expect_error=False
+            expect_error=False,
         )
 
         # Should handle special chars safely (no XSS, proper escaping)
@@ -554,12 +525,7 @@ class TestEdgeCases:
             # Verify data is stored/retrieved correctly
             org_id = result["data"]["id"]
             read_result = await mcp_client(
-                "entity_tool",
-                {
-                    "operation": "read",
-                    "entity_type": "organization",
-                    "entity_id": org_id
-                }
+                "entity_tool", {"operation": "read", "entity_type": "organization", "entity_id": org_id}
             )
 
             if read_result.get("success"):
@@ -570,36 +536,18 @@ class TestEdgeCases:
     async def test_pagination_boundary_cases(self, mcp_client):
         """Test pagination with boundary values."""
         # Zero limit
-        _result = await mcp_client(  # noqa: F841
-            "entity_tool",
-            {
-                "operation": "list",
-                "entity_type": "organization",
-                "limit": 0
-            },
-            expect_error=False
+        _result = await mcp_client(
+            "entity_tool", {"operation": "list", "entity_type": "organization", "limit": 0}, expect_error=False
         )
 
         # Negative offset
-        _result = await mcp_client(  # noqa: F841
-            "entity_tool",
-            {
-                "operation": "list",
-                "entity_type": "organization",
-                "offset": -1
-            },
-            expect_error=False
+        _result = await mcp_client(
+            "entity_tool", {"operation": "list", "entity_type": "organization", "offset": -1}, expect_error=False
         )
 
         # Very large limit
-        _result = await mcp_client(  # noqa: F841
-            "entity_tool",
-            {
-                "operation": "list",
-                "entity_type": "organization",
-                "limit": 999999
-            },
-            expect_error=False
+        _result = await mcp_client(
+            "entity_tool", {"operation": "list", "entity_type": "organization", "limit": 999999}, expect_error=False
         )
 
         # Should enforce maximum limits
@@ -613,17 +561,14 @@ class TestEdgeCases:
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": "Concurrent Test Org",
-                    "slug": f"concurrent-{uuid.uuid4().hex[:8]}"
-                }
-            }
+                "data": {"name": "Concurrent Test Org", "slug": f"concurrent-{uuid.uuid4().hex[:8]}"},
+            },
         )
 
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]  # noqa: F841
+        org_id = org_result["data"]["id"]
 
         # Simulate concurrent updates
         import asyncio
@@ -635,23 +580,19 @@ class TestEdgeCases:
                     "operation": "update",
                     "entity_type": "organization",
                     "entity_id": org_id,
-                    "data": {"name": f"Updated Name {name_suffix}"}
-                }
+                    "data": {"name": f"Updated Name {name_suffix}"},
+                },
             )
 
         # Run multiple updates concurrently
-        results = await asyncio.gather(
-            update_org("A"),
-            update_org("B"),
-            update_org("C"),
-            return_exceptions=True
-        )
+        results = await asyncio.gather(update_org("A"), update_org("B"), update_org("C"), return_exceptions=True)
 
         # All should succeed or handle conflicts gracefully
         for result in results:
             if isinstance(result, Exception):
                 # Should not crash
                 print(f"Concurrent update exception (expected): {result}")
+        return None
 
     @pytest.mark.asyncio
     async def test_deleted_entity_access(self, mcp_client):
@@ -662,42 +603,30 @@ class TestEdgeCases:
             {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": "To Be Deleted",
-                    "slug": f"deleted-{uuid.uuid4().hex[:8]}"
-                }
-            }
+                "data": {"name": "To Be Deleted", "slug": f"deleted-{uuid.uuid4().hex[:8]}"},
+            },
         )
 
         if not org_result.get("success"):
             return {"success": True, "skipped": True, "skip_reason": "Could not create test organization"}
 
-        org_id = org_result["data"]["id"]  # noqa: F841
+        org_id = org_result["data"]["id"]
 
         # Delete it
         _delete_result = await mcp_client(
             "entity_tool",
-            {
-                "operation": "delete",
-                "entity_type": "organization",
-                "entity_id": org_id,
-                "soft_delete": True
-            }
+            {"operation": "delete", "entity_type": "organization", "entity_id": org_id, "soft_delete": True},
         )
 
         # Try to read deleted entity
         read_result = await mcp_client(
-            "entity_tool",
-            {
-                "operation": "read",
-                "entity_type": "organization",
-                "entity_id": org_id
-            },
-            expect_error=True
+            "entity_tool", {"operation": "read", "entity_type": "organization", "entity_id": org_id}, expect_error=True
         )
 
         # Should fail or return is_deleted=true
         assert read_result.get("success") is False or read_result.get("data", {}).get("is_deleted") is True
+        return None
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])

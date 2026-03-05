@@ -1,0 +1,206 @@
+# Atoms MCP Configuration
+# This file defines environment-specific configurations for deployment
+# Non-sensitive settings only - secrets go in secrets.yml
+
+project:
+  name: atoms-mcp-prod
+  version: 1.0.0
+  description: Atoms MCP Server - Model Context Protocol for Atoms.tech
+
+# Application Settings (non-sensitive)
+app:
+  # Server configuration
+  host: "localhost"
+  port: 8080
+
+  # MCP configuration
+  mcp_server_name: "atoms-mcp"
+
+  # Workspace configuration
+  workspace_root: "~/atoms"
+
+  # Feature flags
+  enable_fastapi: true
+  enable_supabase: true
+  enable_google_ai: true
+  enable_workos: true
+
+  # Performance settings
+  max_concurrent_requests: 100
+  request_timeout: 30
+
+  # Logging configuration
+  log_level: "INFO"
+
+  # Development settings
+  debug: false
+
+# Environment configurations
+environments:
+  local:
+    # Local development environment
+    endpoint: https://atomcp.kooshapari.com
+    port: auto  # Auto-allocated by pheno-sdk
+    tunnel:
+      enabled: true
+      provider: cloudflare
+      domain: atomcp.kooshapari.com
+    env_vars:
+      ENV: local
+      ATOMS_FASTMCP_TRANSPORT: http
+      ATOMS_FASTMCP_HTTP_PATH: /api/mcp
+      LOG_LEVEL: DEBUG
+  
+  dev:
+    # Development/Preview environment (Vercel)
+    endpoint: https://devmcp.atoms.tech
+    vercel:
+      env: preview
+      domain: devmcp.atoms.tech
+      project_id: ${VERCEL_PROJECT_ID}
+      org_id: ${VERCEL_ORG_ID}
+    env_vars:
+      ENV: development
+      ATOMS_FASTMCP_TRANSPORT: http
+      ATOMS_FASTMCP_HTTP_PATH: /api/mcp
+      LOG_LEVEL: INFO
+  
+  prod:
+    # Production environment (Vercel)
+    endpoint: https://mcp.atoms.tech
+    vercel:
+      env: production
+      domain: mcp.atoms.tech
+      project_id: ${VERCEL_PROJECT_ID}
+      org_id: ${VERCEL_ORG_ID}
+    env_vars:
+      ENV: production
+      ATOMS_FASTMCP_TRANSPORT: http
+      ATOMS_FASTMCP_HTTP_PATH: /api/mcp
+      PRODUCTION: "true"
+      LOG_LEVEL: WARNING
+
+# Service configuration
+services:
+  - name: atoms-mcp
+    type: api_server
+    command: python -m atoms_mcp.server
+    port: auto
+    workers: 4
+    health_check:
+      path: /health
+      interval: 10
+      timeout: 5
+      retries: 3
+    dependencies:
+      - postgres-main
+      - redis-cache
+    env:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+
+# Resource configuration (for local development)
+resources:
+  - name: postgres-main
+    type: postgres
+    lifecycle: project_scoped
+    config:
+      type: external  # Using Supabase
+      url: ${DATABASE_URL}
+  
+  - name: redis-cache
+    type: redis
+    lifecycle: global_reuse
+    config:
+      type: external  # Using Upstash or similar
+      url: ${REDIS_URL}
+
+# CI/CD Configuration
+ci_checks:
+  - name: pytest
+    command: pytest tests/ -v --tb=short
+    required: true
+  
+  - name: mypy
+    command: mypy src/ --ignore-missing-imports
+    required: true
+  
+  - name: ruff
+    command: ruff check src/ tests/
+    required: true
+  
+  - name: black
+    command: black --check src/ tests/
+    required: false  # Warning only
+
+# Deployment configuration
+deployment:
+  vercel:
+    project_id: ${VERCEL_PROJECT_ID}
+    org_id: ${VERCEL_ORG_ID}
+    token: ${VERCEL_TOKEN}
+    build_command: python -m build
+    output_directory: dist
+  
+  git:
+    require_clean_state: true  # For production deployments
+    require_pushed: true  # For production deployments
+    main_branch: main
+  
+  health_check:
+    enabled: true
+    timeout: 30
+    retries: 3
+  
+  smoke_tests:
+    enabled: true
+    tests:
+      - name: health_check
+        endpoint: /health
+        expected_status: 200
+      - name: mcp_endpoint
+        endpoint: /api/mcp
+        expected_status: 200
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  tui_dashboard:
+    enabled: true
+    refresh_interval: 1.0
+    show_logs: true
+    show_metrics: true
+  
+  logging:
+    level: ${LOG_LEVEL:-INFO}
+    format: json
+    output: stdout
+
+# Cloudflare configuration
+# Credentials are managed by pheno-sdk credentials broker
+# Stored in ~/.pheno/credentials.json or environment variables
+cloudflare:
+  # These will be loaded from credentials broker automatically
+  # No need to set environment variables manually
+  base_domain: kooshapari.com
+  tunnel:
+    protocol: https
+    auto_cleanup: true
+    health_check: true
+
+# Port allocation configuration
+port_allocation:
+  range_start: 8000
+  range_end: 9000
+  registry_path: ~/.pheno/ports.json
+  auto_cleanup: true
+
+# Process management
+process_management:
+  graceful_shutdown_timeout: 30
+  force_kill_timeout: 10
+  cleanup_on_exit: true
+  monitor_health: true
+

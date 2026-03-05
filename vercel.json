@@ -44,7 +44,6 @@
   "env": {
     "ATOMS_FASTMCP_TRANSPORT": "http",
     "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp",
-    "PYTHONPATH": "pheno_vendor",
     "PRODUCTION": "true"
   },
   "github": {

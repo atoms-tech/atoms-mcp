@@ -51,7 +51,7 @@ class TestFieldTypes:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -80,7 +80,7 @@ class TestFieldTypes:
                 "name": "Test Org",
                 "field_type": "personal",
                 "owner_id": uuid.uuid4(),
-                "version": 1
+                "version": 1,
             }
 
             try:
@@ -88,7 +88,7 @@ class TestFieldTypes:
                 assert str(org.id) == valid_uuid
                 valid_uuid_test = True
             except ValidationError as e:
-                logger.error(f"Valid UUID failed validation: {e}")
+                logger.exception(f"Valid UUID failed validation: {e}")
                 valid_uuid_test = False
 
             # Test invalid UUID
@@ -107,14 +107,18 @@ class TestFieldTypes:
                 null_data["parent_id"] = None  # Optional field
                 OrganizationBaseSchema(**null_data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Null UUID failed for optional field: {e}")
+                logger.exception(f"Null UUID failed for optional field: {e}")
                 null_uuid_test = False
 
-            store_result("test_uuid_fields_validation", True, {
-                "valid_uuid": valid_uuid_test,
-                "invalid_uuid_rejected": invalid_uuid_test,
-                "null_uuid_allowed": null_uuid_test
-            })
+            store_result(
+                "test_uuid_fields_validation",
+                True,
+                {
+                    "valid_uuid": valid_uuid_test,
+                    "invalid_uuid_rejected": invalid_uuid_test,
+                    "null_uuid_allowed": null_uuid_test,
+                },
+            )
 
             assert valid_uuid_test, "Valid UUID should pass validation"
             assert invalid_uuid_test, "Invalid UUID should fail validation"
@@ -147,7 +151,7 @@ class TestFieldTypes:
                 "name": "Test Document",
                 "slug": "test-document",
                 "project_id": uuid.uuid4(),
-                "version": 1
+                "version": 1,
             }
 
             # Test valid string
@@ -156,7 +160,7 @@ class TestFieldTypes:
                 doc = DocumentBaseSchema(**base_data)  # type: ignore  # type: ignore  # type: ignore
                 assert doc.name == "Test Document"
             except ValidationError as e:
-                logger.error(f"Valid string failed: {e}")
+                logger.exception(f"Valid string failed: {e}")
                 valid_string_test = False
 
             # Test empty string
@@ -166,7 +170,7 @@ class TestFieldTypes:
                 empty_data["description"] = ""  # Optional field
                 DocumentBaseSchema(**empty_data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Empty string failed: {e}")
+                logger.exception(f"Empty string failed: {e}")
                 empty_string_test = False
 
             # Test unicode
@@ -177,7 +181,7 @@ class TestFieldTypes:
                 doc = DocumentBaseSchema(**unicode_data)  # type: ignore  # type: ignore
                 assert doc.name == "Test 测试 тест 🚀"
             except ValidationError as e:
-                logger.error(f"Unicode string failed: {e}")
+                logger.exception(f"Unicode string failed: {e}")
                 unicode_test = False
 
             # Test integer coercion (should fail)
@@ -189,12 +193,16 @@ class TestFieldTypes:
             except ValidationError:
                 type_coercion_test = True  # Expected to fail or coerce
 
-            store_result("test_string_fields_validation", True, {
-                "valid_string": valid_string_test,
-                "empty_string": empty_string_test,
-                "unicode": unicode_test,
-                "type_enforcement": type_coercion_test
-            })
+            store_result(
+                "test_string_fields_validation",
+                True,
+                {
+                    "valid_string": valid_string_test,
+                    "empty_string": empty_string_test,
+                    "unicode": unicode_test,
+                    "type_enforcement": type_coercion_test,
+                },
+            )
 
             assert valid_string_test, "Valid string should pass"
             assert unicode_test, "Unicode should be supported"
@@ -228,7 +236,7 @@ class TestFieldTypes:
                 "document_id": uuid.uuid4(),
                 "position": 0,
                 "field_type": "text",
-                "version": 1
+                "version": 1,
             }
 
             # Test valid integer
@@ -238,7 +246,7 @@ class TestFieldTypes:
                 assert block.position == 0
                 assert isinstance(block.position, int)
             except ValidationError as e:
-                logger.error(f"Valid integer failed: {e}")
+                logger.exception(f"Valid integer failed: {e}")
                 valid_int_test = False
 
             # Test negative integer
@@ -248,7 +256,7 @@ class TestFieldTypes:
                 neg_data["position"] = -1
                 BlockBaseSchema(**neg_data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Negative integer failed: {e}")
+                logger.exception(f"Negative integer failed: {e}")
                 negative_test = False
 
             # Test large integer
@@ -258,7 +266,7 @@ class TestFieldTypes:
                 large_data["position"] = 999999999
                 BlockBaseSchema(**large_data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Large integer failed: {e}")
+                logger.exception(f"Large integer failed: {e}")
                 large_int_test = False
 
             # Test float (may coerce or fail)
@@ -272,12 +280,16 @@ class TestFieldTypes:
             except ValidationError:
                 float_coercion_test = False
 
-            store_result("test_integer_fields_validation", True, {
-                "valid_int": valid_int_test,
-                "negative_int": negative_test,
-                "large_int": large_int_test,
-                "float_coercion": float_coercion_test
-            })
+            store_result(
+                "test_integer_fields_validation",
+                True,
+                {
+                    "valid_int": valid_int_test,
+                    "negative_int": negative_test,
+                    "large_int": large_int_test,
+                    "float_coercion": float_coercion_test,
+                },
+            )
 
             assert valid_int_test, "Valid integer should pass"
 
@@ -309,7 +321,7 @@ class TestFieldTypes:
                 "slug": "test",
                 "project_id": uuid.uuid4(),
                 "version": 1,
-                "is_deleted": False
+                "is_deleted": False,
             }
 
             # Test True
@@ -320,7 +332,7 @@ class TestFieldTypes:
                 doc = DocumentBaseSchema(**data)  # type: ignore  # type: ignore
                 assert doc.is_deleted is True
             except ValidationError as e:
-                logger.error(f"True value failed: {e}")
+                logger.exception(f"True value failed: {e}")
                 true_test = False
 
             # Test False
@@ -331,7 +343,7 @@ class TestFieldTypes:
                 doc = DocumentBaseSchema(**data)  # type: ignore  # type: ignore
                 assert doc.is_deleted is False
             except ValidationError as e:
-                logger.error(f"False value failed: {e}")
+                logger.exception(f"False value failed: {e}")
                 false_test = False
 
             # Test None for optional
@@ -341,7 +353,7 @@ class TestFieldTypes:
                 data["is_deleted"] = None
                 DocumentBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"None for optional boolean failed: {e}")
+                logger.exception(f"None for optional boolean failed: {e}")
                 none_test = False
 
             # Test truthy coercion (1, 0, "true", "false")
@@ -354,12 +366,16 @@ class TestFieldTypes:
             except (ValidationError, AssertionError):
                 coercion_test = False
 
-            store_result("test_boolean_fields_validation", True, {
-                "true_value": true_test,
-                "false_value": false_test,
-                "none_value": none_test,
-                "truthy_coercion": coercion_test
-            })
+            store_result(
+                "test_boolean_fields_validation",
+                True,
+                {
+                    "true_value": true_test,
+                    "false_value": false_test,
+                    "none_value": none_test,
+                    "truthy_coercion": coercion_test,
+                },
+            )
 
             assert true_test and false_test, "Boolean values should work"
 
@@ -386,13 +402,7 @@ class TestFieldTypes:
         try:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
-            base_data = {
-                "id": uuid.uuid4(),
-                "name": "Test",
-                "slug": "test",
-                "project_id": uuid.uuid4(),
-                "version": 1
-            }
+            base_data = {"id": uuid.uuid4(), "name": "Test", "slug": "test", "project_id": uuid.uuid4(), "version": 1}
 
             # Test datetime object
             datetime_obj_test = True
@@ -403,7 +413,7 @@ class TestFieldTypes:
                 doc = DocumentBaseSchema(**data)  # type: ignore  # type: ignore
                 assert isinstance(doc.created_at, datetime.datetime)
             except ValidationError as e:
-                logger.error(f"Datetime object failed: {e}")
+                logger.exception(f"Datetime object failed: {e}")
                 datetime_obj_test = False
 
             # Test ISO string
@@ -412,9 +422,9 @@ class TestFieldTypes:
                 data = base_data.copy()
                 data["created_at"] = "2024-01-01T12:00:00Z"
                 doc = DocumentBaseSchema(**data)  # type: ignore  # type: ignore
-                assert isinstance(doc.created_at, (datetime.datetime, str))
+                assert isinstance(doc.created_at, datetime.datetime | str)
             except ValidationError as e:
-                logger.error(f"ISO string failed: {e}")
+                logger.exception(f"ISO string failed: {e}")
                 iso_string_test = False
 
             # Test timezone aware
@@ -424,7 +434,7 @@ class TestFieldTypes:
                 data["created_at"] = datetime.datetime.now(datetime.UTC)
                 DocumentBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Timezone aware datetime failed: {e}")
+                logger.exception(f"Timezone aware datetime failed: {e}")
                 tz_aware_test = False
 
             # Test null for optional
@@ -434,15 +444,19 @@ class TestFieldTypes:
                 data["updated_at"] = None
                 DocumentBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Null datetime failed: {e}")
+                logger.exception(f"Null datetime failed: {e}")
                 null_test = False
 
-            store_result("test_datetime_fields_validation", True, {
-                "datetime_object": datetime_obj_test,
-                "iso_string": iso_string_test,
-                "timezone_aware": tz_aware_test,
-                "null_value": null_test
-            })
+            store_result(
+                "test_datetime_fields_validation",
+                True,
+                {
+                    "datetime_object": datetime_obj_test,
+                    "iso_string": iso_string_test,
+                    "timezone_aware": tz_aware_test,
+                    "null_value": null_test,
+                },
+            )
 
             assert datetime_obj_test, "Datetime objects should work"
 
@@ -472,12 +486,7 @@ class TestFieldTypes:
                 PublicOrganizationTypeEnum,
             )
 
-            base_data = {
-                "id": uuid.uuid4(),
-                "name": "Test Org",
-                "owner_id": uuid.uuid4(),
-                "version": 1
-            }
+            base_data = {"id": uuid.uuid4(), "name": "Test Org", "owner_id": uuid.uuid4(), "version": 1}
 
             # Test valid enum value
             valid_enum_test = True
@@ -487,7 +496,7 @@ class TestFieldTypes:
                 org = OrganizationBaseSchema(**data)  # type: ignore  # type: ignore
                 assert org.field_type == PublicOrganizationTypeEnum.PERSONAL
             except ValidationError as e:
-                logger.error(f"Valid enum value failed: {e}")
+                logger.exception(f"Valid enum value failed: {e}")
                 valid_enum_test = False
 
             # Test enum object
@@ -498,7 +507,7 @@ class TestFieldTypes:
                 org = OrganizationBaseSchema(**data)  # type: ignore  # type: ignore
                 assert org.field_type == PublicOrganizationTypeEnum.TEAM
             except ValidationError as e:
-                logger.error(f"Enum object failed: {e}")
+                logger.exception(f"Enum object failed: {e}")
                 enum_obj_test = False
 
             # Test invalid enum value
@@ -519,12 +528,16 @@ class TestFieldTypes:
             except ValidationError:
                 case_test = False  # May be case-sensitive
 
-            store_result("test_enum_fields_validation", True, {
-                "valid_enum_value": valid_enum_test,
-                "enum_object": enum_obj_test,
-                "invalid_rejected": invalid_enum_test,
-                "case_sensitivity": case_test
-            })
+            store_result(
+                "test_enum_fields_validation",
+                True,
+                {
+                    "valid_enum_value": valid_enum_test,
+                    "enum_object": enum_obj_test,
+                    "invalid_rejected": invalid_enum_test,
+                    "case_sensitivity": case_test,
+                },
+            )
 
             assert valid_enum_test, "Valid enum values should pass"
             assert invalid_enum_test, "Invalid enum values should fail"
@@ -557,7 +570,7 @@ class TestFieldTypes:
                 "action": "test_action",
                 "entity_id": uuid.uuid4(),
                 "entity_type": "test",
-                "created_at": datetime.datetime.now(datetime.UTC)
+                "created_at": datetime.datetime.now(datetime.UTC),
             }
 
             # Test dict
@@ -568,7 +581,7 @@ class TestFieldTypes:
                 log = AuditLogBaseSchema(**data)  # type: ignore  # type: ignore
                 assert isinstance(log.metadata, dict)
             except ValidationError as e:
-                logger.error(f"Dict failed: {e}")
+                logger.exception(f"Dict failed: {e}")
                 dict_test = False
 
             # Test list of dicts
@@ -577,22 +590,19 @@ class TestFieldTypes:
                 data = base_data.copy()
                 data["details"] = [{"id": 1}, {"id": 2}]
                 log = AuditLogBaseSchema(**data)  # type: ignore  # type: ignore
-                assert isinstance(log.details, (list, dict))
+                assert isinstance(log.details, list | dict)
             except ValidationError as e:
-                logger.error(f"List of dicts failed: {e}")
+                logger.exception(f"List of dicts failed: {e}")
                 list_test = False
 
             # Test nested structure
             nested_test = True
             try:
                 data = base_data.copy()
-                data["metadata"] = {
-                    "user": {"id": "123", "name": "Test"},
-                    "settings": {"theme": "dark"}
-                }
+                data["metadata"] = {"user": {"id": "123", "name": "Test"}, "settings": {"theme": "dark"}}
                 AuditLogBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Nested structure failed: {e}")
+                logger.exception(f"Nested structure failed: {e}")
                 nested_test = False
 
             # Test null
@@ -602,15 +612,14 @@ class TestFieldTypes:
                 data["metadata"] = None
                 AuditLogBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Null JSON failed: {e}")
+                logger.exception(f"Null JSON failed: {e}")
                 null_test = False
 
-            store_result("test_json_fields_validation", True, {
-                "dict": dict_test,
-                "list": list_test,
-                "nested": nested_test,
-                "null": null_test
-            })
+            store_result(
+                "test_json_fields_validation",
+                True,
+                {"dict": dict_test, "list": list_test, "nested": nested_test, "null": null_test},
+            )
 
             assert dict_test, "Dict should work"
 
@@ -637,13 +646,7 @@ class TestFieldTypes:
         try:
             from schemas.generated.fastapi.schema_public_latest import DocumentBaseSchema
 
-            base_data = {
-                "id": uuid.uuid4(),
-                "name": "Test",
-                "slug": "test",
-                "project_id": uuid.uuid4(),
-                "version": 1
-            }
+            base_data = {"id": uuid.uuid4(), "name": "Test", "slug": "test", "project_id": uuid.uuid4(), "version": 1}
 
             # Test valid array
             valid_array_test = True
@@ -651,9 +654,10 @@ class TestFieldTypes:
                 data = base_data.copy()
                 data["tags"] = ["tag1", "tag2", "tag3"]
                 doc = DocumentBaseSchema(**data)  # type: ignore  # type: ignore
+                assert doc.tags is not None
                 assert len(doc.tags) == 3
             except ValidationError as e:
-                logger.error(f"Valid array failed: {e}")
+                logger.exception(f"Valid array failed: {e}")
                 valid_array_test = False
 
             # Test empty array
@@ -664,7 +668,7 @@ class TestFieldTypes:
                 doc = DocumentBaseSchema(**data)  # type: ignore  # type: ignore
                 assert doc.tags == []
             except ValidationError as e:
-                logger.error(f"Empty array failed: {e}")
+                logger.exception(f"Empty array failed: {e}")
                 empty_array_test = False
 
             # Test null
@@ -674,7 +678,7 @@ class TestFieldTypes:
                 data["tags"] = None
                 DocumentBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Null array failed: {e}")
+                logger.exception(f"Null array failed: {e}")
                 null_test = False
 
             # Test type consistency (should fail with mixed types)
@@ -687,12 +691,16 @@ class TestFieldTypes:
             except ValidationError:
                 pass  # Expected
 
-            store_result("test_array_fields_validation", True, {
-                "valid_array": valid_array_test,
-                "empty_array": empty_array_test,
-                "null_value": null_test,
-                "type_consistency": type_check_test
-            })
+            store_result(
+                "test_array_fields_validation",
+                True,
+                {
+                    "valid_array": valid_array_test,
+                    "empty_array": empty_array_test,
+                    "null_value": null_test,
+                    "type_consistency": type_check_test,
+                },
+            )
 
             assert valid_array_test, "Valid arrays should pass"
 
@@ -727,12 +735,12 @@ class TestFieldTypes:
                     "name": "Test",
                     "slug": "test",
                     "project_id": uuid.uuid4(),
-                    "version": 1
+                    "version": 1,
                 }
                 doc = DocumentBaseSchema(**minimal_data)  # type: ignore  # type: ignore
                 assert doc.id is not None
             except ValidationError as e:
-                logger.error(f"Minimal data failed: {e}")
+                logger.exception(f"Minimal data failed: {e}")
                 minimal_test = False
 
             # Test with optional fields
@@ -743,7 +751,7 @@ class TestFieldTypes:
                 data["tags"] = ["test"]
                 DocumentBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"With optional fields failed: {e}")
+                logger.exception(f"With optional fields failed: {e}")
                 optional_test = False
 
             # Test explicit None
@@ -754,7 +762,7 @@ class TestFieldTypes:
                 data["deleted_at"] = None
                 DocumentBaseSchema(**data)  # type: ignore  # type: ignore
             except ValidationError as e:
-                logger.error(f"Explicit None failed: {e}")
+                logger.exception(f"Explicit None failed: {e}")
                 explicit_none_test = False
 
             # Test missing required field
@@ -765,12 +773,16 @@ class TestFieldTypes:
             except ValidationError:
                 missing_required_test = True  # Expected to fail
 
-            store_result("test_optional_fields_behavior", True, {
-                "minimal_data": minimal_test,
-                "with_optional": optional_test,
-                "explicit_none": explicit_none_test,
-                "missing_required_fails": missing_required_test
-            })
+            store_result(
+                "test_optional_fields_behavior",
+                True,
+                {
+                    "minimal_data": minimal_test,
+                    "with_optional": optional_test,
+                    "explicit_none": explicit_none_test,
+                    "missing_required_fails": missing_required_test,
+                },
+            )
 
             assert minimal_test, "Minimal required data should work"
             assert missing_required_test, "Missing required fields should fail"
@@ -802,7 +814,7 @@ class TestFieldTypes:
                 "name": "Test Block",
                 "document_id": uuid.uuid4(),
                 "position": 0,
-                "version": 1
+                "version": 1,
             }
 
             # Test using alias
@@ -813,7 +825,7 @@ class TestFieldTypes:
                 block = BlockBaseSchema(**data)  # type: ignore  # type: ignore
                 assert block.field_type == "text"  # Accessed via field name
             except ValidationError as e:
-                logger.error(f"Alias usage failed: {e}")
+                logger.exception(f"Alias usage failed: {e}")
                 alias_test = False
 
             # Test using field name (should also work with by_alias=True)
@@ -824,13 +836,10 @@ class TestFieldTypes:
                 block = BlockBaseSchema(**data)  # type: ignore  # type: ignore
                 assert block.field_type == "text"
             except ValidationError as e:
-                logger.error(f"Field name usage failed: {e}")
+                logger.exception(f"Field name usage failed: {e}")
                 field_name_test = False
 
-            store_result("test_field_aliases", True, {
-                "alias_works": alias_test,
-                "field_name_works": field_name_test
-            })
+            store_result("test_field_aliases", True, {"alias_works": alias_test, "field_name_works": field_name_test})
 
             assert alias_test or field_name_test, "Either alias or field name should work"
 
@@ -862,7 +871,7 @@ class TestFieldTypes:
                 "name": "Test",
                 "document_id": uuid.uuid4(),
                 "field_type": "text",
-                "version": 1
+                "version": 1,
             }
 
             # Test string to int
@@ -881,7 +890,7 @@ class TestFieldTypes:
                 data = base_data.copy()
                 data["is_deleted"] = 0  # Int instead of bool
                 block = BlockBaseSchema(**data)  # type: ignore  # type: ignore
-                assert isinstance(block.is_deleted, (bool, int))
+                assert isinstance(block.is_deleted, bool | int)
             except ValidationError:
                 int_to_bool_test = False
 
@@ -895,11 +904,11 @@ class TestFieldTypes:
             except ValidationError:
                 empty_str_test = False
 
-            store_result("test_type_coercion_edge_cases", True, {
-                "string_to_int": str_to_int_test,
-                "int_to_bool": int_to_bool_test,
-                "empty_string": empty_str_test
-            })
+            store_result(
+                "test_type_coercion_edge_cases",
+                True,
+                {"string_to_int": str_to_int_test, "int_to_bool": int_to_bool_test, "empty_string": empty_str_test},
+            )
 
             # These are informational - Pydantic's behavior may vary
             assert True, "Type coercion tests complete"
@@ -911,11 +920,7 @@ class TestFieldTypes:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_field_type_summary(
-        self,
-        test_results,
-        store_result
-    ) -> None:
+    async def test_field_type_summary(self, test_results, store_result) -> None:
         """Generate summary of field type validation results.
 
         Given: All field type tests
@@ -934,10 +939,19 @@ class TestFieldTypes:
                 "total_tests": len(all_results),
                 "passed_tests": sum(1 for r in all_results.values() if r.passed),
                 "type_categories_tested": [
-                    "UUID", "String", "Integer", "Boolean", "Datetime",
-                    "Enum", "JSON", "Array", "Optional", "Aliases", "Coercion"
+                    "UUID",
+                    "String",
+                    "Integer",
+                    "Boolean",
+                    "Datetime",
+                    "Enum",
+                    "JSON",
+                    "Array",
+                    "Optional",
+                    "Aliases",
+                    "Coercion",
                 ],
-                "critical_failures": []
+                "critical_failures": [],
             }
 
             for test_name, result in all_results.items():
@@ -951,8 +965,9 @@ class TestFieldTypes:
 
             store_result("test_field_type_summary", True, summary)
 
-            assert summary["passed_tests"] >= summary["total_tests"] * 0.8, \
+            assert summary["passed_tests"] >= summary["total_tests"] * 0.8, (
                 f"Less than 80% tests passed: {summary['passed_tests']}/{summary['total_tests']}"
+            )
 
         except Exception as e:
             logger.error(f"Test failed with error: {e}", exc_info=True)

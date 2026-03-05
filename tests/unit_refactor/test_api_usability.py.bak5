@@ -1,0 +1,776 @@
+"""
+API usability and accessibility tests for Atoms MCP.
+
+This module validates API design quality including:
+- Clear error messages
+- Consistent parameter naming
+- Sensible defaults
+- Type hints availability
+- Documentation completeness
+- Backwards compatibility
+
+Tests ensure the API is intuitive, well-documented, and user-friendly.
+"""
+
+import inspect
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, get_type_hints
+from unittest.mock import Mock
+
+import pytest
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+from atoms_mcp.application.commands.entity_commands import (
+    CreateEntityCommand,
+    DeleteEntityCommand,
+    EntityCommandHandler,
+    EntityNotFoundError,
+    EntityValidationError,
+    UpdateEntityCommand,
+)
+from atoms_mcp.application.queries.entity_queries import (
+    EntityQueryHandler,
+    GetEntityQuery,
+    ListEntitiesQuery,
+    SearchEntitiesQuery,
+)
+from atoms_mcp.domain.models.entity import Entity, EntityStatus, WorkspaceEntity
+from atoms_mcp.domain.models.relationship import Relationship, RelationType
+from atoms_mcp.domain.services.entity_service import EntityService
+from atoms_mcp.domain.services.relationship_service import RelationshipService
+# ValidationError is defined in command modules, not infrastructure
+# from atoms_mcp.infrastructure.errors.exceptions import ValidationError
+
+
+# =============================================================================
+# ERROR MESSAGE QUALITY TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestErrorMessageQuality:
+    """Test that error messages are clear, actionable, and user-friendly."""
+
+    def test_entity_validation_error_clarity(self):
+        """
+        Test validation errors provide clear messages.
+
+        Given: Invalid command data
+        When: Validating the command
+        Then: Error message clearly explains what is wrong
+        """
+        command = CreateEntityCommand(entity_type="", name="Test")
+
+        with pytest.raises(EntityValidationError) as exc_info:
+            command.validate()
+
+        error_message = str(exc_info.value)
+        assert "entity_type" in error_message.lower()
+        assert "required" in error_message.lower()
+        # Error should be actionable
+        assert len(error_message) > 10
+
+    def test_entity_not_found_error_includes_id(self, mock_repository, mock_logger):
+        """
+        Test not found errors include entity ID.
+
+        Given: Non-existent entity ID
+        When: Attempting to retrieve entity
+        Then: Error or response clearly indicates entity was not found
+        """
+        service = EntityService(mock_repository, mock_logger)
+        entity_id = "nonexistent_id_12345"
+
+        result = service.get_entity(entity_id)
+
+        # Should return None and log warning with ID
+        assert result is None
+        warnings = mock_logger.get_logs("WARNING")
+        assert len(warnings) > 0
+        assert entity_id in warnings[0]["message"]
+
+    def test_empty_name_validation_error(self):
+        """
+        Test empty name validation provides helpful message.
+
+        Given: Command with empty name
+        When: Validating the command
+        Then: Error explains name is required
+        """
+        command = CreateEntityCommand(entity_type="workspace", name="")
+
+        with pytest.raises(EntityValidationError) as exc_info:
+            command.validate()
+
+        error_message = str(exc_info.value)
+        assert "name" in error_message.lower()
+        assert "required" in error_message.lower()
+
+    def test_name_length_validation_error(self):
+        """
+        Test name length validation provides specific guidance.
+
+        Given: Command with overly long name
+        When: Validating the command
+        Then: Error specifies maximum length allowed
+        """
+        long_name = "X" * 300
+        command = CreateEntityCommand(entity_type="workspace", name=long_name)
+
+        with pytest.raises(EntityValidationError) as exc_info:
+            command.validate()
+
+        error_message = str(exc_info.value)
+        assert "name" in error_message.lower()
+        assert "255" in error_message  # Specifies max length
+
+    def test_invalid_field_update_warning(self, mock_repository, mock_logger):
+        """
+        Test updating invalid field generates clear warning.
+
+        Given: Update with non-existent field
+        When: Attempting to update entity
+        Then: Warning clearly indicates field doesn't exist
+        """
+        service = EntityService(mock_repository, mock_logger)
+        entity = WorkspaceEntity(name="Test")
+        mock_repository.add_entity(entity)
+
+        service.update_entity(entity.id, {"nonexistent_field": "value"})
+
+        warnings = mock_logger.get_logs("WARNING")
+        assert any("does not exist" in w["message"] for w in warnings)
+        assert any("nonexistent_field" in w["message"] for w in warnings)
+
+    def test_relationship_cycle_error_message(self, mock_repository, mock_logger):
+        """
+        Test cycle detection provides informative error.
+
+        Given: Relationship service
+        When: Attempting to create circular relationship
+        Then: Error explains that cycles are not allowed
+        """
+        # This test validates that IF cycle detection is implemented,
+        # the error message is clear
+        service = RelationshipService(mock_repository, mock_logger)
+
+        # Note: Actual cycle detection may not be fully implemented
+        # This tests the error message quality if it is raised
+        try:
+            # Attempt to create a relationship that would cycle
+            service.add_relationship(
+                source_id="entity_1",
+                target_id="entity_1",  # Self-reference
+                relationship_type=RelationType.PARENT_CHILD,
+            )
+        except ValueError as e:
+            # If error is raised, it should be clear
+            error_message = str(e)
+            assert len(error_message) > 10
+            assert "cycle" in error_message.lower() or "circular" in error_message.lower()
+
+
+# =============================================================================
+# PARAMETER NAMING CONSISTENCY TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestParameterNamingConsistency:
+    """Test that parameters are named consistently across the API."""
+
+    def test_entity_id_parameter_consistency(self):
+        """
+        Test entity ID parameters use consistent naming.
+
+        Given: Multiple methods that accept entity IDs
+        When: Examining parameter names
+        Then: All use 'entity_id' consistently
+        """
+        # Check EntityService methods
+        get_sig = inspect.signature(EntityService.get_entity)
+        update_sig = inspect.signature(EntityService.update_entity)
+        delete_sig = inspect.signature(EntityService.delete_entity)
+        archive_sig = inspect.signature(EntityService.archive_entity)
+        restore_sig = inspect.signature(EntityService.restore_entity)
+
+        assert "entity_id" in get_sig.parameters
+        assert "entity_id" in update_sig.parameters
+        assert "entity_id" in delete_sig.parameters
+        assert "entity_id" in archive_sig.parameters
+        assert "entity_id" in restore_sig.parameters
+
+    def test_filters_parameter_consistency(self):
+        """
+        Test filter parameters use consistent naming and type.
+
+        Given: Methods that accept filters
+        When: Examining parameter names and types
+        Then: All use 'filters' with dict type
+        """
+        list_sig = inspect.signature(EntityService.list_entities)
+        count_sig = inspect.signature(EntityService.count_entities)
+
+        assert "filters" in list_sig.parameters
+        assert "filters" in count_sig.parameters
+
+        # Check type hints
+        list_hints = get_type_hints(EntityService.list_entities)
+        count_hints = get_type_hints(EntityService.count_entities)
+
+        # Both should accept Optional[dict]
+        assert list_hints.get("filters") is not None
+        assert count_hints.get("filters") is not None
+
+    def test_pagination_parameter_consistency(self):
+        """
+        Test pagination parameters use consistent names.
+
+        Given: Methods with pagination
+        When: Examining parameter names
+        Then: All use 'limit' and 'offset'
+        """
+        list_sig = inspect.signature(EntityService.list_entities)
+        search_sig = inspect.signature(EntityService.search_entities)
+
+        assert "limit" in list_sig.parameters
+        assert "offset" in list_sig.parameters
+        assert "limit" in search_sig.parameters
+
+    def test_relationship_parameter_naming(self):
+        """
+        Test relationship methods use consistent parameter names.
+
+        Given: Relationship service methods
+        When: Examining parameter names
+        Then: Consistent use of source_id, target_id, relationship_type
+        """
+        add_sig = inspect.signature(RelationshipService.add_relationship)
+        get_sig = inspect.signature(RelationshipService.get_relationships)
+
+        # Core parameters should be consistently named
+        assert "source_id" in add_sig.parameters
+        assert "target_id" in add_sig.parameters
+        assert "relationship_type" in add_sig.parameters
+
+        assert "source_id" in get_sig.parameters
+        assert "target_id" in get_sig.parameters
+        assert "relationship_type" in get_sig.parameters
+
+
+# =============================================================================
+# SENSIBLE DEFAULTS TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestSensibleDefaults:
+    """Test that methods have reasonable default parameter values."""
+
+    def test_entity_creation_validation_default(self):
+        """
+        Test entity creation defaults to validation enabled.
+
+        Given: EntityService.create_entity method
+        When: Not specifying validate parameter
+        Then: Defaults to True (validate by default)
+        """
+        sig = inspect.signature(EntityService.create_entity)
+        validate_param = sig.parameters["validate"]
+
+        assert validate_param.default is True
+
+    def test_entity_deletion_soft_delete_default(self):
+        """
+        Test entity deletion defaults to soft delete.
+
+        Given: EntityService.delete_entity method
+        When: Not specifying soft_delete parameter
+        Then: Defaults to True (soft delete by default)
+        """
+        sig = inspect.signature(EntityService.delete_entity)
+        soft_delete_param = sig.parameters["soft_delete"]
+
+        assert soft_delete_param.default is True
+
+    def test_cache_usage_default(self):
+        """
+        Test get_entity defaults to using cache.
+
+        Given: EntityService.get_entity method
+        When: Not specifying use_cache parameter
+        Then: Defaults to True (use cache by default)
+        """
+        sig = inspect.signature(EntityService.get_entity)
+        use_cache_param = sig.parameters["use_cache"]
+
+        assert use_cache_param.default is True
+
+    def test_list_entities_default_values(self):
+        """
+        Test list_entities has sensible defaults.
+
+        Given: EntityService.list_entities method
+        When: Examining default values
+        Then: Optional parameters default to None (no limits)
+        """
+        sig = inspect.signature(EntityService.list_entities)
+
+        assert sig.parameters["filters"].default is None
+        assert sig.parameters["limit"].default is None
+        assert sig.parameters["offset"].default is None
+        assert sig.parameters["order_by"].default is None
+
+    def test_relationship_bidirectional_default(self):
+        """
+        Test add_relationship defaults to unidirectional.
+
+        Given: RelationshipService.add_relationship method
+        When: Not specifying bidirectional parameter
+        Then: Defaults to False (unidirectional by default)
+        """
+        sig = inspect.signature(RelationshipService.add_relationship)
+        bidirectional_param = sig.parameters["bidirectional"]
+
+        assert bidirectional_param.default is False
+
+    def test_command_validation_defaults(self):
+        """
+        Test command validate_updates defaults to True.
+
+        Given: UpdateEntityCommand
+        When: Not specifying validate_updates
+        Then: Defaults to True (validate by default)
+        """
+        command = UpdateEntityCommand(entity_id="test_id", updates={})
+
+        assert command.validate_updates is True
+
+
+# =============================================================================
+# TYPE HINTS AVAILABILITY TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestTypeHintsAvailability:
+    """Test that all public methods have proper type hints."""
+
+    def test_entity_service_has_type_hints(self):
+        """
+        Test EntityService methods have complete type hints.
+
+        Given: EntityService class
+        When: Examining method signatures
+        Then: All parameters and return types are annotated
+        """
+        methods = [
+            "create_entity",
+            "get_entity",
+            "update_entity",
+            "delete_entity",
+            "list_entities",
+            "search_entities",
+            "count_entities",
+        ]
+
+        for method_name in methods:
+            method = getattr(EntityService, method_name)
+            hints = get_type_hints(method)
+
+            # Should have return type hint
+            assert "return" in hints, f"{method_name} missing return type hint"
+
+            # Check parameter hints (excluding self)
+            sig = inspect.signature(method)
+            for param_name in sig.parameters:
+                if param_name != "self":
+                    assert param_name in hints, (
+                        f"{method_name} parameter '{param_name}' missing type hint"
+                    )
+
+    def test_relationship_service_has_type_hints(self):
+        """
+        Test RelationshipService methods have complete type hints.
+
+        Given: RelationshipService class
+        When: Examining method signatures
+        Then: All parameters and return types are annotated
+        """
+        methods = [
+            "add_relationship",
+            "remove_relationship",
+            "get_relationships",
+        ]
+
+        for method_name in methods:
+            method = getattr(RelationshipService, method_name)
+            hints = get_type_hints(method)
+
+            # Should have return type hint
+            assert "return" in hints, f"{method_name} missing return type hint"
+
+    def test_command_classes_have_type_hints(self):
+        """
+        Test command classes have type hints on attributes.
+
+        Given: Command classes
+        When: Examining class attributes
+        Then: All attributes have type annotations
+        """
+        commands = [CreateEntityCommand, UpdateEntityCommand, DeleteEntityCommand]
+
+        for command_class in commands:
+            hints = get_type_hints(command_class)
+            # Should have type hints for all fields
+            assert len(hints) > 0, f"{command_class.__name__} has no type hints"
+
+    def test_entity_model_has_type_hints(self):
+        """
+        Test Entity models have proper type hints.
+
+        Given: Entity model classes
+        When: Examining attributes
+        Then: All fields are properly typed
+        """
+        hints = get_type_hints(Entity)
+
+        # Core fields should be typed
+        expected_fields = ["id", "created_at", "updated_at", "status"]
+        for field in expected_fields:
+            assert field in hints, f"Entity missing type hint for '{field}'"
+
+
+# =============================================================================
+# DOCUMENTATION COMPLETENESS TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestDocumentationCompleteness:
+    """Test that all public APIs have proper documentation."""
+
+    def test_entity_service_methods_have_docstrings(self):
+        """
+        Test EntityService methods have docstrings.
+
+        Given: EntityService class
+        When: Examining method docstrings
+        Then: All public methods are documented
+        """
+        methods = [
+            "create_entity",
+            "get_entity",
+            "update_entity",
+            "delete_entity",
+            "list_entities",
+            "search_entities",
+            "count_entities",
+            "archive_entity",
+            "restore_entity",
+        ]
+
+        for method_name in methods:
+            method = getattr(EntityService, method_name)
+            assert method.__doc__ is not None, f"{method_name} missing docstring"
+            assert len(method.__doc__.strip()) > 20, (
+                f"{method_name} docstring too brief"
+            )
+
+    def test_relationship_service_methods_have_docstrings(self):
+        """
+        Test RelationshipService methods have docstrings.
+
+        Given: RelationshipService class
+        When: Examining method docstrings
+        Then: All public methods are documented
+        """
+        methods = [
+            "add_relationship",
+            "remove_relationship",
+            "get_relationships",
+        ]
+
+        for method_name in methods:
+            method = getattr(RelationshipService, method_name)
+            assert method.__doc__ is not None, f"{method_name} missing docstring"
+            assert len(method.__doc__.strip()) > 20
+
+    def test_docstrings_include_parameters(self):
+        """
+        Test docstrings document parameters.
+
+        Given: EntityService.create_entity method
+        When: Examining docstring
+        Then: Parameters are documented
+        """
+        docstring = EntityService.create_entity.__doc__
+
+        assert "Args:" in docstring or "Parameters:" in docstring
+        assert "entity" in docstring
+        assert "validate" in docstring
+
+    def test_docstrings_include_return_values(self):
+        """
+        Test docstrings document return values.
+
+        Given: EntityService methods with return values
+        When: Examining docstrings
+        Then: Return values are documented
+        """
+        docstring = EntityService.create_entity.__doc__
+
+        assert "Returns:" in docstring or "Return:" in docstring
+
+    def test_docstrings_include_exceptions(self):
+        """
+        Test docstrings document raised exceptions.
+
+        Given: EntityService.create_entity method
+        When: Examining docstring
+        Then: Exceptions are documented
+        """
+        docstring = EntityService.create_entity.__doc__
+
+        assert "Raises:" in docstring
+        assert "ValueError" in docstring or "RepositoryError" in docstring
+
+    def test_command_classes_have_docstrings(self):
+        """
+        Test command classes are documented.
+
+        Given: Command classes
+        When: Examining class docstrings
+        Then: Purpose and attributes are documented
+        """
+        commands = [CreateEntityCommand, UpdateEntityCommand, DeleteEntityCommand]
+
+        for command_class in commands:
+            assert command_class.__doc__ is not None
+            assert len(command_class.__doc__.strip()) > 20
+
+
+# =============================================================================
+# API CONSISTENCY TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestAPIConsistency:
+    """Test API maintains consistent patterns across modules."""
+
+    def test_service_methods_follow_crud_pattern(self):
+        """
+        Test service methods follow consistent CRUD naming.
+
+        Given: EntityService
+        When: Examining method names
+        Then: CRUD operations use standard names (create, get, update, delete, list)
+        """
+        service_methods = [m for m in dir(EntityService) if not m.startswith("_")]
+
+        assert "create_entity" in service_methods
+        assert "get_entity" in service_methods
+        assert "update_entity" in service_methods
+        assert "delete_entity" in service_methods
+        assert "list_entities" in service_methods
+
+    def test_query_classes_follow_naming_convention(self):
+        """
+        Test query classes follow consistent naming.
+
+        Given: Query classes
+        When: Examining class names
+        Then: All end with 'Query'
+        """
+        query_classes = [GetEntityQuery, ListEntitiesQuery, SearchEntitiesQuery]
+
+        for query_class in query_classes:
+            assert query_class.__name__.endswith("Query")
+
+    def test_command_classes_follow_naming_convention(self):
+        """
+        Test command classes follow consistent naming.
+
+        Given: Command classes
+        When: Examining class names
+        Then: All end with 'Command'
+        """
+        command_classes = [
+            CreateEntityCommand,
+            UpdateEntityCommand,
+            DeleteEntityCommand,
+        ]
+
+        for command_class in command_classes:
+            assert command_class.__name__.endswith("Command")
+
+    def test_exception_classes_follow_naming_convention(self):
+        """
+        Test exception classes follow consistent naming.
+
+        Given: Custom exception classes
+        When: Examining class names
+        Then: All end with 'Error'
+        """
+        exceptions = [EntityValidationError, EntityNotFoundError]
+
+        for exc_class in exceptions:
+            assert exc_class.__name__.endswith("Error")
+
+
+# =============================================================================
+# PARAMETER VALIDATION FEEDBACK TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestParameterValidationFeedback:
+    """Test parameter validation provides helpful feedback."""
+
+    def test_create_command_validates_all_fields(self):
+        """
+        Test CreateEntityCommand validates all required fields.
+
+        Given: Invalid command data
+        When: Validating multiple times
+        Then: Each validation error is specific to the field
+        """
+        # Test entity_type validation
+        cmd1 = CreateEntityCommand(entity_type="", name="Test")
+        with pytest.raises(EntityValidationError) as exc:
+            cmd1.validate()
+        assert "entity_type" in str(exc.value).lower()
+
+        # Test name validation
+        cmd2 = CreateEntityCommand(entity_type="workspace", name="")
+        with pytest.raises(EntityValidationError) as exc:
+            cmd2.validate()
+        assert "name" in str(exc.value).lower()
+
+        # Test name length validation
+        cmd3 = CreateEntityCommand(entity_type="workspace", name="X" * 300)
+        with pytest.raises(EntityValidationError) as exc:
+            cmd3.validate()
+        assert "255" in str(exc.value)
+
+    def test_update_command_validates_entity_id(self):
+        """
+        Test UpdateEntityCommand validates entity_id.
+
+        Given: UpdateEntityCommand
+        When: Validating with empty entity_id
+        Then: Error clearly indicates entity_id is required
+        """
+        cmd = UpdateEntityCommand(entity_id="", updates={"name": "Test"})
+
+        with pytest.raises(EntityValidationError) as exc:
+            cmd.validate()
+
+        error_msg = str(exc.value).lower()
+        assert "entity_id" in error_msg
+        assert "empty" in error_msg or "required" in error_msg
+
+    def test_delete_command_validates_entity_id(self):
+        """
+        Test DeleteEntityCommand validates entity_id.
+
+        Given: DeleteEntityCommand
+        When: Validating with empty entity_id
+        Then: Error clearly indicates entity_id is required
+        """
+        cmd = DeleteEntityCommand(entity_id="")
+
+        with pytest.raises(EntityValidationError) as exc:
+            cmd.validate()
+
+        error_msg = str(exc.value).lower()
+        assert "entity_id" in error_msg
+
+
+# =============================================================================
+# BACKWARDS COMPATIBILITY TESTS
+# =============================================================================
+
+
+@pytest.mark.usability
+class TestBackwardsCompatibility:
+    """Test API maintains backwards compatibility."""
+
+    def test_optional_parameters_maintain_compatibility(self):
+        """
+        Test that adding optional parameters doesn't break existing code.
+
+        Given: Service methods with optional parameters
+        When: Calling without new optional parameters
+        Then: Methods still work correctly
+        """
+        # This test ensures that existing code continues to work
+        # even as new optional parameters are added
+        from atoms_mcp.domain.services.entity_service import EntityService
+
+        # Should work with minimal parameters
+        sig = inspect.signature(EntityService.__init__)
+        required_params = [
+            p.name
+            for p in sig.parameters.values()
+            if p.default == inspect.Parameter.empty and p.name != "self"
+        ]
+
+        # Only repository and logger should be required
+        assert len(required_params) == 2
+        assert "repository" in required_params
+        assert "logger" in required_params
+
+    def test_entity_status_enum_values_stable(self):
+        """
+        Test EntityStatus enum values remain stable.
+
+        Given: EntityStatus enum
+        When: Examining enum values
+        Then: Core statuses (ACTIVE, ARCHIVED, DELETED) exist
+        """
+        # These values must remain stable for backwards compatibility
+        assert hasattr(EntityStatus, "ACTIVE")
+        assert hasattr(EntityStatus, "ARCHIVED")
+        assert hasattr(EntityStatus, "DELETED")
+
+        # Values should be consistent
+        assert EntityStatus.ACTIVE.value == "active"
+        assert EntityStatus.ARCHIVED.value == "archived"
+        assert EntityStatus.DELETED.value == "deleted"
+
+    def test_relationship_type_enum_values_stable(self):
+        """
+        Test RelationType enum values remain stable.
+
+        Given: RelationType enum
+        When: Examining enum values
+        Then: Core types remain consistent
+        """
+        # These values must remain stable
+        assert hasattr(RelationType, "PARENT_OF")
+        assert hasattr(RelationType, "DEPENDS_ON")
+        assert hasattr(RelationType, "REFERENCES")
+
+    def test_command_result_structure_stable(self, mock_repository, mock_logger):
+        """
+        Test command result structure remains consistent.
+
+        Given: Command handler
+        When: Executing command
+        Then: Result has expected attributes (success, data, message)
+        """
+        handler = EntityCommandHandler(mock_repository, mock_logger)
+        command = CreateEntityCommand(entity_type="workspace", name="Test")
+
+        result = handler.handle_create(command)
+
+        # Result structure must remain stable
+        assert hasattr(result, "success")
+        assert hasattr(result, "data")
+        assert hasattr(result, "message")
+        assert isinstance(result.success, bool)

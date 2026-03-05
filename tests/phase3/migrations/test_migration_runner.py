@@ -44,7 +44,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
         self.should_fail = False
         self.fail_on_query = None
 
-    async def execute(self, sql: str, params: Any = None) -> list[dict[str, Any]]:
+    async def execute(self, sql: str, _params: Any = None) -> list[dict[str, Any]]:
         """Execute SQL query on mock database."""
         self.queries_executed.append(sql)
         logger.debug(f"Mock execute: {sql[:100]}...")
@@ -74,25 +74,22 @@ class MockDatabaseAdapter(DatabaseAdapter):
 
         return []
 
-    async def insert(
-        self, table: str, data: Any, *, returning: str = None
-    ) -> dict[str, Any]:
+    async def insert(self, table: str, data: Any, *, _returning: str | None = None) -> dict[str, Any]:
         """Insert data into mock table."""
         if table not in self.tables:
             self.tables[table] = []
 
         if isinstance(data, list):
             self.tables[table].extend(data)
-            return data
-        else:
-            self.tables[table].append(data)
-            return data
+            return {"inserted_count": len(data)}
+        self.tables[table].append(data)
+        return {"inserted_count": 1}
 
-    async def query(self, table: str, **kwargs) -> list[dict[str, Any]]:
+    async def query(self, table: str, **_kwargs) -> list[dict[str, Any]]:
         """Query mock table."""
         return self.tables.get(table, [])
 
-    async def get_single(self, table: str, filters: dict, **kwargs):
+    async def get_single(self, table: str, filters: dict, **_kwargs):
         """Get single row from mock table."""
         rows = self.tables.get(table, [])
         for row in rows:
@@ -100,19 +97,19 @@ class MockDatabaseAdapter(DatabaseAdapter):
                 return row
         return None
 
-    async def update(self, table: str, filters: dict, data: dict, **kwargs):
+    async def update(self, _table: str, _filters: dict, _data: dict, **_kwargs):
         """Update mock table."""
         return []
 
-    async def delete(self, table: str, filters: dict, **kwargs):
+    async def delete(self, _table: str, _filters: dict, **_kwargs):
         """Delete from mock table."""
         return []
 
-    async def upsert(self, table: str, data: Any, **kwargs):
+    async def upsert(self, _table: str, data: Any, **_kwargs):
         """Upsert into mock table."""
         return data
 
-    async def count(self, table: str, filters: dict = None) -> int:
+    async def count(self, table: str, _filters: dict | None = None) -> int:
         """Count rows in mock table."""
         return len(self.tables.get(table, []))
 
@@ -125,8 +122,7 @@ class MockDatabaseAdapter(DatabaseAdapter):
 @pytest_asyncio.fixture
 async def mock_adapter():
     """Provide mock database adapter for COLD mode tests."""
-    adapter = MockDatabaseAdapter()
-    return adapter
+    return MockDatabaseAdapter()
 
 
 @pytest_asyncio.fixture
@@ -246,9 +242,7 @@ class TestMigrationRunnerCOLD:
     Expected execution time: < 2s per test.
     """
 
-    async def test_01_migration_applies_without_errors_cold(
-        self, migration_engine_cold
-    ):
+    async def test_01_migration_applies_without_errors_cold(self, migration_engine_cold):
         """Test that migrations apply successfully in COLD mode.
 
         Given: A migration engine with mock database
@@ -346,8 +340,7 @@ class TestMigrationRunnerCOLD:
             await migration_engine_cold.migrate()
 
             # Assertions
-            assert execution_order == ["001", "002", "003"], \
-                f"Expected [001, 002, 003], got {execution_order}"
+            assert execution_order == ["001", "002", "003"], f"Expected [001, 002, 003], got {execution_order}"
 
             logger.info("PASS: Migrations executed in correct order (COLD)")
         except Exception as e:
@@ -380,8 +373,7 @@ class TestMigrationRunnerCOLD:
             await migration_engine_cold.migrate()
 
             # Migration should not run again
-            assert execution_count["count"] == 1, \
-                "Migration executed twice (not idempotent)"
+            assert execution_count["count"] == 1, "Migration executed twice (not idempotent)"
 
             logger.info("PASS: Migration is idempotent (COLD)")
         except Exception as e:
@@ -435,9 +427,7 @@ class TestMigrationRunnerHOT:
     """
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_06_migration_applies_without_errors_hot(
-        self, migration_engine_hot, harmful_tracker
-    ):
+    async def test_06_migration_applies_without_errors_hot(self, migration_engine_hot, _harmful_tracker):
         """Test that migrations apply successfully with real database.
 
         Given: A migration engine with real database connection
@@ -466,8 +456,7 @@ class TestMigrationRunnerHOT:
 
             # Verify table was actually created
             result = await migration_engine_hot.adapter.execute(
-                "SELECT COUNT(*) FROM information_schema.tables "
-                "WHERE table_name = 'test_table_001'"
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'test_table_001'"
             )
             assert len(result) > 0, "Table was not created"
 
@@ -477,9 +466,7 @@ class TestMigrationRunnerHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_07_migration_version_tracking_hot(
-        self, migration_engine_hot, harmful_tracker
-    ):
+    async def test_07_migration_version_tracking_hot(self, migration_engine_hot, _harmful_tracker):
         """Test version tracking with real database.
 
         Given: Multiple migrations registered
@@ -513,9 +500,7 @@ class TestMigrationRunnerHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_08_partial_migration_target_hot(
-        self, migration_engine_hot, harmful_tracker
-    ):
+    async def test_08_partial_migration_target_hot(self, migration_engine_hot, _harmful_tracker):
         """Test migrating to a specific target version.
 
         Given: Multiple migrations registered
@@ -550,9 +535,7 @@ class TestMigrationRunnerHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_09_migration_status_reporting_hot(
-        self, migration_engine_hot, harmful_tracker
-    ):
+    async def test_09_migration_status_reporting_hot(self, migration_engine_hot, _harmful_tracker):
         """Test migration status reporting functionality.
 
         Given: Some migrations applied, some pending
@@ -591,9 +574,7 @@ class TestMigrationRunnerHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_10_checksum_validation_hot(
-        self, migration_engine_hot, harmful_tracker
-    ):
+    async def test_10_checksum_validation_hot(self, migration_engine_hot, _harmful_tracker):
         """Test that migration checksums are calculated and stored.
 
         Given: A migration is registered
@@ -605,9 +586,7 @@ class TestMigrationRunnerHOT:
 
         try:
             # Register migration
-            migration = migration_engine_hot.register(
-                "001", "test", migration_001_up
-            )
+            migration = migration_engine_hot.register("001", "test", migration_001_up)
 
             # Verify checksum was calculated
             assert migration.checksum is not None
@@ -617,9 +596,7 @@ class TestMigrationRunnerHOT:
             await migration_engine_hot.migrate()
 
             # Verify checksum was stored
-            rows = await migration_engine_hot.adapter.execute(
-                "SELECT checksum FROM _migrations WHERE version = '001'"
-            )
+            rows = await migration_engine_hot.adapter.execute("SELECT checksum FROM _migrations WHERE version = '001'")
             assert len(rows) == 1
             assert rows[0]["checksum"] == migration.checksum
 
@@ -663,9 +640,7 @@ class TestMigrationRunnerEdgeCases:
         """
         logger.info("TEST: Migration with no down function")
 
-        migration_engine_cold.register(
-            "001", "no_rollback", migration_001_up, down=None
-        )
+        migration_engine_cold.register("001", "no_rollback", migration_001_up, down=None)
 
         await migration_engine_cold.migrate()
 
@@ -697,6 +672,6 @@ class TestMigrationRunnerEdgeCases:
 
 __all__ = [
     "TestMigrationRunnerCOLD",
-    "TestMigrationRunnerHOT",
     "TestMigrationRunnerEdgeCases",
+    "TestMigrationRunnerHOT",
 ]

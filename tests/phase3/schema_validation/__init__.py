@@ -16,9 +16,9 @@ All tests use the Phase 2 test infrastructure with:
 """
 
 __all__ = [
-    "test_pydantic_sync",
-    "test_field_types",
     "test_constraints",
     "test_drift_detection",
     "test_enum_sync",
+    "test_field_types",
+    "test_pydantic_sync",
 ]

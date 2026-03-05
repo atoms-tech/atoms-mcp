@@ -7,7 +7,7 @@ This script tests all workspace_tool operations and documents results.
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 # Import the workspace operation function
@@ -16,31 +16,47 @@ try:
 except ImportError:
     from workspace import workspace_operation  # type: ignore
 
+# Type annotation for workspace_operation
+
+
+def call_workspace_operation(auth_token: str | None, params: dict[str, Any]) -> Any:
+    """Helper function to call workspace_operation with proper parameters."""
+    return workspace_operation(
+        auth_token=auth_token,
+        operation=params["operation"],
+        context_type=params.get("context_type"),
+        entity_id=params.get("entity_id"),
+        limit=params.get("limit"),
+        offset=params.get("offset"),
+        format_type=params.get("format_type", "detailed"),
+        organization_id=params.get("organization_id"),
+        project_id=params.get("project_id"),
+    )
+
 
 class WorkspaceToolTester:
     """Test harness for workspace_tool operations."""
 
-    def __init__(self, auth_token: str = None):
+    def __init__(self, auth_token: str | None = None):
         """Initialize tester with optional auth token."""
         self.auth_token = auth_token or os.getenv("TEST_AUTH_TOKEN")
         self.results: list[dict[str, Any]] = []
 
-    def log_result(self, operation: str, params: dict[str, Any],
-                   status: str, response: Any, error: str = None):
+    def log_result(self, operation: str, params: dict[str, Any], status: str, response: Any, error: str | None = None):
         """Log test result."""
         result = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "operation": operation,
             "parameters": params,
             "status": status,
             "response_structure": self._analyze_structure(response),
             "response_data": response,
-            "error": error
+            "error": error,
         }
         self.results.append(result)
 
         # Print result
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"Operation: {operation}")
         print(f"Status: {status}")
         print(f"Parameters: {json.dumps(params, indent=2)}")
@@ -49,7 +65,7 @@ class WorkspaceToolTester:
         else:
             print(f"Response Structure: {json.dumps(result['response_structure'], indent=2)}")
             print(f"Response Data: {json.dumps(response, indent=2, default=str)}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
     def _analyze_structure(self, data: Any) -> dict[str, Any]:
         """Analyze data structure."""
@@ -57,34 +73,19 @@ class WorkspaceToolTester:
             return {
                 "type": "dict",
                 "keys": list(data.keys()),
-                "nested_types": {k: type(v).__name__ for k, v in data.items()}
+                "nested_types": {k: type(v).__name__ for k, v in data.items()},
             }
         if isinstance(data, list):
-            return {
-                "type": "list",
-                "length": len(data),
-                "item_types": list(set(type(item).__name__ for item in data))
-            }
-        return {
-            "type": type(data).__name__,
-            "value": str(data)
-        }
+            return {"type": "list", "length": len(data), "item_types": list({type(item).__name__ for item in data})}
+        return {"type": type(data).__name__, "value": str(data)}
 
     async def test_operation_1_list_workspaces(self):
         """Test 1: List all workspaces."""
         operation = "list_workspaces"
-        params = {
-            "operation": operation,
-            "limit": 100,
-            "offset": 0,
-            "format_type": "detailed"
-        }
+        params = {"operation": operation, "limit": 100, "offset": 0, "format_type": "detailed"}
 
         try:
-            response = await workspace_operation(
-                auth_token=self.auth_token,
-                **params
-            )
+            response = await call_workspace_operation(auth_token=self.auth_token, params=params)
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
             self.log_result(operation, params, status, response)
@@ -97,16 +98,10 @@ class WorkspaceToolTester:
     async def test_operation_2_get_context(self):
         """Test 2: Get current workspace context."""
         operation = "get_context"
-        params = {
-            "operation": operation,
-            "format_type": "detailed"
-        }
+        params = {"operation": operation, "format_type": "detailed"}
 
         try:
-            response = await workspace_operation(
-                auth_token=self.auth_token,
-                **params
-            )
+            response = await call_workspace_operation(auth_token=self.auth_token, params=params)
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
             self.log_result(operation, params, status, response)
@@ -129,11 +124,8 @@ class WorkspaceToolTester:
             "example_params": {
                 "operation": "create",
                 "entity_type": "organization",
-                "data": {
-                    "name": f"MCP_Test_Workspace_{timestamp}",
-                    "type": "team"
-                }
-            }
+                "data": {"name": f"MCP_Test_Workspace_{timestamp}", "type": "team"},
+            },
         }
 
         self.log_result(
@@ -141,9 +133,8 @@ class WorkspaceToolTester:
             params,
             "NOT_SUPPORTED",
             {"message": "workspace_tool does not have a create operation"},
-            "Operation not available in workspace_tool"
+            "Operation not available in workspace_tool",
         )
-
 
     async def test_operation_4_set_context(self, organization_id: str):
         """Test 4: Set active workspace context."""
@@ -152,14 +143,11 @@ class WorkspaceToolTester:
             "operation": operation,
             "context_type": "organization",
             "entity_id": organization_id,
-            "format_type": "detailed"
+            "format_type": "detailed",
         }
 
         try:
-            response = await workspace_operation(
-                auth_token=self.auth_token,
-                **params
-            )
+            response = await call_workspace_operation(auth_token=self.auth_token, params=params)
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
             self.log_result(operation, params, status, response)
@@ -172,16 +160,10 @@ class WorkspaceToolTester:
     async def test_operation_5_get_defaults(self):
         """Test 5: Get smart defaults based on context."""
         operation = "get_defaults"
-        params = {
-            "operation": operation,
-            "format_type": "detailed"
-        }
+        params = {"operation": operation, "format_type": "detailed"}
 
         try:
-            response = await workspace_operation(
-                auth_token=self.auth_token,
-                **params
-            )
+            response = await call_workspace_operation(auth_token=self.auth_token, params=params)
 
             status = "SUCCESS" if response.get("success") is not False else "FAILED"
             self.log_result(operation, params, status, response)
@@ -205,10 +187,8 @@ class WorkspaceToolTester:
                 "operation": "update",
                 "entity_type": "organization",
                 "entity_id": "org_xxx",
-                "data": {
-                    "name": "Updated Name"
-                }
-            }
+                "data": {"name": "Updated Name"},
+            },
         }
 
         self.log_result(
@@ -216,9 +196,8 @@ class WorkspaceToolTester:
             params,
             "NOT_SUPPORTED",
             {"message": "workspace_tool does not have an update operation"},
-            "Operation not available in workspace_tool"
+            "Operation not available in workspace_tool",
         )
-
 
     async def test_operation_7_delete_workspace(self):
         """Test 7: Delete workspace.
@@ -234,8 +213,8 @@ class WorkspaceToolTester:
                 "operation": "delete",
                 "entity_type": "organization",
                 "entity_id": "org_xxx",
-                "soft_delete": True
-            }
+                "soft_delete": True,
+            },
         }
 
         self.log_result(
@@ -243,25 +222,24 @@ class WorkspaceToolTester:
             params,
             "NOT_SUPPORTED",
             {"message": "workspace_tool does not have a delete operation"},
-            "Operation not available in workspace_tool"
+            "Operation not available in workspace_tool",
         )
-
 
     async def run_all_tests(self):
         """Run all workspace_tool tests."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("WORKSPACE_TOOL COMPREHENSIVE TEST SUITE")
         print(f"Timestamp: {timestamp}")
         print(f"Auth Token Present: {bool(self.auth_token)}")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         # Test 1: List workspaces
         workspaces_response = await self.test_operation_1_list_workspaces()
 
         # Test 2: Get current context
-        _context_response = await self.test_operation_2_get_context()  # noqa: F841
+        _context_response = await self.test_operation_2_get_context()
 
         # Test 3: Create workspace (not supported - documented)
         await self.test_operation_3_create_workspace(timestamp)
@@ -287,9 +265,9 @@ class WorkspaceToolTester:
 
     def generate_report(self):
         """Generate final test report."""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("FINAL TEST REPORT")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
         total_tests = len(self.results)
         successful = sum(1 for r in self.results if r["status"] == "SUCCESS")
@@ -309,21 +287,26 @@ class WorkspaceToolTester:
             print(f"  - {result['operation']}: {result['status']}")
 
         # Save detailed report to file
-        report_file = f"workspace_tool_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_file = f"workspace_tool_test_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
         with open(report_file, "w") as f:
-            json.dump({
-                "summary": {
-                    "total_tests": total_tests,
-                    "successful": successful,
-                    "failed": failed,
-                    "errors": errors,
-                    "not_supported": not_supported
+            json.dump(
+                {
+                    "summary": {
+                        "total_tests": total_tests,
+                        "successful": successful,
+                        "failed": failed,
+                        "errors": errors,
+                        "not_supported": not_supported,
+                    },
+                    "results": self.results,
                 },
-                "results": self.results
-            }, f, indent=2, default=str)
+                f,
+                indent=2,
+                default=str,
+            )
 
         print(f"\nDetailed report saved to: {report_file}")
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
 
 async def main():

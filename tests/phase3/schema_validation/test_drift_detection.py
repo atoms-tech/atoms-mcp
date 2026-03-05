@@ -48,17 +48,13 @@ class TestDriftDetection:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_no_drift_baseline(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_no_drift_baseline(self, schema_sync: SchemaSync, store_result) -> None:
         """Test drift detection when schemas are in sync.
 
         Given: Current database schema and Pydantic models
@@ -76,7 +72,8 @@ class TestDriftDetection:
             # Filter out known acceptable differences
             # (e.g., views, system tables, naming variations)
             critical_differences = [
-                d for d in differences
+                d
+                for d in differences
                 if d.get("severity") in ["critical", "high"]
                 and d["type"] != "table"  # New tables are expected
                 and d.get("change") != "added"  # New additions are OK
@@ -88,12 +85,16 @@ class TestDriftDetection:
             for diff in critical_differences[:5]:
                 logger.info(f"  {diff}")
 
-            store_result("test_no_drift_baseline", True, {
-                "total_differences": len(differences),
-                "critical_differences": len(critical_differences),
-                "has_critical_drift": len(critical_differences) > 0,
-                "sample_diffs": differences[:5]
-            })
+            store_result(
+                "test_no_drift_baseline",
+                True,
+                {
+                    "total_differences": len(differences),
+                    "critical_differences": len(critical_differences),
+                    "has_critical_drift": len(critical_differences) > 0,
+                    "sample_diffs": differences[:5],
+                },
+            )
 
             # Allow some differences but flag critical ones
             if len(critical_differences) > 5:
@@ -108,11 +109,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_detect_new_table_addition(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_detect_new_table_addition(self, schema_sync: SchemaSync, store_result) -> None:
         """Test detection of new tables added to database.
 
         Given: A simulated database schema with new table
@@ -149,11 +146,15 @@ class TestDriftDetection:
             if detected_new_table:
                 logger.info("✓ Successfully detected test_new_table addition")
 
-            store_result("test_detect_new_table_addition", detected_new_table, {
-                "new_tables_count": len(new_tables),
-                "detected_test_table": detected_new_table,
-                "sample_new_tables": [t["name"] for t in new_tables[:5]]
-            })
+            store_result(
+                "test_detect_new_table_addition",
+                detected_new_table,
+                {
+                    "new_tables_count": len(new_tables),
+                    "detected_test_table": detected_new_table,
+                    "sample_new_tables": [t["name"] for t in new_tables[:5]],
+                },
+            )
 
             assert detected_new_table, "Should detect new table addition"
 
@@ -164,11 +165,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_detect_table_removal(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_detect_table_removal(self, schema_sync: SchemaSync, store_result) -> None:
         """Test detection of tables removed from database.
 
         Given: A simulated database schema with table removed
@@ -185,7 +182,7 @@ class TestDriftDetection:
             modified_db_schema = schema_sync.db_schema.copy()
             # Remove first table from db schema
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 del modified_db_schema["tables"][first_table]
 
                 test_sync = SchemaSync()
@@ -197,11 +194,15 @@ class TestDriftDetection:
 
                 logger.info(f"Removed tables detected: {len(removed_tables)}")
 
-                store_result("test_detect_table_removal", True, {
-                    "removed_tables_count": len(removed_tables),
-                    "severity": "critical",
-                    "sample_removed": [t["name"] for t in removed_tables[:5]]
-                })
+                store_result(
+                    "test_detect_table_removal",
+                    True,
+                    {
+                        "removed_tables_count": len(removed_tables),
+                        "severity": "critical",
+                        "sample_removed": [t["name"] for t in removed_tables[:5]],
+                    },
+                )
 
                 assert len(removed_tables) > 0, "Should detect table removal"
             else:
@@ -215,11 +216,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_detect_column_addition(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_detect_column_addition(self, schema_sync: SchemaSync, store_result) -> None:
         """Test detection of new columns added to existing tables.
 
         Given: A simulated table with new column
@@ -236,13 +233,10 @@ class TestDriftDetection:
             modified_db_schema = schema_sync.db_schema.copy()
 
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
-                modified_db_schema["tables"][first_table]["columns"].append({
-                    "column_name": "test_new_column",
-                    "data_type": "text",
-                    "is_nullable": "YES",
-                    "udt_name": "text"
-                })
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
+                modified_db_schema["tables"][first_table]["columns"].append(
+                    {"column_name": "test_new_column", "data_type": "text", "is_nullable": "YES", "udt_name": "text"}
+                )
 
                 test_sync = SchemaSync()
                 test_sync.db_schema = modified_db_schema
@@ -252,19 +246,22 @@ class TestDriftDetection:
                 modified_tables = [d for d in differences if d["type"] == "table" and d["change"] == "modified"]
 
                 column_additions = [
-                    d for d in modified_tables
-                    if "added_columns" in d and "test_new_column" in d["added_columns"]
+                    d for d in modified_tables if "added_columns" in d and "test_new_column" in d["added_columns"]
                 ]
 
                 detected = len(column_additions) > 0
 
                 logger.info(f"Column additions detected: {detected}")
 
-                store_result("test_detect_column_addition", detected, {
-                    "modified_tables": len(modified_tables),
-                    "detected_new_column": detected,
-                    "sample_changes": modified_tables[:3]
-                })
+                store_result(
+                    "test_detect_column_addition",
+                    detected,
+                    {
+                        "modified_tables": len(modified_tables),
+                        "detected_new_column": detected,
+                        "sample_changes": modified_tables[:3],
+                    },
+                )
 
                 assert detected, "Should detect column addition"
             else:
@@ -278,11 +275,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_detect_column_removal(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_detect_column_removal(self, schema_sync: SchemaSync, store_result) -> None:
         """Test detection of columns removed from existing tables.
 
         Given: A simulated table with column removed
@@ -299,7 +292,7 @@ class TestDriftDetection:
             modified_db_schema = schema_sync.db_schema.copy()
 
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 if len(modified_db_schema["tables"][first_table]["columns"]) > 1:
                     # Remove last column
                     removed_col = modified_db_schema["tables"][first_table]["columns"].pop()
@@ -312,17 +305,20 @@ class TestDriftDetection:
                     modified_tables = [d for d in differences if d["type"] == "table" and d["change"] == "modified"]
 
                     column_removals = [
-                        d for d in modified_tables
-                        if "removed_columns" in d and len(d["removed_columns"]) > 0
+                        d for d in modified_tables if "removed_columns" in d and len(d["removed_columns"]) > 0
                     ]
 
                     logger.info(f"Column removals detected: {len(column_removals)}")
 
-                    store_result("test_detect_column_removal", True, {
-                        "removal_detected": len(column_removals) > 0,
-                        "removed_column": removed_col["column_name"],
-                        "sample_changes": column_removals[:3]
-                    })
+                    store_result(
+                        "test_detect_column_removal",
+                        True,
+                        {
+                            "removal_detected": len(column_removals) > 0,
+                            "removed_column": removed_col["column_name"],
+                            "sample_changes": column_removals[:3],
+                        },
+                    )
 
                     assert True, "Column removal detection tested"
                 else:
@@ -339,11 +335,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_detect_type_changes(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_detect_type_changes(self, schema_sync: SchemaSync, store_result) -> None:
         """Test detection of column type changes.
 
         Given: A simulated column with changed type
@@ -363,7 +355,7 @@ class TestDriftDetection:
             # Modify a column type
             modified_db_schema = schema_sync.db_schema.copy()
             if schema_sync.db_schema.get("tables"):
-                first_table = list(schema_sync.db_schema["tables"].keys())[0]
+                first_table = next(iter(schema_sync.db_schema["tables"].keys()))
                 if modified_db_schema["tables"][first_table]["columns"]:
                     # Change first column's data type
                     modified_db_schema["tables"][first_table]["columns"][0]["data_type"] = "bigint"
@@ -376,11 +368,11 @@ class TestDriftDetection:
                     logger.info(f"  Original: {original_hash[:16]}...")
                     logger.info(f"  Modified: {modified_hash[:16]}...")
 
-                    store_result("test_detect_type_changes", hash_changed, {
-                        "original_hash": original_hash,
-                        "modified_hash": modified_hash,
-                        "hash_changed": hash_changed
-                    })
+                    store_result(
+                        "test_detect_type_changes",
+                        hash_changed,
+                        {"original_hash": original_hash, "modified_hash": modified_hash, "hash_changed": hash_changed},
+                    )
 
                     assert hash_changed, "Schema hash should change when types change"
                 else:
@@ -397,11 +389,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_schema_hash_calculation(
-        self,
-        schema_sync: SchemaSync,
-        store_result
-    ) -> None:
+    async def test_schema_hash_calculation(self, schema_sync: SchemaSync, store_result) -> None:
         """Test schema hash calculation for drift detection.
 
         Given: A database schema
@@ -421,7 +409,7 @@ class TestDriftDetection:
             hash3 = schema_sync.calculate_schema_hash(schema_sync.db_schema)
 
             # All hashes should be identical
-            consistent = (hash1 == hash2 == hash3)
+            consistent = hash1 == hash2 == hash3
 
             # Should be SHA256 (64 hex characters)
             valid_format = len(hash1) == 64 and all(c in "0123456789abcdef" for c in hash1)
@@ -433,7 +421,7 @@ class TestDriftDetection:
                 modified_schema["tables"]["fake_table_test"] = {"columns": []}
 
                 hash_modified = schema_sync.calculate_schema_hash(modified_schema)
-                sensitive = (hash1 != hash_modified)
+                sensitive = hash1 != hash_modified
             else:
                 sensitive = True  # Can't test sensitivity
 
@@ -442,12 +430,16 @@ class TestDriftDetection:
             logger.info(f"Hash change sensitive: {sensitive}")
             logger.info(f"Sample hash: {hash1}")
 
-            store_result("test_schema_hash_calculation", True, {
-                "consistent": consistent,
-                "valid_format": valid_format,
-                "change_sensitive": sensitive,
-                "sample_hash": hash1
-            })
+            store_result(
+                "test_schema_hash_calculation",
+                True,
+                {
+                    "consistent": consistent,
+                    "valid_format": valid_format,
+                    "change_sensitive": sensitive,
+                    "sample_hash": hash1,
+                },
+            )
 
             assert consistent, "Hash calculation should be consistent"
             assert valid_format, "Hash should be valid SHA256"
@@ -460,12 +452,7 @@ class TestDriftDetection:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_drift_detection_summary(
-        self,
-        schema_sync: SchemaSync,
-        test_results,
-        store_result
-    ) -> None:
+    async def test_drift_detection_summary(self, schema_sync: SchemaSync, test_results, store_result) -> None:
         """Generate comprehensive drift detection summary.
 
         Given: All drift detection tests
@@ -492,17 +479,14 @@ class TestDriftDetection:
                     "critical": len([d for d in differences if d.get("severity") == "critical"]),
                     "high": len([d for d in differences if d.get("severity") == "high"]),
                     "medium": len([d for d in differences if d.get("severity") == "medium"]),
-                    "low": len([d for d in differences if d.get("severity") == "low"])
+                    "low": len([d for d in differences if d.get("severity") == "low"]),
                 },
                 "drift_by_type": {
                     "enum": len([d for d in differences if d["type"] == "enum"]),
-                    "table": len([d for d in differences if d["type"] == "table"])
+                    "table": len([d for d in differences if d["type"] == "table"]),
                 },
                 "schema_hash": schema_sync.calculate_schema_hash(schema_sync.db_schema),
-                "remediation_needed": len([
-                    d for d in differences
-                    if d.get("severity") in ["critical", "high"]
-                ]) > 0
+                "remediation_needed": len([d for d in differences if d.get("severity") in ["critical", "high"]]) > 0,
             }
 
             logger.info("=== Schema Drift Detection Summary ===")
@@ -516,8 +500,9 @@ class TestDriftDetection:
 
             store_result("test_drift_detection_summary", True, summary)
 
-            assert summary["passed_tests"] >= summary["total_tests"] * 0.85, \
+            assert summary["passed_tests"] >= summary["total_tests"] * 0.85, (
                 f"Less than 85% tests passed: {summary['passed_tests']}/{summary['total_tests']}"
+            )
 
         except Exception as e:
             logger.error(f"Test failed with error: {e}", exc_info=True)

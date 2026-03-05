@@ -12,7 +12,7 @@ Run with: pytest tests/unit/test_entity_cold.py -v --mode cold
 """
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -58,12 +58,12 @@ class TestEntityColdMode:
                         "data": entities,
                         "count": len(entities)
                     }
-                elif operation == "create":
+                if operation == "create":
                     entity_id = f"{entity_type}_{len(mock_entity_data.get(f'{entity_type}s', [])) + 1}"
                     new_entity = {
                         "id": entity_id,
                         **arguments.get("data", {}),
-                        "created_at": datetime.now().isoformat() + "Z"
+                        "created_at": datetime.now(UTC).isoformat() + "Z"
                     }
                     mock_entity_data.setdefault(f"{entity_type}s", []).append(new_entity)
                     return {
@@ -71,32 +71,35 @@ class TestEntityColdMode:
                         "data": new_entity,
                         "id": entity_id
                     }
-                elif operation == "read":
-                    entity_id = arguments.get("id")
+                if operation == "read":
+                    read_entity_id = arguments.get("id")
+                    if not read_entity_id:
+                        return {"success": False, "error": "missing_id"}
                     entities = mock_entity_data.get(f"{entity_type}s", [])
-                    entity = next((e for e in entities if e["id"] == entity_id), None)
+                    entity = next((e for e in entities if e["id"] == read_entity_id), None)
                     if entity:
                         return {"success": True, "data": entity}
-                    else:
-                        return {"success": False, "error": "not_found"}
-                elif operation == "update":
-                    entity_id = arguments.get("id")
+                    return {"success": False, "error": "not_found"}
+                if operation == "update":
+                    update_entity_id = arguments.get("id")
+                    if not update_entity_id:
+                        return {"success": False, "error": "missing_id"}
                     entities = mock_entity_data.get(f"{entity_type}s", [])
-                    entity = next((e for e in entities if e["id"] == entity_id), None)
+                    entity = next((e for e in entities if e["id"] == update_entity_id), None)
                     if entity:
                         entity.update(arguments.get("data", {}))
                         return {"success": True, "data": entity}
-                    else:
-                        return {"success": False, "error": "not_found"}
-                elif operation == "delete":
-                    entity_id = arguments.get("id")
+                    return {"success": False, "error": "not_found"}
+                if operation == "delete":
+                    delete_entity_id = arguments.get("id")
+                    if not delete_entity_id:
+                        return {"success": False, "error": "missing_id"}
                     entities = mock_entity_data.get(f"{entity_type}s", [])
-                    entity = next((e for e in entities if e["id"] == entity_id), None)
+                    entity = next((e for e in entities if e["id"] == delete_entity_id), None)
                     if entity:
                         entities.remove(entity)
                         return {"success": True}
-                    else:
-                        return {"success": False, "error": "not_found"}
+                    return {"success": False, "error": "not_found"}
 
             return {"success": False, "error": "unknown_tool"}
 
@@ -245,7 +248,7 @@ class TestEntityColdMode:
         start_time = time.time()
 
         # Perform multiple operations
-        for i in range(10):
+        for _i in range(10):
             await mock_client.call_tool(
                 "entity_tool",
                 {
@@ -389,11 +392,11 @@ class TestEntityErrorHandlingCold:
 
                 if operation == "timeout":
                     raise TimeoutError("Operation timed out")
-                elif operation == "network_error":
+                if operation == "network_error":
                     raise ConnectionError("Network connection failed")
-                elif operation == "server_error":
+                if operation == "server_error":
                     return {"success": False, "error": "internal_server_error", "code": 500}
-                elif operation == "validation_error":
+                if operation == "validation_error":
                     return {"success": False, "error": "validation_failed", "details": ["field1 is required"]}
 
                 return {"success": True, "data": {"operation": operation}}

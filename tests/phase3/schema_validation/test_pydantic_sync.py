@@ -52,7 +52,7 @@ class TestPydanticSync:
             sync.local_schema = sync.get_local_schema()
             return sync
         except Exception as e:
-            logger.error(f"Failed to initialize SchemaSync: {e}")
+            logger.exception(f"Failed to initialize SchemaSync: {e}")
             pytest.skip(f"Cannot connect to database: {e}")
             raise  # This will never be reached, but satisfies type checker
 
@@ -70,16 +70,14 @@ class TestPydanticSync:
                 if hasattr(obj, "model_fields"):
                     # Convert class name to table name
                     import re
+
                     table_name = name.replace("BaseSchema", "")
                     table_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", table_name)
                     table_name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", table_name).lower()
 
                     # Pluralize
                     if not table_name.endswith("s"):
-                        if table_name.endswith("y"):
-                            table_name = table_name[:-1] + "ies"
-                        else:
-                            table_name = table_name + "s"
+                        table_name = table_name[:-1] + "ies" if table_name.endswith("y") else table_name + "s"
 
                     models[table_name] = obj
 
@@ -88,10 +86,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_all_tables_have_pydantic_models(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that all Supabase tables have corresponding Pydantic models.
 
@@ -124,12 +119,16 @@ class TestPydanticSync:
             logger.info(f"Missing models: {missing_models}")
             logger.info(f"Extra models: {extra_models}")
 
-            store_result("test_all_tables_have_pydantic_models", True, {
-                "db_table_count": len(db_tables),
-                "pydantic_model_count": len(pydantic_models),
-                "missing_count": len(missing_models),
-                "extra_count": len(extra_models)
-            })
+            store_result(
+                "test_all_tables_have_pydantic_models",
+                True,
+                {
+                    "db_table_count": len(db_tables),
+                    "pydantic_model_count": len(pydantic_models),
+                    "missing_count": len(missing_models),
+                    "extra_count": len(extra_models),
+                },
+            )
 
             # Assertions
             assert len(missing_models) == 0, f"Missing Pydantic models for tables: {missing_models}"
@@ -143,10 +142,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_field_names_match(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that field names match between database and Pydantic models.
 
@@ -166,10 +162,7 @@ class TestPydanticSync:
                 if table_name not in schema_sync.db_schema.get("tables", {}):
                     continue
 
-                db_columns = {
-                    col["column_name"]
-                    for col in schema_sync.db_schema["tables"][table_name]["columns"]
-                }
+                db_columns = {col["column_name"] for col in schema_sync.db_schema["tables"][table_name]["columns"]}
 
                 # Get Pydantic field names (including aliases)
                 pydantic_fields = set()
@@ -184,20 +177,22 @@ class TestPydanticSync:
                 extra = pydantic_fields - db_columns
 
                 if missing or extra:
-                    mismatches.append({
-                        "table": table_name,
-                        "missing_in_pydantic": list(missing),
-                        "extra_in_pydantic": list(extra)
-                    })
+                    mismatches.append(
+                        {"table": table_name, "missing_in_pydantic": list(missing), "extra_in_pydantic": list(extra)}
+                    )
 
             logger.info(f"Field mismatches found: {len(mismatches)}")
             for mismatch in mismatches[:5]:  # Log first 5
                 logger.info(f"  {mismatch}")
 
-            store_result("test_field_names_match", len(mismatches) == 0, {
-                "mismatch_count": len(mismatches),
-                "mismatches": mismatches[:10]  # Store first 10
-            })
+            store_result(
+                "test_field_names_match",
+                len(mismatches) == 0,
+                {
+                    "mismatch_count": len(mismatches),
+                    "mismatches": mismatches[:10],  # Store first 10
+                },
+            )
 
             assert len(mismatches) == 0, f"Field name mismatches: {mismatches[:3]}"
 
@@ -209,10 +204,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_primary_key_fields(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that all tables have correctly defined primary key fields.
 
@@ -237,30 +229,27 @@ class TestPydanticSync:
 
                     # Check if it's UUID4
                     if "UUID4" not in field_type:
-                        wrong_type.append({
-                            "table": table_name,
-                            "expected": "UUID4",
-                            "actual": field_type
-                        })
+                        wrong_type.append({"table": table_name, "expected": "UUID4", "actual": field_type})
                 else:
                     # Some tables might use composite keys (e.g., billing_cache)
                     # Check if there's any field that looks like a primary key
-                    has_pk = any(
-                        "id" in fname or fname.endswith("_id")
-                        for fname in model.model_fields.keys()
-                    )
+                    has_pk = any("id" in fname or fname.endswith("_id") for fname in model.model_fields)
                     if not has_pk:
                         missing_pk.append(table_name)
 
             logger.info(f"Tables missing primary key: {len(missing_pk)}")
             logger.info(f"Tables with wrong PK type: {len(wrong_type)}")
 
-            store_result("test_primary_key_fields", True, {
-                "missing_pk_count": len(missing_pk),
-                "wrong_type_count": len(wrong_type),
-                "missing_pk": missing_pk,
-                "wrong_type": wrong_type
-            })
+            store_result(
+                "test_primary_key_fields",
+                True,
+                {
+                    "missing_pk_count": len(missing_pk),
+                    "wrong_type_count": len(wrong_type),
+                    "missing_pk": missing_pk,
+                    "wrong_type": wrong_type,
+                },
+            )
 
             # These are informational - not hard failures
             assert True, "Primary key validation complete"
@@ -273,10 +262,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_foreign_key_fields(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that foreign key fields are correctly typed.
 
@@ -300,21 +286,24 @@ class TestPydanticSync:
 
                         # Should be UUID4 or UUID4 | None
                         if "UUID4" not in field_type and "uuid" not in field_type.lower():
-                            fk_issues.append({
-                                "table": table_name,
-                                "field": field_name,
-                                "type": field_type,
-                                "expected": "UUID4 or UUID4 | None"
-                            })
+                            fk_issues.append(
+                                {
+                                    "table": table_name,
+                                    "field": field_name,
+                                    "type": field_type,
+                                    "expected": "UUID4 or UUID4 | None",
+                                }
+                            )
 
             logger.info(f"Foreign key type issues: {len(fk_issues)}")
             for issue in fk_issues[:5]:
                 logger.info(f"  {issue}")
 
-            store_result("test_foreign_key_fields", len(fk_issues) == 0, {
-                "issue_count": len(fk_issues),
-                "issues": fk_issues[:10]
-            })
+            store_result(
+                "test_foreign_key_fields",
+                len(fk_issues) == 0,
+                {"issue_count": len(fk_issues), "issues": fk_issues[:10]},
+            )
 
             assert len(fk_issues) == 0, f"Foreign key type issues: {fk_issues[:3]}"
 
@@ -326,10 +315,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_timestamp_fields(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that timestamp fields are correctly typed.
 
@@ -354,19 +340,18 @@ class TestPydanticSync:
 
                         # Should be datetime.datetime or datetime.datetime | None
                         if "datetime" not in field_type.lower():
-                            issues.append({
-                                "table": table_name,
-                                "field": ts_field,
-                                "type": field_type,
-                                "expected": "datetime.datetime"
-                            })
+                            issues.append(
+                                {
+                                    "table": table_name,
+                                    "field": ts_field,
+                                    "type": field_type,
+                                    "expected": "datetime.datetime",
+                                }
+                            )
 
             logger.info(f"Timestamp field issues: {len(issues)}")
 
-            store_result("test_timestamp_fields", len(issues) == 0, {
-                "issue_count": len(issues),
-                "issues": issues[:10]
-            })
+            store_result("test_timestamp_fields", len(issues) == 0, {"issue_count": len(issues), "issues": issues[:10]})
 
             assert len(issues) == 0, f"Timestamp field type issues: {issues[:3]}"
 
@@ -377,11 +362,7 @@ class TestPydanticSync:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_model_inheritance_structure(
-        self,
-        pydantic_models: dict[str, Any],
-        store_result
-    ) -> None:
+    async def test_model_inheritance_structure(self, pydantic_models: dict[str, Any], store_result) -> None:
         """Test that Pydantic models have correct inheritance structure.
 
         Given: Pydantic BaseSchema models
@@ -402,18 +383,17 @@ class TestPydanticSync:
                 base_names = [b.__name__ for b in bases]
 
                 if "CustomModel" not in base_names and "BaseModel" not in base_names:
-                    inheritance_issues.append({
-                        "table": table_name,
-                        "bases": base_names[:3],
-                        "expected": "CustomModel or BaseModel"
-                    })
+                    inheritance_issues.append(
+                        {"table": table_name, "bases": base_names[:3], "expected": "CustomModel or BaseModel"}
+                    )
 
             logger.info(f"Inheritance issues: {len(inheritance_issues)}")
 
-            store_result("test_model_inheritance_structure", len(inheritance_issues) == 0, {
-                "issue_count": len(inheritance_issues),
-                "issues": inheritance_issues
-            })
+            store_result(
+                "test_model_inheritance_structure",
+                len(inheritance_issues) == 0,
+                {"issue_count": len(inheritance_issues), "issues": inheritance_issues},
+            )
 
             assert len(inheritance_issues) == 0, f"Inheritance issues: {inheritance_issues}"
 
@@ -424,10 +404,7 @@ class TestPydanticSync:
 
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
-    async def test_insert_update_models_exist(
-        self,
-        store_result
-    ) -> None:
+    async def test_insert_update_models_exist(self, store_result) -> None:
         """Test that Insert and Update models exist for all BaseSchema models.
 
         Given: BaseSchema models for tables
@@ -461,13 +438,17 @@ class TestPydanticSync:
             logger.info(f"Missing Insert: {missing_insert}")
             logger.info(f"Missing Update: {missing_update}")
 
-            store_result("test_insert_update_models_exist", True, {
-                "base_count": len(base_models),
-                "insert_count": len(insert_models),
-                "update_count": len(update_models),
-                "missing_insert": list(missing_insert),
-                "missing_update": list(missing_update)
-            })
+            store_result(
+                "test_insert_update_models_exist",
+                True,
+                {
+                    "base_count": len(base_models),
+                    "insert_count": len(insert_models),
+                    "update_count": len(update_models),
+                    "missing_insert": list(missing_insert),
+                    "missing_update": list(missing_update),
+                },
+            )
 
             # Some tables might not need Insert/Update models (e.g., views)
             # So this is informational rather than strict
@@ -481,10 +462,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_json_fields_properly_typed(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that JSONB columns are properly typed in Pydantic models.
 
@@ -500,7 +478,7 @@ class TestPydanticSync:
         try:
             json_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -517,20 +495,23 @@ class TestPydanticSync:
 
                             # Should contain dict or Json
                             if "dict" not in field_type and "Json" not in field_type:
-                                json_issues.append({
-                                    "table": table_name,
-                                    "column": col_name,
-                                    "db_type": col["data_type"],
-                                    "pydantic_type": field_type,
-                                    "expected": "dict | list[dict] | Json"
-                                })
+                                json_issues.append(
+                                    {
+                                        "table": table_name,
+                                        "column": col_name,
+                                        "db_type": col["data_type"],
+                                        "pydantic_type": field_type,
+                                        "expected": "dict | list[dict] | Json",
+                                    }
+                                )
 
             logger.info(f"JSON field type issues: {len(json_issues)}")
 
-            store_result("test_json_fields_properly_typed", len(json_issues) == 0, {
-                "issue_count": len(json_issues),
-                "issues": json_issues[:10]
-            })
+            store_result(
+                "test_json_fields_properly_typed",
+                len(json_issues) == 0,
+                {"issue_count": len(json_issues), "issues": json_issues[:10]},
+            )
 
             assert len(json_issues) == 0, f"JSON field type issues: {json_issues[:3]}"
 
@@ -542,10 +523,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_enum_fields_properly_typed(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that enum columns use proper Enum types in Pydantic models.
 
@@ -561,7 +539,7 @@ class TestPydanticSync:
         try:
             enum_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -575,10 +553,7 @@ class TestPydanticSync:
                         # Get actual field name (could be aliased)
                         actual_field = None
                         for fname, finfo in model.model_fields.items():
-                            if hasattr(finfo, "alias") and finfo.alias == col_name:
-                                actual_field = fname
-                                break
-                            elif fname == col_name:
+                            if (hasattr(finfo, "alias") and finfo.alias == col_name) or fname == col_name:
                                 actual_field = fname
                                 break
 
@@ -587,22 +562,25 @@ class TestPydanticSync:
 
                             # Should use a PublicXxxEnum type, not just str
                             if "Enum" not in field_type:
-                                enum_issues.append({
-                                    "table": table_name,
-                                    "column": col_name,
-                                    "db_enum": col.get("udt_name"),
-                                    "pydantic_type": field_type,
-                                    "expected": "PublicXxxEnum"
-                                })
+                                enum_issues.append(
+                                    {
+                                        "table": table_name,
+                                        "column": col_name,
+                                        "db_enum": col.get("udt_name"),
+                                        "pydantic_type": field_type,
+                                        "expected": "PublicXxxEnum",
+                                    }
+                                )
 
             logger.info(f"Enum field type issues: {len(enum_issues)}")
             for issue in enum_issues[:5]:
                 logger.info(f"  {issue}")
 
-            store_result("test_enum_fields_properly_typed", len(enum_issues) == 0, {
-                "issue_count": len(enum_issues),
-                "issues": enum_issues[:10]
-            })
+            store_result(
+                "test_enum_fields_properly_typed",
+                len(enum_issues) == 0,
+                {"issue_count": len(enum_issues), "issues": enum_issues[:10]},
+            )
 
             assert len(enum_issues) == 0, f"Enum field type issues: {enum_issues[:3]}"
 
@@ -614,10 +592,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_nullable_fields_properly_optional(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that nullable database columns are Optional in Pydantic.
 
@@ -633,7 +608,7 @@ class TestPydanticSync:
         try:
             nullable_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -647,10 +622,7 @@ class TestPydanticSync:
                     # Get actual field name (could be aliased)
                     actual_field = None
                     for fname, finfo in model.model_fields.items():
-                        if hasattr(finfo, "alias") and finfo.alias == col_name:
-                            actual_field = fname
-                            break
-                        elif fname == col_name:
+                        if (hasattr(finfo, "alias") and finfo.alias == col_name) or fname == col_name:
                             actual_field = fname
                             break
 
@@ -664,21 +636,24 @@ class TestPydanticSync:
                             has_default = hasattr(field_info, "default") and field_info.default is not None
 
                             if not has_default:
-                                nullable_issues.append({
-                                    "table": table_name,
-                                    "column": col_name,
-                                    "pydantic_type": field_type,
-                                    "expected": "Type | None or Optional[Type]"
-                                })
+                                nullable_issues.append(
+                                    {
+                                        "table": table_name,
+                                        "column": col_name,
+                                        "pydantic_type": field_type,
+                                        "expected": "Type | None or Optional[Type]",
+                                    }
+                                )
 
             logger.info(f"Nullable field issues: {len(nullable_issues)}")
             for issue in nullable_issues[:5]:
                 logger.info(f"  {issue}")
 
-            store_result("test_nullable_fields_properly_optional", len(nullable_issues) == 0, {
-                "issue_count": len(nullable_issues),
-                "issues": nullable_issues[:10]
-            })
+            store_result(
+                "test_nullable_fields_properly_optional",
+                len(nullable_issues) == 0,
+                {"issue_count": len(nullable_issues), "issues": nullable_issues[:10]},
+            )
 
             # This might have some exceptions, so we make it informational
             if len(nullable_issues) > 10:
@@ -694,10 +669,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_array_fields_properly_typed(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], store_result
     ) -> None:
         """Test that array columns are properly typed as list[] in Pydantic.
 
@@ -713,7 +685,7 @@ class TestPydanticSync:
         try:
             array_issues = []
 
-            for table_name in schema_sync.db_schema.get("tables", {}).keys():
+            for table_name in schema_sync.db_schema.get("tables", {}):
                 if table_name not in pydantic_models:
                     continue
 
@@ -729,20 +701,23 @@ class TestPydanticSync:
 
                             # Should contain list
                             if "list" not in field_type.lower():
-                                array_issues.append({
-                                    "table": table_name,
-                                    "column": col_name,
-                                    "db_type": col["data_type"],
-                                    "pydantic_type": field_type,
-                                    "expected": "list[Type]"
-                                })
+                                array_issues.append(
+                                    {
+                                        "table": table_name,
+                                        "column": col_name,
+                                        "db_type": col["data_type"],
+                                        "pydantic_type": field_type,
+                                        "expected": "list[Type]",
+                                    }
+                                )
 
             logger.info(f"Array field type issues: {len(array_issues)}")
 
-            store_result("test_array_fields_properly_typed", len(array_issues) == 0, {
-                "issue_count": len(array_issues),
-                "issues": array_issues
-            })
+            store_result(
+                "test_array_fields_properly_typed",
+                len(array_issues) == 0,
+                {"issue_count": len(array_issues), "issues": array_issues},
+            )
 
             assert len(array_issues) == 0, f"Array field type issues: {array_issues}"
 
@@ -754,11 +729,7 @@ class TestPydanticSync:
     @pytest.mark.hot
     @harmful(cleanup_strategy=CleanupStrategy.NONE)
     async def test_model_completeness_summary(
-        self,
-        schema_sync: SchemaSync,
-        pydantic_models: dict[str, Any],
-        test_results,
-        store_result
+        self, _schema_sync: SchemaSync, pydantic_models: dict[str, Any], test_results, store_result
     ) -> None:
         """Generate comprehensive summary of schema synchronization status.
 
@@ -784,16 +755,15 @@ class TestPydanticSync:
                 "coverage_percentage": (
                     len(pydantic_models) / max(len(schema_sync.db_schema.get("tables", {})), 1) * 100
                 ),
-                "critical_issues": []
+                "critical_issues": [],
             }
 
             # Identify critical issues
             for test_name, result in all_results.items():
                 if not result.passed:
-                    summary["critical_issues"].append({
-                        "test": test_name,
-                        "error": result.data.get("error") if result.data else "Unknown"
-                    })
+                    summary["critical_issues"].append(
+                        {"test": test_name, "error": result.data.get("error") if result.data else "Unknown"}
+                    )
 
             logger.info("=== Schema Synchronization Summary ===")
             logger.info(f"Database Tables: {summary['db_table_count']}")
@@ -803,8 +773,9 @@ class TestPydanticSync:
 
             store_result("test_model_completeness_summary", True, summary)
 
-            assert summary["passed_tests"] >= summary["total_tests"] * 0.9, \
+            assert summary["passed_tests"] >= summary["total_tests"] * 0.9, (
                 f"Less than 90% tests passed: {summary['passed_tests']}/{summary['total_tests']}"
+            )
 
         except Exception as e:
             logger.error(f"Test failed with error: {e}", exc_info=True)

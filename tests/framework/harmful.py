@@ -115,9 +115,7 @@ class HarmfulStateTracker:
 
     def start_test(self, test_name: str) -> TestHarmfulState:
         """Start tracking a test."""
-        state = TestHarmfulState(
-            test_name=test_name, cleanup_strategy=self.cleanup_strategy, dry_run=self.dry_run
-        )
+        state = TestHarmfulState(test_name=test_name, cleanup_strategy=self.cleanup_strategy, dry_run=self.dry_run)
         self.states[test_name] = state
         self.current_test = test_name
         logger.debug(f"Started tracking harmful state for test: {test_name}")
@@ -133,7 +131,12 @@ class HarmfulStateTracker:
         logger.debug(f"Tracked entity: {entity.type.name} {entity.id}")
 
     def track_entity(
-        self, entity_type: EntityType, entity_id: str, name: str = "", data: dict = None, test_name: str | None = None
+        self,
+        entity_type: EntityType,
+        entity_id: str,
+        name: str = "",
+        data: dict | None = None,
+        test_name: str | None = None,
     ) -> Entity:
         """Create and track an entity."""
         if test_name is None:
@@ -168,16 +171,14 @@ class HarmfulStateTracker:
             if not entities:
                 continue
 
-            results[entity_type.name] = await self._cleanup_entities(
-                test_name, entity_type, entities, http_client
-            )
+            results[entity_type.name] = await self._cleanup_entities(test_name, entity_type, entities, http_client)
 
         state.cleanup_results = results
         logger.info(f"Cleanup completed for test {test_name}: {results}")
         return results
 
     async def _cleanup_entities(
-        self, test_name: str, entity_type: EntityType, entities: set[Entity], http_client: Any | None = None
+        self, _test_name: str, entity_type: EntityType, entities: set[Entity], http_client: Any | None = None
     ) -> list[dict[str, Any]]:
         """Clean up a specific type of entity."""
         results = []
@@ -208,7 +209,7 @@ class HarmfulStateTracker:
             except Exception as e:
                 result["success"] = False
                 result["reason"] = str(e)
-                logger.error(f"Error deleting {entity_type.name} {entity.id}: {e}")
+                logger.exception(f"Error deleting {entity_type.name} {entity.id}")
 
             results.append(result)
 
@@ -279,7 +280,9 @@ async def harmful_context(
         await tracker.cleanup(test_name, http_client)
 
 
-def create_and_track(tracker: HarmfulStateTracker, entity_type: EntityType, result: dict[str, Any], name: str = "") -> Entity:
+def create_and_track(
+    tracker: HarmfulStateTracker, entity_type: EntityType, result: dict[str, Any], name: str = ""
+) -> Entity:
     """Convenience function to extract ID from API result and track entity.
 
     Usage:
@@ -293,9 +296,7 @@ def create_and_track(tracker: HarmfulStateTracker, entity_type: EntityType, resu
     return tracker.track_entity(entity_type, entity_id, name, result)
 
 
-def harmful(
-    cleanup_strategy: CleanupStrategy = CleanupStrategy.CASCADE_DELETE, auto_track: bool = False
-) -> Callable:
+def harmful(cleanup_strategy: CleanupStrategy = CleanupStrategy.CASCADE_DELETE, auto_track: bool = False) -> Callable:
     """Decorator for test functions to automatically track and clean up entities.
 
     Args:
@@ -327,8 +328,7 @@ def harmful(
             kwargs["harmful_tracker"] = tracker
 
             try:
-                result = await func(*args, **kwargs)
-                return result
+                return await func(*args, **kwargs)
             finally:
                 # Extract http_client if available
                 http_client = kwargs.get("fast_http_client") or kwargs.get("mcp_client")
@@ -344,8 +344,7 @@ def harmful(
             kwargs["harmful_tracker"] = tracker
 
             try:
-                result = func(*args, **kwargs)
-                return result
+                return func(*args, **kwargs)
             finally:
                 # For sync functions, cleanup happens synchronously
                 # This is a limitation of the decorator
@@ -354,8 +353,7 @@ def harmful(
         # Determine if function is async
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
@@ -377,14 +375,14 @@ class TestDataTracker:
 
 
 __all__ = [
-    "harmful",
-    "harmful_context",
-    "create_and_track",
-    "HarmfulStateTracker",
-    "TestHarmfulState",
+    "CLEANUP_ORDER",
+    "CleanupStrategy",
     "Entity",
     "EntityType",
-    "CleanupStrategy",
-    "CLEANUP_ORDER",
+    "HarmfulStateTracker",
     "TestDataTracker",
+    "TestHarmfulState",
+    "create_and_track",
+    "harmful",
+    "harmful_context",
 ]

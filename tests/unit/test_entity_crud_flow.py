@@ -18,8 +18,9 @@ Run with:
     pytest tests/unit/test_entity_crud_flow.py -v --tb=short
 """
 
+import contextlib
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -42,7 +43,7 @@ def generate_entity_data(entity_type: str, organization_id: str | None = None,
     Returns:
         Dictionary with entity-specific test data
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     unique_id = uuid.uuid4().hex[:8]
 
     entity_data = {
@@ -84,7 +85,10 @@ def generate_entity_data(entity_type: str, organization_id: str | None = None,
         }
     }
 
-    return dict(entity_data.get(entity_type, {}))
+    entity_info = entity_data.get(entity_type, {})
+    if isinstance(entity_info, dict):
+        return dict(entity_info)
+    return {}
 
 
 def generate_update_data(entity_type: str) -> dict[str, Any]:
@@ -97,7 +101,7 @@ def generate_update_data(entity_type: str) -> dict[str, Any]:
     Returns:
         Dictionary with fields to update
     """
-    update_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    update_timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
 
     update_data = {
         "organization": {
@@ -149,9 +153,7 @@ async def test_full_crud_flow(authenticated_client, entity_type):
         authenticated_client: FastHTTPClient fixture
         entity_type: Type of entity to test (parametrized)
     """
-    # Fixed: Skip test entity type due to TABLE_ACCESS_RESTRICTED error
-    if entity_type == "test":
-        pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
+    # Removed skip for test entity type - now allowing it to run
 
     created_entity_id: str | None = None
     created_org_id: str | None = None
@@ -439,31 +441,25 @@ async def test_full_crud_flow(authenticated_client, entity_type):
 
         # Clean up parent entities in reverse order
         if created_document_id:
-            try:
+            with contextlib.suppress(Exception):
                 await authenticated_client.call_tool(
                     "entity_tool",
                     {"entity_type": "document", "operation": "delete", "entity_id": created_document_id}
                 )
-            except Exception:
-                pass
 
         if created_project_id:
-            try:
+            with contextlib.suppress(Exception):
                 await authenticated_client.call_tool(
                     "entity_tool",
                     {"entity_type": "project", "operation": "delete", "entity_id": created_project_id}
                 )
-            except Exception:
-                pass
 
         if created_org_id:
-            try:
+            with contextlib.suppress(Exception):
                 await authenticated_client.call_tool(
                     "entity_tool",
                     {"entity_type": "organization", "operation": "delete", "entity_id": created_org_id}
                 )
-            except Exception:
-                pass
 
 
 # ============================================================================
@@ -492,9 +488,7 @@ async def test_list_operation(authenticated_client, entity_type):
         authenticated_client: FastHTTPClient fixture
         entity_type: Type of entity to test (parametrized)
     """
-    # Fixed: Skip test entity type due to TABLE_ACCESS_RESTRICTED error
-    if entity_type == "test":
-        pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
+    # Removed skip for test entity type - now allowing it to run
 
     # Test basic list
     result = await authenticated_client.call_tool(
@@ -557,9 +551,7 @@ async def test_create_validation(authenticated_client, entity_type):
         authenticated_client: FastHTTPClient fixture
         entity_type: Type of entity to test (parametrized)
     """
-    # Fixed: Skip test entity type due to TABLE_ACCESS_RESTRICTED error
-    if entity_type == "test":
-        pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
+    # Removed skip for test entity type - now allowing it to run
 
     # Attempt to create with empty data
     result = await authenticated_client.call_tool(
@@ -579,7 +571,7 @@ async def test_create_validation(authenticated_client, entity_type):
         # Clean up created entity
         if "data" in result and "id" in result["data"]:
             entity_id = result["data"]["id"]
-            try:
+            with contextlib.suppress(Exception):
                 await authenticated_client.call_tool(
                     "entity_tool",
                     {
@@ -588,8 +580,6 @@ async def test_create_validation(authenticated_client, entity_type):
                         "entity_id": entity_id
                     }
                 )
-            except Exception:
-                pass
     else:
         # Expected: validation error
         error = result.get("error", "")
@@ -622,9 +612,7 @@ async def test_read_by_id(authenticated_client, entity_type):
         authenticated_client: FastHTTPClient fixture
         entity_type: Type of entity to test (parametrized)
     """
-    # Fixed: Skip test entity type due to TABLE_ACCESS_RESTRICTED error
-    if entity_type == "test":
-        pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
+    # Removed skip for test entity type - now allowing it to run
 
     # First, get a list to find a valid ID
     list_result = await authenticated_client.call_tool(
@@ -708,9 +696,7 @@ async def test_update_operation(authenticated_client, entity_type):
         authenticated_client: FastHTTPClient fixture
         entity_type: Type of entity to test (parametrized)
     """
-    # Fixed: Skip test entity type due to TABLE_ACCESS_RESTRICTED error
-    if entity_type == "test":
-        pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
+    # Removed skip for test entity type - now allowing it to run
 
     # First, create an entity to update
     create_data = generate_entity_data(entity_type)
@@ -765,7 +751,7 @@ async def test_update_operation(authenticated_client, entity_type):
 
     finally:
         # Cleanup: Delete the created entity
-        try:
+        with contextlib.suppress(Exception):
             await authenticated_client.call_tool(
                 "entity_tool",
                 {
@@ -774,8 +760,6 @@ async def test_update_operation(authenticated_client, entity_type):
                     "entity_id": entity_id
                 }
             )
-        except Exception:
-            pass
 
 
 # ============================================================================
@@ -803,9 +787,7 @@ async def test_delete_operation(authenticated_client, entity_type):
         authenticated_client: FastHTTPClient fixture
         entity_type: Type of entity to test (parametrized)
     """
-    # Fixed: Skip test entity type due to TABLE_ACCESS_RESTRICTED error
-    if entity_type == "test":
-        pytest.skip("Test entity type skipped: TABLE_ACCESS_RESTRICTED - Access to test_req table is restricted")
+    # Removed skip for test entity type - now allowing it to run
 
     # First, create an entity to delete
     create_data = generate_entity_data(entity_type)

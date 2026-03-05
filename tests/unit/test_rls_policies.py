@@ -29,6 +29,7 @@ from schemas.rls import (
 # FIXTURES
 # =============================================================================
 
+
 @pytest.fixture
 def mock_db_adapter():
     """Create mock database adapter."""
@@ -54,6 +55,7 @@ def other_user_id():
 # HELPER FUNCTION TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_user_can_access_project_as_member(mock_db_adapter, user_id):
     """Test user can access project as direct member."""
@@ -64,7 +66,7 @@ async def test_user_can_access_project_as_member(mock_db_adapter, user_id):
         "id": "member-1",
         "project_id": project_id,
         "user_id": user_id,
-        "role": "editor"
+        "role": "editor",
     }
 
     result = await user_can_access_project(project_id, user_id, mock_db_adapter)
@@ -84,8 +86,8 @@ async def test_user_can_access_public_project(mock_db_adapter, user_id):
         {  # But project is public
             "id": project_id,
             "visibility": Visibility.PUBLIC.value,
-            "organization_id": "org-123"
-        }
+            "organization_id": "org-123",
+        },
     ]
 
     result = await user_can_access_project(project_id, user_id, mock_db_adapter)
@@ -102,7 +104,7 @@ async def test_user_can_access_project_via_org(mock_db_adapter, user_id):
     mock_db_adapter.get_single.side_effect = [
         None,  # Not a project member
         {"id": project_id, "visibility": "private", "organization_id": org_id},  # Private project
-        {"id": "member-1", "organization_id": org_id, "user_id": user_id}  # But org member
+        {"id": "member-1", "organization_id": org_id, "user_id": user_id},  # But org member
     ]
 
     result = await user_can_access_project(project_id, user_id, mock_db_adapter)
@@ -119,7 +121,7 @@ async def test_is_project_owner_or_admin_owner(mock_db_adapter, user_id):
         "id": "member-1",
         "project_id": project_id,
         "user_id": user_id,
-        "role": ProjectRole.OWNER.value
+        "role": ProjectRole.OWNER.value,
     }
 
     result = await is_project_owner_or_admin(project_id, user_id, mock_db_adapter)
@@ -136,7 +138,7 @@ async def test_is_project_owner_or_admin_editor(mock_db_adapter, user_id):
         "id": "member-1",
         "project_id": project_id,
         "user_id": user_id,
-        "role": ProjectRole.EDITOR.value
+        "role": ProjectRole.EDITOR.value,
     }
 
     result = await is_project_owner_or_admin(project_id, user_id, mock_db_adapter)
@@ -150,7 +152,7 @@ async def test_is_super_admin_true(mock_db_adapter, user_id):
     mock_db_adapter.get_single.return_value = {
         "id": "member-1",
         "user_id": user_id,
-        "role": UserRoleType.SUPER_ADMIN.value
+        "role": UserRoleType.SUPER_ADMIN.value,
     }
 
     result = await is_super_admin(user_id, mock_db_adapter)
@@ -173,7 +175,7 @@ async def test_get_user_organization_ids(mock_db_adapter, user_id):
     """Test getting user's organization IDs."""
     mock_db_adapter.query.return_value = [
         {"id": "member-1", "organization_id": "org-1", "user_id": user_id},
-        {"id": "member-2", "organization_id": "org-2", "user_id": user_id}
+        {"id": "member-2", "organization_id": "org-2", "user_id": user_id},
     ]
 
     result = await get_user_organization_ids(user_id, mock_db_adapter)
@@ -185,16 +187,13 @@ async def test_get_user_organization_ids(mock_db_adapter, user_id):
 # ORGANIZATION POLICY TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_organization_policy_can_select_member(mock_db_adapter, user_id):
     """Test organization member can read organization."""
     policy = OrganizationPolicy(user_id, mock_db_adapter)
 
-    mock_db_adapter.get_single.return_value = {
-        "id": "member-1",
-        "organization_id": "org-123",
-        "user_id": user_id
-    }
+    mock_db_adapter.get_single.return_value = {"id": "member-1", "organization_id": "org-123", "user_id": user_id}
 
     result = await policy.can_select({"id": "org-123"})
 
@@ -232,7 +231,7 @@ async def test_organization_policy_can_update_admin(mock_db_adapter, user_id):
         "id": "member-1",
         "organization_id": "org-123",
         "user_id": user_id,
-        "role": UserRoleType.ADMIN.value
+        "role": UserRoleType.ADMIN.value,
     }
 
     result = await policy.can_update({"id": "org-123"}, {"name": "Updated"})
@@ -250,7 +249,7 @@ async def test_organization_policy_can_delete_owner_only(mock_db_adapter, user_i
         "id": "member-1",
         "organization_id": "org-123",
         "user_id": user_id,
-        "role": UserRoleType.ADMIN.value
+        "role": UserRoleType.ADMIN.value,
     }
 
     result = await policy.can_delete({"id": "org-123"})
@@ -261,7 +260,7 @@ async def test_organization_policy_can_delete_owner_only(mock_db_adapter, user_i
         "id": "member-1",
         "organization_id": "org-123",
         "user_id": user_id,
-        "role": UserRoleType.OWNER.value
+        "role": UserRoleType.OWNER.value,
     }
 
     result = await policy.can_delete({"id": "org-123"})
@@ -272,16 +271,13 @@ async def test_organization_policy_can_delete_owner_only(mock_db_adapter, user_i
 # PROJECT POLICY TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_project_policy_can_select(mock_db_adapter, user_id):
     """Test project member can read project."""
     policy = ProjectPolicy(user_id, mock_db_adapter)
 
-    mock_db_adapter.get_single.return_value = {
-        "id": "member-1",
-        "project_id": "project-123",
-        "user_id": user_id
-    }
+    mock_db_adapter.get_single.return_value = {"id": "member-1", "project_id": "project-123", "user_id": user_id}
 
     result = await policy.can_select({"id": "project-123"})
 
@@ -293,11 +289,7 @@ async def test_project_policy_can_insert_org_member(mock_db_adapter, user_id):
     """Test org member can create project."""
     policy = ProjectPolicy(user_id, mock_db_adapter)
 
-    mock_db_adapter.get_single.return_value = {
-        "id": "member-1",
-        "organization_id": "org-123",
-        "user_id": user_id
-    }
+    mock_db_adapter.get_single.return_value = {"id": "member-1", "organization_id": "org-123", "user_id": user_id}
 
     result = await policy.can_insert({"organization_id": "org-123", "name": "New Project"})
 
@@ -320,17 +312,14 @@ async def test_project_policy_can_insert_non_org_member(mock_db_adapter, user_id
 # DOCUMENT POLICY TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_document_policy_can_select(mock_db_adapter, user_id):
     """Test user can read document if can access project."""
     policy = DocumentPolicy(user_id, mock_db_adapter)
 
     # User is project member
-    mock_db_adapter.get_single.return_value = {
-        "id": "member-1",
-        "project_id": "project-123",
-        "user_id": user_id
-    }
+    mock_db_adapter.get_single.return_value = {"id": "member-1", "project_id": "project-123", "user_id": user_id}
 
     result = await policy.can_select({"id": "doc-123", "project_id": "project-123"})
 
@@ -346,7 +335,7 @@ async def test_document_policy_can_insert_editor(mock_db_adapter, user_id):
         "id": "member-1",
         "project_id": "project-123",
         "user_id": user_id,
-        "role": ProjectRole.EDITOR.value
+        "role": ProjectRole.EDITOR.value,
     }
 
     result = await policy.can_insert({"project_id": "project-123", "name": "New Doc"})
@@ -363,7 +352,7 @@ async def test_document_policy_can_insert_viewer(mock_db_adapter, user_id):
         "id": "member-1",
         "project_id": "project-123",
         "user_id": user_id,
-        "role": ProjectRole.VIEWER.value
+        "role": ProjectRole.VIEWER.value,
     }
 
     result = await policy.can_insert({"project_id": "project-123", "name": "New Doc"})
@@ -374,6 +363,7 @@ async def test_document_policy_can_insert_viewer(mock_db_adapter, user_id):
 # =============================================================================
 # PROFILE POLICY TESTS
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_profile_policy_can_select(mock_db_adapter, user_id):
@@ -409,16 +399,13 @@ async def test_profile_policy_cannot_update_other(mock_db_adapter, user_id, othe
 # POLICY VALIDATOR TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_policy_validator_can_select(mock_db_adapter, user_id):
     """Test PolicyValidator.can_select routes to correct policy."""
     validator = PolicyValidator(user_id, mock_db_adapter)
 
-    mock_db_adapter.get_single.return_value = {
-        "id": "member-1",
-        "organization_id": "org-123",
-        "user_id": user_id
-    }
+    mock_db_adapter.get_single.return_value = {"id": "member-1", "organization_id": "org-123", "user_id": user_id}
 
     result = await validator.can_select(Tables.ORGANIZATIONS, {"id": "org-123"})
 
@@ -456,6 +443,7 @@ async def test_validate_methods_raise_on_denial(mock_db_adapter, user_id):
 # INTEGRATION TESTS
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_full_permission_flow(mock_db_adapter, user_id):
     """Test complete permission flow for document creation."""
@@ -464,23 +452,17 @@ async def test_full_permission_flow(mock_db_adapter, user_id):
         "id": "member-1",
         "project_id": "project-123",
         "user_id": user_id,
-        "role": ProjectRole.EDITOR.value
+        "role": ProjectRole.EDITOR.value,
     }
 
     # Check permission
     doc_policy = DocumentPolicy(user_id, mock_db_adapter)
-    can_create = await doc_policy.can_insert({
-        "project_id": "project-123",
-        "name": "New Document"
-    })
+    can_create = await doc_policy.can_insert({"project_id": "project-123", "name": "New Document"})
 
     assert can_create is True
 
     # Validate (should not raise)
-    await doc_policy.validate_insert({
-        "project_id": "project-123",
-        "name": "New Document"
-    })
+    await doc_policy.validate_insert({"project_id": "project-123", "name": "New Document"})
 
 
 if __name__ == "__main__":

@@ -9,12 +9,12 @@ from .enums import EntityStatus, RAGMode, RequirementPriority, TestStatus
 
 __all__ = [
     "Document",
-    "Organization", 
-    "Project",
-    "Requirement",
-    "Test",
     "EntityStatus",
-    "RAGMode", 
+    "Organization",
+    "Project",
+    "RAGMode",
+    "Requirement",
     "RequirementPriority",
-    "TestStatus"
+    "Test",
+    "TestStatus",
 ]

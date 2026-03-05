@@ -11,7 +11,7 @@ import json
 import os
 import sys
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -45,7 +45,7 @@ class TestResult:
         self.success = success
         self.response = response
         self.error = error
-        self.timestamp = datetime.now().isoformat()
+        self.timestamp = datetime.now(UTC).isoformat()
 
     def to_dict(self):
         return {
@@ -165,7 +165,7 @@ async def main():
             "relationship_type": "tests",
             "coverage_level": "full",
             "priority": "high",
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "created_by": TEST_USER_ID,
         }
 
@@ -215,7 +215,7 @@ async def main():
                 "relationship_type": "tests",
                 "coverage_level": "full",
                 "priority": "high",
-                "created_at": datetime.now().isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
             }
         ]
 
@@ -269,7 +269,7 @@ async def main():
             "coverage_level": "partial",
             "priority": "medium",
             "notes": "Updated via comprehensive test",
-            "updated_at": datetime.now().isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
             "updated_by": TEST_USER_ID,
         }
 
@@ -320,7 +320,7 @@ async def main():
                 "coverage_level": "partial",
                 "priority": "medium",
                 "notes": "Updated via comprehensive test",
-                "created_at": datetime.now().isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
             }
         ]
 
@@ -366,7 +366,7 @@ async def main():
         mock_update.return_value = {
             "id": created_relationship_id,
             "is_deleted": True,
-            "deleted_at": datetime.now().isoformat(),
+            "deleted_at": datetime.now(UTC).isoformat(),
             "deleted_by": TEST_USER_ID,
         }
 
@@ -414,7 +414,7 @@ async def main():
             "user_id": TEST_USER_ID,
             "role": "admin",
             "status": "active",
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         try:
@@ -497,7 +497,7 @@ async def main():
     print()
 
     # Save results to JSON file
-    report_file = f"relationship_tool_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    report_file = f"relationship_tool_test_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
     report_data = {
         "summary": {
             "test_mode": "direct",
@@ -505,7 +505,7 @@ async def main():
             "successful": successful_tests,
             "failed": failed_tests,
             "success_rate": f"{(successful_tests/total_tests*100):.1f}%",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
         "operations_tested": [
             "list (empty state)",

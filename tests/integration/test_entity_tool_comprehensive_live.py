@@ -44,7 +44,7 @@ class TestReport:
         self.start_time = datetime.now(UTC)
 
     def add_test(self, operation: str, entity_type: str, input_params: dict[str, Any],
-                 output: Any, success: bool, duration_ms: float, error: str = None):
+                 output: Any, success: bool, duration_ms: float, error: str | None = None):
         """Add a test result."""
         self.tests.append({
             "operation": operation,

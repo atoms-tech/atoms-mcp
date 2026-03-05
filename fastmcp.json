@@ -1,0 +1,27 @@
+{
+  "$schema": "https://gofastmcp.com/public/schemas/fastmcp.json/v1.json",
+  "source": {
+    "type": "filesystem",
+    "path": "server/core.py",
+    "entrypoint": "create_consolidated_server"
+  },
+  "environment": {
+    "type": "uv",
+    "python": ">=3.11",
+    "project": ".",
+    "editable": [
+      "."
+    ]
+  },
+  "deployment": {
+    "transport": "stdio",
+    "log_level": "INFO",
+    "env": {
+      "ATOMS_FASTMCP_TRANSPORT": "stdio",
+      "ATOMS_FASTMCP_HOST": "127.0.0.1",
+      "ATOMS_FASTMCP_PORT": "8000",
+      "ATOMS_FASTMCP_HTTP_PATH": "/api/mcp"
+    }
+  },
+  "project": "/Users/kooshapari/temp-PRODVERCEL/485/kush/atoms-mcp-prod"
+}

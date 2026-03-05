@@ -32,10 +32,7 @@ class TestIntegrationHOT:
     @pytest.mark.hot
     async def test_entity_creation_hot(self, fast_http_client):
         """Test real entity creation in HOT mode."""
-        result = await fast_http_client.call_tool("entity_tool", {
-            "operation": "list",
-            "entity_type": "document"
-        })
+        result = await fast_http_client.call_tool("entity_tool", {"operation": "list", "entity_type": "document"})
         assert result.get("success")
 
 
@@ -61,11 +58,9 @@ class TestUnitCOLD:
     async def test_logic_only(self, conditional_http_client):
         """Test application logic without external dependencies."""
         # Mocked HTTP client
-        result = await conditional_http_client.call_tool("workspace_tool", {
-            "operation": "create",
-            "entity_type": "organization",
-            "data": {"name": "Test Org"}
-        })
+        result = await conditional_http_client.call_tool(
+            "workspace_tool", {"operation": "create", "entity_type": "organization", "data": {"name": "Test Org"}}
+        )
         assert result["success"]
 
 
@@ -173,14 +168,12 @@ class TestDryModePerformance:
     async def test_dry_very_fast(self, conditional_mcp_client):
         """DRY mode test should complete in < 1 second."""
         import time
+
         start = time.time()
 
         # Simulate multiple operations
-        for i in range(10):
-            await conditional_mcp_client.call_tool(
-                "entity_tool",
-                {"operation": "create", "entity_type": "document"}
-            )
+        for _i in range(10):
+            await conditional_mcp_client.call_tool("entity_tool", {"operation": "create", "entity_type": "document"})
 
         duration = time.time() - start
         # In DRY mode, this should be very fast
@@ -191,8 +184,7 @@ class TestDryModePerformance:
         # Create many simulated entities
         for i in range(100):
             result = await conditional_mcp_client.call_tool(
-                "entity_tool",
-                {"operation": "create", "entity_type": "document", "index": i}
+                "entity_tool", {"operation": "create", "entity_type": "document", "index": i}
             )
             assert result["success"]
 
@@ -237,12 +229,12 @@ class TestModeConfiguration:
 
 
 __all__ = [
-    "TestIntegrationHOT",
-    "TestUnitCOLD",
-    "TestSimulatedDRY",
-    "TestDefaultMode",
     "TestCascadeAcrossModes",
-    "TestModeIsolation",
+    "TestDefaultMode",
     "TestDryModePerformance",
+    "TestIntegrationHOT",
     "TestModeConfiguration",
+    "TestModeIsolation",
+    "TestSimulatedDRY",
+    "TestUnitCOLD",
 ]

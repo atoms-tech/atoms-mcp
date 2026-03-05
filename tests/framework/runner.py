@@ -3,21 +3,24 @@
 import sys
 import time
 import traceback
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mcp_qa.core.base import BaseTestRunner
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 try:
     from mcp_qa.integration.workflows import WorkflowTester as TestWorkflowManager
 except ImportError:
     # Fallback: create a simple workflow manager
-    class TestWorkflowManager:
+    class _FallbackTestWorkflowManager:
         def __init__(self, concurrency=4):
             self.concurrency = concurrency
 
-        async def run_test(self, test_name, callback, metadata=None):
+        async def run_test(self, _test_name, callback, metadata=None):
             import time
+
             start = time.time()
             result = await callback()
             duration = time.time() - start
@@ -26,6 +29,8 @@ except ImportError:
                 "metadata": metadata or {},
                 "duration": duration,
             }
+
+    TestWorkflowManager = _FallbackTestWorkflowManager
 
 
 class AtomsTestRunner(BaseTestRunner):
@@ -159,7 +164,11 @@ class AtomsTestRunner(BaseTestRunner):
                     error = "AssertionError: (assertion failed without message)"
             else:
                 # For other exceptions, use the exception message or type name
-                error = error_msg if error_msg and error_msg.strip() else f"{exc_type.__name__}: (no error message)"
+                error = (
+                    error_msg
+                    if error_msg and error_msg.strip()
+                    else f"{exc_type.__name__ if exc_type else 'Unknown'}: (no error message)"
+                )
 
             result = {
                 "test_name": test_name,

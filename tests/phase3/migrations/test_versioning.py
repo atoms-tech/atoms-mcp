@@ -41,9 +41,7 @@ logger = logging.getLogger(__name__)
 
 async def version_timestamp_up(adapter: DatabaseAdapter):
     """Migration with timestamp version."""
-    await adapter.execute(
-        "CREATE TABLE IF NOT EXISTS version_test (id SERIAL PRIMARY KEY)"
-    )
+    await adapter.execute("CREATE TABLE IF NOT EXISTS version_test (id SERIAL PRIMARY KEY)")
 
 
 async def version_timestamp_down(adapter: DatabaseAdapter):
@@ -59,8 +57,7 @@ async def version_timestamp_down(adapter: DatabaseAdapter):
 @pytest_asyncio.fixture
 async def mock_adapter_versioning():
     """Provide mock adapter for versioning tests."""
-    adapter = MockDatabaseAdapter()
-    return adapter
+    return MockDatabaseAdapter()
 
 
 @pytest_asyncio.fixture
@@ -119,9 +116,7 @@ async def real_adapter_versioning():
 class TestVersioningCOLD:
     """Test versioning functionality with mocked database (COLD mode)."""
 
-    async def test_01_sequential_version_numbering_cold(
-        self, migration_engine_versioning_cold
-    ):
+    async def test_01_sequential_version_numbering_cold(self, migration_engine_versioning_cold):
         """Test sequential version numbering (001, 002, 003).
 
         Given: Migrations with sequential numeric versions
@@ -151,9 +146,7 @@ class TestVersioningCOLD:
             logger.error(f"FAIL: Sequential versioning failed: {e}", exc_info=True)
             raise
 
-    async def test_02_timestamp_version_format_cold(
-        self, migration_engine_versioning_cold
-    ):
+    async def test_02_timestamp_version_format_cold(self, migration_engine_versioning_cold):
         """Test timestamp-based version format (YYYYMMDD_HHMMSS).
 
         Given: Migrations with timestamp versions
@@ -165,15 +158,9 @@ class TestVersioningCOLD:
 
         try:
             # Register migrations with timestamp versions
-            migration_engine_versioning_cold.register(
-                "20240101_120000", "first", migration_001_up
-            )
-            migration_engine_versioning_cold.register(
-                "20240102_120000", "second", migration_002_up
-            )
-            migration_engine_versioning_cold.register(
-                "20240103_120000", "third", migration_003_up
-            )
+            migration_engine_versioning_cold.register("20240101_120000", "first", migration_001_up)
+            migration_engine_versioning_cold.register("20240102_120000", "second", migration_002_up)
+            migration_engine_versioning_cold.register("20240103_120000", "third", migration_003_up)
 
             # Apply migrations
             applied = await migration_engine_versioning_cold.migrate()
@@ -189,9 +176,7 @@ class TestVersioningCOLD:
             logger.error(f"FAIL: Timestamp versioning failed: {e}", exc_info=True)
             raise
 
-    async def test_03_version_dependency_ordering_cold(
-        self, migration_engine_versioning_cold
-    ):
+    async def test_03_version_dependency_ordering_cold(self, migration_engine_versioning_cold):
         """Test that version dependencies are respected.
 
         Given: Migrations with dependencies indicated by versions
@@ -235,9 +220,7 @@ class TestVersioningCOLD:
             logger.error(f"FAIL: Version dependencies failed: {e}", exc_info=True)
             raise
 
-    async def test_04_skipped_version_handling_cold(
-        self, migration_engine_versioning_cold
-    ):
+    async def test_04_skipped_version_handling_cold(self, migration_engine_versioning_cold):
         """Test handling of skipped versions (001, 003, 005).
 
         Given: Migrations with non-sequential versions (gaps)
@@ -284,9 +267,7 @@ class TestVersioningHOT:
     """Test versioning functionality with real database (HOT mode)."""
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_05_version_history_tracking_hot(
-        self, migration_engine_versioning_hot, harmful_tracker
-    ):
+    async def test_05_version_history_tracking_hot(self, migration_engine_versioning_hot, _harmful_tracker):
         """Test that version history is tracked in database.
 
         Given: Multiple migrations applied over time
@@ -323,9 +304,7 @@ class TestVersioningHOT:
             raise
 
     @harmful(cleanup_strategy=CleanupStrategy.CASCADE_DELETE)
-    async def test_06_version_checksum_integrity_hot(
-        self, migration_engine_versioning_hot, harmful_tracker
-    ):
+    async def test_06_version_checksum_integrity_hot(self, migration_engine_versioning_hot, _harmful_tracker):
         """Test that version checksums ensure migration integrity.
 
         Given: Migration with calculated checksum
@@ -337,9 +316,7 @@ class TestVersioningHOT:
 
         try:
             # Register migration
-            migration = migration_engine_versioning_hot.register(
-                "001", "checksummed", migration_001_up
-            )
+            migration = migration_engine_versioning_hot.register("001", "checksummed", migration_001_up)
 
             original_checksum = migration.checksum
             assert original_checksum is not None
@@ -401,9 +378,7 @@ class TestVersioningEdgeCases:
             logger.error(f"FAIL: Version comparison failed: {e}", exc_info=True)
             raise
 
-    async def test_version_with_special_characters(
-        self, migration_engine_versioning_cold
-    ):
+    async def test_version_with_special_characters(self, migration_engine_versioning_cold):
         """Test versions with special characters.
 
         Given: Versions with underscores, dashes, etc.
@@ -415,15 +390,9 @@ class TestVersioningEdgeCases:
 
         try:
             # Register versions with special characters
-            migration_engine_versioning_cold.register(
-                "v1.0.0", "semantic_version", migration_001_up
-            )
-            migration_engine_versioning_cold.register(
-                "2024-01-01", "date_version", migration_002_up
-            )
-            migration_engine_versioning_cold.register(
-                "feature_auth_001", "feature_version", migration_003_up
-            )
+            migration_engine_versioning_cold.register("v1.0.0", "semantic_version", migration_001_up)
+            migration_engine_versioning_cold.register("2024-01-01", "date_version", migration_002_up)
+            migration_engine_versioning_cold.register("feature_auth_001", "feature_version", migration_003_up)
 
             applied = await migration_engine_versioning_cold.migrate()
 
@@ -505,9 +474,7 @@ class TestVersioningEdgeCases:
             # Create very long version string
             long_version = "v" + "1234567890" * 25  # 251 chars
 
-            migration_engine_versioning_cold.register(
-                long_version, "long_version", migration_001_up
-            )
+            migration_engine_versioning_cold.register(long_version, "long_version", migration_001_up)
 
             applied = await migration_engine_versioning_cold.migrate()
 
@@ -523,6 +490,6 @@ class TestVersioningEdgeCases:
 
 __all__ = [
     "TestVersioningCOLD",
-    "TestVersioningHOT",
     "TestVersioningEdgeCases",
+    "TestVersioningHOT",
 ]

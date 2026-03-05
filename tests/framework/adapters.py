@@ -8,13 +8,28 @@ This is the slimmed-down version (~80 lines vs ~200 before) that leverages
 shared infrastructure from pheno-sdk.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from mcp_qa.core.base import BaseClientAdapter
+
+try:
+    from pheno.testing.base.client_adapter import BaseClientAdapter
+except ImportError:
+    # Fallback to old import path if pheno.testing.base not available
+    try:
+        from mcp_qa.core.base import BaseClientAdapter
+    except ImportError:
+        # Create a minimal stub if neither is available
+        class BaseClientAdapter:
+            """Minimal stub for BaseClientAdapter when pheno modules are unavailable."""
+            def __init__(self, client, verbose_on_fail=False):
+                self.client = client
+                self.verbose_on_fail = verbose_on_fail
 
 from utils.logging_setup import get_logger
 
@@ -99,7 +114,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             Exception: If tool call fails
         """
         self._call_count += 1
-        call_start = datetime.now()
+        call_start = datetime.now(UTC)
 
         # Compact params for logging (hide sensitive data, truncate large values)
         params_preview = self._format_params_for_log(params)
@@ -122,7 +137,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             logger.debug(f"← [AFTER PROCESSING] Result processed for {name}")
 
             # Log success with timing
-            duration = (datetime.now() - call_start).total_seconds()
+            duration = (datetime.now(UTC) - call_start).total_seconds()
             success = processed_result.get("success", True) if isinstance(processed_result, dict) else True
 
             # Always log if call was slow or if in debug/verbose mode
@@ -148,7 +163,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             self._error_count += 1
             self._last_error = e
 
-            duration = (datetime.now() - call_start).total_seconds()
+            duration = (datetime.now(UTC) - call_start).total_seconds()
 
             # Track failed call
             self._call_history.append({
@@ -162,10 +177,9 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
             # Log where the failure occurred
             error_type = type(e).__name__
-            logger.error(
+            logger.exception(
                 f"❌ [ERROR] {name} failed after {duration:.2f}s\n"
                 f"   Error type: {error_type}\n"
-                f"   Error: {str(e)[:200]}\n"
                 f"   Params: {params_preview}"
             )
 
@@ -245,22 +259,24 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
 
         # Create HTTP client if needed, using MCP client's auth
         if self._http_client is None:
-            client_kwargs = {
-                "timeout": httpx.Timeout(connect=self.HTTP_TIMEOUT, read=self.HTTP_TIMEOUT, write=self.HTTP_TIMEOUT, pool=self.HTTP_TIMEOUT)
-            }
+            timeout = httpx.Timeout(
+                connect=self.HTTP_TIMEOUT,
+                read=self.HTTP_TIMEOUT,
+                write=self.HTTP_TIMEOUT,
+                pool=self.HTTP_TIMEOUT
+            )
 
             # Use auth from MCP client if available
             if self._auth_handler:
-                client_kwargs["auth"] = self._auth_handler
+                self._http_client = httpx.AsyncClient(timeout=timeout, auth=self._auth_handler)
                 logger.debug("Using auth handler from MCP client")
             # Fallback to access token if provided
             elif self.access_token:
                 # Don't set headers here - set them per-request below
-                pass
+                self._http_client = httpx.AsyncClient(timeout=timeout)
             else:
                 logger.warning("No authentication available - requests may fail")
-
-            self._http_client = httpx.AsyncClient(**client_kwargs)
+                self._http_client = httpx.AsyncClient(timeout=timeout)
 
         try:
             # Make JSON-RPC 2.0 call to MCP endpoint
@@ -339,7 +355,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
             return await self._call_tool_mcp(name, params)
 
         except TimeoutError:
-            logger.error(
+            logger.exception(
                 f"⏱️  [TIMEOUT] Direct HTTP call to {name} exceeded {self.HTTP_TIMEOUT}s timeout\n"
                 f"   Falling back to MCP client protocol..."
             )
@@ -406,7 +422,7 @@ class AtomsMCPClientAdapter(BaseClientAdapter):
         except Exception:
             return str(params)[:200]
 
-    def _process_result(self, result: Any, tool_name: str, params: dict[str, Any]) -> Any:
+    def _process_result(self, result: Any, _tool_name: str, params: dict[str, Any]) -> Any:
         """
         Process Atoms MCP result format.
 

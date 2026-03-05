@@ -136,6 +136,42 @@ pytest -n auto
 pytest -n 4
 ```
 
+### Manual / Operator Suites
+
+Some legacy "comprehensive" runners seed real Supabase data and should be treated as
+manual scripts rather than automated tests. These scripts now live under `tests/manual/`.
+
+```bash
+# Example: run the query tool coverage script with real credentials
+python tests/manual/query_tool_comprehensive.py
+python tests/manual/atoms_comprehensive.py
+python tests/manual/mcp_workspace_comprehensive.py
+```
+
+> These scripts expect environment variables such as `SUPABASE_URL` and
+> `SUPABASE_SERVICE_ROLE_KEY` to be set and will create/delete live data.
+
+### Test Data Generation
+
+All test data is now generated through the unified `DataGenerator` and `EntityFactory` classes
+in `tests/framework/data_generators.py`. This provides:
+
+- Consistent data schemas across all tests
+- Configurable entity counts and metadata
+- Backwards compatibility with legacy test patterns
+- Centralized data generation logic
+
+```python
+from tests.framework import DataGenerator, EntityFactory
+
+# Modern approach
+org_data = DataGenerator.organization_data(name="Test Org")
+project_data = EntityFactory.project(organization_id=org_id)
+
+# Legacy compatibility (deprecated)
+org_data = DataGenerator.create_organization_data()  # Still works but not recommended
+```
+
 ---
 
 ## Test Markers

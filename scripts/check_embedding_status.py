@@ -9,11 +9,12 @@ Usage:
     python scripts/check_embedding_status.py --verbose
 """
 
+import argparse
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -29,11 +30,11 @@ load_dotenv(".env.production", override=False)
 class EmbeddingStatusChecker:
     """Check embedding status across all entities."""
 
-    ENTITY_TYPES = {
+    ENTITY_TYPES: ClassVar[dict[str, str]] = {
         "organization": "organizations",
         "project": "projects",
         "document": "documents",
-        "requirement": "requirements"
+        "requirement": "requirements",
     }
 
     def __init__(self, supabase):
@@ -46,10 +47,10 @@ class EmbeddingStatusChecker:
         total_missing = 0
         total_with_embeddings = 0
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("EMBEDDING STATUS REPORT")
-        print("="*60)
-        print(f"Generated at: {datetime.now().isoformat()}\n")
+        print("=" * 60)
+        print(f"Generated at: {datetime.now(tz=UTC).isoformat()}\n")
 
         for entity_type, table_name in self.ENTITY_TYPES.items():
             status = self._check_entity_status(entity_type, table_name, verbose)
@@ -60,11 +61,13 @@ class EmbeddingStatusChecker:
             total_with_embeddings += status["with_embeddings"]
 
         # Overall summary
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("OVERALL SUMMARY")
-        print("="*60)
+        print("=" * 60)
         print(f"Total entities:        {total_entities:,}")
-        print(f"With embeddings:       {total_with_embeddings:,} ({self._percentage(total_with_embeddings, total_entities)}%)")
+        print(
+            f"With embeddings:       {total_with_embeddings:,} ({self._percentage(total_with_embeddings, total_entities)}%)"
+        )
         print(f"Missing embeddings:    {total_missing:,} ({self._percentage(total_missing, total_entities)}%)")
 
         if total_missing > 0:
@@ -74,30 +77,29 @@ class EmbeddingStatusChecker:
             print("\n✅ All entities have embeddings!")
 
         return {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
             "total_entities": total_entities,
             "total_with_embeddings": total_with_embeddings,
             "total_missing": total_missing,
             "coverage_percentage": self._percentage(total_with_embeddings, total_entities),
-            "by_entity_type": results
+            "by_entity_type": results,
         }
 
     def _check_entity_status(self, entity_type: str, table_name: str, verbose: bool) -> dict[str, Any]:
         """Check embedding status for a specific entity type."""
         try:
             # Total count
-            total_result = self.supabase.table(table_name)\
-                .select("id", count="exact")\
-                .eq("is_deleted", False)\
-                .execute()
+            total_result = self.supabase.table(table_name).select("id", count="exact").eq("is_deleted", False).execute()
             total = total_result.count or 0
 
             # Count with embeddings
-            with_embeddings_result = self.supabase.table(table_name)\
-                .select("id", count="exact")\
-                .not_.is_("embedding", "null")\
-                .eq("is_deleted", False)\
+            with_embeddings_result = (
+                self.supabase.table(table_name)
+                .select("id", count="exact")
+                .not_.is_("embedding", "null")
+                .eq("is_deleted", False)
                 .execute()
+            )
             with_embeddings = with_embeddings_result.count or 0
 
             # Count missing embeddings
@@ -116,13 +118,15 @@ class EmbeddingStatusChecker:
 
             # Verbose: show recent entities without embeddings
             if verbose and missing > 0:
-                recent_missing = self.supabase.table(table_name)\
-                    .select("id, name, created_at")\
-                    .is_("embedding", "null")\
-                    .eq("is_deleted", False)\
-                    .order("created_at", desc=True)\
-                    .limit(5)\
+                recent_missing = (
+                    self.supabase.table(table_name)
+                    .select("id, name, created_at")
+                    .is_("embedding", "null")
+                    .eq("is_deleted", False)
+                    .order("created_at", desc=True)
+                    .limit(5)
                     .execute()
+                )
 
                 if recent_missing.data:
                     print("\nRecent entities without embeddings:")
@@ -131,31 +135,25 @@ class EmbeddingStatusChecker:
                         created = entity.get("created_at", "N/A")
                         print(f"  - {name} (created: {created})")
 
+        except Exception as e:
+            print(f"Error checking {entity_type}: {e}")
+            return {"total": 0, "with_embeddings": 0, "missing": 0, "coverage_percentage": 0, "error": str(e)}
+        else:
             return {
                 "total": total,
                 "with_embeddings": with_embeddings,
                 "missing": missing,
-                "coverage_percentage": coverage
-            }
-
-        except Exception as e:
-            print(f"Error checking {entity_type}: {e}")
-            return {
-                "total": 0,
-                "with_embeddings": 0,
-                "missing": 0,
-                "coverage_percentage": 0,
-                "error": str(e)
+                "coverage_percentage": coverage,
             }
 
     def check_recent_creations(self, hours: int = 24) -> dict[str, Any]:
         """Check if recently created entities have embeddings."""
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(tz=UTC) - timedelta(hours=hours)
         cutoff_str = cutoff.isoformat()
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"RECENT CREATIONS (last {hours} hours)")
-        print("="*60)
+        print("=" * 60)
 
         total_recent = 0
         total_recent_missing = 0
@@ -163,21 +161,25 @@ class EmbeddingStatusChecker:
         for entity_type, table_name in self.ENTITY_TYPES.items():
             try:
                 # Recent entities
-                recent = self.supabase.table(table_name)\
-                    .select("id", count="exact")\
-                    .gte("created_at", cutoff_str)\
-                    .eq("is_deleted", False)\
+                recent = (
+                    self.supabase.table(table_name)
+                    .select("id", count="exact")
+                    .gte("created_at", cutoff_str)
+                    .eq("is_deleted", False)
                     .execute()
+                )
 
                 recent_count = recent.count or 0
 
                 # Recent without embeddings
-                recent_missing = self.supabase.table(table_name)\
-                    .select("id", count="exact")\
-                    .gte("created_at", cutoff_str)\
-                    .is_("embedding", "null")\
-                    .eq("is_deleted", False)\
+                recent_missing = (
+                    self.supabase.table(table_name)
+                    .select("id", count="exact")
+                    .gte("created_at", cutoff_str)
+                    .is_("embedding", "null")
+                    .eq("is_deleted", False)
                     .execute()
+                )
 
                 missing_count = recent_missing.count or 0
 
@@ -192,11 +194,7 @@ class EmbeddingStatusChecker:
 
         print(f"\nTotal: {total_recent} recent entities, {total_recent_missing} missing embeddings")
 
-        return {
-            "hours": hours,
-            "total_recent": total_recent,
-            "total_recent_missing": total_recent_missing
-        }
+        return {"hours": hours, "total_recent": total_recent, "total_recent_missing": total_recent_missing}
 
     @staticmethod
     def _percentage(part: int, total: int) -> float:
@@ -207,22 +205,16 @@ class EmbeddingStatusChecker:
 
 
 def main():
-    import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Check embedding status across all entities"
-    )
+    parser = argparse.ArgumentParser(description="Check embedding status across all entities")
     parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
-        help="Show detailed information including recent entities without embeddings"
+        help="Show detailed information including recent entities without embeddings",
     )
     parser.add_argument(
-        "--recent",
-        type=int,
-        default=24,
-        help="Check entities created in the last N hours (default: 24)"
+        "--recent", type=int, default=24, help="Check entities created in the last N hours (default: 24)"
     )
 
     args = parser.parse_args()

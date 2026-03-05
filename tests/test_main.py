@@ -13,7 +13,6 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-import requests
 
 # Ensure shared mcp_qa library is importable before local packages
 _TESTS_DIR = Path(__file__).resolve().parent
@@ -31,28 +30,20 @@ for _path in _SHARED_QA_PATHS:
 sys.path.insert(0, str(_TESTS_DIR.parent))
 
 # Import from pheno-sdk (mcp_qa)
-from pheno.mcp.qa.config.endpoints import EndpointRegistry, MCPProject  # noqa: E402
-from pheno.testing.mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings  # noqa: E402
-from pheno.testing.mcp_qa.testing.test_cache import TestCache  # noqa: E402
+from pheno.mcp.qa.config.endpoints import EndpointRegistry, MCPProject
+from pheno.testing.mcp_qa.testing import configure_test_logging, suppress_deprecation_warnings
+from pheno.testing.mcp_qa.testing.test_cache import TestCache
 
 # Import test modules to register tests
 # Basic tests (19 tests - tested and working)
 # User stories (12 integration tests - working)
-from tests import (  # noqa: F401, E402
-    test_entity,
-    test_query,
-    test_relationship,
-    test_user_stories,  # noqa: F401, E402
-    test_workflow,
-    test_workspace,
-)
 
 # Comprehensive tests (FIXED - parameters corrected)
 try:
     from tests import (
-        test_entity_comprehensive,  # noqa: F401
-        test_query_comprehensive,  # noqa: F401
-        test_workspace_comprehensive,  # noqa: F401
+        test_entity_comprehensive,
+        test_query_comprehensive,
+        test_workspace_comprehensive,
     )
     # Relationship and workflow still need real UUIDs - skip for now
     COMPREHENSIVE_AVAILABLE = True
@@ -133,14 +124,13 @@ def _check_preview_server_health() -> tuple[bool, str | None]:
         response = requests.get(health_url, timeout=5)
         if response.status_code == 200:
             return True, None
-        else:
-            return False, f"Preview server returned status {response.status_code}"
+        return False, f"Preview server returned status {response.status_code}"
     except requests.exceptions.Timeout:
         return False, "Preview server health check timed out"
     except requests.exceptions.ConnectionError:
         return False, "Cannot connect to preview server"
     except Exception as e:
-        return False, f"Preview server health check failed: {str(e)}"
+        return False, f"Preview server health check failed: {e!s}"
 
 
 async def main():
@@ -232,10 +222,9 @@ Examples:
 
     # Clear OAuth cache if requested
     oauth_cache_file = Path.home() / ".atoms_mcp_test_cache" / "credentials.json"
-    if args.clear_oauth:
-        if oauth_cache_file.exists():
-            oauth_cache_file.unlink()
-            print("✅ OAuth cache cleared")
+    if args.clear_oauth and oauth_cache_file.exists():
+        oauth_cache_file.unlink()
+        print("✅ OAuth cache cleared")
 
     # Clear all caches if requested
     if args.clear_cache:
@@ -298,7 +287,7 @@ Examples:
             print(f"Command: {' '.join(pytest_args)}\n")
 
         # Run pytest - auth plugin handles authentication automatically
-        result = subprocess.run(pytest_args, cwd=Path(__file__).parent.parent)
+        result = subprocess.run(pytest_args, check=False, cwd=Path(__file__).parent.parent)
         return result.returncode
 
     except TimeoutError:

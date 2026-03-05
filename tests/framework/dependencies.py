@@ -44,7 +44,7 @@ class FlowPattern(Enum):
 
 
 # Flow pattern definitions
-FLOW_DEFINITIONS = {
+FLOW_DEFINITIONS: dict[FlowPattern, dict[str, Any]] = {
     FlowPattern.CRUD: {
         "stages": ["list", "create", "read", "update", "delete", "verify"],
         "dependencies": {
@@ -110,7 +110,9 @@ class TestResultRegistry:
         self.results: dict[str, TestResult] = {}
         self.shared_data: dict[str, Any] = {}
 
-    def store_result(self, test_name: str, passed: bool, data: dict = None, error: str = None) -> TestResult:
+    def store_result(
+        self, test_name: str, passed: bool, data: dict | None = None, error: str | None = None
+    ) -> TestResult:
         """Store result of a test."""
         result = TestResult(test_name=test_name, passed=passed, data=data or {}, error=error)
         self.results[test_name] = result
@@ -160,7 +162,7 @@ def test_results() -> TestResultRegistry:
 def store_result():
     """Fixture to store test results."""
 
-    def _store(test_name: str, passed: bool, data: dict = None, error: str = None) -> TestResult:
+    def _store(test_name: str, passed: bool, data: dict | None = None, error: str | None = None) -> TestResult:
         return _result_registry.store_result(test_name, passed, data, error)
 
     return _store
@@ -183,9 +185,7 @@ def depends_on(*test_names: str) -> Callable:
     return decorator
 
 
-def flow_stage(
-    stage_name: str, entity_type: str = "", required_data: list[str] = None
-) -> Callable:
+def flow_stage(stage_name: str, entity_type: str = "", required_data: list[str] | None = None) -> Callable:
     """Decorator for a stage in a flow.
 
     Args:
@@ -242,8 +242,7 @@ def cascade_flow(pattern: str = "crud", entity_type: str = "") -> Callable:
                 # Get dependencies for this stage
                 depends_on_stages = flow_def["dependencies"].get(stage_name, [])
                 depends_on_tests = [
-                    f"{stage}" if stage.startswith("test_") else f"test_{stage}"
-                    for stage in depends_on_stages
+                    f"{stage}" if stage.startswith("test_") else f"test_{stage}" for stage in depends_on_stages
                 ]
 
                 # Mark with pytest.mark.dependency
@@ -378,16 +377,16 @@ class FlowTestGenerator:
 
 
 __all__ = [
-    "FlowPattern",
     "FLOW_DEFINITIONS",
+    "FlowPattern",
+    "FlowTestGenerator",
+    "FlowVisualizer",
     "TestResult",
     "TestResultRegistry",
+    "cascade_flow",
     "depends_on",
     "flow_stage",
-    "cascade_flow",
-    "FlowVisualizer",
-    "FlowTestGenerator",
     "get_result_registry",
-    "test_results",
     "store_result",
+    "test_results",
 ]

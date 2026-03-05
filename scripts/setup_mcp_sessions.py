@@ -45,11 +45,12 @@ def run_sql_file(client, sql_file: str) -> None:
         if "check" in sql_file:
             try:
                 client.table("mcp_sessions").select("*").limit(1).execute()
-                print("✅ mcp_sessions table exists (found via query)")
-                return
             except Exception:
                 print("⚠️  mcp_sessions table does not exist yet")
                 return
+
+            print("✅ mcp_sessions table exists (found via query)")
+            return
 
         print(f"❌ Error executing {sql_file}: {e}")
         print("Note: You may need to run this SQL manually in Supabase SQL Editor")
@@ -67,7 +68,7 @@ def main():
         "check_mcp_sessions_table.sql",
         "create_mcp_sessions_table.sql",
         "create_session_rls_policies.sql",
-        "test_session_operations.sql"
+        "test_session_operations.sql",
     ]
 
     for script in scripts:

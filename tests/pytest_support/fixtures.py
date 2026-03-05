@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -11,6 +11,9 @@ import pytest
 from pheno.testing.mcp_qa.oauth import UnifiedCredentialBroker
 
 from tests.framework import AtomsMCPClientAdapter
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
 
 def _build_credential_overrides() -> dict[str, str]:
@@ -37,10 +40,7 @@ async def oauth_broker() -> AsyncIterator[UnifiedCredentialBroker]:
     endpoint = os.getenv("ATOMS_MCP_ENDPOINT", os.getenv("ZEN_MCP_ENDPOINT", "https://mcp.atoms.tech/api/mcp"))
     provider = os.getenv("ATOMS_OAUTH_PROVIDER", os.getenv("ZEN_OAUTH_PROVIDER", "authkit"))
 
-    broker = UnifiedCredentialBroker(
-        mcp_endpoint=endpoint,
-        provider=provider
-    )
+    broker = UnifiedCredentialBroker(mcp_endpoint=endpoint, provider=provider)
 
     try:
         yield broker
@@ -52,7 +52,7 @@ async def oauth_broker() -> AsyncIterator[UnifiedCredentialBroker]:
 async def authenticated_client(oauth_broker: UnifiedCredentialBroker):
     """Return a session-scoped FastMCP client authenticated via OAuth."""
 
-    client, credentials = await oauth_broker.get_authenticated_client()
+    client, _credentials = await oauth_broker.get_authenticated_client()
     return client
 
 
@@ -60,8 +60,7 @@ async def authenticated_client(oauth_broker: UnifiedCredentialBroker):
 async def client_adapter(authenticated_client) -> AsyncIterator[AtomsMCPClientAdapter]:
     """Expose the MCP client through the adapter helpers."""
 
-    adapter = AtomsMCPClientAdapter(authenticated_client, verbose_on_fail=True)
-    return adapter
+    return AtomsMCPClientAdapter(authenticated_client, verbose_on_fail=True)
 
 
 @pytest.fixture(scope="session")
@@ -78,9 +77,7 @@ async def oauth_http_client(oauth_credentials):
 
     import httpx
 
-    async with httpx.AsyncClient(
-        headers={"Authorization": f"Bearer {oauth_credentials.access_token}"}
-    ) as client:
+    async with httpx.AsyncClient(headers={"Authorization": f"Bearer {oauth_credentials.access_token}"}) as client:
         yield client
 
 

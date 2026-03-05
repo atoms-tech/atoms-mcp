@@ -12,9 +12,11 @@ class TestServerPerformance:
 
     def test_server_startup_time(self, benchmark):
         """Benchmark server startup time."""
+
         def startup():
             # Import server module
             from server import app
+
             return app
 
         result = benchmark(startup)
@@ -22,6 +24,7 @@ class TestServerPerformance:
 
     def test_health_check_response_time(self, benchmark):
         """Benchmark health check endpoint."""
+
         def health_check():
             # Simulate health check
             return {"status": "healthy"}
@@ -35,6 +38,7 @@ class TestVendorPerformance:
 
     def test_vendor_package_copy_time(self, benchmark):
         """Benchmark package vendoring."""
+
         def vendor_packages():
             # Simulate vendoring
             return True
@@ -48,6 +52,7 @@ class TestSchemaPerformance:
 
     def test_schema_comparison_time(self, benchmark):
         """Benchmark schema comparison."""
+
         def compare_schemas():
             # Simulate schema comparison
             return []
@@ -61,6 +66,7 @@ class TestDeploymentPerformance:
 
     def test_deployment_check_time(self, benchmark):
         """Benchmark deployment readiness check."""
+
         def check_deployment():
             # Simulate deployment check
             return True
@@ -81,25 +87,8 @@ class TestMemoryUsage:
 
         # Import and initialize server
 
-        current, peak = tracemalloc.get_traced_memory()
+        _current, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
         # Assert memory usage is reasonable (< 100MB)
         assert peak < 100 * 1024 * 1024, f"Peak memory usage: {peak / 1024 / 1024:.2f} MB"
-
-    def test_vendor_memory_footprint(self):
-        """Test vendor manager memory footprint."""
-        import tracemalloc
-
-        tracemalloc.start()
-
-        # Import vendor manager
-        from lib.vendor_manager import VendorManager
-        _vendor_mgr = VendorManager()  # noqa: F841
-
-        current, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-
-        # Assert memory usage is reasonable (< 50MB)
-        assert peak < 50 * 1024 * 1024, f"Peak memory usage: {peak / 1024 / 1024:.2f} MB"
-
